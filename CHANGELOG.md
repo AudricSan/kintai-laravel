@@ -6,6 +6,9 @@ All notable changes to Kintai are documented here.
 
 ## [Unreleased]
 
+### Changed
+- **Kintai now runs on Laravel 13**, with no feature removed: Laravel's kernel, router (`php artisan route:list`), service container, Blade views, Artisan commands (`php artisan list kintai`), auth guard and Gate, and validator. Bundles, their contract (1.30.0), routes and views keep working unchanged, including bundles that include core partials by their old `src/` path. A 0.x instance moves to it with the usual **Update** button: the release archive carries a `src/` → `app/` relay so the update request finishes cleanly (maintenance mode switched off, audit entry written).
+
 ### CI
 - New `lint` job on every pull request: PHP and JavaScript syntax of the whole repository, JSON files (languages, `composer.json`, contract snapshot), `composer validate` and `composer audit`, and static analysis with PHPStan (level 0, `phpstan.neon`). The `crawl-smoke` job is removed: `crawl-bundles-smoke` runs the same crawl with the bundles installed.
 

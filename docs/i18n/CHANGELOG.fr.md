@@ -6,6 +6,9 @@ Toutes les évolutions notables de Kintai sont documentées ici.
 
 ## [Unreleased]
 
+### Modifié
+- **Kintai tourne désormais sur Laravel 13**, sans fonctionnalité retirée : noyau, routeur (`php artisan route:list`), conteneur de services, vues Blade, commandes Artisan (`php artisan list kintai`), garde d'authentification et Gate, et validateur de Laravel. Les bundles, leur contrat (1.30.0), leurs routes et leurs vues fonctionnent sans changement, y compris ceux qui incluent des partiels du cœur par leur ancien chemin `src/`. Une instance 0.x y passe par le bouton **Mettre à jour** habituel : l'archive de la release contient un relais `src/` → `app/` pour que la requête de mise à jour se termine proprement (mode maintenance levé, entrée du journal écrite).
+
 ### Corrigé
 - Notifications — contrôle de l'adresse du web push complété : `WebPushEndpointValidator` ne regardait que les adresses IPv4 d'un nom, si bien qu'un nom avec une IPv4 publique et une IPv6 interne (ou une forme IPv6 comme NAT64, 6to4, Teredo ou une adresse mappée sur IPv4) était accepté. Il vérifie maintenant tous les enregistrements A et AAAA et refuse ces préfixes. L'adresse est aussi recontrôlée à chaque envoi (`WebPushService`), car un nom peut changer de cible après l'abonnement (rebinding DNS) ; une adresse qui ne passe plus n'est pas contactée, et l'abonnement est conservé pour qu'un échec DNS passager ne le fasse pas perdre.
 - Notifications — redirection ouverte par le lien d'une notification : `/\site.example` (un chemin commençant par une barre oblique inverse, que les navigateurs lisent comme une autre origine) passait le contrôle de `/notifications/{id}/open`. Le lien est maintenant validé par `safe_redirect_path()` à la création de la notification (`NotificationService::notify()` écarte tout lien qui n'est pas un chemin interne, pour la cloche, les toasts, le push et l'e-mail) et à son ouverture (lignes créées avant ce correctif).
