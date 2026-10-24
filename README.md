@@ -143,7 +143,9 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
    - Done: one service container (Kintai's container stores its bindings in Laravel's), Kintai and bundle routes
      registered in Laravel's router (`php artisan route:list`), views rendered by Laravel's view engine (Blade views
      are now possible), and every maintenance script available as an Artisan command (`php artisan list kintai`,
-     e.g. `php artisan kintai:cron backup`; the `scripts/*.php` files keep working).
+     e.g. `php artisan kintai:cron backup`; the `scripts/*.php` files keep working). Laravel's `auth()`, `Auth::`,
+     `@auth` and the Gate (`Gate::allows('shifts.update', $storeId)`, `@can`) answer with Kintai's logged-in user and
+     RBAC permissions.
    - Next: middlewares, session, auth and CSRF, validation, views converted to Blade.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
