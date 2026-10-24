@@ -87,11 +87,7 @@ final class BackupControllerTest extends TestCase
         $_GET = [];
         \kintai\Core\Services\Log::reset();
 
-        $instancesProp = new \ReflectionProperty(Container::class, 'instances');
-        $instancesProp->setAccessible(true);
-        $instances = $instancesProp->getValue(Container::getInstance());
-        unset($instances[TranslationService::class]);
-        $instancesProp->setValue(Container::getInstance(), $instances);
+        Container::getInstance()->forget(TranslationService::class);
     }
 
     private function setPrivate(object $obj, string $prop, mixed $value): void

@@ -21,10 +21,8 @@ final class ShiftServiceTest extends TestCase
     protected function tearDown(): void
     {
         // Congés déclarés par les tests (FakeAbsenceProvider) : ne pas les laisser au conteneur partagé.
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $all = $instances->getValue(Container::getInstance());
-        unset($all[BundleManager::class], $all[ExtensionRegistry::class]);
-        $instances->setValue(Container::getInstance(), $all);
+        Container::getInstance()->forget(BundleManager::class);
+        Container::getInstance()->forget(ExtensionRegistry::class);
     }
 
     protected function setUp(): void

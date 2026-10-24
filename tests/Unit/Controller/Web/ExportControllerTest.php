@@ -110,12 +110,9 @@ final class ExportControllerTest extends TestCase
     {
         unset($_SESSION['auth_user_id'], $_SESSION['auth_pw_fp']);
         Log::reset();
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $bound     = $instances->getValue(Container::getInstance());
         foreach ($this->bound as $class) {
-            unset($bound[$class]);
+            Container::getInstance()->forget($class);
         }
-        $instances->setValue(Container::getInstance(), $bound);
     }
 
     private function bind(string $class, object $instance): void

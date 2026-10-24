@@ -129,9 +129,6 @@ trait CalendarSyncFixture
 
     private function tearDownCalendarFixture(): void
     {
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $all = $instances->getValue(Container::getInstance());
-        unset($all[TranslationService::class]);
-        $instances->setValue(Container::getInstance(), $all);
+        Container::getInstance()->forget(TranslationService::class);
     }
 }

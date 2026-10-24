@@ -44,11 +44,7 @@ final class IcalServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        $instancesProp = new \ReflectionProperty(Container::class, 'instances');
-        $instancesProp->setAccessible(true);
-        $instances = $instancesProp->getValue(Container::getInstance());
-        unset($instances[TranslationService::class]);
-        $instancesProp->setValue(Container::getInstance(), $instances);
+        Container::getInstance()->forget(TranslationService::class);
     }
 
     private function store(): array

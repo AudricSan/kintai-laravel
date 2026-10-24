@@ -992,10 +992,8 @@ final class AdminShiftControllerTest extends TestCase
         $_POST = [];
         $_SERVER = [];
         // Bundles actifs simulés par certains tests : ne pas les laisser au conteneur partagé.
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $all = $instances->getValue(Container::getInstance());
-        unset($all[BundleManager::class], $all[ExtensionRegistry::class]);
-        $instances->setValue(Container::getInstance(), $all);
+        Container::getInstance()->forget(BundleManager::class);
+        Container::getInstance()->forget(ExtensionRegistry::class);
     }
 
     /** shift-claim actif, qui déclare les champs « shift ouvert » du formulaire (contrat 1.17). */

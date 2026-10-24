@@ -43,10 +43,7 @@ final class NotificationBodyHelperTest extends TestCase
             return;
         }
         // Aucun service auparavant : le retirer, sinon __() traduirait dans les tests suivants qui attendent la clé.
-        $instancesProp = new \ReflectionProperty(Container::class, 'instances');
-        $instances     = $instancesProp->getValue(Container::getInstance());
-        unset($instances[TranslationService::class]);
-        $instancesProp->setValue(Container::getInstance(), $instances);
+        Container::getInstance()->forget(TranslationService::class);
     }
 
     private function lang(string $locale): array

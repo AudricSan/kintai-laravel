@@ -81,11 +81,7 @@ final class IcalControllerFeedTest extends TestCase
     {
         Log::reset();
         // Retire le TranslationService lié dans setUp() : il fausserait les tests qui attendent des clés brutes.
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $instances->setAccessible(true);
-        $bound = $instances->getValue(Container::getInstance());
-        unset($bound[TranslationService::class]);
-        $instances->setValue(Container::getInstance(), $bound);
+        Container::getInstance()->forget(TranslationService::class);
     }
 
     private function request(): Request

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Http;
 
+use Illuminate\Foundation\Application;
 use kintai\Core\Application as KintaiApplication;
+use kintai\Core\Container as KintaiContainer;
 use kintai\Core\Request as KintaiRequest;
 use kintai\Core\Response as KintaiResponse;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -22,7 +24,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class KintaiBridge
 {
-    public function __invoke(): SymfonyResponse
+    public function __invoke(Application $laravel): SymfonyResponse
     {
         // Comme l'ancien public/index.php : toute erreur PHP signalée devient une exception, rendue en page 500.
         set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
@@ -31,6 +33,9 @@ final class KintaiBridge
             }
             throw new \ErrorException($message, 0, $severity, $file, $line);
         });
+
+        // Les services Kintai s'enregistrent dans le conteneur de l'application Laravel : un seul conteneur.
+        KintaiContainer::setInstance(new KintaiContainer($laravel));
 
         $app = new KintaiApplication(BASE_PATH);
         $app->boot();

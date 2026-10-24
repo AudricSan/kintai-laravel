@@ -82,10 +82,8 @@ final class StaffViewPermissionGatesTest extends TestCase
         try {
             $html = $this->renderUsersWithAllPermissions();
         } finally {
-            $instances = new \ReflectionProperty(Container::class, 'instances');
-            $all = $instances->getValue($container);
-            unset($all[BundleManager::class], $all[ExtensionRegistry::class]);
-            $instances->setValue($container, $all);
+            $container->forget(BundleManager::class);
+            $container->forget(ExtensionRegistry::class);
         }
 
         $this->assertStringContainsString('/admin/users/create', $html);
@@ -265,10 +263,8 @@ final class StaffViewPermissionGatesTest extends TestCase
         try {
             $html = $this->renderEmployeeStats();
         } finally {
-            $instances = new \ReflectionProperty(Container::class, 'instances');
-            $all = $instances->getValue($container);
-            unset($all[BundleManager::class], $all[ExtensionRegistry::class]);
-            $instances->setValue($container, $all);
+            $container->forget(BundleManager::class);
+            $container->forget(ExtensionRegistry::class);
         }
 
         $this->assertMatchesRegularExpression('#class="btn btn--primary btn--sm" href="/admin/stores/4/reports/salary/create\?user_id=9">💰 #', $html);

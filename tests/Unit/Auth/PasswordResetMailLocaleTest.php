@@ -51,11 +51,7 @@ final class PasswordResetMailLocaleTest extends TestCase
     protected function tearDown(): void
     {
         // Les autres tests supposent qu'aucun traducteur n'est enregistré (__() renvoie alors la clé).
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $instances->setAccessible(true);
-        $current = $instances->getValue(Container::getInstance());
-        unset($current[TranslationService::class]);
-        $instances->setValue(Container::getInstance(), $current);
+        Container::getInstance()->forget(TranslationService::class);
     }
 
     private function call(string $method, mixed ...$args): mixed

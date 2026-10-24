@@ -5,22 +5,30 @@ declare(strict_types=1);
 namespace kintai\Core;
 
 use Closure;
-use ReflectionClass;
-use ReflectionParameter;
+use Illuminate\Container\Container as IlluminateContainer;
+use Illuminate\Contracts\Container\BindingResolutionException;
+use kintai\Foundation\AliasAwareContainer;
 use RuntimeException;
 
+/**
+ * Conteneur d'injection de Kintai, adossé à celui de Laravel.
+ *
+ * L'API reste celle de Kintai (bind, singleton, instance, has, make), utilisée par le cœur et par les bundles
+ * (kintai\Contract\Container). Les liaisons sont stockées dans un conteneur Illuminate : dans l'application web, c'est
+ * l'application Laravel elle-même (voir {@see self::setInstance()}), si bien qu'un service enregistré d'un côté se
+ * résout de l'autre (app(...), injection dans les contrôleurs Laravel…). Un conteneur créé avec `new Container()`
+ * garde son propre conteneur Illuminate, vide, comme avant.
+ */
 final class Container
 {
     private static ?Container $instance = null;
 
-    /** @var array<string, \Closure> */
-    private array $bindings = [];
+    private IlluminateContainer $laravel;
 
-    /** @var array<string, \Closure> */
-    private array $singletonDefs = [];
-
-    /** @var array<string, object> */
-    private array $instances = [];
+    public function __construct(?IlluminateContainer $laravel = null)
+    {
+        $this->laravel = $laravel ?? new AliasAwareContainer();
+    }
 
     public static function getInstance(): Container
     {
@@ -30,24 +38,42 @@ final class Container
         return self::$instance;
     }
 
+    /** Remplace le conteneur global (null : un nouveau sera créé au prochain getInstance()). */
+    public static function setInstance(?Container $container): void
+    {
+        self::$instance = $container;
+    }
+
+    /** Le conteneur Illuminate qui porte les liaisons. */
+    public function laravel(): IlluminateContainer
+    {
+        return $this->laravel;
+    }
+
     public function bind(string $abstract, Closure $factory): void
     {
-        $this->bindings[$abstract] = $factory;
+        $this->laravel->bind($abstract, fn() => $factory($this));
     }
 
     public function singleton(string $abstract, Closure $factory): void
     {
-        $this->singletonDefs[$abstract] = $factory;
+        $this->laravel->singleton($abstract, fn() => $factory($this));
     }
 
     public function instance(string $abstract, object $object): void
     {
-        $this->instances[$abstract] = $object;
+        $this->laravel->instance($abstract, $object);
+    }
+
+    /** Retire la liaison (instance, singleton ou fabrique) : le nom est de nouveau résolu par réflexion. */
+    public function forget(string $abstract): void
+    {
+        $this->laravel->offsetUnset($abstract);
     }
 
     public function has(string $abstract): bool
     {
-        if (isset($this->instances[$abstract]) || isset($this->singletonDefs[$abstract]) || isset($this->bindings[$abstract])) {
+        if ($this->laravel->bound($abstract)) {
             return true;
         }
         // Alias du contrat de bundle : la liaison existe sous le nom réel.
@@ -62,32 +88,17 @@ final class Container
      */
     public function make(string $abstract): mixed
     {
-        // 1. Pre-built instance
-        if (isset($this->instances[$abstract])) {
-            return $this->instances[$abstract];
+        // Alias (noms du contrat de bundle, kintai\Contract\…) : les liaisons sont enregistrées sous le nom réel de la
+        // classe ; un bundle qui demande l'alias doit obtenir la même instance, y compris pour les dépendances.
+        if (!$this->laravel->bound($abstract)) {
+            $abstract = self::canonicalName($abstract);
         }
 
-        // 2. Singleton (resolve once, cache)
-        if (isset($this->singletonDefs[$abstract])) {
-            $this->instances[$abstract] = ($this->singletonDefs[$abstract])($this);
-            unset($this->singletonDefs[$abstract]);
-            return $this->instances[$abstract];
+        try {
+            return $this->laravel->make($abstract);
+        } catch (BindingResolutionException $e) {
+            throw new RuntimeException("Cannot resolve [{$abstract}]: {$e->getMessage()}", 0, $e);
         }
-
-        // 3. Factory binding (new instance each call)
-        if (isset($this->bindings[$abstract])) {
-            return ($this->bindings[$abstract])($this);
-        }
-
-        // 4. Alias (noms du contrat de bundle, kintai\Contract\…) : les liaisons sont enregistrées sous le nom réel
-        //    de la classe ; un bundle qui demande l'alias doit obtenir la même instance.
-        $canonical = self::canonicalName($abstract);
-        if ($canonical !== $abstract) {
-            return $this->make($canonical);
-        }
-
-        // 5. Auto-resolve via reflection
-        return $this->resolve($abstract);
     }
 
     /** Nom réel d'une classe ou interface désignée par un alias (class_alias), ou le nom tel quel. */
@@ -97,48 +108,5 @@ final class Container
             return $abstract;
         }
         return (new \ReflectionClass($abstract))->getName();
-    }
-
-    private function resolve(string $class): object
-    {
-        if (!class_exists($class)) {
-            throw new RuntimeException("Cannot resolve [{$class}]: class not found.");
-        }
-
-        $reflection = new ReflectionClass($class);
-
-        if (!$reflection->isInstantiable()) {
-            throw new RuntimeException("Cannot resolve [{$class}]: not instantiable.");
-        }
-
-        $constructor = $reflection->getConstructor();
-
-        if ($constructor === null) {
-            return new $class();
-        }
-
-        $params = array_map(
-            fn(ReflectionParameter $p) => $this->resolveParameter($p, $class),
-            $constructor->getParameters()
-        );
-
-        return $reflection->newInstanceArgs($params);
-    }
-
-    private function resolveParameter(ReflectionParameter $param, string $forClass): mixed
-    {
-        $type = $param->getType();
-
-        if ($type !== null && !$type->isBuiltin()) {
-            return $this->make($type->getName());
-        }
-
-        if ($param->isDefaultValueAvailable()) {
-            return $param->getDefaultValue();
-        }
-
-        throw new RuntimeException(
-            "Cannot resolve parameter [{$param->getName()}] for [{$forClass}]."
-        );
     }
 }

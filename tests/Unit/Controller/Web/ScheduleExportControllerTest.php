@@ -84,11 +84,7 @@ final class ScheduleExportControllerTest extends TestCase
     {
         unset($_SESSION['auth_user_id'], $_SESSION['auth_pw_fp']);
         Log::reset();
-        $instances = new \ReflectionProperty(Container::class, 'instances');
-        $instances->setAccessible(true);
-        $bound = $instances->getValue(Container::getInstance());
-        unset($bound[TranslationService::class]);
-        $instances->setValue(Container::getInstance(), $bound);
+        Container::getInstance()->forget(TranslationService::class);
     }
 
     /** @param array<string, string> $query */
