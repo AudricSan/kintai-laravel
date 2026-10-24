@@ -18,14 +18,24 @@ use RuntimeException;
  * Rendu des vues de Kintai et de ses bundles, sur le moteur de vues de Laravel.
  *
  * Une vue se désigne en notation pointée (« auth.login » → auth/login.php, « messaging::inbox » → la vue inbox du
- * namespace messaging). Elle peut être une vue PHP (.php, rendue comme avant, voir {@see KintaiPhpEngine}) ou une vue
- * Blade (.blade.php), prioritaire à nom égal.
+ * namespace messaging). Elle peut être une vue Blade (.blade.php), prioritaire à nom égal, ou une vue PHP (.php,
+ * rendue comme avant, voir {@see KintaiPhpEngine}).
+ *
+ * En plus des directives de Blade : @includeInScope('_partials.x') insère une vue dans la portée de la vue courante,
+ * comme le faisait un include PHP. Elle lit et peut définir les variables de la vue appelante ; @include, lui, ne lui
+ * transmet qu'une copie.
  */
 final class ViewRenderer
 {
     private string $basePath;
 
     private Factory $factory;
+
+    /** Moteur de la vue en cours de rendu : celui des vues insérées par @includeInScope, même depuis une fonction. */
+    private static ?Factory $current = null;
+
+    /** Dernier moteur utilisé, à défaut de vue en cours de rendu et de ViewRenderer de l'application. */
+    private static ?Factory $lastUsed = null;
 
     public function __construct(string $basePath)
     {
@@ -34,7 +44,7 @@ final class ViewRenderer
         $files   = new Filesystem();
         $engines = new EngineResolver();
         $engines->register('php', fn() => new KintaiPhpEngine($files));
-        $engines->register('blade', fn() => new CompilerEngine(new BladeCompiler($files, self::compiledPath()), $files));
+        $engines->register('blade', fn() => new KintaiBladeEngine(self::bladeCompiler($files), $files));
 
         $this->factory = new Factory($engines, new FileViewFinder($files, [$this->basePath], ['blade.php', 'php']), new Dispatcher());
     }
@@ -92,7 +102,14 @@ final class ViewRenderer
             throw $this->notFound($view);
         }
 
-        return $this->factory->file($file, $data)->render();
+        $previous       = self::$current;
+        self::$current  = $this->factory;
+        self::$lastUsed = $this->factory;
+        try {
+            return $this->factory->file($file, $data)->render();
+        } finally {
+            self::$current = $previous;
+        }
     }
 
     private function notFound(string $view): RuntimeException
@@ -110,6 +127,57 @@ final class ViewRenderer
         $file = $base . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $viewName) . '.php';
 
         return new RuntimeException("View [{$view}] not found at [{$file}].");
+    }
+
+    /**
+     * Fichier à inclure pour insérer la vue $name dans la portée courante (@includeInScope) : la vue compilée pour une
+     * vue Blade, le fichier lui-même pour une vue PHP.
+     */
+    public static function pathInScope(string $name, ?Factory $env = null): string
+    {
+        $env ??= self::current();
+        self::$lastUsed = $env;
+        $path   = $env->getFinder()->find($name);
+        $engine = $env->getEngineFromPath($path);
+        if (!$engine instanceof CompilerEngine) {
+            return $path;
+        }
+
+        $compiler = $engine->getCompiler();
+        if ($compiler->isExpired($path)) {
+            $compiler->compile($path);
+        }
+
+        return $compiler->getCompiledPath($path);
+    }
+
+    /** Moteur de la vue en cours de rendu. */
+    public static function current(): Factory
+    {
+        if (self::$current !== null) {
+            return self::$current;
+        }
+        $container = \kintai\Core\Container::getInstance();
+
+        return $container->has(self::class) || self::$lastUsed === null
+            ? $container->make(self::class)->factory()
+            : self::$lastUsed;
+    }
+
+    private static function bladeCompiler(Filesystem $files): BladeCompiler
+    {
+        $compiler = new BladeCompiler($files, self::compiledPath());
+        $compiler->directive(
+            'includeInScope',
+            static fn(string $expression): string => '<?php include \\' . self::class . '::pathInScope(' . $expression . '); ?>',
+        );
+        // Une vue insérée depuis une fonction (tampon ob_start() dans une closure…) n'a pas $__env, dont Blade a
+        // besoin (@foreach…). Le saut de ligne qui suit la balise est mangé par PHP : la sortie reste identique.
+        $compiler->precompiler(
+            static fn(string $value): string => '<?php $__env ??= \\' . self::class . "::current(); ?>\n" . $value,
+        );
+
+        return $compiler;
     }
 
     /** Dossier des vues Blade compilées (storage/framework/views). */

@@ -28,7 +28,7 @@ final class ExportTranslationsTest extends TestCase
         }
 
         // Textes de la page, de son contrôleur, du contrôle d'accès et messages d'erreur construits par suffixe.
-        foreach (['/app/UI/View/exports/index.php', '/app/UI/Controller/Web/ExportController.php', '/app/Core/Export/ExportAccess.php'] as $file) {
+        foreach (['/app/UI/View/exports/index.blade.php', '/app/UI/Controller/Web/ExportController.php', '/app/Core/Export/ExportAccess.php'] as $file) {
             preg_match_all("/__\('(export_[a-z_]+)'\)/", (string) file_get_contents($root . $file), $m);
             array_push($keys, ...$m[1]);
         }

@@ -17,7 +17,7 @@ final class Error403ViewTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include __DIR__ . '/../../../app/UI/View/errors/403.php';
+        include \kintai\UI\ViewRenderer::pathInScope('errors.403', (new \kintai\UI\ViewRenderer(__DIR__ . '/../../../app/UI/View'))->factory());
         return ob_get_clean();
     }
 

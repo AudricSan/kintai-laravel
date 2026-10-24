@@ -147,11 +147,12 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
      `@auth` and the Gate (`Gate::allows('shifts.update', $storeId)`, `@can`) answer with Kintai's logged-in user and
      RBAC permissions. Laravel's validator (`validator()`, `Validator::make`, `->validate()`) speaks Kintai's
      validation messages in the user's language, and its errors are answered like Kintai's own (422 JSON, or back to
-     the form with the input kept).
-   - Next: views converted to Blade, then middlewares, session and CSRF on Laravel's own stack.
+     the form with the input kept). Every core view is a Blade template (`app/UI/View/**/*.blade.php`); a bundle's
+     plain PHP views keep working, and the old `src/UI/View/_partials/*.php` paths still include the shared partials.
+   - Next: middlewares, session and CSRF on Laravel's own stack.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
-every form, logged in as the Owner, must give the same response and leave the same database.
+every form, logged in as the Owner, a manager and an employee, with and without bundles, must give the same response and leave the same database.
 
 Deeper dives: [Architecture (wiki)](https://github.com/AudricSan/Kintai/wiki/Architecture) · [Database Strategy (wiki)](https://github.com/AudricSan/Kintai/wiki/Database-Strategy) · [Multi-Tenancy (wiki)](https://github.com/AudricSan/Kintai/wiki/Multi-Tenancy)
 

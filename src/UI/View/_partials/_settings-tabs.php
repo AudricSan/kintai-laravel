@@ -1,6 +1,6 @@
 <?php
 
-// Ancien chemin, gardé pour les bundles qui incluent ce partiel par son chemin : avec Laravel, src/ est devenu app/.
-// Inclure plutôt app/UI/View/_partials/_settings-tabs.php, ou mieux :
+// Ancien chemin, gardé pour les bundles qui incluent ce partiel par son chemin : avec Laravel, src/ est devenu app/ et
+// les vues sont en Blade. Le partiel est inséré dans la portée de l'appelant, comme avant. Préférer :
 // $view->renderPartial('_partials._settings-tabs', [...]).
-include dirname(__DIR__, 4) . '/app/UI/View/_partials/_settings-tabs.php';
+include \kintai\UI\ViewRenderer::pathInScope('_partials._settings-tabs');

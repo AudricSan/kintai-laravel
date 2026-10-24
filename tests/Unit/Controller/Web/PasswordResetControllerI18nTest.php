@@ -136,8 +136,8 @@ final class PasswordResetControllerI18nTest extends TestCase
         // Garde-fou contre le retour d'un texte en dur : ni accent, ni mot français courant.
         foreach ([
             'app/UI/Controller/Web/PasswordResetController.php',
-            'app/UI/View/auth/reset-password.php',
-            'app/UI/View/auth/forgot-password.php',
+            'app/UI/View/auth/reset-password.blade.php',
+            'app/UI/View/auth/forgot-password.blade.php',
         ] as $file) {
             $code = (string) file_get_contents(dirname(__DIR__, 4) . '/' . $file);
             // On ignore les commentaires (écrits en français par convention du projet).

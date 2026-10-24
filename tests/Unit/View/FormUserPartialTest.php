@@ -12,7 +12,7 @@ final class FormUserPartialTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include __DIR__ . '/../../../app/UI/View/_partials/_form-user.php';
+        include \kintai\UI\ViewRenderer::pathInScope('_partials._form-user', (new \kintai\UI\ViewRenderer(__DIR__ . '/../../../app/UI/View'))->factory());
         return ob_get_clean();
     }
 

@@ -44,7 +44,7 @@ final class FooterSupportModalsTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include self::VIEWS . '/layout/partials/report-issue-modal.php';
+        include \kintai\UI\ViewRenderer::pathInScope('layout.partials.report-issue-modal', (new \kintai\UI\ViewRenderer(self::VIEWS))->factory());
         return (string) ob_get_clean();
     }
 
@@ -54,7 +54,7 @@ final class FooterSupportModalsTest extends TestCase
         $auth_user = ['id' => 1, 'is_admin' => 0];
         $isManager = false;
         ob_start();
-        include self::VIEWS . '/layout/partials/_footer.php';
+        include \kintai\UI\ViewRenderer::pathInScope('layout.partials._footer', (new \kintai\UI\ViewRenderer(self::VIEWS))->factory());
         return (string) ob_get_clean();
     }
 
@@ -85,6 +85,7 @@ final class FooterSupportModalsTest extends TestCase
     public function testCoreLayoutNoLongerShipsTheFeedbackModal(): void
     {
         $this->assertFileDoesNotExist(self::VIEWS . '/layout/partials/feedback-modal.php');
-        $this->assertStringNotContainsString('feedback', (string) file_get_contents(self::VIEWS . '/layout/app.php'));
+        $this->assertFileDoesNotExist(self::VIEWS . '/layout/partials/feedback-modal.blade.php');
+        $this->assertStringNotContainsString('feedback', (string) file_get_contents(self::VIEWS . '/layout/app.blade.php'));
     }
 }
