@@ -4,31 +4,55 @@ declare(strict_types=1);
 
 namespace kintai\UI;
 
+use Illuminate\Events\Dispatcher;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\View\Compilers\BladeCompiler;
+use Illuminate\View\Engines\CompilerEngine;
+use Illuminate\View\Engines\EngineResolver;
+use Illuminate\View\Factory;
+use Illuminate\View\FileViewFinder;
+use InvalidArgumentException;
 use RuntimeException;
 
+/**
+ * Rendu des vues de Kintai et de ses bundles, sur le moteur de vues de Laravel.
+ *
+ * Une vue se désigne en notation pointée (« auth.login » → auth/login.php, « messaging::inbox » → la vue inbox du
+ * namespace messaging). Elle peut être une vue PHP (.php, rendue comme avant, voir {@see KintaiPhpEngine}) ou une vue
+ * Blade (.blade.php), prioritaire à nom égal.
+ */
 final class ViewRenderer
 {
     private string $basePath;
 
-    /** @var array<string, string> Namespaced view paths */
-    private array $namespaces = [];
-
-    /** @var array<string, mixed> Shared data available in all views */
-    private array $shared = [];
+    private Factory $factory;
 
     public function __construct(string $basePath)
     {
         $this->basePath = rtrim($basePath, '/\\');
+
+        $files   = new Filesystem();
+        $engines = new EngineResolver();
+        $engines->register('php', fn() => new KintaiPhpEngine($files));
+        $engines->register('blade', fn() => new CompilerEngine(new BladeCompiler($files, self::compiledPath()), $files));
+
+        $this->factory = new Factory($engines, new FileViewFinder($files, [$this->basePath], ['blade.php', 'php']), new Dispatcher());
+    }
+
+    /** Le moteur de vues Laravel qui rend les vues de ce ViewRenderer. */
+    public function factory(): Factory
+    {
+        return $this->factory;
     }
 
     public function share(string $key, mixed $value): void
     {
-        $this->shared[$key] = $value;
+        $this->factory->share($key, $value);
     }
 
     public function get(string $key): mixed
     {
-        return $this->shared[$key] ?? null;
+        return $this->factory->shared($key);
     }
 
     /**
@@ -36,7 +60,7 @@ final class ViewRenderer
      */
     public function addNamespace(string $namespace, string $path): void
     {
-        $this->namespaces[$namespace] = rtrim($path, '/\\');
+        $this->factory->replaceNamespace($namespace, rtrim($path, '/\\'));
     }
 
     /**
@@ -62,35 +86,40 @@ final class ViewRenderer
      */
     public function renderPartial(string $view, array $data = []): string
     {
-        $file = $this->resolvePath($view);
-
-        if (!file_exists($file)) {
-            throw new RuntimeException("View [{$view}] not found at [{$file}].");
+        try {
+            $file = $this->factory->getFinder()->find($view);
+        } catch (InvalidArgumentException) {
+            throw $this->notFound($view);
         }
 
-        $allData = array_merge($this->shared, $data);
-
-        ob_start();
-        (static function (string $_file, array $_data) {
-            extract($_data, EXTR_SKIP);
-            include $_file;
-        })($file, $allData);
-
-        return ob_get_clean();
+        return $this->factory->file($file, $data)->render();
     }
 
-    private function resolvePath(string $view): string
+    private function notFound(string $view): RuntimeException
     {
+        $viewName = $view;
+        $base     = $this->basePath;
         if (str_contains($view, '::')) {
             [$namespace, $viewName] = explode('::', $view, 2);
-            if (!isset($this->namespaces[$namespace])) {
-                throw new RuntimeException("View namespace [{$namespace}] not registered.");
+            $hints = $this->factory->getFinder()->getHints();
+            if (!isset($hints[$namespace])) {
+                return new RuntimeException("View namespace [{$namespace}] not registered.");
             }
-            $relative = str_replace('.', DIRECTORY_SEPARATOR, $viewName) . '.php';
-            return $this->namespaces[$namespace] . DIRECTORY_SEPARATOR . $relative;
+            $base = $hints[$namespace][0];
+        }
+        $file = $base . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $viewName) . '.php';
+
+        return new RuntimeException("View [{$view}] not found at [{$file}].");
+    }
+
+    /** Dossier des vues Blade compilées (storage/framework/views). */
+    private static function compiledPath(): string
+    {
+        $path = storage_path('framework/views');
+        if (!is_dir($path)) {
+            @mkdir($path, 0775, true);
         }
 
-        $relative = str_replace('.', DIRECTORY_SEPARATOR, $view) . '.php';
-        return $this->basePath . DIRECTORY_SEPARATOR . $relative;
+        return $path;
     }
 }
