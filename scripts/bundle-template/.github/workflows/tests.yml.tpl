@@ -2,12 +2,12 @@ name: Tests
 
 # Required status check backing branch protection on main/alpha/beta (see
 # CONTRIBUTING.md). Unlike most Kintai bundles, this one ships a real PHPUnit
-# suite (tests/) — its composer.json's autoload-dev maps the kintai\ root
-# straight to the real Kintai Core's src/ (relative path, same sibling-repo
-# layout as the local KintaiBundleDev/ workspace), so controllers/migrations
-# are exercised against the actual classes, not reimplemented fakes. That
-# means CI needs Kintai checked out alongside this repo at the exact same
-# relative path composer.json expects (../../Kintai from this repo's root).
+# suite (tests/) — tests/bootstrap.php loads the real Kintai Core's autoloader
+# (its classes, helpers and Laravel, from ../../Kintai/vendor), so
+# controllers/migrations are exercised against the actual classes, not
+# reimplemented fakes. That means CI needs Kintai checked out alongside this
+# repo at the exact same relative path (../../Kintai from this repo's root),
+# with its Composer dependencies installed.
 
 on:
   push:
@@ -57,6 +57,10 @@ jobs:
           for f in bundle.json lang/*.json; do
             jq empty "$f"
           done
+
+      - name: Install Kintai Core dependencies
+        working-directory: Kintai
+        run: composer install --no-interaction --prefer-dist
 
       - name: Install dependencies
         working-directory: KintaiBundleDev/kintai-bundle-{{slug}}
