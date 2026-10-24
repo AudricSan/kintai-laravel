@@ -1,0 +1,20 @@
+/* ================================================
+   Kintai — CSS Source Entry Point
+   Build : postcss src/app.css --dir ../ --env production
+   ================================================ */
+
+/* Pas de ?v=... sur ces @import : public/assets/.htaccess force
+   Cache-Control: no-cache sur tout .css/.js sous public/assets/, donc le
+   navigateur revalide (ETag/Last-Modified) à chaque requête au lieu de servir
+   une copie obsolète indéfiniment — pas besoin de suffixe de version ici. */
+@import url('./variables.css');
+@import url('./src/base.css');
+@import url('./src/components.css');
+@import url('./src/features.css');
+@import url('./src/utilities.css');
+/* Doit rester le dernier import : à spécificité égale, une règle non
+   conditionnelle chargée après une media query dans responsive.css
+   l'emporterait sur elle (ex. .dash-two-col dans utilities.css cassait
+   le passage à 1 colonne en mobile tant que ce fichier était importé
+   après responsive.css). */
+@import url('./src/responsive.css');

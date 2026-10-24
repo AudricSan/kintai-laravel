@@ -1,0 +1,23 @@
+[
+    {
+        "code": "fr",
+        "name": "Français",
+        "is_active": true,
+        "is_default": false,
+        "sort_order": 1
+    },
+    {
+        "code": "en",
+        "name": "English",
+        "is_active": true,
+        "is_default": false,
+        "sort_order": 2
+    },
+    {
+        "code": "ja",
+        "name": "日本語",
+        "is_active": true,
+        "is_default": true,
+        "sort_order": 0
+    }
+]

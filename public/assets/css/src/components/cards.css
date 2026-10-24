@@ -1,0 +1,380 @@
+/* ================================================
+   Kintai — Cartes (cards, stat cards, quick nav)
+   ================================================ */
+
+/* ── Cards ──────────────────────────────────────── */
+.card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+/* .card a désormais son propre padding (utile aux cartes sans wrapper
+   interne : un .table-wrap ou un formulaire posés à même la carte se
+   retrouvaient collés à ses bords). Mais .card-header/.card-body/etc.
+   avaient déjà chacun leur propre padding, pensé pour une .card à 0 padding
+   — les deux s'additionnaient et doublaient l'espacement. Marge négative
+   égale au padding de .card sur les enfants concernés : elle annule
+   exactement ce nouveau padding parent sans toucher au padding propre de
+   l'enfant, qui redevient donc le seul espacement effectif (identique à
+   avant ce changement). Horizontalement toujours (aucun effet de bord vu
+   qu'une marge gauche/droite ne s'accumule pas entre lignes empilées) ;
+   verticalement seulement en haut du premier enfant / bas du dernier — une
+   annulation systématique en haut ET en bas de chaque enfant se
+   chevaucherait et écraserait l'espacement entre deux enfants adjacents
+   (ex. card-header et card-body), qui lui ne doit pas changer. */
+.card-header,
+.card-body,
+.card-body--add,
+.card-footer--muted {
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+}
+
+.card-header:first-child,
+.card-body:first-child,
+.card-body--add:first-child {
+    margin-top: calc(-1 * var(--space-4));
+}
+
+.card-body:last-child,
+.card-body--add:last-child,
+.card-footer--muted:last-child {
+    margin-bottom: calc(-1 * var(--space-4));
+}
+
+.card-header {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.card-header h3,
+.card-header h4 {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.card-header--flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card-header--border-top {
+    border-top: 1px solid var(--color-border);
+}
+
+.card-header-link {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--color-primary);
+}
+
+.card-header-link:hover {
+    text-decoration: underline;
+}
+
+.card-body {
+    padding: var(--space-4);
+}
+
+.card-body p {
+    margin-bottom: var(--space-2);
+}
+
+.card-body ul {
+    padding-left: var(--space-5);
+}
+
+.card-body li {
+    margin-bottom: var(--space-1);
+    font-size: var(--text-sm);
+}
+
+.card-body--add {
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--color-border);
+}
+
+.card-body--narrow {
+    max-width: 640px;
+}
+
+.card-footer--muted {
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    border-top: 1px solid var(--color-border);
+}
+
+.card--mb {
+    margin-bottom: var(--space-6);
+}
+
+.card--shaded {
+    background: var(--color-bg-alt);
+    padding: var(--space-3) var(--space-4);
+}
+
+.card--mt {
+    margin-top: var(--space-6);
+}
+
+.card--flush {
+    padding: 0;
+    overflow: hidden;
+}
+
+.card--narrow {
+    max-width: 600px;
+}
+
+.card--filters {
+    padding: var(--space-3) var(--space-4);
+    overflow: hidden;
+}
+
+/* Variante quand la carte contient un menu déroulant (ex. filtre employés
+   du calendrier) : l'overflow:hidden ci-dessus le recadrerait sinon. */
+.card--filters--dropdown {
+    overflow: visible;
+}
+
+.card-title {
+    margin: 0;
+    font-size: var(--text-base);
+}
+
+/* ── Grille de cartes de section (formulaires longs : store, employé) ──
+   display:grid, 3 colonnes, grille FIXE : chaque carte reçoit une
+   position explicite (.card--c1/c2/c3 + .card--r1/r2/r3/r4) et une
+   taille explicite (.card--col-3/--full pour 3 colonnes, .card--row-2
+   pour 2 rangées) plutôt que de laisser l'algorithme d'auto-placement
+   décider — le gabarit est posé une fois pour toutes dans la vue, pas
+   recalculé selon le contenu.
+   align-items: stretch (défaut grid, explicité ici) : chaque carte
+   remplit toute la hauteur de sa/ses cellule(s) au lieu de s'arrêter à
+   son propre contenu — ainsi le bas d'une carte tombe toujours pile sur
+   le bas/haut d'une autre, jamais dans le vide, quelle que soit sa forme. */
+/* minmax(0, 1fr) et non 1fr seul : même en 1 seule colonne (<900px, voir
+   responsive.css), une piste 1fr partagée par plusieurs cartes empilées ne
+   rétrécit jamais sous le min-content de la plus large d'entre elles — une
+   seule carte au contenu non compressible (ex. .employee-info-grid) forçait
+   alors TOUTES les cartes, et le formulaire entier, à déborder sur mobile. */
+.form-section-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    align-items: stretch;
+}
+
+/* .card a un margin-bottom global (pile de cartes hors grille) qui
+   s'ajoutait au gap de la grille : les cartes empilées dans une même
+   colonne se retrouvaient avec plus d'espace vertical (gap + margin)
+   qu'horizontal (gap seul). Neutralisé ici, le gap de la grille suffit. */
+.form-section-grid > .card {
+    margin-bottom: 0;
+}
+
+/* Position (ligne de départ) */
+.card--c1 { grid-column-start: 1; }
+.card--c2 { grid-column-start: 2; }
+.card--c3 { grid-column-start: 3; }
+.card--r1 { grid-row-start: 1; }
+.card--r2 { grid-row-start: 2; }
+.card--r3 { grid-row-start: 3; }
+.card--r4 { grid-row-start: 4; }
+
+/* Taille (nombre de colonnes/rangées occupées) */
+.card--col-3,
+.card--full   { grid-column-end: span 3; }
+.card--row-2  { grid-row-end: span 2; }
+
+/* ── Grille interne "Informations employé" (form-user.php) ──
+   Code employé / Couleur (rangée 1), Mot de passe / Statut (rangée 2)
+   auto-placés dans l'ordre du HTML ; Owner explicitement en bas à droite
+   (rangée 3, colonne 2), la case du bas-gauche restant vide. */
+.employee-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.employee-info-grid__owner {
+    grid-column-start: 2;
+    grid-row-start: 3;
+}
+
+/* ── Stat Cards ─────────────────────────────────── */
+.stat-grid {
+    display: grid;
+    /* minmax(0, 1fr) et non 1fr seul : une piste 1fr ne rétrécit jamais sous
+       le min-content de son contenu (ex. un gros montant, le canvas d'un
+       graphique) et forçait toute la grille — donc la .card et la page — à
+       déborder sur mobile plutôt que de laisser le contenu s'adapter. */
+    grid-template-columns: repeat(var(--stat-cols, 4), minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.stat-grid--cols-2 { --stat-cols: 2; }
+.stat-grid--cols-3 { --stat-cols: 3; }
+
+/* Variante nichée directement dans une .card (sans .card-body autour) :
+   il lui faut son propre padding pour ne pas coller aux bords de la carte.
+   margin left/right/top/bottom négatifs : même annulation du padding de
+   .card que .card-header/.card-body ci-dessus (voir leur commentaire),
+   .stat-grid--in-card ayant le même besoin puisqu'elle a son propre
+   padding complet. */
+.stat-grid--in-card {
+    padding: var(--space-4);
+    margin-bottom: 0;
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+}
+
+.stat-grid--in-card:first-child {
+    margin-top: calc(-1 * var(--space-4));
+}
+
+.stat-grid--in-card:last-child {
+    margin-bottom: calc(-1 * var(--space-4));
+}
+
+/* Sans ça, les mini-cartes ont exactement le même fond que la .card qui les
+   contient (toutes deux en --color-surface) et se fondent dedans : fond
+   légèrement décalé + ombre pour les faire ressortir. */
+.stat-grid--in-card .stat-card {
+    background: var(--color-surface-alt);
+    box-shadow: var(--shadow-xs);
+}
+
+.stat-card {
+    position: relative;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    transition: box-shadow var(--duration-fast), transform var(--duration-fast);
+}
+
+.stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.stat-card--link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.stat-card--link:hover {
+    text-decoration: none;
+    border-color: var(--color-primary);
+}
+
+/* Carte avec lien "étiré" (couvre toute la carte) + petit bouton d'action superposé */
+.stat-card--has-action:hover {
+    border-color: var(--color-primary);
+}
+
+.stat-card__stretched-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    cursor: pointer;
+}
+
+.stat-card__action-btn {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 2;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    font-size: 0.9rem;
+    line-height: 1;
+    text-decoration: none;
+    color: inherit;
+    transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.stat-card__action-btn:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+
+.stat-card__icon {
+    font-size: 1.75rem;
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+}
+
+.stat-card__icon--primary {
+    background: var(--color-primary-light);
+}
+
+.stat-card__icon--success {
+    background: var(--color-success-light);
+}
+
+.stat-card__icon--warning {
+    background: var(--color-warning-light);
+}
+
+.stat-card__icon--danger {
+    background: var(--color-danger-light);
+}
+
+/* min-width: 0 : sans ça, ce flex item (comme tout flex item par défaut)
+   ne rétrécit jamais sous le max-content de la valeur/du libellé, ce qui
+   forçait .stat-card — et la grille au-dessus — à déborder plutôt que de
+   laisser le texte passer à la ligne. */
+.stat-card__body {
+    min-width: 0;
+}
+
+.stat-card__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text);
+    /* Un montant/nombre formaté n'a aucune espace où le navigateur pourrait
+       couper la ligne : sans ça, min-width: 0 sur le parent ne suffit pas à
+       le faire rétrécir, il continue de forcer la largeur de la carte. */
+    overflow-wrap: anywhere;
+}
+
+.stat-card__label {
+    font-size: var(--text-xs-2);
+    color: var(--color-text-muted);
+    margin-top: 0.2rem;
+}
+

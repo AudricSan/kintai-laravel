@@ -1,0 +1,11 @@
+# Force la revalidation (ETag/Last-Modified, géré nativement par Apache) au
+# lieu de laisser le cache HTTP heuristique du navigateur servir une copie
+# obsolète indéfiniment — public/.htaccess sert ces fichiers directement,
+# sans jamais passer par PHP, donc aucun Cache-Control n'est posé par ailleurs.
+# Voir asset_version() (src/Core/helpers.php) pour le cache-busting du Service
+# Worker, qui lui n'est pas couvert par ce mécanisme (Cache API, pas cache HTTP).
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>

@@ -1,0 +1,545 @@
+{
+    "version": "1.30.0",
+    "surface": {
+        "kintai\\Contract\\Auth\\AuthService": {
+            "status": "provisoire",
+            "target": "kintai\\Core\\Auth\\AuthService"
+        },
+        "kintai\\Contract\\Auth\\PermissionService": {
+            "status": "stable",
+            "target": "kintai\\Core\\Auth\\PermissionService"
+        },
+        "kintai\\Contract\\Auth\\UserAnonymizer": {
+            "status": "stable",
+            "target": "kintai\\Core\\Auth\\UserAnonymizer"
+        },
+        "kintai\\Contract\\Bundle": {
+            "status": "stable",
+            "target": "kintai\\Core\\BundleContract\\Bundle"
+        },
+        "kintai\\Contract\\BundleManifest": {
+            "status": "stable",
+            "target": "kintai\\Core\\BundleContract\\BundleManifest"
+        },
+        "kintai\\Contract\\Container": {
+            "status": "stable",
+            "target": "kintai\\Core\\Container"
+        },
+        "kintai\\Contract\\Cron\\CronJob": {
+            "status": "stable",
+            "target": "kintai\\Core\\Cron\\CronJobInterface"
+        },
+        "kintai\\Contract\\Data\\AppSettingsRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\AppSettingsRepositoryInterface"
+        },
+        "kintai\\Contract\\Data\\ShiftRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\ShiftRepositoryInterface"
+        },
+        "kintai\\Contract\\Data\\ShiftTypeRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\ShiftTypeRepositoryInterface"
+        },
+        "kintai\\Contract\\Data\\StoreRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\StoreRepositoryInterface"
+        },
+        "kintai\\Contract\\Data\\StoreUserRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\StoreUserRepositoryInterface"
+        },
+        "kintai\\Contract\\Data\\UserRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\UserRepositoryInterface"
+        },
+        "kintai\\Contract\\Data\\UserShiftTypeRateRepositoryInterface": {
+            "status": "stable",
+            "target": "kintai\\Core\\Repositories\\UserShiftTypeRateRepositoryInterface"
+        },
+        "kintai\\Contract\\Database\\Migration": {
+            "status": "stable",
+            "target": "kintai\\Core\\Database\\Migration"
+        },
+        "kintai\\Contract\\Exceptions\\ConflictException": {
+            "status": "stable",
+            "target": "kintai\\Core\\Exceptions\\ConflictException"
+        },
+        "kintai\\Contract\\Exceptions\\ForbiddenException": {
+            "status": "stable",
+            "target": "kintai\\Core\\Exceptions\\ForbiddenException"
+        },
+        "kintai\\Contract\\Exceptions\\NotFoundException": {
+            "status": "stable",
+            "target": "kintai\\Core\\Exceptions\\NotFoundException"
+        },
+        "kintai\\Contract\\Exceptions\\ValidationException": {
+            "status": "stable",
+            "target": "kintai\\Core\\Exceptions\\ValidationException"
+        },
+        "kintai\\Contract\\Http\\Concerns\\HasAdminAccess": {
+            "status": "provisoire",
+            "target": "kintai\\UI\\Controller\\Web\\HasAdminAccess"
+        },
+        "kintai\\Contract\\Http\\Concerns\\HasBaseUrl": {
+            "status": "stable",
+            "target": "kintai\\UI\\Controller\\Web\\HasBaseUrl"
+        },
+        "kintai\\Contract\\Http\\Concerns\\HasStaffReportCrud": {
+            "status": "provisoire",
+            "target": "kintai\\UI\\Controller\\Web\\Staff\\HasStaffReportCrud"
+        },
+        "kintai\\Contract\\Http\\Concerns\\HasStoreFeatureCheck": {
+            "status": "provisoire",
+            "target": "kintai\\UI\\Controller\\Web\\HasStoreFeatureCheck"
+        },
+        "kintai\\Contract\\Http\\Middleware\\ApiAuthMiddleware": {
+            "status": "stable",
+            "target": "kintai\\Core\\Middleware\\ApiAuthMiddleware"
+        },
+        "kintai\\Contract\\Http\\Middleware\\ApiPermissionMiddleware": {
+            "status": "stable",
+            "target": "kintai\\Core\\Middleware\\ApiPermissionMiddleware"
+        },
+        "kintai\\Contract\\Http\\Middleware\\AuthMiddleware": {
+            "status": "stable",
+            "target": "kintai\\Core\\Middleware\\AuthMiddleware"
+        },
+        "kintai\\Contract\\Http\\Middleware\\PermissionMiddleware": {
+            "status": "stable",
+            "target": "kintai\\Core\\Middleware\\PermissionMiddleware"
+        },
+        "kintai\\Contract\\Http\\Paginator": {
+            "status": "stable",
+            "target": "kintai\\Core\\Api\\Paginator"
+        },
+        "kintai\\Contract\\Http\\Request": {
+            "status": "stable",
+            "target": "kintai\\Core\\Request"
+        },
+        "kintai\\Contract\\Http\\Response": {
+            "status": "stable",
+            "target": "kintai\\Core\\Response"
+        },
+        "kintai\\Contract\\Http\\Router": {
+            "status": "stable",
+            "target": "kintai\\Core\\Router"
+        },
+        "kintai\\Contract\\Services\\AuditLogger": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\AuditLogger"
+        },
+        "kintai\\Contract\\Services\\ImageCompressionService": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\ImageCompressionService"
+        },
+        "kintai\\Contract\\Services\\Mailer": {
+            "status": "stable",
+            "target": "kintai\\Core\\Mail\\MailerService"
+        },
+        "kintai\\Contract\\Services\\NotificationService": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\NotificationService"
+        },
+        "kintai\\Contract\\Services\\PdfCjkFontResolver": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\PdfCjkFontResolver"
+        },
+        "kintai\\Contract\\Services\\Sales": {
+            "status": "stable",
+            "target": "kintai\\Core\\Extension\\Sales"
+        },
+        "kintai\\Contract\\Services\\ShiftServiceInterface": {
+            "status": "provisoire",
+            "target": "kintai\\Core\\Services\\ShiftServiceInterface"
+        },
+        "kintai\\Contract\\Services\\ShiftWageCalculator": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\ShiftWageCalculator"
+        },
+        "kintai\\Contract\\Services\\StoreStatsServiceInterface": {
+            "status": "provisoire",
+            "target": "kintai\\Core\\Services\\StoreStatsServiceInterface"
+        },
+        "kintai\\Contract\\Services\\TranslationService": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\TranslationService"
+        },
+        "kintai\\Contract\\Services\\UserSelection": {
+            "status": "stable",
+            "target": "kintai\\Core\\Services\\UserSelection"
+        },
+        "kintai\\Contract\\View\\Components\\Badge": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Badge"
+        },
+        "kintai\\Contract\\View\\Components\\Button": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Button"
+        },
+        "kintai\\Contract\\View\\Components\\Card": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Card"
+        },
+        "kintai\\Contract\\View\\Components\\EmptyState": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\EmptyState"
+        },
+        "kintai\\Contract\\View\\Components\\FilterBar": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\FilterBar"
+        },
+        "kintai\\Contract\\View\\Components\\Flash": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Flash"
+        },
+        "kintai\\Contract\\View\\Components\\Form": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Form"
+        },
+        "kintai\\Contract\\View\\Components\\Modal": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Modal"
+        },
+        "kintai\\Contract\\View\\Components\\Pagination": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Pagination"
+        },
+        "kintai\\Contract\\View\\Components\\Table": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\Table"
+        },
+        "kintai\\Contract\\View\\Components\\UserPicker": {
+            "status": "stable",
+            "target": "kintai\\UI\\Components\\UserPicker"
+        },
+        "kintai\\Contract\\View\\ViewRenderer": {
+            "status": "stable",
+            "target": "kintai\\UI\\ViewRenderer"
+        }
+    },
+    "functions": {
+        "__": {
+            "status": "stable",
+            "params": [
+                "key",
+                "replace"
+            ],
+            "returns": "string"
+        },
+        "back_url": {
+            "status": "stable",
+            "params": [
+                "fallback"
+            ],
+            "returns": "string"
+        },
+        "base_url": {
+            "status": "stable",
+            "params": [],
+            "returns": "string"
+        },
+        "bundle_asset": {
+            "status": "stable",
+            "params": [
+                "slug",
+                "path"
+            ],
+            "returns": "?string"
+        },
+        "bundle_asset_path": {
+            "status": "provisoire",
+            "params": [
+                "slug",
+                "path"
+            ],
+            "returns": "?string"
+        },
+        "csp_nonce": {
+            "status": "stable",
+            "params": [],
+            "returns": "string"
+        },
+        "csrf_field": {
+            "status": "stable",
+            "params": [],
+            "returns": "string"
+        },
+        "csrf_token": {
+            "status": "stable",
+            "params": [],
+            "returns": "string"
+        },
+        "currency_symbol": {
+            "status": "stable",
+            "params": [
+                "currency",
+                "jpySymbolStyle"
+            ],
+            "returns": "string"
+        },
+        "date_label": {
+            "status": "stable",
+            "params": [
+                "date"
+            ],
+            "returns": "string"
+        },
+        "employee_segment": {
+            "status": "stable",
+            "params": [
+                "userId"
+            ],
+            "returns": "string"
+        },
+        "format_currency": {
+            "status": "stable",
+            "params": [
+                "amount",
+                "currency",
+                "jpySymbolStyle"
+            ],
+            "returns": "string"
+        },
+        "inline_styles": {
+            "status": "stable",
+            "params": [],
+            "returns": "string"
+        },
+        "month_label": {
+            "status": "stable",
+            "params": [
+                "date"
+            ],
+            "returns": "string"
+        },
+        "route_segment": {
+            "status": "stable",
+            "params": [
+                "type",
+                "id"
+            ],
+            "returns": "string"
+        },
+        "route_url": {
+            "status": "stable",
+            "params": [
+                "name",
+                "params"
+            ],
+            "returns": "string"
+        },
+        "safe_redirect_path": {
+            "status": "stable",
+            "params": [
+                "path",
+                "fallback"
+            ],
+            "returns": "string"
+        },
+        "storage_path": {
+            "status": "provisoire",
+            "params": [
+                "path"
+            ],
+            "returns": "string"
+        },
+        "store_currency_style": {
+            "status": "stable",
+            "params": [
+                "store"
+            ],
+            "returns": "string"
+        },
+        "store_segment": {
+            "status": "stable",
+            "params": [
+                "storeId"
+            ],
+            "returns": "string"
+        },
+        "style_class": {
+            "status": "stable",
+            "params": [
+                "declarations"
+            ],
+            "returns": "string"
+        },
+        "translation_or": {
+            "status": "stable",
+            "params": [
+                "fallback",
+                "key"
+            ],
+            "returns": "string"
+        },
+        "user_locale": {
+            "status": "stable",
+            "params": [
+                "user"
+            ],
+            "returns": "string"
+        }
+    },
+    "translations": {
+        "April": "stable",
+        "August": "stable",
+        "December": "stable",
+        "February": "stable",
+        "January": "stable",
+        "July": "stable",
+        "June": "stable",
+        "March": "stable",
+        "May": "stable",
+        "November": "stable",
+        "October": "stable",
+        "September": "stable",
+        "actions": "stable",
+        "address": "stable",
+        "all": "stable",
+        "all_stores": "stable",
+        "amount": "stable",
+        "approve": "stable",
+        "approved": "stable",
+        "back": "stable",
+        "bio": "stable",
+        "birth_date": "stable",
+        "cancel": "stable",
+        "cancelled": "stable",
+        "close": "stable",
+        "confirm": "stable",
+        "contact": "stable",
+        "create": "stable",
+        "created_at": "stable",
+        "date": "stable",
+        "date_hour": "stable",
+        "ded_employment_insurance": "provisoire",
+        "ded_health_insurance": "provisoire",
+        "ded_income_tax": "provisoire",
+        "ded_pension": "provisoire",
+        "ded_resident_tax": "provisoire",
+        "delete": "stable",
+        "details": "stable",
+        "edit": "stable",
+        "education": "stable",
+        "email": "stable",
+        "employee": "stable",
+        "employee_code": "stable",
+        "employee_name": "stable",
+        "employee_number": "stable",
+        "end": "stable",
+        "error_access_denied": "stable",
+        "error_api_store_id_required": "stable",
+        "error_conversation_not_found": "provisoire",
+        "error_employee_not_found": "stable",
+        "error_feature_disabled": "stable",
+        "error_file_type_not_allowed": "stable",
+        "error_generic": "stable",
+        "error_no_file_uploaded": "stable",
+        "error_not_authorized_store": "stable",
+        "error_not_in_conversation": "provisoire",
+        "error_not_store_manager": "stable",
+        "error_participant_not_found": "provisoire",
+        "error_permission_insufficient": "stable",
+        "error_shift_not_found": "stable",
+        "error_store_not_found": "stable",
+        "error_submission_not_found": "provisoire",
+        "error_user_not_found": "stable",
+        "female": "stable",
+        "from": "stable",
+        "furigana_first_name": "stable",
+        "furigana_last_name": "stable",
+        "furigana_placeholder": "stable",
+        "gender": "stable",
+        "gross_h_col": "provisoire",
+        "guarantor_name": "stable",
+        "guarantor_phone": "stable",
+        "hobbies": "stable",
+        "hours": "stable",
+        "hours_unit": "stable",
+        "languages_spoken": "stable",
+        "male": "stable",
+        "mobile_phone": "stable",
+        "month": "stable",
+        "monthly_fixed": "provisoire",
+        "net_h_col": "provisoire",
+        "new_request": "stable",
+        "none": "stable",
+        "notes": "stable",
+        "operation_success": "stable",
+        "other": "stable",
+        "page_of": "stable",
+        "pause": "stable",
+        "payslip_footer": "provisoire",
+        "payslip_issued_on": "provisoire",
+        "pdf_generated_by": "provisoire",
+        "pending": "stable",
+        "per_hour_unit": "provisoire",
+        "personal": "stable",
+        "phone": "stable",
+        "postal_code": "stable",
+        "reason": "stable",
+        "rejected": "stable",
+        "reset": "stable",
+        "roles": "stable",
+        "save": "stable",
+        "save_success": "stable",
+        "schedule": "stable",
+        "search": "stable",
+        "see_details": "stable",
+        "select": "stable",
+        "send": "stable",
+        "settings": "stable",
+        "shift_manual_override": "provisoire",
+        "shift_type": "stable",
+        "shifts": "stable",
+        "sick": "stable",
+        "skills": "stable",
+        "staff": "stable",
+        "start": "stable",
+        "status": "stable",
+        "store": "stable",
+        "tax_classification": "provisoire",
+        "timeoff_requests": "provisoire",
+        "to": "stable",
+        "today": "stable",
+        "total": "stable",
+        "total_row": "provisoire",
+        "type": "stable",
+        "unpaid": "stable",
+        "user": "stable",
+        "vacation": "stable",
+        "view": "stable",
+        "view_all": "stable",
+        "year": "stable"
+    },
+    "bundle": {
+        "absenceProviders": "(): array",
+        "actions": "(): array",
+        "attendanceProviders": "(): array",
+        "boot": "(): void",
+        "cronJobs": "(): array",
+        "dashboardStats": "(): array",
+        "dashboardWidgets": "(): array",
+        "eventListeners": "(): array",
+        "exportDatasets": "(): array",
+        "getAssetsPath": "(): ?string",
+        "getDescription": "(): string",
+        "getLabel": "(): string",
+        "getName": "(): string",
+        "getPath": "(): string",
+        "getVersion": "(): string",
+        "navigation": "(): array",
+        "notificationTypes": "(): array",
+        "pageOverlays": "(): array",
+        "pendingRequestsProviders": "(): array",
+        "permissions": "(): array",
+        "profileSections": "(): array",
+        "register": "(): void",
+        "salesProviders": "(): array",
+        "shiftFormSections": "(): array",
+        "storeFeatures": "(): array",
+        "swapProviders": "(): array",
+        "viewVariables": "(): array"
+    }
+}

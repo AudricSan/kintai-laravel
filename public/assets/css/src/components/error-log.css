@@ -1,0 +1,18 @@
+/* ================================================
+   Kintai — Journal d'erreurs (page système)
+   ================================================ */
+
+/* ── Error Log ──────────────────────────────────── */
+.error-log__pre {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    padding: var(--space-4);
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 70vh;
+}
+

@@ -1,0 +1,49 @@
+{
+    "name": "kintai/kintai",
+    "description": "Open-source shift management system, on Laravel",
+    "type": "project",
+    "version": "0.2.0",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "php": ">=8.3",
+        "erusev/parsedown": "^1.8",
+        "guzzlehttp/guzzle": "^8.3",
+        "laravel/framework": "^13.19",
+        "minishlink/web-push": "^11.0",
+        "mpdf/mpdf": "^8.3",
+        "phpoffice/phpspreadsheet": "^5.8.1"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2",
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "kintai\\": "app/"
+        },
+        "files": [
+            "app/Core/helpers.php",
+            "app/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "kintai\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.3.32"
+        },
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php scripts/composer/load-kintai-helpers-first.php"
+        ]
+    }
+}

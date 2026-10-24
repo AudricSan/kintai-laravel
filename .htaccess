@@ -1,0 +1,41 @@
+# Racine du dépôt — redirige vers public/ quand le serveur ne pointe pas dessus.
+#
+# Le seul dossier destiné à être servi par le serveur web est public/. L'idéal est de le configurer
+# comme racine de documents (DocumentRoot) ; dans ce cas ce fichier n'est jamais lu. Beaucoup
+# d'hébergements mutualisés (OVH : dossier www/, par exemple) ou une installation sous
+# htdocs/Kintai/ pointent en revanche sur la racine du dépôt : plutôt que de répondre 403, chaque
+# requête est réécrite EN INTERNE vers public/ (pas de redirection : l'URL du navigateur reste
+# propre, sans /public). Le .htaccess de public/ prend ensuite le relais, comme avant.
+#
+# Cette réécriture ne rend rien d'autre accessible : une URL est toujours cherchée sous public/. Un
+# visiteur qui demande /.env, /storage/app/database.sqlite ou /src/... tombe sur public/.env,
+# public/storage/..., public/src/... — qui n'existent pas — donc sur le contrôleur frontal, qui
+# répond 404 (ou sert /storage/ après contrôle d'accès). .env, la base SQLite, les sauvegardes, les
+# journaux et le code source restent hors de portée, comme avec un DocumentRoot sur public/.
+#
+# SCRIPT_NAME vaut alors /…/public/index.php alors que l'URL n'en contient pas : voir
+# kintai_normalize_script_name() (src/Core/helpers.php), appelée par public/index.php et install.php.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Déjà dans public/ (accès direct par /public/…, ou passage après la réécriture ci-dessous) : rien à faire.
+    RewriteRule ^public/ - [L]
+
+    # Tout le reste est servi depuis public/.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Sans mod_rewrite, l'application ne peut pas fonctionner et la racine du dépôt serait exposée en
+# entier : on refuse tout plutôt que de laisser .env, la base et le code téléchargeables.
+<IfModule !mod_rewrite.c>
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</IfModule>

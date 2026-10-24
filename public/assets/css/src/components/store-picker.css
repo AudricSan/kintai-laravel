@@ -1,0 +1,74 @@
+/* ================================================
+   Kintai — Store picker (menu déroulant "+ Nouveau rapport"
+   quand aucun magasin n'est sélectionné dans le filtre)
+   ================================================ */
+
+.store-picker {
+    position: relative;
+    display: inline-block;
+}
+
+.store-picker > summary {
+    list-style: none;
+}
+
+.store-picker > summary::-webkit-details-marker {
+    display: none;
+}
+
+.store-picker__panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    z-index: 200;
+    padding: var(--space-1) 0;
+}
+
+.store-picker__title {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-1);
+}
+
+.store-picker__item {
+    display: block;
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.store-picker__item:hover {
+    background: var(--color-surface-alt);
+}
+
+/* Variante statique (dans une modale plutôt qu'un <details> ancré) */
+.store-picker__panel--static {
+    position: static;
+    max-height: 50vh;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+/* Choix Magasin / Employé (1re étape de la modale de création) */
+.sr-choice-row {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.sr-choice-btn {
+    flex: 1;
+    padding: var(--space-4);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}

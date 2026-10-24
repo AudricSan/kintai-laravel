@@ -1,0 +1,104 @@
+/* ================================================
+   Kintai — Badges
+   ================================================ */
+
+/* ── Badges ─────────────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem var(--space-2);
+    border-radius: var(--radius-full);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.badge--primary {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.badge--pending,
+.badge--warning {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+}
+
+.badge--active,
+.badge--success {
+    background: var(--color-success-light);
+    color: var(--color-success-dark);
+}
+
+.badge--danger {
+    background: var(--color-danger-light);
+    color: var(--color-danger-dark);
+}
+
+.badge--inactive,
+.badge--neutral,
+.badge--secondary,
+.badge--muted {
+    background: var(--color-border-light);
+    color: var(--color-neutral);
+}
+
+.badge--store,
+.badge--info {
+    background: var(--color-info-light);
+    color: var(--color-info-dark);
+    margin-right: 0.2rem;
+    margin-bottom: 0.15rem;
+}
+
+.badge--admin {
+    background: var(--color-primary-light);
+    color: var(--color-admin-text);
+}
+
+.badge--staff {
+    background: var(--color-border-light);
+    color: var(--color-neutral);
+}
+
+.badge--xs {
+    font-size: 0.65rem;
+    padding: 0.1rem var(--space-2);
+}
+
+.badge--sm {
+    font-size: 0.75rem;
+    vertical-align: middle;
+}
+
+.badge--mt {
+    margin-top: 0.1rem;
+    display: inline-block;
+}
+
+.badge--dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    vertical-align: middle;
+}
+
+.nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-full);
+    background: var(--color-danger);
+    color: var(--color-on-danger);
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: auto;
+}
+

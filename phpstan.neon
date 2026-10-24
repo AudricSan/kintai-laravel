@@ -1,0 +1,18 @@
+parameters:
+    level: 0
+    paths:
+        - app
+    excludePaths:
+        - app/UI/View
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Le trait HasAdminAccess lit $this->stores / storeUsers / users, fournis par les contrôleurs qui l'utilisent ;
+        # certains n'appellent pas les méthodes concernées et ne déclarent donc pas ces dépendances.
+        -
+            identifier: property.notFound
+            message: '#::\$(stores|storeUsers|users)\.$#'
+            reportUnmatched: false
+        # make() est un localisateur de services : le gabarit est volontairement renvoyé par classe.
+        -
+            identifier: method.templateTypeNotInParameter
+            path: app/Core/Container.php

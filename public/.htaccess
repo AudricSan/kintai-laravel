@@ -1,0 +1,41 @@
+RewriteEngine On
+
+# Transmettre l'en-tete Authorization a PHP : Apache le retire, et l'API a jeton (Bearer) repondait
+# MISSING_TOKEN a toute requete. Repris par Request::withAuthorizationHeader().
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Pages d'erreur statiques (secours quand PHP est indisponible : crash, module
+# desactive, etc.) - ne remplacent PAS les pages PHP habituelles (celles-ci
+# envoient deja leur propre corps de reponse, Apache ne les intercepte pas ;
+# ErrorDocument ne prend le relais que si Apache genere l'erreur lui-meme).
+ErrorDocument 403 /errors/403.html
+ErrorDocument 404 /errors/404.html
+ErrorDocument 405 /errors/405.html
+ErrorDocument 422 /errors/422.html
+ErrorDocument 500 /errors/500.html
+ErrorDocument 503 /errors/503.html
+
+# Redirection vers HTTPS, sauf en developpement local : localhost, 127.x, [::1], *.test, *.localhost et adresses de
+# reseau prive (10.x, 172.16-31.x, 192.168.x, pour tester sur un telephone du reseau local). Derriere un proxy ou un
+# hebergeur qui termine le HTTPS lui-meme (X-Forwarded-Proto: https), Apache voit du http : pas de redirection, sinon
+# boucle infinie.
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https [NC]
+RewriteCond %{HTTP_HOST} !^(localhost|127\.[0-9.]+|\[::1\])(:[0-9]+)?$ [NC]
+RewriteCond %{HTTP_HOST} !\.(test|localhost)(:[0-9]+)?$ [NC]
+RewriteCond %{HTTP_HOST} !^(10\.[0-9.]+|192\.168\.[0-9.]+|172\.(1[6-9]|2[0-9]|3[01])\.[0-9.]+)(:[0-9]+)?$
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Servir les assets et PDFs directement, sans passer par PHP
+# (contourne le bug XAMPP/Windows où %{REQUEST_FILENAME} ne résout pas correctement)
+RewriteRule ^assets/ - [L]
+RewriteRule ^pdf/ - [L]
+
+# Les fichiers uploadés passent par le front controller (auth + contrôle d'accès)
+RewriteRule ^storage/ index.php [L,QSA]
+
+# Front controller : tout le reste va à index.php (sauf fichiers/dossiers existants)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L,QSA]

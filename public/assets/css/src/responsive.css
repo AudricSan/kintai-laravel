@@ -1,0 +1,675 @@
+/* ================================================
+   Kintai — Responsive: Unified breakpoints
+   Previously spread across 27 modules + mobile.css
+   ================================================ */
+
+/* Breakpoints ordonnés du plus large au plus étroit : une règle plus
+   étroite définie plus loin dans le fichier prend le dessus sur une règle
+   plus large pour les écrans qui remplissent les deux conditions. */
+
+/* ── Stat grid + Quick nav (1100px) ─────────────── */
+@media (max-width: 1100px) {
+    /* minmax(0, 1fr) et non 1fr seul, ici et dans toutes les règles de ce
+       fichier qui redéfinissent .stat-grid/.quick-nav/.sstat-two : sinon
+       cette redéfinition mobile écrase la version minmax(0, 1fr) posée en
+       base (cards.css/statistics.css) et fait réapparaître le débordement
+       qu'elle corrigeait — une carte/graphique ne rétrécit jamais sous son
+       min-content sur une piste 1fr seule. */
+    .stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .quick-nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ── Grille de cartes de section : 3 → 2 colonnes (<1200px) ─────── */
+/* Le gabarit fixe (positions .card--c1/c2/c3 + .card--r1..4) est pensé
+   pour 3 colonnes desktop. En dessous, on l'annule et on repasse en
+   flux naturel plutôt que de maintenir un second gabarit fixe à 2
+   colonnes (complexité non justifiée pour une largeur transitoire). */
+@media (max-width: 1200px) {
+    /* minmax(0, 1fr) ici et dans la redéfinition à 900px : sinon cette
+       redéfinition mobile écrase la version minmax(0, 1fr) posée en base
+       (cards.css) et fait réapparaître le débordement qu'elle corrigeait. */
+    .form-section-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card--c1, .card--c2, .card--c3,
+    .card--r1, .card--r2, .card--r3, .card--r4 {
+        grid-column-start: auto;
+        grid-row-start: auto;
+    }
+
+    .card--col-3,
+    .card--full {
+        grid-column-end: span 2;
+    }
+}
+
+/* ── Calendar responsive (<900px) ───────────────── */
+@media (max-width: 900px) {
+    /* 1 seule colonne : position/taille explicites n'ont plus de sens,
+       et un grid-row: span 2 sans contrainte de largeur créerait une
+       carte inutilement haute. */
+    .form-section-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .card--col-3,
+    .card--full {
+        grid-column-end: span 1;
+    }
+
+    .card--row-2 {
+        grid-row-end: span 1;
+    }
+
+    .cal-layout {
+        flex-direction: column;
+    }
+
+    .cal-sidebar {
+        flex: none;
+        width: 100%;
+        position: static;
+    }
+
+    .role-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .theme-color-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rf-info, .rf-holders, .rf-permissions {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .cal-grid td {
+        height: 80px;
+    }
+}
+
+/* ── Topbar nav + Stat grid + Quick nav (768px) ─── */
+@media (max-width: 768px) {
+    /* Panneau plein écran sur mobile (distinct des menus déroulants
+       flottants du desktop) : la nav et ses groupes s'empilent, toujours
+       dépliés — plus besoin de cliquer un déclencheur pour voir les liens.
+       Passe au-dessus de la bottom-nav (z-index 100) une fois ouvert. */
+    .topbar-nav-toggle {
+        display: block;
+    }
+
+    .topbar-nav {
+        display: none;
+        position: fixed;
+        top: calc(var(--topbar-height) + var(--maintenance-banner-h));
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 150;
+        background: var(--color-surface);
+        flex-direction: column;
+        /* flex-wrap: nowrap indispensable : sans ce reset, le wrap:wrap posé
+           en desktop (base.css, pensé pour les pastilles qui retombent à la
+           ligne) reste actif. Combiné à flex-direction:column ici, tout
+           groupe qui dépasse la hauteur du panneau ne redescend pas mais
+           repart dans une deuxième colonne poussée hors écran à droite,
+           provoquant un scroll horizontal du menu mobile. */
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 0;
+        padding: var(--space-2) var(--space-3);
+        overflow-y: auto;
+    }
+
+    .topbar-nav.open {
+        display: flex;
+    }
+
+    .topbar-nav-link,
+    .topbar-nav-group__trigger {
+        width: 100%;
+        justify-content: flex-start;
+        border-radius: var(--radius-sm);
+        font-size: var(--text-base);
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .topbar-nav-group__caret {
+        display: none;
+    }
+
+    /* Toujours dépliés sur mobile plutôt qu'en dropdown flottant. flex-direction:
+       column doit être répété ici : la règle desktop qui le pose (base.css) est
+       scopée à .topbar-nav-group.is-open, jamais vraie sur mobile puisque le
+       panneau est forcé visible par ce bloc sans passer par .is-open — sans ce
+       rappel, display:flex retombe sur son row par défaut et alignait tous les
+       liens (Shifts, Utilisateurs, Rapports d'embauche...) côte à côte au lieu
+       de les empiler, poussant le panneau à plus de 1000px de large. */
+    .topbar-nav-group__panel {
+        display: flex !important;
+        flex-direction: column;
+        position: static;
+        border: none;
+        box-shadow: none;
+        padding: 0 0 var(--space-2) var(--space-4);
+    }
+
+    .topbar-nav-group__link {
+        font-size: var(--text-base);
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .topbar-nav-group__link-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .topbar-brand__subtitle {
+        display: none;
+    }
+
+    /* Widget stats employé : accessible depuis le tableau de bord, pas
+       nécessaire dans une topbar déjà chargée sur petit écran. */
+    .topbar-nav-group--stats {
+        display: none;
+    }
+
+    .bottom-nav {
+        display: flex;
+    }
+
+    .page-content {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + var(--space-4));
+    }
+
+    .app-footer {
+        margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .user-dropdown__label       { display: none; }
+    .user-dropdown__chevron     { display: none; }
+
+    /* Le panneau de notifications est ancré au bouton cloche, qui n'est pas
+       le bord droit réel de la topbar (l'avatar utilisateur est à sa droite) :
+       en largeur fixe (320px) il déborde hors écran sur mobile. On le détache
+       en position fixed, ancré aux marges de la topbar plutôt qu'au bouton. */
+    .notif-dropdown__panel {
+        position: fixed;
+        top: calc(var(--topbar-height) + var(--maintenance-banner-h) + 6px);
+        left: var(--space-4);
+        right: var(--space-4);
+        width: auto;
+    }
+
+    .stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .quick-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sstat-two {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dash-two-col {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .theme-container {
+        flex-direction: column;
+    }
+}
+
+/* ── Mobile form compact (<640px) ───────────────── */
+@media (max-width: 640px) {
+    .dash-stats-body {
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    .dash-stat {
+        min-width: 45%;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .theme-color-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .theme-foxy-palette {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    /* Grille interne "Informations employé" (2 colonnes desktop) : sur
+       mobile, code employé/couleur/mot de passe/statut/Owner tiennent mal
+       côte à côte (champs + libellés d'aide tronqués) — repasse en 1
+       colonne, la position explicite de .employee-info-grid__owner n'a
+       alors plus de sens (voir cards.css). */
+    .employee-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-info-grid__owner {
+        grid-column-start: auto;
+        grid-row-start: auto;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-flex .form-group {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* :not(.btn-group--switcher) : sinon ce wrap (même spécificité, importé
+       après components.css) écrase le flex-wrap:nowrap du switcher et casse
+       la piste + pilule sur 2 lignes — voir .btn-group--switcher plus bas. */
+    .btn-group:not(.btn-group--switcher) {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .btn-group form {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .btn-group form .btn,
+    .btn-group:not(.btn-group--switcher) > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-group .ml-auto {
+        margin-left: 0;
+        margin-top: var(--space-1);
+    }
+
+    /* Segmented control (ex. "Par magasin" / "Par jour") : pleine largeur
+       uniquement sur mobile, le style (piste + pilule) est universel,
+       voir .btn-group--switcher dans components.css. */
+    .btn-group--switcher {
+        width: 100%;
+    }
+
+    /* Switcher liste/calendrier/timeline (3 segments icône + libellé) :
+       sur mobile les libellés complets ("Vue calendrier"...) ne tiennent
+       pas sur une ligne dans une piste pleine largeur, ce qui forçait un
+       retour à la ligne et désalignait la pilule. On masque le texte
+       (.switcher-label) et on garde l'icône seule ; le libellé complet
+       reste disponible via aria-label sur le lien pour les lecteurs
+       d'écran. */
+    .btn-group--switcher .switcher-label {
+        display: none;
+    }
+
+    .btn-group--switcher > .btn {
+        padding-left: var(--space-2);
+        padding-right: var(--space-2);
+    }
+
+    .page-header__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .shifts-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .shifts-toolbar .btn-group:not(.btn-group--switcher) {
+        justify-content: center;
+    }
+
+    /* Le bouton flottant remonte au-dessus de la bottom-nav mobile */
+    .fab {
+        bottom: calc(64px + env(safe-area-inset-bottom, 0px) + var(--space-4));
+    }
+
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+    }
+
+    .filter-bar__select,
+    .filter-bar__nav {
+        min-width: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    /* Flèches aux bords réels de l'écran plutôt que collées au centre */
+    .filter-bar__nav {
+        justify-content: space-between;
+    }
+
+    /* Le libellé (ex. "Semaine du 05 Jul au 11 Jul 2026") peut être plus
+       large que l'espace restant entre les deux flèches : on tronque au
+       lieu de déborder. */
+    .filter-bar__period-label {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .page-header {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .page-header h2,
+    .page-header__title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    .card-header {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .form-group--200,
+    .form-group--160,
+    .form-group--flex1 {
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .tab-bar {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-bar__item {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .cal-layout {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Déplacement des shifts désactivé sur mobile (JS) : on laisse le
+       scroll tactile natif fonctionner par-dessus les barres. */
+    .tl-bar {
+        touch-action: auto;
+    }
+
+    /* Création par glisser désactivée sur mobile : .sd-create-zone pose
+       touch-action: none (shifts.css) pour capter le drag souris, ce qui
+       bloque aussi le scroll tactile horizontal du timeline-wrap dès qu'on
+       touche la zone — un simple geste de scroll y déclenchait/empêchait
+       la création. Pas d'équivalent tactile fiable pour "glisser pour
+       créer", donc masquée plutôt que rendue tactile. */
+    .sd-create-zone {
+        display: none;
+    }
+
+    .sb-stats { display: none; }
+
+    .page-header__title .badge {
+        display: inline-flex;
+        vertical-align: middle;
+        margin-left: var(--space-2);
+    }
+
+}
+
+/* ── Touch-friendly controls (coarse pointer) ──── */
+@media (pointer: coarse) {
+    .form-control {
+        min-height: 46px;
+        font-size: 16px;
+    }
+
+    select.form-control { min-height: 46px; }
+
+    textarea.form-control {
+        min-height: 96px;
+        font-size: 16px;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: var(--space-2);
+    }
+
+    .btn, button.btn {
+        min-height: 42px;
+        padding: var(--space-2) var(--space-5);
+        font-size: 0.9375rem;
+    }
+
+    .btn--sm {
+        min-height: 36px;
+        font-size: 0.875rem;
+        padding: var(--space-2) var(--space-4);
+    }
+}
+
+/* ── Table scroll hint (<640px) ─────────────────── */
+@media (max-width: 640px) {
+    .table-wrap::after {
+        display: none;
+    }
+}
+
+/* ── Stacked tables (data-mob-stack) ────────────── */
+@media (max-width: 640px) {
+    .data-table[data-mob-stack] {
+        display: block;
+        min-width: 0;
+    }
+
+    .data-table[data-mob-stack] thead {
+        display: none;
+    }
+
+    .data-table[data-mob-stack] tbody {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-3);
+    }
+
+    .data-table[data-mob-stack] tr {
+        display: block;
+        background: var(--color-bg);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        overflow: hidden;
+    }
+
+    .data-table[data-mob-stack] td {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-4);
+        border-bottom: 1px solid var(--color-border);
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        font-size: 0.875rem;
+        white-space: normal;
+    }
+
+    .data-table[data-mob-stack] td:last-child {
+        border-bottom: none;
+    }
+
+    .data-table[data-mob-stack] td:empty {
+        display: none;
+    }
+
+    .data-table[data-mob-stack] td.td-center {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .data-table[data-mob-stack] td::before {
+        content: attr(data-label);
+        min-width: 90px;
+        flex-shrink: 0;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+        padding-top: 2px;
+        line-height: 1.4;
+    }
+
+    .data-table[data-mob-stack] td:not([data-label])::before,
+    .data-table[data-mob-stack] td[data-label=""]::before {
+        display: none;
+    }
+
+    .data-table[data-mob-stack] td:not([data-label]),
+    .data-table[data-mob-stack] td[data-label=""] {
+        gap: 0;
+        justify-content: flex-start;
+    }
+
+    .data-table[data-mob-stack] tfoot {
+        display: block;
+        padding: var(--space-3) var(--space-4);
+        background: rgba(0,0,0,0.025);
+        border-top: 1px solid var(--color-border);
+    }
+
+    .data-table[data-mob-stack] tfoot tr {
+        background: none;
+        border: none;
+        border-radius: 0;
+    }
+
+    .data-table[data-mob-stack] tfoot td {
+        display: inline;
+        padding: 0 var(--space-2) 0 0;
+        border: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .data-table[data-mob-stack] tfoot td::before {
+        display: none;
+    }
+
+    .table-wrap:has(.data-table[data-mob-stack]) {
+        overflow-x: visible;
+    }
+
+    .table-wrap:has(.data-table[data-mob-stack])::after {
+        display: none;
+    }
+}
+
+/* ── Print styles ───────────────────────────────── */
+@media print {
+    .topbar, .sstat-period-nav,
+    .page-header__actions, .alert,
+    .bottom-nav {
+        display: none !important;
+    }
+
+    .app-layout,
+    .page-content {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .page-header        { margin-bottom: .5rem; }
+    .page-header__title { font-size: 14pt; }
+    .page-count         { font-size: 10pt; color: #555; }
+
+    .sstat-section       { margin-bottom: 1rem; page-break-inside: avoid; }
+    .sstat-section-title { font-size: 11pt; font-weight: 700; border-bottom: 1px solid #ccc; margin-bottom: .4rem; }
+
+    .sstat-grid        { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .sstat-card        { border: 1px solid #ccc; padding: .3rem .5rem; min-width: 90px; }
+    .sstat-card__value { font-size: 13pt; font-weight: 700; }
+    .sstat-card__label { font-size: 8pt; color: #555; }
+    .sstat-card__sub   { font-size: 7pt; color: #888; }
+
+    .data-table        { width: 100%; border-collapse: collapse; font-size: 8pt; }
+    .data-table th,
+    .data-table td     { border: 1px solid #bbb; padding: .2rem .35rem; }
+    .data-table thead  { background: #eee; }
+    .erep-total-row td { background: #f0f0f0; font-weight: 700; }
+    .table-responsive  { overflow: visible; }
+    .sstat-bar-chart   { display: none; }
+
+    a { color: inherit !important; text-decoration: none !important; }
+
+    .erep-print-footer {
+        display: block;
+        font-size: 7pt;
+        color: #aaa;
+        text-align: right;
+        margin-top: var(--space-4);
+        border-top: 1px solid #ddd;
+        padding-top: .3rem;
+    }
+
+    @page { size: A4 landscape; margin: 10mm; }
+
+    .tl-day-card { page-break-inside: avoid; margin-bottom: 6pt !important; }
+    .tl-scroll       { overflow: visible !important; }
+    .tl-scroll-inner { min-width: 0 !important; width: 100% !important; }
+
+    .tl-bar,
+    .tl-legend-bar,
+    .tl-diag-badge,
+    .tl-day-card--today .card-body {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+}

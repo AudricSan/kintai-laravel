@@ -1,0 +1,167 @@
+<?php
+
+declare(strict_types=1);
+
+namespace kintai\Tests\Integration;
+
+use kintai\Core\Auth\UserAnonymizer;
+use kintai\Core\Auth\CredentialRevoker;
+use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
+use kintai\Core\Container;
+use kintai\Core\Request;
+use kintai\Core\Router;
+use kintai\Core\Services\AuditLogger;
+use kintai\Core\Services\Calendar\GoogleCalendarClient;
+use kintai\Core\Services\Calendar\GoogleRedirectUri;
+use kintai\Core\Services\PublicUrlResolver;
+use kintai\Core\Repositories\DatabaseUserRepository;
+use kintai\Core\Repositories\ApiTokenRepositoryInterface;
+use kintai\Core\Repositories\RememberTokenRepositoryInterface;
+use kintai\Tests\Support\CalendarSyncFixture;
+use kintai\UI\Controller\Web\System\CalendarSettingsController;
+use kintai\UI\ViewRenderer;
+use PHPUnit\Framework\TestCase;
+
+/** Identifiants Google de l'instance (Owner), test des identifiants, et nettoyage à la suppression d'un compte. */
+final class CalendarSettingsControllerTest extends TestCase
+{
+    use CalendarSyncFixture;
+
+    private CalendarSettingsController $controller;
+    private ViewRenderer $view;
+
+    protected function setUp(): void
+    {
+        $this->setUpCalendarFixture();
+        $_SESSION['_csrf_token'] = 'x';
+        $router = new Router();
+        // Routes citées par la page et par le bandeau d'onglets des réglages.
+        foreach (['x', 'admin.owner_settings', 'admin.notifications_settings', 'admin.calendar_settings', 'admin.calendar_settings.save', 'admin.calendar_settings.test', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'home'] as $i => $name) {
+            $router->get('/p' . $i, ['X', 'y'], name: $name);
+        }
+        Container::getInstance()->instance(Router::class, $router);
+        $this->view = new ViewRenderer(BASE_PATH . '/app/UI/View');
+        $this->view->share('BASE_URL', '');
+        $this->controller = new CalendarSettingsController(
+            $this->view,
+            $this->google,
+            new GoogleCalendarClient($this->google, $this->http),
+            new GoogleRedirectUri(new PublicUrlResolver($this->appSettings, 'https://kintai.test')),
+            $this->repo,
+            new AuditLogger(),
+        );
+    }
+
+    protected function tearDown(): void
+    {
+        $this->tearDownCalendarFixture();
+        $_POST = [];
+        $_GET  = [];
+    }
+
+    private function location(\kintai\Core\Response $response): string
+    {
+        $headers = new \ReflectionProperty($response, 'headers');
+        return (string) ($headers->getValue($response)['Location'] ?? '');
+    }
+
+    public function testSavingKeepsTheSecretWhenTheFieldIsLeftEmptyAndEncryptsANewOne(): void
+    {
+        $_POST = ['google_calendar_enabled' => '1', 'google_calendar_client_id' => ' new-id ', 'google_calendar_client_secret' => ''];
+        $this->controller->save(new Request());
+        $this->assertSame('new-id', $this->google->clientId());
+        $this->assertSame('client-secret', $this->google->clientSecret(), 'champ vide : secret conservé');
+
+        $_POST = ['google_calendar_enabled' => '1', 'google_calendar_client_id' => 'new-id', 'google_calendar_client_secret' => 'brand-new-secret'];
+        $this->controller->save(new Request());
+        $this->assertSame('brand-new-secret', $this->google->clientSecret());
+        $this->assertStringNotContainsString('brand-new-secret', (string) $this->values->get('google_calendar_client_secret'));
+    }
+
+    public function testUncheckingTheBoxDisablesTheFeatureWithoutLosingTheCredentials(): void
+    {
+        $_POST = ['google_calendar_client_id' => 'client-id'];
+
+        $this->controller->save(new Request());
+
+        $this->assertFalse($this->google->isAvailable());
+        $this->assertTrue($this->google->hasSecret());
+    }
+
+    public function testTheSecretNeverReachesTheRenderedPage(): void
+    {
+        // La page sans la mise en page de l'application (qui demande toutes les routes du site).
+        $html = $this->view->render('system.calendar-settings', [
+            'enabled' => true, 'client_id' => 'client-id', 'has_secret' => true, 'available' => true,
+            'redirect_uri' => 'https://kintai.test/profile/calendar/google/callback', 'connections' => 2, 'check' => '',
+        ]);
+
+        $this->assertStringNotContainsString('client-secret', $html);
+        $this->assertStringContainsString('https://kintai.test/profile/calendar/google/callback', $html);
+        $this->assertStringContainsString('value="client-id"', $html);
+        $this->assertDoesNotMatchRegularExpression('/\son(click|change|submit)=|\sstyle="/i', $html);
+    }
+
+    /** @return array<string, array{array{status: int, body: string}, string}> */
+    public static function credentialChecks(): array
+    {
+        return [
+            'identifiants bons, code faux'  => [['status' => 400, 'body' => '{"error":"invalid_grant"}'], 'ok'],
+            'identifiants refusés'          => [['status' => 401, 'body' => '{"error":"invalid_client"}'], 'invalid_client'],
+            'Google injoignable'            => [['status' => 0, 'body' => ''], 'unreachable'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('credentialChecks')]
+    public function testTheCredentialCheckDistinguishesBadCredentialsFromABadCode(array $googleAnswer, string $expected): void
+    {
+        $this->http->when('POST', '/token', $googleAnswer);
+
+        $response = $this->controller->test(new Request());
+
+        $this->assertStringEndsWith('?check=' . $expected, $this->location($response));
+    }
+
+    public function testTheCheckAsksToFinishTheSetupWhenCredentialsAreMissing(): void
+    {
+        $this->values->set('google_calendar_client_secret', '');
+
+        $response = $this->controller->test(new Request());
+
+        $this->assertStringEndsWith('?check=incomplete', $this->location($response));
+        $this->assertCount(0, $this->http->calls('POST', '/token'));
+    }
+
+    public function testDeletingAnAccountRemovesItsLinkAndRevokesTheTokenAtGoogle(): void
+    {
+        $this->shifts->save(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
+        $this->sync->connect($this->alice, 'RA', null);
+        $this->sync->processQueue();
+        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
+        $roleAssignments->method('findByUser')->willReturn([]);
+        $anonymizer = new UserAnonymizer(
+            new DatabaseUserRepository(), $roleAssignments,
+            new CredentialRevoker($this->createStub(RememberTokenRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+            sys_get_temp_dir(),
+            $this->sync,
+        );
+
+        $anonymizer->anonymize($this->alice);
+
+        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertCount(1, $this->http->calls('DELETE', '/events/evt-1'), 'les événements ne suivent plus un compte supprimé');
+        $this->assertCount(1, $this->http->callsEndingWith('POST', '/revoke'));
+        $this->assertSame(0, $this->capsule->table('calendar_event_links')->count());
+    }
+
+    public function testHardDeletingAUserPurgesTheCalendarRows(): void
+    {
+        $this->sync->connect($this->alice, 'RA', null);
+
+        (new DatabaseUserRepository())->delete($this->alice);
+
+        foreach (['calendar_connections', 'calendar_event_links', 'calendar_sync_queue'] as $table) {
+            $this->assertSame(0, $this->capsule->table($table)->count(), $table);
+        }
+    }
+}

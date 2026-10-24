@@ -1,0 +1,250 @@
+/* ================================================
+   Kintai — Planning Timeline (impression navigateur)
+   Document autonome, A4 paysage.
+   ================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    color: #222;
+    background: #e8eaed;
+}
+
+/* ── Barre d'outils (écran seulement) ─────────── */
+.pt-toolbar {
+    background: #2c3e50; color: #fff;
+    padding: .5rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    position: sticky; top: 0; z-index: 10;
+}
+.pt-toolbar button {
+    background: #3498db; color: #fff; border: none;
+    padding: .35rem .9rem; border-radius: 4px; cursor: pointer; font-size: 9pt;
+}
+.pt-toolbar button:hover { background: #2980b9; }
+.pt-toolbar a       { color: #aed6f1; font-size: 8.5pt; text-decoration: none; }
+.pt-toolbar a:hover { text-decoration: underline; }
+.pt-toolbar__hint   { margin-left: auto; font-size: 8pt; opacity: .6; }
+
+/* ── Page ─────────────────────────────────────── */
+.pt-page {
+    max-width: 277mm;
+    margin: 1rem auto;
+    background: #fff;
+    padding: 7mm 9mm;
+    box-shadow: 0 3px 16px rgba(0,0,0,.18);
+}
+
+/* ── En-tête document ─────────────────────────── */
+.pt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid #2c3e50;
+    padding-bottom: .6rem;
+    margin-bottom: .9rem;
+}
+.pt-brand       { font-size: 16pt; font-weight: 700; color: #2c3e50; letter-spacing: -1px; }
+.pt-brand small { display: block; font-size: 7.5pt; font-weight: 400; color: #666; margin-top: 2px; }
+.pt-doc-info        { text-align: right; }
+.pt-doc-info strong { font-size: 10pt; color: #2c3e50; display: block; }
+.pt-doc-info span   { font-size: 8pt; color: #666; display: block; margin-top: 1px; }
+
+/* ── Table Gantt ──────────────────────────────── */
+.pt-gantt-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+/* 24 colonnes d'heures = 100% */
+.pt-col-hour { width: 4.16667%; }
+
+/* ── En-tête heures ───────────────────────────── */
+.pt-thead-row { background: #2c3e50; color: #fff; }
+
+.pt-th-hour {
+    border: 1px solid #1a252f;
+    padding: .25rem 0 .25rem 2px;
+    font-size: 6.5pt;
+    font-weight: 700;
+    text-align: left;
+    color: #9aacbf;
+}
+.pt-th-hour--major {
+    color: #fff;
+    border-left: 2px solid #3498db;
+}
+
+/* ── Répétition de l'axe des heures ──────────── */
+.pt-tr-hours-repeat { background: #3d5166; }
+.pt-th-hour-repeat {
+    border: 1px solid #2c3e50;
+    padding: .15rem 0 .15rem 2px;
+    font-size: 6pt;
+    font-weight: 600;
+    text-align: left;
+    color: #8aacbf;
+}
+.pt-th-hour-repeat.pt-th-hour--major {
+    color: #ccd;
+    border-left: 2px solid #2980b9;
+}
+
+/* ── Ligne séparatrice de jour ────────────────── */
+.pt-tr-day .pt-td-day {
+    background: #34495e;
+    color: #fff;
+    padding: .3rem .6rem;
+    border-top: 3px solid #2c3e50;
+    border-bottom: 1px solid #1a252f;
+    font-size: 8pt;
+}
+.pt-tr-day--today .pt-td-day { background: #1a5276; border-top-color: #f39c12; }
+.pt-day-label { font-weight: 700; }
+.pt-day-meta  { font-size: 7.5pt; opacity: .85; margin-left: .6rem; }
+.pt-badge-ok   { color: #2ecc71; font-weight: 700; }
+.pt-badge-warn {
+    background: #e67e22; color: #fff; font-weight: 700;
+    border-radius: 8px; padding: .05rem .4rem; font-size: 7pt;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+
+/* ── Ligne vide ───────────────────────────────── */
+.pt-td-empty {
+    color: #aaa; font-style: italic; font-size: 7.5pt;
+    padding: .2rem .6rem; border: 1px solid #eee; text-align: center;
+}
+
+/* ── Espaceur entre les jours ─────────────────── */
+.pt-tr-spacer td {
+    height: 20px;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+/* ── Ligne de lane ────────────────────────────── */
+.pt-tr-lane { border-bottom: 1px solid #e4e6eb; }
+
+/* Cellule qui contient les barres (colspan=24) */
+.pt-td-bars {
+    padding: 0;
+    border-left: 1px solid #dde;
+    border-right: 1px solid #dde;
+    /* Quadrillage en fond :
+       – colonnes alternées clair/blanc (1h chacune)
+       – trait fin toutes les 1h
+       – trait marqué toutes les 6h (06, 12, 18, 00) */
+    background-image:
+        repeating-linear-gradient(
+            to right,
+            rgba(52,73,94,.22) 0, rgba(52,73,94,.22) 1px,
+            transparent 1px, transparent 25%
+        ),
+        repeating-linear-gradient(
+            to right,
+            rgba(0,0,0,.05) 0, rgba(0,0,0,.05) 1px,
+            transparent 1px, transparent 4.16667%
+        ),
+        repeating-linear-gradient(
+            to right,
+            #f0f2f6 0%, #f0f2f6 4.16667%,
+            #fff    4.16667%, #fff    8.33333%
+        );
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+
+/* ── Zone de positionnement des barres ─────────── */
+.pt-lane {
+    position: relative;
+    height: 22px;
+    width: 100%;
+}
+
+/* ── Barre de shift ───────────────────────────── */
+.pt-bar {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 4px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+
+/* Nom de l'employé sur la barre */
+.pt-bar-name {
+    font-size: 6.5pt;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+}
+
+/* Horaire sur la barre */
+.pt-bar-time {
+    font-size: 5.5pt;
+    color: rgba(255,255,255,.85);
+    text-shadow: 0 1px 1px rgba(0,0,0,.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+}
+
+/* ── Légende employés ─────────────────────────── */
+.pt-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .9rem;
+    margin-top: .7rem;
+    padding-top: .4rem;
+    border-top: 1px solid #ddd;
+    font-size: 7pt;
+    color: #444;
+}
+.pt-legend-item { display: flex; align-items: center; gap: 4px; }
+.pt-legend-bar {
+    width: 14px; height: 7px; border-radius: 2px; flex-shrink: 0;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+
+/* ── Divers ───────────────────────────────────── */
+.pt-empty-state { color: #999; font-style: italic; padding: 1rem 0; }
+.pt-footer {
+    margin-top: .8rem; padding-top: .4rem;
+    border-top: 1px solid #ddd;
+    font-size: 7pt; color: #aaa; text-align: center;
+}
+
+/* ── Impression ───────────────────────────────── */
+@media print {
+    body { background: #fff; }
+    .pt-toolbar, .pt-legend, .pt-header, .pt-footer { display: none !important; }
+    .pt-page { max-width: 100%; margin: 0; padding: 3mm 5mm; box-shadow: none; }
+    .pt-tr-spacer td { height: 10px; }
+    .pt-lane { height: 17px; }
+    .pt-tr-day .pt-td-day { padding: .15rem .5rem; }
+    .pt-tr-day, .pt-tr-lane { page-break-inside: avoid; }
+
+    .pt-bar, .pt-legend-bar, .pt-badge-warn,
+    .pt-td-bars,
+    .pt-tr-day .pt-td-day,
+    .pt-tr-hours-repeat {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+    }
+}
+
+@page { size: A4 landscape; margin: 6mm 7mm; }

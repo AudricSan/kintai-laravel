@@ -1,0 +1,28 @@
+/* ================================================
+   Kintai — Components: point d'entrée
+   Composants réutilisables, un fichier par famille.
+   L'ordre d'import est conservé identique à l'ancien
+   fichier monolithe pour préserver la cascade CSS.
+   ================================================ */
+
+@import url('./components/buttons.css');
+@import url('./components/forms.css');
+@import url('./components/nav-settings.css');
+@import url('./components/cards.css');
+@import url('./components/tables.css');
+@import url('./components/badges.css');
+@import url('./components/alerts.css');
+@import url('./components/topbar.css');
+@import url('./components/app-banner.css');
+@import url('./components/notifications.css');
+@import url('./components/sidebar-stats.css');
+@import url('./components/modals.css');
+@import url('./components/toast.css');
+@import url('./components/tabs.css');
+@import url('./components/error-log.css');
+@import url('./components/progress-bar.css');
+@import url('./components/translations.css');
+@import url('./components/store-picker.css');
+@import url('./components/user-picker.css');
+@import url('./components/footer.css');
+@import url('./components/page-overlay.css');

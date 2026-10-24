@@ -1,0 +1,193 @@
+/* ================================================
+   Kintai — Footer applicatif
+   ================================================ */
+
+.app-footer {
+    position: relative;
+    margin-top: var(--space-10);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    padding-bottom: var(--space-6);
+}
+
+.app-footer::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+    opacity: 0.6;
+}
+
+.app-footer__inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6) var(--space-6);
+    display: grid;
+    grid-template-columns: 1.4fr repeat(4, 1fr) auto;
+    align-items: start;
+    gap: var(--space-6) var(--space-8);
+}
+
+.app-footer__brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: var(--text-lg);
+}
+
+.app-footer__brand-link:hover {
+    color: var(--color-primary);
+}
+
+.app-footer__logo {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+}
+
+.app-footer__tagline {
+    margin-top: var(--space-2);
+    max-width: 30ch;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs-2);
+    line-height: 1.5;
+}
+
+.app-footer__meta {
+    margin-top: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.app-footer__copyright {
+    color: var(--color-text-secondary);
+    font-size: var(--text-2xs);
+}
+
+.app-footer__mascot {
+    display: block;
+    width: 110px;
+    height: auto;
+    margin-bottom: calc(-1 * var(--space-6));
+    pointer-events: none;
+    user-select: none;
+}
+
+.app-footer__version {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    color: var(--color-text-secondary);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--duration-fast), border-color var(--duration-fast);
+}
+
+.app-footer__version:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    text-decoration: none;
+}
+
+.app-footer__heading {
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-3);
+}
+
+.app-footer__col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    min-width: 0;
+    padding-left: var(--space-8);
+    border-left: 1px solid var(--color-border-light);
+}
+
+.app-footer__col--mascot {
+    /* Ancrée à la dernière piste de la grille par index explicite, pas par
+       ordre du DOM : la colonne "Support" n'est rendue que pour un
+       utilisateur connecté ($_ftAuthed dans _footer.php), donc l'élément
+       suivant la mascotte dans le DOM n'est pas toujours le même — sans
+       grid-column explicite, cette colonne glisserait dans la piste
+       "Code source" et chevaucherait ses liens dès que la colonne Support
+       est absente (footer invité / page de connexion). */
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.app-footer__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: var(--text-xs-2);
+    transition: color var(--duration-fast);
+}
+
+.app-footer__link:hover {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.app-footer__link--btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+}
+
+.app-footer__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+}
+
+.app-footer__link:hover .app-footer__icon {
+    color: var(--color-primary);
+}
+
+@media (max-width: 1100px) {
+    .app-footer__col--mascot {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .app-footer__inner {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .app-footer__brand {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 560px) {
+    .app-footer__inner {
+        grid-template-columns: 1fr;
+        padding: var(--space-6) var(--space-4) var(--space-4);
+    }
+
+    .app-footer__col {
+        padding-left: 0;
+        border-left: none;
+    }
+}

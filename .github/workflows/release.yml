@@ -1,0 +1,197 @@
+name: Release
+
+# Publie automatiquement une Release GitHub à chaque push/merge sur une
+# branche de canal. Aucun numéro n'est saisi à la main : le tag suivant se
+# déduit du plus haut tag vX.Y.Z existant et du canal qui publie (voir
+# wiki : Releasing-a-Version).
+#
+# Schéma de version X.Y.Z — chaque canal fixe un chiffre, et un seul :
+# - alpha -> incrémente Z            (X.Y.Z -> X.Y.Z+1)
+# - beta  -> incrémente Y, Z = 0     (X.Y.Z -> X.Y+1.0)
+# - main  -> incrémente X, Y = Z = 0 (X.Y.Z -> X+1.0.0)
+# Seul main peut donc changer le premier chiffre, seul beta le deuxième,
+# seul alpha le troisième. Le plus haut tag existant sert de référence,
+# quel que soit le canal qui l'a publié.
+#
+# La version calculée est aussi écrite dans config/app.php du commit taggé (jamais poussé sur la branche) :
+# voir scripts/set-release-version.php.
+#
+# Le canal (alpha/beta/release) n'est pas déterminé en inspectant le tag
+# mais via le target_commitish de la Release GitHub — voir
+# GithubUpdateService::selectReleaseForChannel().
+
+on:
+  push:
+    branches: [alpha, beta, main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Determine channel and next tag
+        id: version
+        run: |
+          set -euo pipefail
+
+          BRANCH="${{ github.ref_name }}"
+
+          case "$BRANCH" in
+            alpha) CHANNEL=alpha; PRERELEASE=true ;;
+            beta)  CHANNEL=beta;  PRERELEASE=true ;;
+            main)  CHANNEL=release; PRERELEASE=false ;;
+            *) echo "Branche non gérée : $BRANCH"; exit 1 ;;
+          esac
+
+          # Plus haut tag vX.Y.Z existant (tri de version, tous canaux
+          # confondus). Aucun tag -> on part de 0.0.0.
+          LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -n 1)
+          LATEST=${LATEST:-0.0.0}
+          IFS='.' read -r X Y Z <<< "$LATEST"
+
+          # Chaque canal fixe un seul chiffre et remet à zéro ceux de droite.
+          case "$CHANNEL" in
+            alpha)   Z=$((Z + 1)) ;;
+            beta)    Y=$((Y + 1)); Z=0 ;;
+            release) X=$((X + 1)); Y=0; Z=0 ;;
+          esac
+
+          VERSION="${X}.${Y}.${Z}"
+          TAG="v${VERSION}"
+
+          if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "::error::Le tag ${TAG} existe déjà (collision improbable, p.ex. deux publications concurrentes) — relancez le workflow."
+            exit 1
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes from CHANGELOG.md
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+
+          extract_section() {
+            awk -v header="$1" '
+              index($0, header) == 1 && !found { found=1; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' CHANGELOG.md
+          }
+
+          # Vide au sens strict = aucun caractère non-blanc (un awk qui ne
+          # trouve que la ligne blanche séparant deux "## [" produit 1 octet
+          # de saut de ligne, que `[ -s ]` considère à tort comme non-vide).
+          is_blank() {
+            ! grep -q '[^[:space:]]' "$1"
+          }
+
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # La plupart des push accumulent leurs notes sous [Unreleased] —
+          # sauf le commit de release lui-même, qui renomme [Unreleased] en
+          # "## [X.Y.Z]" dans le même commit (voir wiki : Releasing-a-Version) et
+          # laisse donc [Unreleased] vide : dans ce cas précis, les notes
+          # réelles vivent déjà sous la section versionnée.
+          extract_section "## [Unreleased]" > release-notes.txt
+          if is_blank release-notes.txt; then
+            extract_section "## [${VERSION}]" > release-notes.txt
+          fi
+
+          if is_blank release-notes.txt; then
+            echo "::error::Aucune entrée CHANGELOG.md trouvée pour '[Unreleased]' ou '[${VERSION}]' — ajoutez les notes de version avant de publier une release sur ce canal."
+            exit 1
+          fi
+
+          # GitHub refuse un corps de Release de plus de 125 000 caractères (HTTP 422) : au-delà, la Release n'est pas
+          # créée alors que le tag, lui, est déjà poussé (cas de la v0.3.4). On coupe donc à la dernière ligne entière
+          # qui tient sous la limite — comptée en octets, toujours >= au nombre de caractères, et sans jamais couper
+          # un caractère multi-octet en deux — et on renvoie vers le CHANGELOG complet.
+          MAX_BYTES=120000
+          if [ "$(wc -c < release-notes.txt)" -gt "$MAX_BYTES" ]; then
+            echo "::warning::Notes de release tronquées (> ${MAX_BYTES} octets) : limite GitHub de 125 000 caractères."
+            LC_ALL=C awk -v max="$MAX_BYTES" '{ n += length($0) + 1; if (n > max) exit; print }' release-notes.txt > release-notes.cut
+            {
+              cat release-notes.cut
+              echo
+              echo "---"
+              echo "_Notes tronquées (limite GitHub de 125 000 caractères) — liste complète dans [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md)._"
+            } > release-notes.txt
+            rm release-notes.cut
+          fi
+
+      - name: Create tag and GitHub release
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # La version calculée est écrite dans config/app.php du commit qui porte le tag : l'archive de la release
+          # affiche ainsi sa vraie version (sinon une installation neuve se croirait dans le littéral figé du dépôt et
+          # l'installateur de bundles refuserait ceux qui exigent une version plus récente, cf. kintai_core.min).
+          # Ce commit n'est PAS poussé sur la branche (protégée) : seul le tag le référence.
+          php scripts/set-release-version.php "$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add config/app.php
+          git diff --cached --quiet || git commit -m "release: v${VERSION}"
+
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          PRERELEASE_FLAG=""
+          if [ "${{ steps.version.outputs.prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          gh release create "$TAG" \
+            --title "Kintai $TAG" \
+            --notes-file release-notes.txt \
+            --target "${{ github.ref_name }}" \
+            $PRERELEASE_FLAG
+
+      # Archive appliquée par la mise à jour intégrée (GithubUpdateService) : le code du tag (git archive) plus
+      # vendor/ (composer install --no-dev, pour qu'aucun composer ne tourne chez l'utilisateur), un
+      # release-manifest.json qui la lie au tag et à son commit, et le fichier SHA256SUMS de son empreinte.
+      # Une release sans ces deux fichiers est refusée par la mise à jour (audit du 13/10/2026, M10).
+      - name: Build and attach the verified update archive
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          TAG="${{ steps.version.outputs.tag }}"
+          COMMIT=$(git rev-parse "${TAG}^{commit}")
+          NAME="kintai-${TAG}"
+
+          rm -rf build && mkdir -p "build/${NAME}"
+          git archive "$TAG" | tar -x -C "build/${NAME}"
+          composer install --working-dir="build/${NAME}" --no-dev --optimize-autoloader --no-interaction --no-progress
+          printf '{"tag": "%s", "commit": "%s"}\n' "$TAG" "$COMMIT" > "build/${NAME}/release-manifest.json"
+
+          (cd build && zip -qr "${NAME}.zip" "${NAME}" && sha256sum "${NAME}.zip" > SHA256SUMS)
+          cat build/SHA256SUMS
+
+          gh release upload "$TAG" "build/${NAME}.zip" build/SHA256SUMS

@@ -1,0 +1,85 @@
+/* ================================================
+   Kintai — Onglets (tabs unifiés + tab bar messages)
+   ================================================ */
+
+/* ── Unified Tabs ───────────────────────────────── */
+/* Piste pilule plutôt que soulignement — cohérent avec le style de la
+   navigation (topbar-nav-link/-group) de la direction "Vitrine". */
+.tabs,
+.dash-tabs-nav,
+.profile-tabs {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px;
+    padding: 3px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-full);
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.tab,
+.dash-tab-btn,
+.profile-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: none;
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.tab:hover,
+.dash-tab-btn:hover,
+.profile-tab:hover {
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.tab--active,
+.dash-tab-btn--active,
+.profile-tab--active {
+    background: var(--color-surface);
+    color: var(--color-primary);
+    box-shadow: var(--shadow-xs);
+}
+
+/* ── Tab Bar (messages) ─────────────────────────── */
+.tab-bar {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--color-bg-alt);
+    border-radius: var(--radius-full);
+    max-width: 100%;
+}
+
+.tab-bar__item {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.tab-bar__item:hover {
+    color: var(--color-text);
+}
+
+.tab-bar__item--active {
+    background: var(--color-surface);
+    color: var(--color-primary);
+    box-shadow: var(--shadow-xs);
+}
+

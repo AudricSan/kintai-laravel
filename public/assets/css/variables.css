@@ -1,0 +1,381 @@
+/* ================================================
+   Kintai — Design Tokens
+   Source unique de toutes les valeurs de design.
+   Importé en premier par app.css.
+   ================================================ */
+
+:root {
+    /* ── Couleurs primaires ──────────────────────── */
+    /* Palette de Foxy par défaut (docs/brand/foxy-style-guide.png) : orange du
+       pelage en couleur pleine, brun du nez/pattes au hover, crème du ventre
+       en teinte claire — fonctionne aussi bien en texte/lien qu'en fond de
+       bouton plein (pas besoin d'un token de contraste séparé).
+       Indirection via --light-primary-* et --dark-primary-* : ThemeColorPalette
+       (Owner > Paramètres > Apparence) surcharge ces tokens en style inline sur
+       <html> sans toucher --color-primary* directement, pour ne pas casser la
+       bascule clair/sombre ci-dessous. */
+    --light-primary:         #ff9f4a;
+    --light-primary-rgb:     255, 159, 74;
+    --light-primary-hover:   #5b4a3a;
+    --light-primary-light:   #fff5e6;
+    --light-primary-lighter: #fffaf3;
+
+    --color-primary:         var(--light-primary);
+    --color-primary-hover:   var(--light-primary-hover);
+    --color-primary-light:   var(--light-primary-light);
+    --color-primary-lighter: var(--light-primary-lighter);
+
+    /* ── Couleurs sémantiques ────────────────────── */
+    /* Indirection --light-xxx (même mécanisme que --light-primary-xxx ci-dessus, voir
+       ThemeColorPalette) : Owner > Paramètres > Apparence peut surcharger ces tokens en
+       style inline sans toucher --color-xxx directement. Contrepartie --dark-xxx déjà
+       présente plus bas (bloc "Dark mode tokens"). */
+    --light-success:        #1fae6b;
+    --light-success-hover:  #18925a;
+    --light-success-light:  #e2f6ec;
+    --light-success-dark:   #12693f;
+    --light-success-border: #8fd9b6;
+    --color-success:        var(--light-success);
+    --color-success-hover:  var(--light-success-hover);
+    --color-success-light:  var(--light-success-light);
+    --color-success-dark:   var(--light-success-dark);
+    --color-success-border: var(--light-success-border);
+
+    --light-warning:        #c97a12;
+    --light-warning-hover:  #a8630d;
+    --light-warning-light:  #fbedd9;
+    --light-warning-dark:   #7a490a;
+    --light-warning-border: #ebc17e;
+    --color-warning:        var(--light-warning);
+    --color-warning-hover:  var(--light-warning-hover);
+    --color-warning-light:  var(--light-warning-light);
+    --color-warning-dark:   var(--light-warning-dark);
+    --color-warning-border: var(--light-warning-border);
+
+    --light-danger:        #e5484d;
+    --light-danger-hover:  #c93a3f;
+    --light-danger-light:  #fce3e4;
+    --light-danger-dark:   #922025;
+    --light-danger-border: #f2a3a6;
+    --color-danger:        var(--light-danger);
+    --color-danger-hover:  var(--light-danger-hover);
+    --color-danger-light:  var(--light-danger-light);
+    --color-danger-dark:   var(--light-danger-dark);
+    --color-danger-border: var(--light-danger-border);
+
+    --light-info:        #2f86d6;
+    --light-info-light:  #e3f0fc;
+    --light-info-dark:   #1e5a93;
+    --light-info-border: #9dc7ed;
+    --color-info:        var(--light-info);
+    --color-info-light:  var(--light-info-light);
+    --color-info-dark:   var(--light-info-dark);
+    --color-info-border: var(--light-info-border);
+
+    /* ── Couleurs sémantiques étendues ──────────── */
+    --color-neutral:        #4b4864;   /* texte neutre (badges inactifs, états par défaut) */
+    --color-admin-text:     #c2368c;   /* texte badge administrateur (rose — distinct du violet de marque) */
+    --light-primary-medium: #ffe0c5;   /* primaire intermédiaire (hover btn--secondary) */
+    --color-primary-medium: var(--light-primary-medium);
+    /* Texte posé sur un fond plein (boutons, pastilles) : blanc en clair, sombre en thème sombre où les teintes sont pâles */
+    --color-on-primary: #fff;
+    --color-on-success: #fff;
+    --color-on-warning: #fff;
+    --color-on-danger:  #fff;
+    --light-accent:          #4caf50;   /* accent complémentaire — vert du sac "K" de Foxy */
+    --light-table-highlight: #dff5e1;  /* survol des lignes de tableau — vert clair de Foxy */
+    --color-accent:          var(--light-accent);
+    --color-table-highlight: var(--light-table-highlight);
+
+    /* ── Couleurs neutres ────────────────────────── */
+    --color-text:           #1d1b2e;
+    --color-text-muted:     #6e6b85;
+    --color-text-secondary: #9a97ac;
+    --color-border:         #e7e5f0;
+    --color-border-light:   #f1eff8;
+
+    --color-bg:             #f6f5fa;
+    --color-bg-alt:         #f0eefa;
+    --color-bg-subtle:      #f3f1fa;
+    --color-surface:        #ffffff;
+    --color-surface-alt:    #faf9fd;
+
+    /* ── Typographie ─────────────────────────────── */
+    --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    --font-mono:  'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+    --text-2xs:   0.6875rem;   /* 11px — ultra-compact (badges, compteurs) */
+    --text-xs:    0.75rem;    /* 12px */
+    --text-xs-2:  0.8125rem;   /* 13px — libellés, boutons, textes secondaires */
+    --text-sm:    0.875rem;   /* 14px */
+    --text-base:  1rem;       /* 16px */
+    --text-lg:    1.125rem;   /* 18px */
+    --text-xl:    1.25rem;    /* 20px */
+    --text-2xl:   1.5rem;     /* 24px */
+    --text-3xl:   1.875rem;   /* 30px */
+
+    /* ── Spacing (multiples de 4px) ─────────────── */
+    --space-1:  0.25rem;   /* 4px  */
+    --space-2:  0.5rem;    /* 8px  */
+    --space-3:  0.75rem;   /* 12px */
+    --space-4:  1rem;      /* 16px */
+    --space-5:  1.25rem;   /* 20px */
+    --space-6:  1.5rem;    /* 24px */
+    --space-8:  2rem;      /* 32px */
+    --space-10: 2.5rem;    /* 40px */
+    --space-12: 3rem;      /* 48px */
+
+    /* ── Border radius ───────────────────────────── */
+    /* Formes généreusement arrondies — registre "SaaS accueillant" plutôt
+       que technique. */
+    --radius-xs:   4px;
+    --radius-sm:   8px;
+    --radius:      12px;       /* défaut */
+    --radius-lg:   16px;
+    --radius-xl:   20px;
+    --radius-full: 9999px;    /* pill */
+
+    /* ── Shadows ─────────────────────────────────── */
+    /* Ombres douces teintées de violet plutôt que gris neutre. */
+    --shadow-xs: 0 1px 2px rgba(29, 27, 46, 0.05);
+    --shadow:    0 2px 6px rgba(29, 27, 46, 0.06), 0 1px 2px rgba(29, 27, 46, 0.04);
+    --shadow-md: 0 6px 16px rgba(var(--light-primary-rgb), 0.10), 0 2px 4px rgba(29, 27, 46, 0.05);
+    --shadow-lg: 0 14px 32px rgba(var(--light-primary-rgb), 0.14);
+    --shadow-xl: 0 24px 48px rgba(var(--light-primary-rgb), 0.18);
+
+    /* ── Layout ──────────────────────────────────── */
+    --topbar-height:    64px;
+    /* Hauteur réelle du bandeau maintenance, mesurée en JS (layout/app.php) — 0 quand il est absent. */
+    --maintenance-banner-h: 0px;
+    /* Chip "toujours sombre" (tooltips, etc.) — indépendant du thème clair/sombre de l'appli. */
+    --color-sidebar-bg: #1d1b2e;
+
+    /* ── Overlays ─────────────────────────────────── */
+    --overlay-bg: rgba(29, 27, 46, .45);
+
+    /* ── Transitions ─────────────────────────────── */
+    --duration-fast:   150ms;
+    --duration-normal: 250ms;
+}
+
+/* ── Dark mode tokens (partagés par @media et [data-theme]) ──────────── */
+:root {
+    /* ── Arrière-plans ──────────────────────────── */
+    --dark-bg:             #16151f;
+    --dark-bg-alt:         #1c1a28;
+    --dark-bg-subtle:      #1a1826;
+    --dark-surface:        #1f1e2b;
+    --dark-surface-alt:    #262536;
+
+    /* ── Textes ─────────────────────────────────── */
+    --dark-text:           #edebf7;
+    --dark-text-muted:     #9c98b3;
+    --dark-text-secondary: #726e8c;
+
+    /* ── Bordures ───────────────────────────────── */
+    --dark-border:         #322f42;
+    --dark-border-light:   #282536;
+
+    /* ── Couleurs sémantiques (adaptées fond sombre) ── */
+    --dark-primary:         #fdd0a8;
+    --dark-primary-hover:   #fee6d0;
+    --dark-primary-light:   rgba(253, 208, 168, 0.16);
+    --dark-primary-lighter: rgba(253, 208, 168, 0.08);
+    --dark-primary-medium:  rgba(253, 208, 168, 0.30);
+    --dark-on-solid:        #16151f;
+
+    --dark-success:         #4fd999;
+    --dark-success-hover:   #71e0ac;
+    --dark-success-light:   rgba(79, 217, 153, 0.16);
+    --dark-success-dark:    #8ae6bb;
+    --dark-success-border:  #4fd999;
+
+    --dark-warning:         #eaa64d;
+    --dark-warning-hover:   #eeb871;
+    --dark-warning-light:   rgba(234, 166, 77, 0.16);
+    --dark-warning-dark:    #f2c68d;
+    --dark-warning-border:  #eaa64d;
+
+    --dark-danger:          #ed9b9e;
+    --dark-danger-hover:    #f3bec0;
+    --dark-danger-light:    rgba(237, 155, 158, 0.16);
+    --dark-danger-dark:     #f8d8d9;
+    --dark-danger-border:   #ed9b9e;
+
+    --dark-info:            #80b2e1;
+    --dark-info-light:      rgba(128, 178, 225, 0.16);
+    --dark-info-dark:       #bad5ef;
+    --dark-info-border:     #80b2e1;
+
+    --dark-accent:         #8fc891;
+    --dark-table-highlight: rgba(223, 245, 225, 0.18);
+    --dark-neutral:        #9c98b3;
+    --dark-admin-text:     #e066b8;
+
+    /* ── Chip toujours sombre ─────────────────────── */
+    --dark-sidebar-bg:     #0f0e17;
+
+    /* ── Ombres ─────────────────────────────────── */
+    --dark-shadow:    0 1px 3px rgba(0, 0, 0, 0.35);
+    --dark-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.35);
+    --dark-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.40);
+    --dark-shadow-xl: 0 28px 56px rgba(0, 0, 0, 0.48);
+}
+
+/* Appliqué via préférence système (quand aucune préférence manuelle) */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --color-bg:              var(--dark-bg);
+        --color-bg-alt:          var(--dark-bg-alt);
+        --color-bg-subtle:       var(--dark-bg-subtle);
+        --color-surface:         var(--dark-surface);
+        --color-surface-alt:     var(--dark-surface-alt);
+        --color-text:            var(--dark-text);
+        --color-text-muted:      var(--dark-text-muted);
+        --color-text-secondary:  var(--dark-text-secondary);
+        --color-border:          var(--dark-border);
+        --color-border-light:    var(--dark-border-light);
+        --color-primary:         var(--dark-primary);
+        --color-primary-hover:   var(--dark-primary-hover);
+        --color-primary-light:   var(--dark-primary-light);
+        --color-primary-lighter: var(--dark-primary-lighter);
+        --color-primary-medium:  var(--dark-primary-medium);
+        --color-on-primary: var(--dark-on-solid);
+        --color-on-success: var(--dark-on-solid);
+        --color-on-warning: var(--dark-on-solid);
+        --color-on-danger:  var(--dark-on-solid);
+        --color-success:         var(--dark-success);
+        --color-success-hover:   var(--dark-success-hover);
+        --color-success-light:   var(--dark-success-light);
+        --color-success-dark:    var(--dark-success-dark);
+        --color-success-border:  var(--dark-success-border);
+        --color-warning:         var(--dark-warning);
+        --color-warning-hover:   var(--dark-warning-hover);
+        --color-warning-light:   var(--dark-warning-light);
+        --color-warning-dark:    var(--dark-warning-dark);
+        --color-warning-border:  var(--dark-warning-border);
+        --color-danger:          var(--dark-danger);
+        --color-danger-hover:    var(--dark-danger-hover);
+        --color-danger-light:    var(--dark-danger-light);
+        --color-danger-dark:     var(--dark-danger-dark);
+        --color-danger-border:   var(--dark-danger-border);
+        --color-info:            var(--dark-info);
+        --color-info-light:      var(--dark-info-light);
+        --color-info-dark:       var(--dark-info-dark);
+        --color-info-border:     var(--dark-info-border);
+        --color-accent:          var(--dark-accent);
+        --color-table-highlight: var(--dark-table-highlight);
+        --color-neutral:         var(--dark-neutral);
+        --color-admin-text:      var(--dark-admin-text);
+        --color-sidebar-bg:      var(--dark-sidebar-bg);
+        --shadow:    var(--dark-shadow);
+        --shadow-md: var(--dark-shadow-md);
+        --shadow-lg: var(--dark-shadow-lg);
+        --shadow-xl: var(--dark-shadow-xl);
+    }
+}
+
+/* Override manuel — sombre forcé */
+html[data-theme="dark"] {
+    --color-bg:              var(--dark-bg);
+    --color-bg-alt:          var(--dark-bg-alt);
+    --color-bg-subtle:       var(--dark-bg-subtle);
+    --color-surface:         var(--dark-surface);
+    --color-surface-alt:     var(--dark-surface-alt);
+    --color-text:            var(--dark-text);
+    --color-text-muted:      var(--dark-text-muted);
+    --color-text-secondary:  var(--dark-text-secondary);
+    --color-border:          var(--dark-border);
+    --color-border-light:    var(--dark-border-light);
+    --color-primary:         var(--dark-primary);
+    --color-primary-hover:   var(--dark-primary-hover);
+    --color-primary-light:   var(--dark-primary-light);
+    --color-primary-lighter: var(--dark-primary-lighter);
+    --color-primary-medium:  var(--dark-primary-medium);
+    --color-on-primary: var(--dark-on-solid);
+    --color-on-success: var(--dark-on-solid);
+    --color-on-warning: var(--dark-on-solid);
+    --color-on-danger:  var(--dark-on-solid);
+    --color-success:         var(--dark-success);
+    --color-success-hover:   var(--dark-success-hover);
+    --color-success-light:   var(--dark-success-light);
+    --color-success-dark:    var(--dark-success-dark);
+    --color-success-border:  var(--dark-success-border);
+    --color-warning:         var(--dark-warning);
+    --color-warning-hover:   var(--dark-warning-hover);
+    --color-warning-light:   var(--dark-warning-light);
+    --color-warning-dark:    var(--dark-warning-dark);
+    --color-warning-border:  var(--dark-warning-border);
+    --color-danger:          var(--dark-danger);
+    --color-danger-hover:    var(--dark-danger-hover);
+    --color-danger-light:    var(--dark-danger-light);
+    --color-danger-dark:     var(--dark-danger-dark);
+    --color-danger-border:   var(--dark-danger-border);
+    --color-info:            var(--dark-info);
+    --color-info-light:      var(--dark-info-light);
+    --color-info-dark:       var(--dark-info-dark);
+    --color-info-border:     var(--dark-info-border);
+    --color-accent:          var(--dark-accent);
+    --color-table-highlight: var(--dark-table-highlight);
+    --color-neutral:         var(--dark-neutral);
+    --color-admin-text:      var(--dark-admin-text);
+    --color-sidebar-bg:      var(--dark-sidebar-bg);
+    --shadow:    var(--dark-shadow);
+    --shadow-md: var(--dark-shadow-md);
+    --shadow-lg: var(--dark-shadow-lg);
+    --shadow-xl: var(--dark-shadow-xl);
+}
+
+/* Override manuel — clair forcé (annule le @media dark) */
+html[data-theme="light"] {
+    --color-bg:              #f6f5fa;
+    --color-bg-alt:          #f0eefa;
+    --color-bg-subtle:       #f3f1fa;
+    --color-surface:         #ffffff;
+    --color-surface-alt:     #faf9fd;
+    --color-text:            #1d1b2e;
+    --color-text-muted:      #6e6b85;
+    --color-text-secondary:  #9a97ac;
+    --color-border:          #e7e5f0;
+    --color-border-light:    #f1eff8;
+    --color-primary:         var(--light-primary);
+    --color-primary-hover:   var(--light-primary-hover);
+    --color-primary-light:   var(--light-primary-light);
+    --color-primary-lighter: var(--light-primary-lighter);
+    --color-primary-medium:  var(--light-primary-medium);
+    --color-success:         var(--light-success);
+    --color-success-hover:   var(--light-success-hover);
+    --color-success-light:   var(--light-success-light);
+    --color-success-dark:    var(--light-success-dark);
+    --color-success-border:  var(--light-success-border);
+    --color-warning:         var(--light-warning);
+    --color-warning-hover:   var(--light-warning-hover);
+    --color-warning-light:   var(--light-warning-light);
+    --color-warning-dark:    var(--light-warning-dark);
+    --color-warning-border:  var(--light-warning-border);
+    --color-danger:          var(--light-danger);
+    --color-danger-hover:    var(--light-danger-hover);
+    --color-danger-light:    var(--light-danger-light);
+    --color-danger-dark:     var(--light-danger-dark);
+    --color-danger-border:   var(--light-danger-border);
+    --color-info:            var(--light-info);
+    --color-info-light:      var(--light-info-light);
+    --color-info-dark:       var(--light-info-dark);
+    --color-info-border:     var(--light-info-border);
+    --color-accent:          var(--light-accent);
+    --color-table-highlight: var(--light-table-highlight);
+    --color-neutral:         #4b4864;
+    --color-admin-text:      #c2368c;
+    --color-sidebar-bg:      #1d1b2e;
+    --shadow:    0 2px 6px rgba(29, 27, 46, 0.06), 0 1px 2px rgba(29, 27, 46, 0.04);
+    --shadow-md: 0 6px 16px rgba(var(--light-primary-rgb), 0.10), 0 2px 4px rgba(29, 27, 46, 0.05);
+    --shadow-lg: 0 14px 32px rgba(var(--light-primary-rgb), 0.14);
+    --shadow-xl: 0 24px 48px rgba(var(--light-primary-rgb), 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --duration-fast:   0ms;
+        --duration-normal: 0ms;
+    }
+}

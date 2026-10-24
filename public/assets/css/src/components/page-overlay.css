@@ -1,0 +1,44 @@
+/* ================================================
+   Kintai — Fenêtres de page des bundles (Bundle::pageOverlays())
+   ================================================ */
+
+.page-overlay {
+    position: fixed;
+    z-index: 200;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    background: rgba(0, 0, 0, .45);
+}
+
+.page-overlay__panel {
+    width: min(42rem, 100%);
+    max-height: calc(100vh - 2 * var(--space-4));
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg, var(--shadow-md));
+}
+
+/* Pendant qu'une fenêtre est ouverte, la page dessous ne défile pas. */
+html.page-overlay-open { overflow: hidden; }
+
+/* Barre non bloquante en bas de page (placement « bar ») : un rappel, sans fond ni piège de focus. */
+.page-overlay--bar {
+    inset: auto 0 0 0;
+    display: block;
+    padding: 0;
+    background: transparent;
+    pointer-events: none;
+}
+
+.page-overlay--bar .page-overlay__panel {
+    width: 100%;
+    max-height: none;
+    border-width: 1px 0 0;
+    border-radius: 0;
+    pointer-events: auto;
+}

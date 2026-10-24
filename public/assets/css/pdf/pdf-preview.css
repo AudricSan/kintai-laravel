@@ -1,0 +1,106 @@
+/* ================================================
+   Kintai — Aperçu navigateur des PDF (barre d'outils + cadre A4)
+   Écran uniquement : injectée par _pdf-preview-toolbar.php dans les vues
+   *-pdf.php (rapports RH, rapport journalier, exports employés/listes)
+   lorsqu'elles sont affichées en aperçu navigateur (route .../pdf). La
+   génération du vrai PDF (route .../pdf/download) rend la même vue sans
+   cette barre ni ce cadre, donc @media print n'a même pas besoin d'agir
+   côté mPDF.
+   ================================================ */
+.pdf-preview-toolbar {
+    background: #2c3e50;
+    color: #fff;
+    padding: .6rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0 0 1rem;
+}
+
+.pdf-preview-toolbar button {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    padding: .4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11pt;
+}
+
+.pdf-preview-toolbar button:hover {
+    background: #2980b9;
+}
+
+.pdf-preview-toolbar a {
+    color: #aed6f1;
+    font-size: 9pt;
+    text-decoration: none;
+}
+
+.pdf-preview-toolbar a:hover {
+    text-decoration: underline;
+}
+
+.pdf-preview-toolbar__download {
+    background: #27ae60 !important;
+    color: #fff !important;
+    padding: .4rem 1rem;
+    border-radius: 4px;
+    font-size: 11pt;
+    text-decoration: none;
+}
+
+.pdf-preview-toolbar__download:hover {
+    background: #219150 !important;
+    text-decoration: none !important;
+}
+
+.pdf-preview-toolbar__hint {
+    margin-left: auto;
+    font-size: 9pt;
+    opacity: .6;
+}
+
+/* ── Cadre A4 (écran uniquement) ──────────────────
+   Le contenu du document (tout ce qui suit la barre d'outils) est enfermé
+   par la vue dans <div class="pdf-preview-page">, pour donner au personnel
+   un aperçu fidèle au format réellement imprimé/téléchargé (A4 portrait par
+   défaut ; --landscape pour les vues rendues en A4-L côté mPDF, ex. export
+   employés). Sans ce cadre, le contenu s'étirait sur toute la largeur de
+   l'onglet, ce qui n'est pas représentatif du rendu final. */
+@media screen {
+    body:has(.pdf-preview-page) {
+        background: #e5e8ec;
+        margin: 0;
+    }
+
+    .pdf-preview-page {
+        background: #fff;
+        width: 210mm;
+        min-height: 297mm;
+        margin: 1.5rem auto;
+        padding: 15mm 18mm;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, .15);
+    }
+
+    .pdf-preview-page--landscape {
+        width: 297mm;
+        min-height: 210mm;
+    }
+}
+
+@media print {
+    .pdf-preview-toolbar {
+        display: none !important;
+    }
+
+    .pdf-preview-page,
+    .pdf-preview-page--landscape {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+}

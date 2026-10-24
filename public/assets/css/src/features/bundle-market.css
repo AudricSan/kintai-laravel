@@ -1,0 +1,112 @@
+/* ── Catalogue de bundles (/admin/bundles/market) ──────────────────── */
+.bundle-market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4);
+    align-items: stretch; /* défaut grid, explicité : cf. cards.css .form-section-grid — le bas
+                              d'une carte tombe toujours pile sur celui de sa voisine, quel que
+                              soit le nombre de lignes de sa description. */
+}
+
+.bundle-market-card {
+    margin-bottom: 0;
+}
+
+/* Colonne pleine hauteur (voir align-items: stretch ci-dessus) avec les actions
+   ancrées en bas via margin-top: auto sur __actions — deux cartes côte à côte
+   avec une description de longueur différente gardent leurs boutons alignés. */
+.bundle-market-card .card-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: var(--space-3);
+}
+
+.bundle-market-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.bundle-market-card__heading {
+    min-width: 0; /* un nom long wrap plutôt que d'élargir la carte */
+}
+
+.bundle-market-card__heading .card-title {
+    margin: 0 0 var(--space-1);
+}
+
+.bundle-market-card__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.bundle-market-card__registry {
+    font-size: var(--text-2xs);
+    color: var(--color-text-muted);
+}
+
+.bundle-market-card__desc {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+.bundle-market-card__status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.bundle-market-card__actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.bundle-market-install-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.bundle-market-card__row {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.bundle-market-card__row .form-group {
+    flex: 1 1 120px;
+    margin-bottom: 0;
+}
+
+/* Rangée finale d'une carte : Installer/Mettre à jour (son <button> vit hors
+   du <form>, associé via l'attribut form="…" — voir bundle-market.php) et
+   Désinstaller côte à côte. margin-left: auto sur __uninstall-form (plutôt
+   qu'un justify-content sur ce conteneur) pousse Désinstaller à droite aussi
+   bien quand Installer/Mettre à jour est présent à sa gauche que lorsqu'il
+   est seul (bundle déjà à jour, ou orphelin) — jamais plus une barre rouge
+   pleine largeur en dessous des actions principales. */
+.bundle-market-card__bottom-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.bundle-market-card__uninstall-form {
+    display: flex;
+    margin-left: auto;
+}
+
+.bundle-market-card__uninstall-form .btn {
+    width: auto;
+}
+
+.bundle-market-progress.hidden {
+    display: none;
+}

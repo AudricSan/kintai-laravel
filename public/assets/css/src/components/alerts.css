@@ -1,0 +1,46 @@
+/* ================================================
+   Kintai — Alertes
+   ================================================ */
+
+/* ── Alerts ─────────────────────────────────────── */
+.alert {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
+    border: 1px solid transparent;
+}
+
+.alert--success {
+    background: var(--color-success-light);
+    color: var(--color-success-dark);
+    border-color: var(--color-success-border);
+}
+
+.alert--error,
+.alert--danger {
+    background: var(--color-danger-light);
+    color: var(--color-danger-dark);
+    border-color: var(--color-danger-border);
+}
+
+.alert--warning {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border-color: var(--color-warning-border);
+}
+
+.alert__link {
+    color: inherit;
+    text-decoration: underline;
+    margin-left: 0.5em;
+    font-weight: 500;
+}
+
+.alert--flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+

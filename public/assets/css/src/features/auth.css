@@ -1,0 +1,69 @@
+/* ================================================
+   Kintai — Authentification / Connexion
+   ================================================ */
+
+/* ── Auth / Login ───────────────────────────────── */
+.login-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: var(--space-5);
+}
+
+.login-tab {
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.login-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.login-panel { display: none; }
+.login-panel--active { display: contents; }
+
+.login-hint {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-1);
+}
+.login-hint--end { text-align: end; margin-top: var(--space-1); }
+.login-hint--center { text-align: center; margin-top: var(--space-3); }
+
+/* Sélecteur de langue de la page de connexion. */
+.login-lang {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-5);
+    font-size: var(--text-sm);
+}
+
+/* Un formulaire POST par langue (jeton CSRF) : ses boutons restent les enfants directs de la rangée. */
+.login-lang form { display: contents; }
+
+.login-lang__link {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    text-decoration: none;
+}
+
+.login-lang__link:hover { color: var(--color-primary); }
+
+.login-lang__link--active {
+    color: var(--color-text);
+    font-weight: 600;
+}

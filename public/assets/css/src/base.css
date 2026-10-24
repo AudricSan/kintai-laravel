@@ -1,0 +1,536 @@
+/* ================================================
+   Kintai — Base: Reset, Tokens, Layout
+   ================================================ */
+
+/* ── Reset ──────────────────────────────────────── */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    /* Réserve toujours la place de la scrollbar verticale : évite que la
+       page se redimensionne/décale horizontalement quand une vue plus
+       longue (ex. "Par jour") en fait apparaître une alors qu'une autre
+       vue plus courte n'en a pas. */
+    scrollbar-gutter: stable;
+    /* Scrollbar aux couleurs de l'app plutôt que celle, par défaut, du système. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) var(--color-bg);
+    /* Filet de sécurité : un élément qui déborde (grille mal contrainte,
+       canvas de graphique, etc.) rendait toute la page — topbar comprise,
+       simple élément en flux normal, pas fixed — scrollable horizontalement
+       sur mobile, donnant l'impression que le menu "disparaissait" une fois
+       la page glissée sur le côté. En mode standards, c'est le scroll du
+       viewport (propagé depuis <html>, pas <body>) qu'il faut bloquer ici ;
+       les conteneurs qui doivent défiler horizontalement (tableaux,
+       timeline...) gèrent déjà leur propre overflow-x: auto en interne,
+       indépendamment de celui-ci. */
+    overflow-x: hidden;
+}
+
+html::-webkit-scrollbar {
+    width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+    background: var(--color-bg);
+}
+
+html::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--color-bg);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+}
+
+body {
+    font-family: var(--font-sans);
+    color: var(--color-text);
+    background: var(--color-bg);
+    line-height: 1.5;
+    overflow-x: clip;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+/* ── App Layout ─────────────────────────────────── */
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ── En-tête collant : bandeau maintenance + topbar ───
+   Un seul wrapper sticky pour que le bandeau reste visible au scroll
+   en même temps que la topbar, empilés dans l'ordre du flux. */
+.app-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+}
+
+/* ── Topbar : marque + navigation + actions ───────
+   Remplace l'ancien duo sidebar fixe + topbar : une seule barre
+   horizontale, toute la largeur de l'écran reste au contenu. */
+.topbar {
+    height: var(--topbar-height);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-6);
+}
+
+.topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 800;
+    font-size: var(--text-lg);
+    letter-spacing: -0.01em;
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-right: var(--space-5);
+    flex-shrink: 0;
+}
+
+.topbar-brand:hover {
+    text-decoration: none;
+}
+
+.topbar-brand__icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.topbar-brand__subtitle {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    opacity: 0.6;
+    margin-left: var(--space-1);
+}
+
+.topbar-nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: var(--text-xl);
+    cursor: pointer;
+    padding: var(--space-1);
+    color: var(--color-text);
+}
+
+.topbar-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+}
+
+.topbar-nav-link {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.topbar-nav-link:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.topbar-nav-link--active {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+/* ── Groupes déroulants (sections de l'ancienne sidebar, repliées) ── */
+.topbar-nav-group {
+    position: relative;
+}
+
+.topbar-nav-group__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-full);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.topbar-nav-group__trigger:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+}
+
+.topbar-nav-group--active > .topbar-nav-group__trigger {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.topbar-nav-group__caret {
+    font-size: 0.6rem;
+    opacity: 0.6;
+}
+
+.topbar-nav-group__panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 190px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-2);
+    z-index: 20;
+}
+
+.topbar-nav-group.is-open > .topbar-nav-group__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.topbar-nav-group__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.topbar-nav-group__link:hover {
+    background: var(--color-surface-alt);
+    text-decoration: none;
+}
+
+.topbar-nav-group__link--active {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.topbar-nav-group__link-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    opacity: 0.75;
+}
+
+.topbar-nav-group__link-icon svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+/* Widget stats employé (mois en cours), replié en menu déroulant plutôt
+   qu'affiché en permanence dans une sidebar qui n'existe plus. */
+.topbar-nav-group__trigger--stats {
+    font-variant-numeric: tabular-nums;
+}
+
+.topbar-nav-group__panel--stats {
+    min-width: 240px;
+    padding: var(--space-3);
+    gap: var(--space-2);
+}
+
+/* ── Page Content ───────────────────────────────── */
+.page-content {
+    padding: var(--space-6);
+    flex: 1;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+}
+
+.page-header__title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.page-header__actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* Variante compacte : action seule alignée à droite, juste au-dessus d'un tableau */
+.page-header--end {
+    justify-content: flex-end;
+    margin-bottom: var(--space-3);
+}
+
+/* ── Guest Layout ──────────────────────────────── */
+.guest-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.guest-main {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.guest-container {
+    width: 100%;
+    max-width: 400px;
+    padding: var(--space-8);
+}
+
+.guest-brand {
+    text-align: center;
+    margin-bottom: var(--space-8);
+}
+
+.guest-brand__mascot {
+    display: block;
+    width: 96px;
+    height: auto;
+    margin: 0 auto var(--space-2);
+}
+
+.guest-brand h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.guest-brand p {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+}
+
+.guest-brand__company {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.guest-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-6);
+}
+
+.guest-notice {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
+    white-space: pre-line;
+}
+
+.guest-subtitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 var(--space-3);
+}
+
+/* ── Empty State ───────────────────────────────── */
+.empty-state {
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.empty-state::before {
+    content: '';
+    display: block;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto var(--space-2);
+    background: url('../../img/mascot/kitsune/box-empty.png') center / contain no-repeat;
+}
+
+.empty-state--bell::before {
+    background-image: url('../../img/mascot/kitsune/bell.png');
+}
+
+.empty-state--timeclock::before {
+    background-image: url('../../img/mascot/kitsune/timeclock-empty.png');
+}
+
+.empty-state--salary::before {
+    background-image: url('../../img/mascot/kitsune/salary-empty.png');
+}
+
+/* Mascotte "mix"/"tanuki" (réglage Owner, voir MascotResolver) : tant que
+   les assets tanuki correspondants n'existent pas encore sous
+   mascot/tanuki/, ces règles pointent vers un fichier absent — un
+   background-image manquant ne casse rien visuellement (pas de glyphe
+   d'image cassée), juste un carré vide en attendant leur export. */
+[data-mascot="tanuki"] .empty-state::before {
+    background-image: url('../../img/mascot/tanuki/box-empty.png');
+}
+
+[data-mascot="tanuki"] .empty-state--bell::before {
+    background-image: url('../../img/mascot/tanuki/bell.png');
+}
+
+[data-mascot="tanuki"] .empty-state--timeclock::before {
+    background-image: url('../../img/mascot/tanuki/timeclock-empty.png');
+}
+
+[data-mascot="tanuki"] .empty-state--salary::before {
+    background-image: url('../../img/mascot/tanuki/salary-empty.png');
+}
+
+.empty-state__icon {
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: var(--space-2);
+}
+
+/* ── Error Pages ───────────────────────────────── */
+.error-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.error-page { text-align: center; }
+
+.error-mascot {
+    display: block;
+    width: 140px;
+    height: auto;
+    margin: 0 auto var(--space-2);
+}
+
+.error-code {
+    font-size: 6rem;
+    font-weight: 700;
+    color: var(--color-border);
+    line-height: 1;
+}
+
+.error-message {
+    font-size: var(--text-xl);
+    margin-top: var(--space-2);
+    color: var(--color-text-muted);
+}
+
+.error-detail {
+    font-size: var(--text-sm);
+    margin-top: var(--space-4);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono, monospace);
+}
+
+.error-link {
+    display: inline-block;
+    margin-top: var(--space-6);
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.error-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Bottom Nav (responsive, visible <768px) ────── */
+.bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    align-items: stretch;
+    z-index: 100;
+}
+
+.nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    font-size: 0.625rem;
+    font-weight: 600;
+    gap: 2px;
+    padding: var(--space-2) var(--space-1);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+}
+
+.nav-tab:hover { text-decoration: none; color: var(--color-primary); }
+
+.nav-tab--active { color: var(--color-primary); }
+
+.nav-tab__icon {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.nav-tab__label {
+    line-height: 1;
+    letter-spacing: 0.01em;
+}

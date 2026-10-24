@@ -1,0 +1,7 @@
+# Configuration OpenSSL minimale : certaines installations PHP (surtout Windows) n'ont aucun openssl.cnf, ce qui
+# empeche openssl_pkey_new() de creer une cle. Utilisee seulement en repli, voir VapidKeyStore.
+[req]
+default_bits = 2048
+distinguished_name = req_dn
+
+[req_dn]

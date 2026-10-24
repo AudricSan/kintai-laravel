@@ -1,0 +1,185 @@
+/* ================================================
+   Kintai — User picker (composant UserPicker) :
+   pastilles des personnes choisies + recherche pour en
+   ajouter. Sans JavaScript : liste de cases à cocher.
+   ================================================ */
+
+.user-picker {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+    margin: 0;
+    min-width: 0;
+}
+
+.user-picker__legend {
+    padding: 0 var(--space-2);
+    font-weight: 600;
+}
+
+.user-picker__hint,
+.user-picker__empty {
+    margin: 0 0 var(--space-2);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* Interface « pastilles » : cachée tant que le JavaScript n'a pas marqué le composant. */
+.user-picker__chips,
+.user-picker__add {
+    display: none;
+}
+
+.user-picker--enhanced .user-picker__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    align-items: center;
+    min-height: 2rem;
+    margin-bottom: var(--space-2);
+}
+
+.user-picker--enhanced .user-picker__add {
+    display: block;
+    position: relative;
+    margin-bottom: var(--space-2);
+}
+
+.user-picker--enhanced .user-picker__list {
+    display: none;
+}
+
+.user-picker__placeholder {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.user-picker__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-1) 2px var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-alt, var(--color-surface));
+    font-size: 0.9rem;
+}
+
+.user-picker__chip-remove {
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0 var(--space-1);
+    line-height: 1;
+    border-radius: 999px;
+}
+
+.user-picker__chip-remove:hover,
+.user-picker__chip-remove:focus-visible {
+    color: var(--color-danger, #c0392b);
+}
+
+.user-picker__tag {
+    padding: 0 var(--space-1);
+    border-radius: var(--radius);
+    background: var(--color-primary-soft, var(--color-border));
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.user-picker__search {
+    width: 100%;
+}
+
+.user-picker__menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    z-index: 50;
+    list-style: none;
+    margin: 0;
+    padding: var(--space-1) 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+}
+
+.user-picker__option {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    cursor: pointer;
+}
+
+.user-picker__option:hover {
+    background: var(--color-surface-alt, var(--color-border));
+}
+
+.user-picker__option--empty {
+    cursor: default;
+    color: var(--color-text-muted);
+}
+
+.user-picker__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.user-picker__count {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* Repli sans JavaScript : liste de cases à cocher. */
+.user-picker__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-1) var(--space-3);
+}
+
+.user-picker__label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.user-picker__label:hover {
+    background: var(--color-surface-alt, var(--color-border));
+}
+
+.user-picker__name {
+    font-weight: 500;
+}
+
+.user-picker__detail {
+    flex-basis: 100%;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.user-picker__option .user-picker__detail {
+    flex-basis: auto;
+}

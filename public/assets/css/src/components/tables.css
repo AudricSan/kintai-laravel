@@ -1,0 +1,400 @@
+/* ================================================
+   Kintai — Tableaux de données
+   ================================================ */
+
+/* ── Data Tables ────────────────────────────────── */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+    position: relative;
+}
+
+.table-wrap::-webkit-scrollbar { height: 3px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+.table-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 36px;
+    height: 100%;
+    background: linear-gradient(to right, transparent, var(--color-surface));
+    pointer-events: none;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.data-table th {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    background: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.data-table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover td {
+    /* Vert clair de Foxy (ventre du sac "K") au survol des lignes. */
+    background: var(--color-table-highlight);
+}
+
+/* Ligne désignée par une notification (?highlight={id}) : contour intérieur, visible même au survol. */
+.data-table tbody tr.tr--highlight td {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.data-table tbody tr.tr--highlight td:first-child {
+    box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.data-table tbody tr.tr--clickable {
+    cursor: pointer;
+}
+
+.data-table tbody tr.tr--clickable:hover td {
+    background: var(--color-table-highlight);
+}
+
+/* .data-table th force text-align:left avec une spécificité (classe +
+   élément) supérieure à .td-center seule (classe) : sans le doublon
+   th.td-center ci-dessous (même spécificité que .data-table th, mais
+   déclaré après donc gagnant), la classe est silencieusement ignorée
+   sur les <th> alors qu'elle fonctionne sur les <td>. */
+.td-center,
+th.td-center {
+    text-align: center;
+}
+
+.td-right {
+    text-align: right;
+}
+
+.td-mono {
+    font-variant-numeric: tabular-nums;
+}
+
+.td-nowrap {
+    white-space: nowrap;
+}
+
+.td-muted {
+    color: var(--color-text-muted);
+}
+
+.td-override-badge {
+    font-size: var(--text-xs-2);
+    cursor: help;
+}
+
+.td-reason {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs-2);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.td-date-muted {
+    font-size: var(--text-xs-2);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.td-sm {
+    font-size: 0.85rem;
+}
+
+.td-date-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.tr-today {
+    background: var(--color-primary-light);
+}
+
+.tr-today td {
+    font-weight: 700;
+}
+
+.tr-total {
+    font-weight: 700;
+    border-top: 2px solid var(--color-border);
+}
+
+.tr-warn {
+    background: var(--color-warning-light);
+}
+
+.tr-warn-dup {
+    background: rgba(245, 158, 11, 0.22);
+}
+
+.tr-date-separator td {
+    background: var(--color-surface-alt);
+    font-weight: 700;
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-3);
+    border-top: 2px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.tr--unread td {
+    background: color-mix(in srgb, var(--color-primary) 4%, transparent);
+    font-weight: 500;
+}
+
+.sort-link {
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.sort-link:hover {
+    color: var(--color-primary);
+}
+
+.sort-link--active {
+    font-weight: 700;
+}
+
+.sort-icon {
+    color: var(--color-text-muted);
+    font-size: 0.8em;
+}
+
+.sort-icon-dim {
+    opacity: .3;
+    font-size: .7em;
+}
+
+.link-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    text-decoration: none;
+    color: inherit;
+    white-space: nowrap;
+}
+
+.link-sort:hover {
+    color: var(--color-primary);
+}
+
+.color-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.color-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radius-xs);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.color-code {
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+}
+
+.td-indicator {
+    width: 24px;
+    text-align: center;
+}
+
+.td-user-cell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    align-items: flex-start;
+}
+
+/* Puce d'initiales colorée (ex. cellule employé d'un tableau) — la couleur
+   vient de --color-x custom property posée par la vue (ex. style="--chip-bg:#...").
+   Fond par défaut si la vue n'en fournit pas. */
+.avatar-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    background: var(--chip-bg, var(--color-primary));
+    color: #fff;
+    font-size: var(--text-2xs);
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+/* Variante plus grande — repère visuel en tête de carte (ex. catalogue de
+   bundles) plutôt qu'en cellule de tableau dense. */
+.avatar-chip--lg {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
+}
+
+/* ── Menu d'actions de ligne (remplace une rangée de boutons par un
+   déclencheur unique + panneau) — ex. colonne Actions du tableau
+   employés. Le panneau est en position:fixed (positionné par JS,
+   voir app.js) pour ne pas être rogné par l'overflow-x:auto du
+   .table-wrap qui l'entoure. ────────────────────────────────────── */
+.row-actions {
+    position: relative;
+    display: inline-flex;
+}
+
+.row-actions__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.row-actions__trigger:hover,
+.row-actions.is-open .row-actions__trigger {
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+}
+
+.row-actions__panel {
+    display: none;
+    position: fixed;
+    min-width: 190px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-2);
+    z-index: 500;
+}
+
+.row-actions.is-open .row-actions__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.row-actions__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.row-actions__link:hover {
+    background: var(--color-surface-alt);
+    text-decoration: none;
+}
+
+.row-actions__link--danger {
+    color: var(--color-danger);
+    margin-top: var(--space-1);
+    padding-top: calc(var(--space-2) + var(--space-1));
+    border-top: 1px solid var(--color-border);
+}
+
+.row-actions__link--danger:hover {
+    background: var(--color-danger-light);
+}
+
+.avatar-chip-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ── Pagination (src/UI/Components/Pagination.php) ─
+   N'avait jamais eu de style : liens <a> nus, non wrappés, qui débordaient
+   hors de l'écran sur mobile dès qu'il y avait assez de pages (ex. journal
+   d'activité). */
+.table-footer {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-4) 0;
+    margin-top: var(--space-2);
+    border-top: 1px solid var(--color-border);
+}
+
+.pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1);
+}
+
+.pagination__item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+a.pagination__item:hover {
+    background: var(--color-surface-alt);
+    text-decoration: none;
+}
+
+.pagination__item--active {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+

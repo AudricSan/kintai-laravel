@@ -1,0 +1,75 @@
+/* ================================================
+   Kintai — PDF Base
+   Reset et utilitaires communs à tous les documents
+   PDF (mPDF). Ne pas charger en web.
+   Note : mPDF ne supporte pas les variables CSS
+   (var/custom properties) — valeurs littérales only.
+   ================================================ */
+
+/* Reset minimal mPDF-compatible */
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #222222;
+    line-height: 1.5;
+    background: #ffffff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+h1 { font-size: 14pt; }
+h2 { font-size: 12pt; }
+h3 { font-size: 10pt; }
+
+p  { margin: 0; padding: 0; }
+
+table { border-collapse: collapse; width: 100%; }
+
+a { color: inherit; text-decoration: none; }
+
+img { max-width: 100%; height: auto; }
+
+/* ── Ruptures de page ──────────────────────────── */
+.pdf-break-before  { page-break-before: always; }
+.pdf-break-after   { page-break-after: always; }
+.pdf-no-break      { page-break-inside: avoid; }
+
+/* ── Utilitaires texte ─────────────────────────── */
+.pdf-center { text-align: center; }
+.pdf-right  { text-align: right; }
+.pdf-bold   { font-weight: 700; }
+.pdf-muted  { color: #888888; }
+.pdf-small  { font-size: 8.5pt; }
+.pdf-xs     { font-size: 7.5pt; }
+
+.pdf-date-line { font-size: 10pt; color: #666666; }
+
+/* ── Largeurs de colonnes (tableaux) ───────────── */
+.pdf-w-30 { width: 30%; }
+.pdf-w-50 { width: 50%; }
+.pdf-w-70 { width: 70%; }
+
+.pdf-pl-16 { padding-left: 16px; }
+
+.pdf-row-highlight { font-weight: 700; background: #f5f5f5; }
+
+/* ── Préservation couleurs impression ──────────── */
+.pdf-colors {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+
+/* ── Éléments cachés à l'impression ───────────── */
+.pdf-screen-only { display: none !important; }
+
+/* @page intentionnellement absent : marges et format définis dans le constructeur mPDF */

@@ -1,0 +1,35 @@
+/* ================================================
+   Liaison Google Calendar (profil, onglet iCal)
+   ================================================ */
+
+/* Liste « libellé / valeur » de l'état de la liaison. */
+.gcal-details {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+}
+
+.gcal-details dt {
+    color: var(--color-text-muted);
+}
+
+.gcal-details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Actions secondaires (resynchroniser, délier) : passent à la ligne sur mobile. */
+.gcal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+.gcal-actions form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+}

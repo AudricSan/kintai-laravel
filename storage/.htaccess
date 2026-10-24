@@ -1,0 +1,23 @@
+# Ce dossier contient la base SQLite, les sauvegardes, les journaux et les envois. L'application les lit
+# elle-même, ou les sert via la route /storage/{path} (photos, avatars, imports) après contrôle d'accès
+# (voir StorageFileController) — jamais par un accès direct du serveur web.
+#
+# Quand le serveur pointe sur la racine du dépôt (voir le .htaccess racine), Apache évalue ce fichier
+# pour l'URL ORIGINALE /storage/… AVANT que la réécriture vers public/ n'ait lieu (les autorisations
+# passent avant les réécritures par répertoire). Un « Require all denied » inconditionnel renverrait donc
+# 403 pour toutes les URL virtuelles servies par le contrôleur (/storage/img/…, /storage/avatars/…), alors
+# que celles-ci ne correspondent à aucun fichier réel. On refuse donc uniquement ce qui existe
+# physiquement ici : les sous-dossiers techniques et les fichiers posés directement dans storage/.
+# Même sans ce refus, le .htaccess racine réécrit chaque URL vers public/ : c'est une défense en
+# profondeur, pas la seule barrière.
+<IfModule mod_authz_core.c>
+    <If "%{REQUEST_URI} =~ m#(^|/)storage/(app|backups|bundles|cache|logs|uploads)(/|$)#i || %{REQUEST_URI} =~ m#(^|/)storage/[^/]*$#i">
+        Require all denied
+    </If>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    # Apache 2.2 : pas de <If>, on garde le refus total (les URL /storage/ virtuelles exigent alors
+    # DocumentRoot = public/).
+    Order allow,deny
+    Deny from all
+</IfModule>

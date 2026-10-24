@@ -1,0 +1,118 @@
+/* ================================================
+   Kintai — Utilities: Helpers, Print, Animations
+   ================================================ */
+
+/* ── Reset ──────────────────────────────────────── */
+.fieldset-reset { border: none; padding: 0; margin: 0; }
+
+/* ── Spacing ────────────────────────────────────── */
+.m-0  { margin: 0; }
+.mb-xs { margin-bottom: var(--space-3); }
+.mb-sm { margin-bottom: var(--space-4); }
+.mb-md { margin-bottom: var(--space-6); }
+.mt-2px { margin-top: 2px; }
+.mt-xs { margin-top: var(--space-3); }
+.mt-sm { margin-top: var(--space-4); }
+.mt-md { margin-top: var(--space-6); }
+.ml-auto { margin-left: auto; }
+.ml-xs { margin-left: var(--space-3); }
+
+/* ── Flex ───────────────────────────────────────── */
+.flex-1 { flex: 1; min-width: 0; }
+.flex-row { display: flex; align-items: center; flex-wrap: wrap; }
+.gap-sm { gap: var(--space-3); }
+
+/* ── Display ────────────────────────────────────── */
+.hidden    { display: none; }
+.is-hidden { display: none !important; }
+.d-inline  { display: inline; }
+
+.dash-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-6);
+}
+
+/* Comme .form-section-grid > .card (cards.css) : le margin-bottom global de
+   .card s'ajoute au gap de la grille et à la marge du bloc suivant (les
+   marges ne se collapsent pas à travers une grille), ce qui rendait
+   l'espacement après un .dash-two-col plus grand qu'entre deux .card
+   empilées ailleurs sur le dashboard. Neutralisé ici : seul .card--mt sur
+   le bloc suivant régit l'espacement, de façon uniforme. */
+.dash-two-col > .card {
+    margin-bottom: 0;
+}
+
+/* ── Typography ─────────────────────────────────── */
+.text-xs       { font-size: var(--text-xs); }
+.text-sm       { font-size: var(--text-sm); }
+.text-default  { color: var(--color-text); }
+.text-muted    { color: var(--color-text-muted); }
+.text-success  { color: var(--color-success); }
+.text-danger   { color: var(--color-danger); }
+.text-warning  { color: var(--color-warning); }
+.text-primary  { color: var(--color-primary); }
+.text-dim      { opacity: 0.6; }
+.text-italic   { font-style: italic; }
+.text-right    { text-align: right; }
+
+.text-hint {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
+.text-sm-muted {
+    font-size: var(--text-xs-2);
+    color: var(--color-text-muted);
+}
+
+.page-count {
+    font-size: var(--text-base);
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+/* ── Font ───────────────────────────────────────── */
+.font-mono { font-family: var(--font-mono); }
+
+.code-sm {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs-2);
+}
+
+/* ── Links ──────────────────────────────────────── */
+.link-plain {
+    color: inherit;
+    text-decoration: none;
+}
+
+.link-plain:hover {
+    text-decoration: underline;
+}
+
+/* ── Sizing ─────────────────────────────────────── */
+.mw-200 { max-width: 200px; }
+.mw-420 { max-width: 420px; }
+.mw-600 { max-width: 600px; }
+.w-90   { width: 90px; }
+.w-100  { width: 100px; }
+.w-180  { width: 180px; }
+
+/* ── Code blocks ────────────────────────────────── */
+.code-block {
+    background: var(--color-surface-alt);
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    overflow-x: auto;
+}
+
+/* ── Icons ──────────────────────────────────────── */
+.icon-inline {
+    vertical-align: middle;
+    margin: 0 4px;
+}
+
+.gantt-icon {
+    transform: rotate(90deg);
+}

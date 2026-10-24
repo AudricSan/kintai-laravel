@@ -1,0 +1,28 @@
+/* ================================================
+   Kintai — Barre de progression générique
+   Utilisée par /admin/bundles/market (install/update) et par le bundle
+   store-photos (envoi de fichiers) — reste un composant Core partagé,
+   pas propriété d'un bundle en particulier.
+   ================================================ */
+
+.progress-bar {
+    width: 200px;
+    height: 8px;
+    background: var(--color-border-light);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.progress-bar__fill {
+    width: 0;
+    height: 100%;
+    background: var(--color-primary);
+    transition: width 0.3s ease;
+}
+
+@media (max-width: 600px) {
+    .progress-bar {
+        width: 100%;
+    }
+}

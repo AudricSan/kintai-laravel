@@ -1,0 +1,235 @@
+/* ================================================
+   Kintai — Statistiques
+   ================================================ */
+
+/* ── Statistics ─────────────────────────────────── */
+.sstat-section { margin-bottom: var(--space-8); }
+
+.sstat-section-title {
+    font-size: var(--text-base);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: var(--space-2);
+}
+
+.sstat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-4);
+}
+
+.sstat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    text-align: center;
+}
+
+.sstat-card__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.sstat-card__label {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-1);
+}
+
+.sstat-card__sub {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-top: 0.125rem;
+}
+
+.sstat-bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-1);
+    height: 100px;
+    padding-top: var(--space-4);
+}
+
+.sstat-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    cursor: default;
+}
+
+.sstat-bar-col:hover .sstat-bar {
+    opacity: .8;
+    box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px currentColor;
+}
+
+.sstat-bar {
+    width: 100%;
+    min-height: 4px;
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    transition: height .3s, opacity .15s, box-shadow .15s;
+}
+
+.sstat-bar-label {
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    margin-top: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.sstat-bar-value {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.sstat-ring-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.sstat-ring-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    max-width: 80px;
+}
+
+.sstat-scores {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    padding: var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.sstat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-xs-2);
+}
+
+.sstat-table th {
+    text-align: left;
+    padding: var(--space-2) var(--space-2);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sstat-table td {
+    padding: var(--space-2) var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sstat-table tr:last-child td { border-bottom: none; }
+.sstat-table tr:hover td      { background: var(--color-table-highlight); }
+
+.sstat-progress {
+    height: 6px;
+    background: var(--color-border);
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    margin-top: 3px;
+}
+
+.sstat-progress-bar {
+    height: 100%;
+    border-radius: var(--radius-xs);
+    background: var(--color-primary);
+}
+
+.sstat-two {
+    display: grid;
+    /* minmax(0, 1fr) : ce bloc contient des .card avec un canvas Chart.js
+       (sstat-canvas-wrap) qui, sur une piste 1fr seule, ne rétrécit jamais
+       sous sa largeur mesurée au premier rendu et force le débordement de
+       la grille — même bug que .stat-grid (cards.css). */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.sstat-period-nav {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-6);
+}
+
+.sstat-period-nav a {
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    font-size: 0.8rem;
+    color: var(--color-text);
+    text-decoration: none;
+    background: var(--color-surface);
+}
+
+.sstat-period-nav a.active,
+.sstat-period-nav a:hover {
+    background: var(--color-primary);
+    color: var(--color-surface);
+    border-color: var(--color-primary);
+    text-decoration: none;
+}
+
+.sstat-legend-block { flex: 1; min-width: 200px; padding: var(--space-2) 0; }
+.sstat-legend-title { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-2); }
+.sstat-legend-text { font-size: var(--text-xs); line-height: 1.8; color: var(--color-text-muted); }
+
+.sstat-empty       { color: var(--color-text-muted); font-size: 0.8rem; }
+.sstat-sublabel    { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-2); }
+.sstat-sublabel--strong { font-size: 0.8rem; font-weight: 600; margin-bottom: var(--space-3); }
+
+.sstat-canvas-wrap { width: 100%; overflow: hidden; }
+.sstat-canvas-wrap canvas { display: block; width: 100%; height: 180px; }
+
+.delta-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem var(--space-2);
+    border-radius: var(--radius-full);
+    vertical-align: middle;
+    line-height: 1.4;
+}
+.delta--pos     { background: var(--color-success-light); color: var(--color-success-dark); }
+.delta--neg     { background: var(--color-danger-light);  color: var(--color-danger-dark);  }
+.delta--neutral { background: var(--color-bg-alt);        color: var(--color-text-muted);   }
+
+.sstat-delta-row {
+    display: flex;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.sstat-delta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+

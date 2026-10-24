@@ -1,0 +1,209 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, alpha, beta, develop]
+  pull_request:
+    branches: [main, alpha, beta, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, pdo_mysql, mbstring, gd, intl, curl, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run tests
+        run: ./vendor/bin/phpunit
+
+  install-smoke:
+    # Installation neuve de bout en bout par le vrai installateur web (base SQLite vide), puis connexion
+    # de l'admin créé. Aucun test unitaire ne couvre ce parcours ; il était cassé sans que rien n'échoue.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-dev
+
+      - name: Fresh install smoke test
+        run: bash scripts/ci/install-smoke-test.sh
+
+  provision-smoke:
+    # Installation en ligne de commande (scripts/provision.php) sur une instance vierge : refus attendus, compte
+    # Owner, URL publique, connexion. Job séparé : chaque test exige une instance sans installation.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-dev
+
+      - name: CLI provisioning smoke test
+        run: bash scripts/ci/provision-smoke-test.sh
+
+  lint:
+    # Contrôles statiques rapides : syntaxe PHP et JS, JSON valides (langues, composer), dépendances sans faille connue.
+    # Aucun test ne lit chaque fichier : une erreur de syntaxe dans une page rarement visitée passait inaperçue.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHP syntax
+        run: |
+          set -euo pipefail
+          find app bootstrap config database public routes scripts tests -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          find public/assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: JSON files
+        run: |
+          set -euo pipefail
+          for f in lang/*.json contract.snapshot.json composer.json; do php -r 'json_decode(file_get_contents($argv[1]), false, 512, JSON_THROW_ON_ERROR);' "$f"; done
+
+      - name: Static analysis (PHPStan)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Composer validate and audit
+        run: |
+          composer validate --no-check-publish
+          composer audit --no-interaction
+
+  crawl-bundles-smoke:
+    # Parcours des pages d'une instance de démonstration (propriétaire, gérant, employé), avec les 12 bundles officiels installés depuis leur branche develop
+    # (BUNDLES_REF) : migrations réelles, droits du gérant, pages et routes des bundles.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd, intl, curl, zip, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-dev
+
+      - name: Page crawl smoke test with bundles
+        run: bash scripts/ci/crawl-bundles-smoke-test.sh
+  crawl-forms-smoke:
+    # Comme crawl-bundles-smoke, mais chaque formulaire POST rencontré est aussi soumis une fois (valeurs plausibles).
+    # Un refus 4xx est normal ; une réponse 5xx ou une erreur PHP échoue. Job séparé : les soumissions modifient les
+    # comptes de démonstration (ce qui réduit la couverture des pages suivantes) et ne doivent pas affaiblir le parcours.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd, intl, curl, zip, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-dev
+
+      - name: Form submission smoke test with bundles
+        env:
+          CRAWL_FLAGS: --forms
+        run: bash scripts/ci/crawl-bundles-smoke-test.sh
+  mysql-smoke:
+    # Installation neuve sur un vrai MySQL (migrations, données de démonstration), pages principales et API.
+    # Seul job qui exécute MySQL : sans lui, les écarts SQLite / MySQL n'étaient jamais vérifiés.
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: kintai
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, gd, intl, curl, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-dev
+
+      - name: MySQL smoke test
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: root
+          MYSQL_PASSWORD: ''
+          MYSQL_DATABASE: kintai
+        run: bash scripts/ci/mysql-smoke-test.sh
+
+  check-translations:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Check FR/JA translations are present and up to date
+        run: php scripts/check-translations.php

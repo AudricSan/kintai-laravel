@@ -1,0 +1,28 @@
+{
+    "name": "{{authorLower}}/kintai-bundle-{{slug}}",
+    "description": "{{Label}} pour Kintai — outillage de tests uniquement, jamais utilisé à l'exécution (Kintai charge ce bundle dynamiquement, pas via Composer).",
+    "type": "project",
+    "license": "AGPL-3.0-only",
+    "require-dev": {
+        "phpunit/phpunit": "^12.5",
+        "illuminate/database": "^13.19",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "kintai\\": "../../Kintai/src/",
+            "kintai\\Tests\\Support\\": "../../Kintai/tests/Support/",
+            "kintai\\Bundles\\Installed\\{{Studly}}\\": "src/",
+            "kintai\\Tests\\Bundles\\{{Studly}}\\": "tests/"
+        },
+        "files": [
+            "../../Kintai/src/Core/helpers.php",
+            "../../Kintai/src/helpers.php"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": { "php": "8.3.32" }
+    }
+}

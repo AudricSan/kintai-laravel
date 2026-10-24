@@ -1,0 +1,190 @@
+/* ================================================
+   Kintai — Installateur web (public/install.php)
+   Page autonome sur le layout invité : aucun style
+   en ligne (CSP stricte, sans nonce).
+   ================================================ */
+
+.guest-container--wide { max-width: 560px; }
+
+.install-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.install-section__title {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Deux champs côte à côte (prénom / nom, mot de passe / confirmation), empilés sur mobile. */
+.install-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    align-items: start;
+}
+
+.install-row--host { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+
+@media (max-width: 480px) {
+    .install-row,
+    .install-row--host { grid-template-columns: minmax(0, 1fr); }
+}
+
+.install-text {
+    font-size: var(--text-sm);
+    color: var(--color-text);
+    margin-bottom: var(--space-3);
+}
+
+.install-errors {
+    margin: 0;
+    padding-left: var(--space-4);
+}
+
+.install-errors li + li { margin-top: var(--space-1); }
+
+/* ── Prérequis ─────────────────────────────────── */
+.install-checks {
+    border: 1px solid var(--color-success-border);
+    background: var(--color-success-light);
+    border-radius: var(--radius);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-5);
+    font-size: var(--text-sm);
+}
+
+.install-checks[open] .install-checks__summary { margin-bottom: var(--space-2); }
+
+.install-checks--blocked {
+    border-color: var(--color-danger-border);
+    background: var(--color-danger-light);
+}
+
+.install-checks__summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.install-checks__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-1);
+}
+
+.install-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text);
+}
+
+.install-check__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.install-check--ok .install-check__icon   { background: var(--color-success-border); color: var(--color-success-dark); }
+.install-check--warn .install-check__icon { background: var(--color-warning-border); color: var(--color-warning-dark); }
+.install-check--fail .install-check__icon { background: var(--color-danger-border);  color: var(--color-danger-dark); }
+.install-check--fail { font-weight: 600; }
+
+/* ── Choix du pilote ───────────────────────────── */
+.install-drivers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    align-items: stretch;
+}
+
+.install-driver {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    cursor: pointer;
+}
+
+.install-driver:has(.install-driver__input:checked) {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+
+.install-driver:has(.install-driver__input:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.install-driver--disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.install-driver__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.install-driver__label {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.install-driver__hint {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
+.install-mysql {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.install-mysql[hidden] { display: none; }
+
+.install-demo-hint { margin-top: 0; }
+
+/* ── Comptes de démonstration (page de fin) ─────── */
+.install-accounts {
+    list-style: none;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.install-accounts__item {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+}
+
+.install-accounts__item + .install-accounts__item { border-top: 1px solid var(--color-border); }
+
+.install-accounts__role { color: var(--color-text-muted); }

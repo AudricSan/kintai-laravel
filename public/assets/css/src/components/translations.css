@@ -1,0 +1,23 @@
+/* ================================================
+   Kintai — Statut des traductions (page langues)
+   ================================================ */
+
+/* ── Langues & traductions ─────────────────────────────────────── */
+.lang-name-input {
+    max-width: 220px;
+}
+
+.translation-row__group td {
+    background: var(--color-hover);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--color-text-muted);
+}
+
+.translation-value-input {
+    width: 100%;
+    min-width: 220px;
+    resize: vertical;
+}

@@ -1,0 +1,50 @@
+/* ================================================
+   Kintai — Bandeaux d'alerte au-dessus de la barre du haut
+   Composant unique partagé par le mode maintenance et le rappel de mot de passe
+   (PasswordReminderMiddleware), pour un rendu identique ; leur hauteur cumulée est
+   comptée dans --maintenance-banner-h.
+   ================================================ */
+
+.app-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-6);
+    /* La teinte d'avertissement est translucide en thème sombre (rgba) : posée sur un fond opaque, sinon le
+       contenu défile visible sous ce bandeau collant. */
+    background: linear-gradient(var(--color-warning-light), var(--color-warning-light)), var(--color-surface);
+    color: var(--color-warning-dark);
+    border-bottom: 1px solid var(--color-warning-border);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.app-banner__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+}
+
+/* Icônes SVG monochromes : suivent la couleur du texte, comme le glyphe ⚠ */
+.app-banner__icon svg {
+    width: 1em;
+    height: 1em;
+}
+
+.app-banner__link {
+    margin-left: auto;
+    color: inherit;
+    text-decoration: underline;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .app-banner {
+        padding: var(--space-2) var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    .app-banner__link {
+        margin-left: 0;
+    }
+}

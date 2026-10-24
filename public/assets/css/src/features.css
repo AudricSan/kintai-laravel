@@ -1,0 +1,18 @@
+/* ================================================
+   Kintai — Features: point d'entrée
+   Styles spécifiques à une page/domaine, un fichier
+   par feature. Ordre d'import identique à l'ancien
+   fichier monolithe pour préserver la cascade CSS.
+   ================================================ */
+
+@import url('./features/auth.css');
+@import url('./features/dashboard.css');
+@import url('./features/employee.css');
+@import url('./features/shifts.css');
+@import url('./features/calendar.css');
+@import url('./features/statistics.css');
+@import url('./features/docs.css');
+@import url('./features/bundle-market.css');
+@import url('./features/install.css');
+@import url('./features/calendar-link.css');
+@import url('./features/setup.css');

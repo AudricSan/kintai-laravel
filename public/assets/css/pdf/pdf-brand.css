@@ -1,0 +1,24 @@
+/* ================================================
+   Kintai — Identité visuelle commune à tous les PDF
+   Valeurs littérales (mPDF ne supporte pas les variables CSS). Reprend le
+   bleu nuit déjà utilisé par le rapport journalier et l'ancienne fiche de
+   paie (#2c3e50) comme accent unique, pour que tous les documents générés
+   (rapports RH, exports, rapport journalier) partagent la même direction
+   artistique au lieu d'un mélange de gris et de bleu selon la vue.
+   Règles volontairement !important : chargé avant le <style> propre à
+   chaque vue, il doit rester la source unique de vérité même si une vue
+   redéfinit un style générique de <th>/h1/h2.
+   ================================================ */
+h1 {
+    color: #2c3e50 !important;
+}
+
+h2 {
+    color: #2c3e50 !important;
+    border-bottom-color: #2c3e50 !important;
+}
+
+table th {
+    background: #2c3e50 !important;
+    color: #ffffff !important;
+}
