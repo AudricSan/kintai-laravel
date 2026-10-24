@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace kintai\Http;
 
 use Illuminate\Foundation\Application;
-use kintai\Core\Application as KintaiApplication;
-use kintai\Core\Container as KintaiContainer;
 use kintai\Core\Request as KintaiRequest;
 use kintai\Core\Response as KintaiResponse;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -15,9 +13,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Pont entre le noyau HTTP de Laravel et l'application Kintai.
  *
- * Laravel reçoit la requête (public/index.php, routes/web.php) et la confie ici à l'application Kintai, qui la traite
- * comme avant : ses routes (routes/kintai.php et celles des bundles), ses middlewares, ses contrôleurs et ses pages
- * d'erreur. La réponse Kintai est ensuite convertie en réponse Symfony, que Laravel envoie.
+ * Les routes Kintai sont déclarées au routeur de Laravel (voir KintaiRoutes) ; une requête qu'aucune ne prend arrive
+ * ici, et l'application Kintai la traite comme avant : son routeur répond 404 ou 405 avec ses propres pages d'erreur,
+ * après ses middlewares globaux (session, langue…). La réponse Kintai est convertie en réponse Symfony, que Laravel
+ * envoie.
  *
  * C'est l'étape de transition de la migration vers Laravel : les briques maison (routeur, conteneur, middlewares…)
  * seront remplacées une à une par celles de Laravel, sans changer le comportement de l'application.
@@ -26,21 +25,7 @@ final class KintaiBridge
 {
     public function __invoke(Application $laravel): SymfonyResponse
     {
-        // Comme l'ancien public/index.php : toute erreur PHP signalée devient une exception, rendue en page 500.
-        set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
-            if (!(error_reporting() & $severity)) {
-                return false;
-            }
-            throw new \ErrorException($message, 0, $severity, $file, $line);
-        });
-
-        // Les services Kintai s'enregistrent dans le conteneur de l'application Laravel : un seul conteneur.
-        KintaiContainer::setInstance(new KintaiContainer($laravel));
-
-        $app = new KintaiApplication(BASE_PATH);
-        $app->boot();
-
-        return self::toSymfony($app->handle(new KintaiRequest()));
+        return self::toSymfony(KintaiHttp::app($laravel)->handle(new KintaiRequest()));
     }
 
     /** Convertit une réponse Kintai en réponse Symfony, sans rien changer à ce que reçoit le navigateur. */

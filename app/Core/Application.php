@@ -153,15 +153,19 @@ final class Application
 
     /**
      * Traite une requête jusqu'à sa réponse, sans l'envoyer : routage, middlewares, contrôleur, rendu des erreurs et
-     * journal d'accès. Appelé par le pont HTTP de Laravel (kintai\Http\KintaiBridge), qui convertit ensuite la réponse.
+     * journal d'accès. Appelé depuis les routes Laravel (kintai\Http\KintaiRouteAction, kintai\Http\KintaiBridge), qui
+     * convertissent ensuite la réponse.
+     *
+     * @param array{0: Route, 1: array<string, string>}|null $match route déjà trouvée par le routeur de Laravel, avec
+     *        ses paramètres ; null : le routeur Kintai la cherche (et lève 404 ou 405 s'il n'y en a pas).
      */
-    public function handle(Request $request): Response
+    public function handle(Request $request, ?array $match = null): Response
     {
         $this->container->instance(Request::class, $request);
         $startedAt = microtime(true);
 
         try {
-            $response = $this->dispatch($request);
+            $response = $this->dispatch($request, $match);
         } catch (Throwable $e) {
             $response = $this->handleException($e, $request);
         }
@@ -224,10 +228,11 @@ final class Application
      * avant que I18nMiddleware n'ait jamais tourné, et la page 404/405 affiche les clés de
      * traduction brutes (__() retombe sur la clé faute de locale définie). Voir CHANGELOG.
      */
-    private function dispatch(Request $request): Response
+    /** @param array{0: Route, 1: array<string, string>}|null $match */
+    private function dispatch(Request $request, ?array $match = null): Response
     {
-        $resolveAndRun = function (Request $request): Response {
-            [$route, $params] = $this->router->dispatch($request->method(), $request->uri());
+        $resolveAndRun = function (Request $request) use ($match): Response {
+            [$route, $params] = $match ?? $this->router->dispatch($request->method(), $request->uri());
 
             // Paramètres typés traduits en identifiants AVANT les middlewares de route (les contrôles d'accès les
             // lisent), mais la 301 ou la 404 qui en découle n'est rendue qu'APRÈS eux : un visiteur non connecté ou
