@@ -117,6 +117,20 @@ php scripts/db-migrate.php             # apply them
 
 Owners can also trigger a one-click update from `/admin/update`, choosing a release channel (stable/beta/alpha); it pulls the matching GitHub Release, backs up the database and code first, and shows live progress.
 
+Instances still on 0.x (before Laravel) update the same way: the release archive carries a `src/` → `app/` relay, so the update request finishes on the new code and the site leaves maintenance mode as usual.
+
+### Docker
+
+```bash
+git clone https://github.com/AudricSan/Kintai.git
+cd Kintai
+docker compose up -d
+```
+
+Then open `http://localhost:8080/install.php` and install as above (SQLite works out of the box; for MySQL, give the installer your database server). The image runs Apache and PHP 8.3 with every extension Kintai uses, and serves only `public/`. Everything the instance owns lives in the `kintai-storage` volume: the SQLite database, backups, installed bundles, uploaded files, and `.env` and `config/database.local.php` (linked into the volume at start-up). Environment variables set in `docker-compose.yml` (`APP_URL`, `MAIL_*`…) reach PHP.
+
+To update, rebuild or pull a newer image and recreate the container (`docker compose build --pull && docker compose up -d`): pending migrations run at start-up. Do not use the one-click update inside a container, since its files are replaced when the container is recreated. Scheduled tasks run from the host's crontab, for example `0 3 * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan kintai:cron backup`, or through the cron URL with a token (see `scripts/cron.php`).
+
 ---
 
 ## Tech stack

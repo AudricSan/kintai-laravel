@@ -88,7 +88,7 @@ jobs:
       - name: PHP syntax
         run: |
           set -euo pipefail
-          find app src bootstrap config database public routes scripts tests -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+          find app src bootstrap config database public routes scripts tests -name '*.php' -not -name '*.blade.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
 
       - name: JavaScript syntax
         run: |
@@ -189,6 +189,29 @@ jobs:
           MYSQL_PASSWORD: ''
           MYSQL_DATABASE: kintai
         run: bash scripts/ci/mysql-smoke-test.sh
+
+  docker-smoke:
+    # L'image Docker se construit (dépendances comprises), démarre, et sert la page de l'installateur.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t kintai:ci .
+
+      - name: Start a container and open the installer
+        run: |
+          set -euo pipefail
+          docker run -d --name kintai -p 8080:80 kintai:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/install.php || true)
+            [ "$code" = "200" ] && break
+            sleep 1
+          done
+          docker logs kintai
+          test "$code" = "200"
+          curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' http://127.0.0.1:8080/ | grep -q '^302 .*/install.php$'
 
   check-translations:
     runs-on: ubuntu-latest
