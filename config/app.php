@@ -8,5 +8,5 @@ return [
     'timezone' => env('APP_TIMEZONE', 'Asia/Tokyo'),
     'locale' => env('APP_LOCALE', 'ja'),
     'url' => env('APP_URL', ''),
-    'version' => '0.2.0',
+    'version' => '2.0.0',
 ];
