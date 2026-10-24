@@ -145,8 +145,10 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
      are now possible), and every maintenance script available as an Artisan command (`php artisan list kintai`,
      e.g. `php artisan kintai:cron backup`; the `scripts/*.php` files keep working). Laravel's `auth()`, `Auth::`,
      `@auth` and the Gate (`Gate::allows('shifts.update', $storeId)`, `@can`) answer with Kintai's logged-in user and
-     RBAC permissions.
-   - Next: middlewares, session, auth and CSRF, validation, views converted to Blade.
+     RBAC permissions. Laravel's validator (`validator()`, `Validator::make`, `->validate()`) speaks Kintai's
+     validation messages in the user's language, and its errors are answered like Kintai's own (422 JSON, or back to
+     the form with the input kept).
+   - Next: views converted to Blade, then middlewares, session and CSRF on Laravel's own stack.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
 every form, logged in as the Owner, must give the same response and leave the same database.

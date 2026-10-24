@@ -315,6 +315,12 @@ final class Application
     {
         $wantsJson = $request->wantsJson() || $request->getAttribute('wantsJson', false);
 
+        // Validateur de Laravel (validator(...)->validate(), Validator::make) : même réponse qu'une validation Kintai.
+        if ($e instanceof \Illuminate\Validation\ValidationException) {
+            $errors = array_map(static fn(array $messages): string => (string) reset($messages), $e->errors());
+            $e      = new ValidationException($errors, $errors !== [] ? reset($errors) : null);
+        }
+
         if ($e instanceof ValidationException) {
             if ($wantsJson) {
                 return Response::json(['error' => $e->getMessage(), 'errors' => $e->errors], 422);
