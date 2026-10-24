@@ -88,7 +88,7 @@ jobs:
       - name: PHP syntax
         run: |
           set -euo pipefail
-          find app bootstrap config database public routes scripts tests -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+          find app src bootstrap config database public routes scripts tests -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
 
       - name: JavaScript syntax
         run: |
