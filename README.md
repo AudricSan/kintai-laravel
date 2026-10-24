@@ -139,8 +139,12 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
 1. **Done — Kintai runs on the Laravel kernel.** Laravel receives every request and hands it to the Kintai application
    (`app/Http/KintaiBridge.php`). Routes, middlewares, controllers, views, bundles and the bundle contract are
    unchanged; Laravel's database manager is the single connection (Capsule, Eloquent and `DB::` share it).
-2. **In progress — Laravel replaces the home-made pieces one by one** (container, router, middlewares, session, auth,
-   validation, views in Blade, Artisan commands).
+2. **In progress — Laravel replaces the home-made pieces one by one.**
+   - Done: one service container (Kintai's container stores its bindings in Laravel's), Kintai and bundle routes
+     registered in Laravel's router (`php artisan route:list`), views rendered by Laravel's view engine (Blade views
+     are now possible), and every maintenance script available as an Artisan command (`php artisan list kintai`,
+     e.g. `php artisan kintai:cron backup`; the `scripts/*.php` files keep working).
+   - Next: middlewares, session, auth and CSRF, validation, views converted to Blade.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
 every form, logged in as the Owner, must give the same response and leave the same database.
