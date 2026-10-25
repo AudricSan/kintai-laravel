@@ -8,8 +8,11 @@ use Closure;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\Application;
 use kintai\Core\Auth\PasswordHasher;
+use kintai\Core\Database\BundleMigrationRunner;
+use kintai\Core\InstalledBundleManifestStore;
 use kintai\Core\Database\DemoDataSeeder;
 use kintai\Core\Database\MigrationRunner;
+use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
@@ -24,7 +27,8 @@ use Throwable;
 
 /**
  * Installation d'une instance neuve, appelée par public/install.php : fichier d'environnement, base de données,
- * migrations, compte Owner, verrou.
+ * migrations, compte Owner, verrou. Ou importation d'une instance Kintai existante (import()), par exemple l'ancienne
+ * version d'avant Laravel : sa base, ses fichiers et sa configuration sont repris, puis les migrations appliquées.
  *
  * Tout ou rien : chaque écriture enregistre de quoi l'annuler, et un échec à n'importe quelle étape remet l'instance
  * dans l'état d'avant (fichier d'environnement restauré, base SQLite ou MySQL créée par l'installateur supprimée,
@@ -37,6 +41,17 @@ use Throwable;
 final class WebInstaller
 {
     public const SQLITE_PATH = 'storage/app/database.sqlite';
+
+    /**
+     * Contenu de storage/ que l'importation ne reprend pas : caches et vues compilées (refaits par l'application),
+     * archives et manifeste de l'ancienne mise à jour (ils décrivent l'ancien code), compteurs de limitation, et la base
+     * SQLite et le verrou, écrits à part.
+     */
+    private const IMPORT_SKIPPED = [
+        'cache', 'framework', 'logs/rate-limits', 'app/updates', 'app/update-files-manifest.json',
+        'app/database.sqlite', 'app/database.sqlite-wal', 'app/database.sqlite-shm', 'app/database.sqlite-journal',
+        'installed.lock',
+    ];
 
     /** @var list<Closure> annulations, jouées en ordre inverse */
     private array $undo = [];
@@ -85,6 +100,76 @@ final class WebInstaller
                 'owner_id'      => $ownerId,
                 'demo_accounts' => $in->demoData ? DemoDataSeeder::accounts() : [],
             ];
+        } catch (Throwable $e) {
+            $this->log($e);
+            $this->rollback();
+            throw InstallFailure::from($e);
+        }
+    }
+
+    /**
+     * Importe une instance Kintai installée dans un autre dossier du même serveur (ancienne version comprise) : sa base
+     * (SQLite copiée, MySQL reprise telle quelle), son .env, storage/ (fichiers envoyés, sauvegardes, bundles installés)
+     * et sa configuration ; puis les migrations du Core et des bundles. Le dossier importé n'est jamais modifié.
+     *
+     * Tout ou rien, comme install() : un échec retire tout ce qui a été copié. Seules les migrations déjà appliquées à
+     * une base MySQL (partagée avec l'ancienne instance) ne peuvent pas être annulées.
+     *
+     * @param string      $locale    langue écrite dans .env si l'instance importée n'en avait pas
+     * @param string|null $publicUrl adresse d'où l'on importe : la nouvelle adresse publique de l'instance
+     * @return array{migrations:int, users:int, bundles: list<array{slug:string, version:string}>}
+     * @throws InstallFailure
+     */
+    public function import(string $sourceDir, string $locale, ?string $publicUrl = null): array
+    {
+        $this->undo = [];
+
+        try {
+            $source = $this->importSource($sourceDir);
+            $database = $this->importDatabaseConfig($source);
+
+            $env = is_file($source . '/.env') ? (string) file_get_contents($source . '/.env') : '';
+            if ($env !== '') {
+                $this->writeFile('.env', $env);
+            }
+            if (preg_match('/^' . InstanceLocale::ENV_KEY . '=\S/m', $env) !== 1) {
+                $this->writeLocale($locale);
+            }
+
+            if ($database['driver'] === 'sqlite') {
+                $this->importSqlite($this->sqliteSource($source, $database));
+                unset($database['connections']['sqlite']['path']);
+            }
+            $this->copyTree($source . '/storage', $this->basePath . '/storage', '');
+            $this->writeFile('config/database.local.php', '<?php return ' . var_export($database, true) . ';' . PHP_EOL);
+
+            $app = new Application($this->basePath);
+            $app->boot();
+            $migrations = (new MigrationRunner($app))->run();
+
+            // Comme scripts/db-migrate.php : migrations en attente des bundles installés dynamiquement.
+            $bundleRunner = new BundleMigrationRunner($app);
+            foreach ($app->container()->make(InstalledBundleRepositoryInterface::class)->all() as $bundle) {
+                $path = $this->basePath . "/storage/bundles/{$bundle['slug']}/{$bundle['active_version']}/database/migrations";
+                $migrations += count($bundleRunner->runPendingFor((string) $bundle['slug'], $path));
+            }
+            $bundles = [];
+            foreach ((new InstalledBundleManifestStore($this->basePath . '/storage/bundles/installed.json'))->all() as $slug => $entry) {
+                $bundles[] = ['slug' => (string) $slug, 'version' => (string) ($entry['active_version'] ?? '')];
+            }
+
+            $users = $app->container()->make(UserRepositoryInterface::class)->countActive();
+            if ($users === 0) {
+                throw new InstallFailure('install_import_error_empty', ['name' => $source]);
+            }
+
+            if ($publicUrl !== null) {
+                $app->container()->make(AppSettingsRepositoryInterface::class)->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
+            }
+
+            $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
+
+            return ['migrations' => $migrations, 'users' => $users, 'bundles' => $bundles];
         } catch (Throwable $e) {
             $this->log($e);
             $this->rollback();
@@ -182,6 +267,105 @@ final class WebInstaller
             ->assign((int) $owner['id'], (int) $ownerRole['id'], 'global', null);
 
         return (int) $owner['id'];
+    }
+
+    /** Dossier d'une instance Kintai installée, différent de celui-ci ; renvoyé sous sa forme canonique. */
+    private function importSource(string $dir): string
+    {
+        $source = realpath($dir);
+        if ($source === false || !is_dir($source)) {
+            throw new InstallFailure('install_import_error_not_found', ['name' => $dir]);
+        }
+        if ($source === realpath($this->basePath)) {
+            throw new InstallFailure('install_import_error_same_folder');
+        }
+        $kintai = is_file($source . '/src/Core/Application.php') || is_file($source . '/app/Core/Application.php');
+        if (!$kintai || !is_file($source . '/config/database.local.php')) {
+            throw new InstallFailure('install_import_error_not_kintai', ['name' => $source]);
+        }
+        return $source;
+    }
+
+    /** @return array{driver:string, connections:array<string, mixed>} config/database.local.php de l'instance importée */
+    private function importDatabaseConfig(string $source): array
+    {
+        $config = (static fn (string $file): mixed => require $file)($source . '/config/database.local.php');
+        if (!is_array($config) || !in_array($config['driver'] ?? null, ['sqlite', 'mysql'], true)) {
+            throw new InstallFailure('install_import_error_not_kintai', ['name' => $source]);
+        }
+        $config['connections'] = is_array($config['connections'] ?? null) ? $config['connections'] : [];
+        return $config;
+    }
+
+    /** Fichier SQLite de l'instance importée : celui de sa configuration, sinon l'emplacement par défaut. */
+    private function sqliteSource(string $source, array $database): string
+    {
+        $path = $database['connections']['sqlite']['path'] ?? null;
+        $file = is_string($path) && $path !== '' ? $path : $source . '/' . self::SQLITE_PATH;
+        if (!is_file($file) || filesize($file) === 0) {
+            throw new InstallFailure('install_import_error_database', ['name' => $file]);
+        }
+        return $file;
+    }
+
+    /**
+     * Copie cohérente de la base SQLite (VACUUM INTO : le journal WAL d'une instance encore ouverte est pris en compte)
+     * vers storage/app/database.sqlite, qui doit être absent ou vide.
+     */
+    private function importSqlite(string $file): void
+    {
+        $target = $this->basePath . '/' . self::SQLITE_PATH;
+        $dir = dirname($target);
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+            throw new InstallFailure('install_error_not_writable', ['name' => 'storage/app/']);
+        }
+        if (file_exists($target)) {
+            $pdo = new PDO('sqlite:' . $target, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            $tables = (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'")->fetchColumn();
+            $pdo = null;
+            if ($tables > 0) {
+                throw new InstallFailure('install_error_database_not_empty', ['name' => self::SQLITE_PATH]);
+            }
+            @unlink($target);
+            $this->undo[] = static fn () => @file_put_contents($target, '');
+        }
+
+        $pdo = new PDO('sqlite:' . $file, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $this->undo[] = static fn () => @unlink($target);
+        $pdo->prepare('VACUUM INTO ?')->execute([$target]);
+        $pdo = null;
+    }
+
+    /** Copie récursive de storage/, sans écraser ce qui existe déjà ici (.htaccess, .gitkeep) ni IMPORT_SKIPPED. */
+    private function copyTree(string $from, string $to, string $relative): void
+    {
+        if (!is_dir($from)) {
+            return;
+        }
+        if (!is_dir($to)) {
+            if (!@mkdir($to, 0755, true)) {
+                throw new InstallFailure('install_error_not_writable', ['name' => 'storage/' . $relative]);
+            }
+            $this->undo[] = static fn () => @rmdir($to);
+        }
+        foreach (scandir($from) ?: [] as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $child = $relative === '' ? $item : $relative . '/' . $item;
+            if (in_array($child, self::IMPORT_SKIPPED, true)) {
+                continue;
+            }
+            if (is_dir($from . '/' . $item)) {
+                $this->copyTree($from . '/' . $item, $to . '/' . $item, $child);
+            } elseif (!file_exists($to . '/' . $item)) {
+                $target = $to . '/' . $item;
+                if (!@copy($from . '/' . $item, $target)) {
+                    throw new InstallFailure('install_error_not_writable', ['name' => 'storage/' . $child]);
+                }
+                $this->undo[] = static fn () => @unlink($target);
+            }
+        }
     }
 
     // ─── Annulation ───────────────────────────────────────────────────────────
