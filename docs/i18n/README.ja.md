@@ -123,7 +123,7 @@ docker compose up -d
 
 その後 `http://localhost:8080/install.php` を開き、上記と同じ手順でインストールします（SQLite はそのまま動作します。MySQL の場合はインストーラーにデータベースサーバーを指定してください）。イメージは Apache と PHP 8.3（Kintai が使う拡張機能をすべて含む）で動作し、`public/` だけを配信します。インスタンスのデータはすべて `kintai-storage` ボリュームに保存されます：SQLite データベース、バックアップ、インストール済みバンドル、アップロードファイル、そして `.env` と `config/database.local.php`（起動時にボリュームへリンク）。`docker-compose.yml` で設定した環境変数（`APP_URL`、`MAIL_*` など）は PHP に渡されます。
 
-アップデートするには、新しいイメージをビルドまたは取得してコンテナを作り直します（`docker compose build --pull && docker compose up -d`）。未適用のマイグレーションは起動時に実行されます。コンテナ内ではワンクリックアップデートを使わないでください（コンテナを作り直すとファイルが置き換えられます）。定期タスクはホストの crontab から実行します。例：`0 3 * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan kintai:cron backup`。またはトークン付きの cron URL を使います（`scripts/cron.php` を参照）。
+アップデートするには、新しいイメージをビルドまたは取得してコンテナを作り直します（`docker compose build --pull && docker compose up -d`）。未適用のマイグレーションは起動時に実行されます。コンテナ内ではワンクリックアップデートを使わないでください（コンテナを作り直すとファイルが置き換えられます）。定期タスクはホストの crontab に毎分実行する 1 行を追加して実行します：`* * * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan schedule:run`（実行時刻は `config/schedule.php`）。またはトークン付きの cron URL を使います（`scripts/cron.php` を参照）。
 
 ---
 
