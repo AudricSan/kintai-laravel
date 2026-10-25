@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core\Auth;
 
+use kintai\Core\Database\RequestMemo;
+use kintai\Core\Repositories\DatabaseUserRepository;
 use kintai\Core\Repositories\RememberTokenRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
@@ -192,7 +194,12 @@ final class AuthService
         if ($id === null) {
             return null;
         }
-        $user = $this->users->findById((int) $id);
+        // Relu à chaque appel (middlewares, contrôleur, vues) : une fois par requête, voir RequestMemo. Seulement avec le
+        // dépôt de la base, dont toute écriture vide cette mémoire : une désactivation ou un changement de mot de passe
+        // se voit tout de suite.
+        $user = $this->users instanceof DatabaseUserRepository
+            ? RequestMemo::remember('auth.user.' . (int) $id, fn(): ?array => $this->users->findById((int) $id))
+            : $this->users->findById((int) $id);
         // Une session ouverte ne doit jamais survivre à la désactivation ou à la suppression
         // du compte : seules la connexion et le cookie « rester connecté » le vérifiaient.
         if ($user === null || !($user['is_active'] ?? 1) || !empty($user['deleted_at'])) {
