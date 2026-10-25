@@ -7,8 +7,10 @@ namespace kintai\UI\Controller\Web\Scheduling;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Services\NotificationService;
+use kintai\Core\Services\SchedulePublication;
 use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
+use kintai\Core\Repositories\ShiftWeekTemplateRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Contract\Event\OpenShiftClosed;
@@ -45,7 +47,43 @@ final class AdminShiftController
         private readonly ShiftServiceInterface $shiftService,
         private readonly PermissionService $permissions,
         private readonly AvailabilityGuard $availabilityGuard,
+        // Publication du planning par magasin ; null (tests, appel direct) : tout est publié, comme avant.
+        private readonly ?SchedulePublication $publication = null,
+        // Modèles de semaine proposés sur la timeline ; null : bloc des modèles masqué.
+        private readonly ?ShiftWeekTemplateRepositoryInterface $weekTemplates = null,
     ) {}
+
+    /**
+     * Écarte les brouillons des magasins dont l'utilisateur ne gère pas le planning (shifts.view sans shifts.update) :
+     * les vues d'administration montrent alors ce que voient les employés.
+     *
+     * @param list<array<string, mixed>> $shifts
+     * @return list<array<string, mixed>>
+     */
+    private function withoutForeignDrafts(Request $request, array $shifts): array
+    {
+        if ($this->publication === null) {
+            return $shifts;
+        }
+        $user = $request->getAttribute('auth_user') ?? [];
+        if (!empty($user['is_admin'])) {
+            return $shifts;
+        }
+        $canManage = [];
+        return array_values(array_filter($shifts, function (array $s) use ($user, &$canManage): bool {
+            if ($this->publication->isPublished($s)) {
+                return true;
+            }
+            $sid = (int) ($s['store_id'] ?? 0);
+            return $canManage[$sid] ??= $this->permissions->can($user, 'shifts.update', $sid);
+        }));
+    }
+
+    /** Le jour est-il visible des employés du magasin ? Un brouillon ne leur envoie aucune notification. */
+    private function isPublishedDay(int $storeId, string $date): bool
+    {
+        return $this->publication?->isDatePublished($storeId, $date) ?? true;
+    }
 
     /** @return array<int, array> id => type, pour les stores gérés (ou tous si Owner). */
     private function shiftTypesForManaged(?array $managedIds): array
@@ -229,6 +267,7 @@ final class AdminShiftController
             $filterStoreId,
             $filterUserId
         );
+        $allShifts = $this->withoutForeignDrafts($request, $allShifts);
 
         // Tri (Keep it here for now as it depends on usersMap/typesMap)
         $sort = $request->query('sort') ?? 'date_asc';
@@ -339,7 +378,10 @@ final class AdminShiftController
         $weekStartDay = max(1, min(7, (int) ($wsdStore['week_start_day'] ?? 1)));
 
         // Charger les shifts du mois pour les utilisateurs actifs via le service
-        $shiftsByDate = $this->shiftService->getCalendarData($activeUids, $monthStart, $monthEnd, $filterStoreId);
+        $shiftsByDate = array_filter(array_map(
+            fn(array $dayShifts): array => $this->withoutForeignDrafts($request, $dayShifts),
+            $this->shiftService->getCalendarData($activeUids, $monthStart, $monthEnd, $filterStoreId),
+        ));
 
         // Congés approuvés du mois pour les utilisateurs actifs
         $timeoffByDate = $this->shiftService->getTimeoffForCalendar($activeUids, $monthStart, $monthEnd);
@@ -460,7 +502,7 @@ final class AdminShiftController
         $dateTo           = $lastDay->format('Y-m-d');
         $shiftsByDateUser = [];
         if ($filterStoreId > 0) {
-            foreach ($this->shifts->findByStore($filterStoreId) as $s) {
+            foreach ($this->withoutForeignDrafts($request, $this->shifts->findByStore($filterStoreId)) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d < $dateFrom || $d > $dateTo) continue;
                 $uid = (int) ($s['user_id'] ?? 0);
@@ -523,11 +565,50 @@ final class AdminShiftController
             'my_user_id'          => $myUserId,
             'can_manage'          => $canManage,
             'store_settings'      => $storeSettings,
+            // Publication du planning (bandeau « brouillon » et bouton Publier), pour qui gère le magasin affiché.
+            'publication'         => $canManage && $filterStoreId > 0 && ($this->publication?->isEnabled($filterStoreId) ?? false)
+                ? ['until' => $this->publication->publishedUntil($filterStoreId)]
+                : null,
             'week_start_day'      => $weekStartDay,
+            // Semaine type (copie de la semaine précédente, modèles) : vue semaine, pour qui gère le magasin.
+            'week_tools'          => $canManage && $filterStoreId > 0 && $viewMode === 'week'
+                ? ['templates' => $this->weekTemplates?->findByStore($filterStoreId) ?? [], 'templates_enabled' => $this->weekTemplates !== null]
+                : null,
             'all_users'           => $this->users->findAll(),
             'all_stores'          => $availStores,
             'all_types'           => $this->shiftTypesForManaged($managedIds),
         ], 'layout.app'));
+    }
+
+    /**
+     * POST /admin/shifts/publish — publie le planning du magasin jusqu'au jour `until` inclus (voir SchedulePublication) :
+     * les employés voient les shifts devenus visibles et chacun reçoit une notification qui les résume.
+     */
+    public function publishSchedule(Request $request): Response
+    {
+        $storeId = (int) $request->post('store_id', 0);
+        $until   = (string) $request->post('until', '');
+        $this->assertStoreAccess($request, $storeId);
+        $this->permissions->requireOnStore($request->getAttribute('auth_user') ?? [], 'shifts.update', $storeId);
+
+        $back = safe_redirect_path((string) $request->post('redirect_to', ''), '')
+            ?: $this->base() . '/admin/shifts/timeline?store_id=' . $storeId;
+        $sep  = str_contains($back, '?') ? '&' : '?';
+        if ($this->publication === null || !$this->publication->isEnabled($storeId)
+            || preg_match('/^\d{4}-\d{2}-\d{2}$/', $until) !== 1) {
+            return Response::redirect($back . $sep . 'error=publish_invalid');
+        }
+
+        $from   = $this->publication->publishedUntil($storeId);
+        $result = $this->publication->publish($storeId, $until);
+        $this->auditLogger->log($request, 'schedule.published', 'store', $storeId, [
+            'from'      => $from,
+            'until'     => $until,
+            'published' => $result['published'],
+            'notified'  => $result['notified'],
+        ], $storeId);
+
+        return Response::redirect($back . $sep . 'success=published&notified=' . $result['notified']);
     }
 
     /**
@@ -762,7 +843,7 @@ final class AdminShiftController
 
         // Le shift est déjà sauvegardé (et audité) à ce stade : un échec de notification
         // ne doit pas transformer une action réussie en 500 générique côté utilisateur.
-        if (!$isOpen && $uid > 0) {
+        if (!$isOpen && $uid > 0 && $this->isPublishedDay($storeId, $shiftDate)) {
             try {
                 $this->notifs->notify(
                     $uid,
@@ -895,7 +976,15 @@ final class AdminShiftController
 
         $newUid    = $isOpen ? 0 : (int) $request->post('user_id', $shift['user_id']);
         $prevUid   = (int) ($shift['user_id'] ?? 0);
-        if (!$isOpen && $newUid > 0 && $newUid !== $prevUid) {
+        // Publication du planning : rien à annoncer sur un brouillon ; un shift publié renvoyé en brouillon disparaît du
+        // planning de l'employé, qui en est prévenu comme d'une suppression.
+        $wasPublished = $this->isPublishedDay((int) ($old['store_id'] ?? 0), (string) ($old['shift_date'] ?? ''));
+        $isPublished  = $this->isPublishedDay($newStoreId, (string) $shiftDate);
+        if (!$isPublished) {
+            if ($wasPublished && $prevUid > 0 && (int) ($old['is_open'] ?? 0) !== 1) {
+                $this->notifyShiftDeleted($old);
+            }
+        } elseif (!$isOpen && $newUid > 0 && ($newUid !== $prevUid || !$wasPublished)) {
             try {
                 $this->notifs->notify(
                     $newUid,
@@ -948,7 +1037,8 @@ final class AdminShiftController
      */
     private function notifyShiftDeleted(array $shift): void
     {
-        if (empty($shift['user_id'])) {
+        // Brouillon supprimé : l'employé ne l'a jamais vu.
+        if (empty($shift['user_id']) || !$this->isPublishedDay((int) ($shift['store_id'] ?? 0), (string) ($shift['shift_date'] ?? ''))) {
             return;
         }
         try {
@@ -1022,7 +1112,7 @@ final class AdminShiftController
             $deletedIds[] = $id;
             $deleted++;
 
-            if (!empty($shift['user_id'])) {
+            if (!empty($shift['user_id']) && $this->isPublishedDay($storeId, (string) ($shift['shift_date'] ?? ''))) {
                 try {
                     $this->notifs->notify(
                         (int) $shift['user_id'],

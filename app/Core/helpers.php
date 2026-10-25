@@ -488,6 +488,17 @@ if (!function_exists('notification_type_catalog')) {
         return (int) preg_replace('/\D/', '', $date);
     }
 
+    /**
+     * Le shift est-il visible des employés ? Faux pour un shift en brouillon (magasin à publication du planning, date
+     * après la dernière publication, voir SchedulePublication). Hors application (pas de conteneur) : vrai.
+     *
+     * @param array<string, mixed> $shift
+     */
+    function shift_is_published(array $shift): bool
+    {
+        return \kintai\Core\Services\SchedulePublication::current()?->isPublished($shift) ?? true;
+    }
+
     /** Libellé d'un type : catalogue, sinon traduction « notif_{type} » si elle existe (bundle inactif), sinon le type. */
     function notification_type_label(string $type): string
     {

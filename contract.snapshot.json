@@ -1,5 +1,5 @@
 {
-    "version": "1.31.0",
+    "version": "1.32.0",
     "surface": {
         "kintai\\Contract\\Auth\\AuthService": {
             "status": "provisoire",
@@ -336,6 +336,13 @@
                 "fallback"
             ],
             "returns": "string"
+        },
+        "shift_is_published": {
+            "status": "stable",
+            "params": [
+                "shift"
+            ],
+            "returns": "bool"
         },
         "storage_path": {
             "status": "provisoire",

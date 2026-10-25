@@ -13,6 +13,7 @@ use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Request;
 use kintai\Core\Response;
 use kintai\Core\Services\AuditLogger;
+use kintai\Core\Services\SchedulePublication;
 use kintai\Core\Validation\ApiPayloadRules;
 use kintai\Core\Validation\PayloadValidator;
 
@@ -51,6 +52,15 @@ final class ShiftController
             $items,
             fn(array $s): bool => in_array($s['id'] ?? null, $scopedIds, true) || (int) ($s['user_id'] ?? 0) === $authId,
         ));
+        // Brouillons (publication du planning) : réservés à qui gère le planning du magasin, comme dans les vues web.
+        $publication = SchedulePublication::current();
+        if ($publication !== null) {
+            $items = array_values(array_filter(
+                $items,
+                fn(array $s): bool => $publication->isPublished($s)
+                    || $this->permissions->can($authUser, 'shifts.update', (int) ($s['store_id'] ?? 0)),
+            ));
+        }
 
         return Response::json(Paginator::paginate($items, $page, $limit));
     }
@@ -58,7 +68,13 @@ final class ShiftController
     /** GET /api/v1/shifts/{id} */
     public function show(Request $request): Response
     {
-        return Response::json($this->requireShift($request, 'shifts.view'));
+        $shift = $this->requireShift($request, 'shifts.view');
+        // Brouillon : introuvable pour qui ne gère pas le planning du magasin (même règle que la liste).
+        if (!(SchedulePublication::current()?->isPublished($shift) ?? true)
+            && !$this->permissions->can($this->authUser($request), 'shifts.update', (int) ($shift['store_id'] ?? 0))) {
+            throw new NotFoundException(__('error_shift_not_found'));
+        }
+        return Response::json($shift);
     }
 
     /** POST /api/v1/shifts — `store_id` obligatoire (la permission est vérifiée sur ce magasin). */
