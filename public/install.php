@@ -81,11 +81,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
     $input = InstallInput::fromPost($_POST, $defaultLocale);
     $errors = array_map(static fn (string $key): string => __($key), $input->errors($languageCodes, $requirements));
 
-    if ($errors === []) {
+    if ($errors === [] && $input->mode === InstallInput::MODE_IMPORT) {
+        try {
+            // Les comptes et leurs mots de passe viennent de l'instance importée : connexion habituelle ensuite.
+            $publicUrl = PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase);
+            $result = ['mode' => InstallInput::MODE_IMPORT] + (new WebInstaller(BASE_PATH))->import($input->importPath, $input->locale, $publicUrl);
+            $registerTranslations($pageLocale);
+        } catch (InstallFailure $e) {
+            $registerTranslations($pageLocale);
+            $errors[] = __($e->messageKey, $e->replace);
+        }
+    } elseif ($errors === []) {
         try {
             // Adresse par laquelle l'administrateur installe : la bonne dans l'immense majorité des cas.
             $publicUrl = PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase);
-            $result = (new WebInstaller(BASE_PATH))->install($input, $publicUrl);
+            $result = ['mode' => InstallInput::MODE_FRESH] + (new WebInstaller(BASE_PATH))->install($input, $publicUrl);
 
             // Le démarrage de l'application a remplacé les traductions : celles de la page sont reprises.
             $registerTranslations($pageLocale);
@@ -123,6 +133,7 @@ $view = [
     'errors'           => $errors,
     'result'           => $result,
     'setup_url'        => $installBase . '/admin/setup',
+    'login_url'        => $installBase . '/login',
     'demo_password'    => \kintai\Core\Database\DemoDataSeeder::PASSWORD,
     'old'              => $_POST,
     'default_host'     => (string) env('DB_HOST', '127.0.0.1'),

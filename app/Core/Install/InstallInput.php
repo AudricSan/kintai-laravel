@@ -15,6 +15,10 @@ final class InstallInput
 
     public const MIN_PASSWORD_LENGTH = 8;
 
+    /** Installation neuve, ou importation d'une instance Kintai existante (voir WebInstaller::import()). */
+    public const MODE_FRESH = 'fresh';
+    public const MODE_IMPORT = 'import';
+
     public function __construct(
         public readonly string $firstName,
         public readonly string $lastName,
@@ -29,6 +33,8 @@ final class InstallInput
         public readonly string $mysqlUsername,
         public readonly string $mysqlPassword,
         public readonly bool $demoData,
+        public readonly string $mode = self::MODE_FRESH,
+        public readonly string $importPath = '',
     ) {}
 
     /** @param array<string, mixed> $post $_POST ; $defaultLocale sert quand app_locale est absent (installation scriptée) */
@@ -50,6 +56,8 @@ final class InstallInput
             mysqlUsername:        trim($str('mysql_username')),
             mysqlPassword:        $str('mysql_password'),
             demoData:             isset($post['run_seeds']),
+            mode:                 $str('install_mode') === self::MODE_IMPORT ? self::MODE_IMPORT : self::MODE_FRESH,
+            importPath:           trim($str('import_path')),
         );
     }
 
@@ -59,6 +67,10 @@ final class InstallInput
      */
     public function errors(array $languageCodes, InstallRequirements $requirements): array
     {
+        if ($this->mode === self::MODE_IMPORT) {
+            return $this->importErrors($languageCodes, $requirements);
+        }
+
         $errors = [];
         if ($this->firstName === '') {
             $errors[] = 'install_error_first_name';
@@ -95,6 +107,29 @@ final class InstallInput
             if ($this->mysqlPort < 1 || $this->mysqlPort > 65535) {
                 $errors[] = 'install_error_mysql_port';
             }
+        }
+        if (!$requirements->canInstall()) {
+            $errors[] = 'install_error_requirements';
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Importation : le compte, la base et les options viennent de l'instance importée ; seuls la langue de la page
+     * et le dossier de l'instance sont demandés.
+     *
+     * @param list<string> $languageCodes
+     * @return list<string>
+     */
+    private function importErrors(array $languageCodes, InstallRequirements $requirements): array
+    {
+        $errors = [];
+        if ($languageCodes !== [] && !in_array($this->locale, $languageCodes, true)) {
+            $errors[] = 'install_error_language';
+        }
+        if ($this->importPath === '') {
+            $errors[] = 'install_import_error_path';
         }
         if (!$requirements->canInstall()) {
             $errors[] = 'install_error_requirements';

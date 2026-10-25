@@ -113,4 +113,23 @@ final class InstallInputTest extends TestCase
     {
         $this->assertContains('install_error_requirements', $this->errors([], ['mbstring']));
     }
+
+    public function testImportOnlyNeedsTheFolderAndTheLanguage(): void
+    {
+        $input = InstallInput::fromPost(['install_mode' => 'import', 'import_path' => ' /var/www/kintai ', 'app_locale' => 'fr'], 'en');
+
+        $this->assertSame(InstallInput::MODE_IMPORT, $input->mode);
+        $this->assertSame('/var/www/kintai', $input->importPath);
+        $this->assertSame([], $input->errors(self::LANGUAGES, $this->requirements()));
+    }
+
+    public function testImportWithoutAFolderIsRefused(): void
+    {
+        $this->assertSame(['install_import_error_path'], $this->errors(['install_mode' => 'import', 'import_path' => '']));
+    }
+
+    public function testUnknownModeFallsBackToAFreshInstallation(): void
+    {
+        $this->assertSame(InstallInput::MODE_FRESH, InstallInput::fromPost($this->post(['install_mode' => 'other']), 'en')->mode);
+    }
 }

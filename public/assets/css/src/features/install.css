@@ -165,6 +165,16 @@
 
 .install-mysql[hidden] { display: none; }
 
+/* Champs de l'installation neuve, regroupés pour être masqués en mode importation (install.js). */
+.install-fresh {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.install-fresh[hidden],
+.install-section[hidden] { display: none; }
+
 .install-demo-hint { margin-top: 0; }
 
 /* ── Comptes de démonstration (page de fin) ─────── */

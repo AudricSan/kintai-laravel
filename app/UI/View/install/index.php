@@ -14,6 +14,7 @@
  * @var list<string>          $errors       messages déjà traduits
  * @var array|null            $result       voir WebInstaller::install()
  * @var string                $setup_url
+ * @var string                $login_url
  * @var string                $demo_password
  * @var array<string, mixed>  $old          valeurs envoyées ($_POST), jamais les mots de passe
  */
@@ -22,6 +23,7 @@ use kintai\UI\Components\Button;
 
 $e = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES);
 $field = static fn (string $key, string $default = ''): string => is_string($old[$key] ?? null) ? $old[$key] : $default;
+$mode = $field('install_mode') === 'import' ? 'import' : 'fresh';
 $driver = $field('db_driver', in_array('sqlite', $drivers, true) ? 'sqlite' : ($drivers[0] ?? 'sqlite'));
 $failed = array_values(array_filter($checks, static fn (array $c): bool => !$c['ok']));
 $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c['blocking']));
@@ -46,7 +48,20 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
         </div>
 
         <div class="guest-card">
-        <?php if ($result !== null): ?>
+        <?php if ($result !== null && $result['mode'] === 'import'): ?>
+
+            <?= Alert::make(__('install_import_success', ['users' => (string) $result['users'], 'migrations' => (string) $result['migrations']]))->success()->render() ?>
+            <?php if ($result['bundles'] !== []): ?>
+                <p class="install-text"><?= $e(__('install_import_bundles_intro')) ?></p>
+                <ul class="install-accounts">
+                    <?php foreach ($result['bundles'] as $bundle): ?>
+                        <li class="install-accounts__item"><span><?= $e($bundle['slug']) ?></span><code><?= $e($bundle['version']) ?></code></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <?= Button::make(__('install_import_login'))->primary()->full()->link($login_url)->render() ?>
+
+        <?php elseif ($result !== null): ?>
 
             <?= Alert::make(__('install_success'))->success()->render() ?>
 
@@ -100,7 +115,7 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
                 </ul>
             </details>
 
-            <form method="POST" action="" class="form-stack" data-install-form>
+            <form method="POST" action="" class="form-stack" data-install-form data-import-label="<?= $e(__('install_import_submit')) ?>">
 
                 <?php if ($languages !== []): ?>
                 <section class="install-section">
@@ -117,6 +132,30 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
                 </section>
                 <?php endif; ?>
 
+                <section class="install-section">
+                    <h2 class="install-section__title"><?= $e(__('install_section_mode')) ?></h2>
+                    <div class="install-drivers" role="radiogroup" aria-label="<?= $e(__('install_section_mode')) ?>">
+                        <?php foreach (['fresh', 'import'] as $value): ?>
+                            <label class="install-driver">
+                                <input type="radio" name="install_mode" value="<?= $value ?>" class="install-driver__input" data-install-mode <?= $mode === $value ? 'checked' : '' ?>>
+                                <span class="install-driver__label"><?= $e(__('install_mode_' . $value)) ?></span>
+                                <small class="install-driver__hint"><?= $e(__('install_mode_' . $value . '_hint')) ?></small>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+
+                <section class="install-section" data-install-import<?= $mode === 'import' ? '' : ' hidden' ?>>
+                    <h2 class="install-section__title"><?= $e(__('install_section_import')) ?></h2>
+                    <div class="form-group">
+                        <label class="form-label form-label--required" for="import_path"><?= $e(__('install_import_path')) ?></label>
+                        <input type="text" id="import_path" name="import_path" class="form-control" value="<?= $e($field('import_path')) ?>" placeholder="<?= $e(__('install_import_path_placeholder')) ?>" required>
+                        <p class="form-hint"><?= $e(__('install_import_path_hint')) ?></p>
+                    </div>
+                    <p class="form-hint"><?= $e(__('install_import_mysql_hint')) ?></p>
+                </section>
+
+                <div class="install-fresh" data-install-fresh<?= $mode === 'fresh' ? '' : ' hidden' ?>>
                 <section class="install-section">
                     <h2 class="install-section__title"><?= $e(__('install_section_owner')) ?></h2>
                     <div class="install-row">
@@ -197,6 +236,7 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
                     </label>
                     <p class="form-hint install-demo-hint"><?= $e(__('install_demo_hint')) ?></p>
                 </section>
+                </div>
 
                 <?= Button::make(__('install_submit'))->primary()->full()->submit()->disabled(!$can_install)->render() ?>
             </form>
