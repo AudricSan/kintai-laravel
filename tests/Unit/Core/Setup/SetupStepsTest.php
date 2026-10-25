@@ -126,7 +126,7 @@ final class SetupStepsTest extends TestCase
     {
         $data = (new OperationsStep($this->settings))->data(new Request());
 
-        $this->assertStringContainsString('scripts/cron.php', $data['cron_command']);
+        $this->assertStringContainsString('php artisan schedule:run', $data['cron_command']);
         $this->assertStringContainsString('/cron/run/backup', $data['cron_url']);
         $this->assertStringContainsString('create-cron-token.php', $data['cron_token_command']);
     }
