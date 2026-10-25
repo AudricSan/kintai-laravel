@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Repositories;
 
+use kintai\Core\Database\RequestMemo;
 use kintai\Domain\Eloquent\Role as EloquentRole;
 use kintai\Domain\Eloquent\RolePermission;
 use kintai\Domain\Eloquent\RoleAssignment;
@@ -19,8 +20,11 @@ final class DatabaseRoleRepository implements RoleRepositoryInterface
 
     public function findById(int $id): ?array
     {
-        $role = EloquentRole::find($id);
-        return $role ? $role->toArray() : null;
+        // Lu à chaque contrôle de droit : une fois par requête (voir RequestMemo).
+        return RequestMemo::remember('roles.' . $id, static function () use ($id): ?array {
+            $role = EloquentRole::find($id);
+            return $role ? $role->toArray() : null;
+        });
     }
 
     public function findBySlug(string $slug): ?array
@@ -51,27 +55,30 @@ final class DatabaseRoleRepository implements RoleRepositoryInterface
         }
         RolePermission::where('role_id', $id)->delete();
         RoleAssignment::where('role_id', $id)->delete();
+        // Suppressions en masse, sans passer par les modèles : la mémoire de la requête est vidée ici.
+        RequestMemo::flush();
         return $role->delete() ? 1 : 0;
     }
 
     public function getPermissions(int $roleId): array
     {
-        return RolePermission::where('role_id', $roleId)
+        return RequestMemo::remember('role_permissions.' . $roleId, static fn(): array => RolePermission::where('role_id', $roleId)
             ->pluck('permission_key')
-            ->toArray();
+            ->toArray());
     }
 
     public function getGlobalPermissionKeys(int $roleId): array
     {
-        return RolePermission::where('role_id', $roleId)
+        return RequestMemo::remember('role_permissions.global.' . $roleId, static fn(): array => RolePermission::where('role_id', $roleId)
             ->where('scope', 'global')
             ->pluck('permission_key')
-            ->toArray();
+            ->toArray());
     }
 
     public function savePermissions(int $roleId, array $permissionKeys, array $globalScopeKeys = []): void
     {
         RolePermission::where('role_id', $roleId)->delete();
+        RequestMemo::flush();
         foreach ($permissionKeys as $key) {
             RolePermission::create([
                 'role_id'        => $roleId,

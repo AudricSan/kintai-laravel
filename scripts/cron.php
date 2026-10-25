@@ -12,6 +12,9 @@
  *   php scripts/cron.php <tâche>            Lance la tâche
  *   php scripts/cron.php <tâche> --cle=val  Lance la tâche avec des paramètres (les mêmes que ceux de l'URL),
  *                                           ex. php scripts/cron.php auto-validate --date=2026-10-13 --all=1
+ *   php scripts/cron.php <tâche> --if-available
+ *                                           Ne fait rien (code 0) si la tâche n'existe pas, p. ex. celle d'un bundle
+ *                                           désactivé : utilisé par le planificateur (routes/console.php)
  *
  * ─── Crontab (serveur avec accès SSH) ─────────────────────────────────────────
  *
@@ -55,7 +58,12 @@ $jobName = $argv[1] ?? '';
 
 // Paramètres --cle=valeur (ou --cle seul = 1), transmis à la tâche comme ceux de l'URL.
 $params = [];
+$ifAvailable = false;
 foreach (array_slice($argv, 2) as $arg) {
+    if ($arg === '--if-available') {
+        $ifAvailable = true;
+        continue;
+    }
     if (preg_match('/^--([a-z0-9_-]+)(?:=(.*))?$/i', $arg, $m) === 1) {
         $params[$m[1]] = $m[2] ?? '1';
     } else {
@@ -73,6 +81,10 @@ $app->container()->make(\kintai\Core\Services\TranslationService::class)->setLoc
 
 /** @var CronRunner $runner */
 $runner = $app->container()->make(CronRunner::class);
+
+if ($ifAvailable && $jobName !== '' && $runner->getJob($jobName) === null) {
+    exit(0);
+}
 
 if ($jobName === '' || $jobName === '--help' || $jobName === '-h' || $runner->getJob($jobName) === null) {
     if (!in_array($jobName, ['', '--help', '-h'], true)) {
