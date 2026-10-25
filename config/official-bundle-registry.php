@@ -11,5 +11,7 @@ declare(strict_types=1);
  */
 return [
     'name' => 'Registry officiel Kintai',
-    'url'  => 'https://raw.githubusercontent.com/AudricSan/KintaiBundle/main/registry.json',
+    // Bundles officiels de Kintai sous Laravel (vues Blade, contrat ^1.31). L'ancien registry
+    // (AudricSan/KintaiBundle) est remplacé par 2026_10_25_000000_point_official_registry_to_laravel_bundles.php.
+    'url'  => 'https://raw.githubusercontent.com/AudricSan/kintai-laravel-bundles/main/registry.json',
 ];

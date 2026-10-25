@@ -5,9 +5,10 @@ name: Tests
 # suite (tests/) — tests/bootstrap.php loads the real Kintai Core's autoloader
 # (its classes, helpers and Laravel, from ../../Kintai/vendor), so
 # controllers/migrations are exercised against the actual classes, not
-# reimplemented fakes. That means CI needs Kintai checked out alongside this
-# repo at the exact same relative path (../../Kintai from this repo's root),
-# with its Composer dependencies installed.
+# reimplemented fakes. That means CI needs Kintai (kintai-laravel) checked out
+# alongside this repo at the exact same relative path (../../kintai-laravel
+# from this repo's root), with its Composer dependencies installed.
+# Views are Blade templates: php -l skips them (they are not plain PHP).
 
 on:
   push:
@@ -28,14 +29,11 @@ jobs:
       - name: Checkout Kintai Core (sibling repo, for the real kintai\* classes)
         uses: actions/checkout@v4
         with:
-          repository: AudricSan/Kintai
-          # develop, not main (Kintai's actual default branch): this bundle's
-          # le contrat de bundle dependencies
-          # only exist on develop for now, not yet promoted through
-          # alpha/beta/main — bump this once a Kintai release ships them and
-          # kintai_core.min in bundle.json can name that version instead.
+          repository: AudricSan/kintai-laravel
+          # develop: the bundle contract this bundle requires may not be
+          # promoted through alpha/beta/main yet.
           ref: develop
-          path: Kintai
+          path: kintai-laravel
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -47,7 +45,7 @@ jobs:
         working-directory: KintaiBundleDev/kintai-bundle-{{slug}}
         run: |
           set -euo pipefail
-          find src Views database tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          find src Views database tests -name '*.php' ! -name '*.blade.php' -print0 | xargs -0 -n1 php -l
           php -l routes.php
 
       - name: Validate JSON manifests
@@ -59,7 +57,7 @@ jobs:
           done
 
       - name: Install Kintai Core dependencies
-        working-directory: Kintai
+        working-directory: kintai-laravel
         run: composer install --no-interaction --prefer-dist
 
       - name: Install dependencies

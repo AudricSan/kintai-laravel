@@ -168,6 +168,9 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
      up to Kintai's error pages. Laravel's own global middlewares (CORS, POST size, input trimming) stay off.
    - Kept on purpose: the PHP session and Kintai's CSRF token, so that nobody is logged out by the update and
      bundles keep reading `$_SESSION`.
+   - The official bundles live in [kintai-laravel-bundles](https://github.com/AudricSan/kintai-laravel-bundles)
+     (one folder per bundle, Blade views, bundle contract 1.31), which the official registry points to. Their tests
+     run against this repository.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
 every form, logged in as the Owner, a manager and an employee, with and without bundles, must give the same response and leave the same database.

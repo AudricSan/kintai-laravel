@@ -33,7 +33,7 @@ Kintaiは、Excelの勤怠表と大企業向けERPの間を埋めるツールで
 - **データは自分たちのもの。** マルチテナントのブラックボックスではなく、導入ごとに専用インスタンス・専用データベースを持ちます。デモ環境から自社サーバーへの移行も、データベースのダンプと `git clone` だけで完了します。ベンダーロックインはありません。
 - **本物のマルチ店舗運用を想定。** 店舗ごとのタイムゾーン、通貨、休憩ルール、人員不足のしきい値、機能の個別有効化に対応 — 単一店舗向けツールを無理やり拡張したものではありません。
 - **日本市場に最適化、世界でも利用可能。** CJK対応のPDF出力、「姓 名」の氏名順、円・ユーロ・ドル表示、日本語・英語・フランス語の翻訳を標準搭載 — 日本の小売業の商習慣を前提に設計しつつ、他国でも利用可能です。
-- **余計なフレームワークのコストがない。** 約600ファイルからなる独自のPHP 8.3コア（Laravel、Symfonyなし）。ORMとしてEloquentのみを利用。月額5ユーロ程度のVPSでも同様に動作します — 詳細は [アーキテクチャ (wiki)](https://github.com/AudricSan/Kintai/wiki/ja/%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3) をご覧ください。
+- **モジュール設計。** Laravel 13 のコアがシフト、ユーザー、店舗、認証を担当し、それ以外（日報、メッセージ、シフト交換、給与など）は個別に有効化できる独立したバンドルとして提供されます。不要な機能は無効にして、インスタンスを軽く保てます — 詳細は [アーキテクチャ (wiki)](https://github.com/AudricSan/Kintai/wiki/ja/%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3) をご覧ください。
 - **実際にテストされています。** コア、リポジトリ、コントローラーをカバーする589件のPHPUnitテストが、GitHub Actions上でプッシュのたびに実行されます。
 
 ---
@@ -109,22 +109,40 @@ php scripts/db-migrate.php --dry-run   # 未適用のマイグレーションを
 php scripts/db-migrate.php             # 適用する
 ```
 
-オーナー権限があれば `/admin/backup` からワンクリックでアップデートも可能です。最新のGitHub Releaseを取得する前に、データベースとコードを自動でバックアップし、進捗をリアルタイムに表示します。
+オーナー権限があれば `/admin/update` からリリースチャンネル（stable/beta/alpha）を選んでワンクリックでアップデートできます。該当する GitHub Release を取得する前に、データベースとコードを自動でバックアップし、進捗をリアルタイムに表示します。
+
+0.x（Laravel 以前）のインスタンスも同じ方法でアップデートできます：リリースのアーカイブに `src/` → `app/` の中継が含まれているため、アップデートのリクエストは新しいコードで完了し、サイトは通常どおりメンテナンスモードを抜けます。
+
+### Docker
+
+```bash
+git clone https://github.com/AudricSan/Kintai.git
+cd Kintai
+docker compose up -d
+```
+
+その後 `http://localhost:8080/install.php` を開き、上記と同じ手順でインストールします（SQLite はそのまま動作します。MySQL の場合はインストーラーにデータベースサーバーを指定してください）。イメージは Apache と PHP 8.3（Kintai が使う拡張機能をすべて含む）で動作し、`public/` だけを配信します。インスタンスのデータはすべて `kintai-storage` ボリュームに保存されます：SQLite データベース、バックアップ、インストール済みバンドル、アップロードファイル、そして `.env` と `config/database.local.php`（起動時にボリュームへリンク）。`docker-compose.yml` で設定した環境変数（`APP_URL`、`MAIL_*` など）は PHP に渡されます。
+
+アップデートするには、新しいイメージをビルドまたは取得してコンテナを作り直します（`docker compose build --pull && docker compose up -d`）。未適用のマイグレーションは起動時に実行されます。コンテナ内ではワンクリックアップデートを使わないでください（コンテナを作り直すとファイルが置き換えられます）。定期タスクはホストの crontab から実行します。例：`0 3 * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan kintai:cron backup`。またはトークン付きの cron URL を使います（`scripts/cron.php` を参照）。
 
 ---
 
 ## 技術スタック
 
-独自設計のPHP 8.3 MVC — LaravelもSymfonyも使用せず、ORMとして `illuminate/database`（Eloquent）のみを採用。SQLiteまたはMySQLを設定で切り替え可能。サーバーサイドレンダリングのPHPビュー、モジュール化されたvanilla CSS/JS、ビルドツール不要。
+**Laravel 13** 上の PHP 8.3（Eloquent、Artisan）。SQLiteまたはMySQLを設定で切り替え可能。サーバーサイドレンダリングのBladeビュー、モジュール化されたvanilla CSS/JS、ビルドツール不要。
 
 ```
-public/index.php        → フロントコントローラー
-src/Core/                → フレームワーク本体：DIコンテナ、ルーター、ミドルウェア、リポジトリ、サービス
-src/Bundles/*/           → 機能単位で有効化できる独立モジュール（DailyReport、Messaging）
-src/UI/                  → Web/APIコントローラー、PHPビュー
+public/index.php         → Laravel のフロントコントローラー
+bootstrap/app.php        → Laravel アプリケーション
+routes/web.php           → Laravel のルート；routes/kintai.php → Kintai のルート
+app/Core/                → Kintai のコア：コンテナ、ルーター、ミドルウェア、リポジトリ、サービス
+app/UI/                  → Web/APIコントローラー、Bladeビュー
+app/Contract/            → バンドル契約（バンドル向けの安定API）
 public/assets/           → モジュール化されたCSS/JS、ビルド不要
 database/migrations/php/ → 単一スキーマからSQLite・MySQL双方に対応するEloquentマイグレーション
 ```
+
+公式バンドルは [kintai-laravel-bundles](https://github.com/AudricSan/kintai-laravel-bundles)（バンドルごとに1フォルダ、Bladeビュー、バンドル契約 1.31）にあり、公式レジストリはこのリポジトリを指します。テストはこのリポジトリに対して実行されます。
 
 さらに詳しく：[アーキテクチャ (wiki)](https://github.com/AudricSan/Kintai/wiki/ja/%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3) · [データベース戦略 (wiki)](https://github.com/AudricSan/Kintai/wiki/ja/%E3%83%87%E3%83%BC%E3%82%BF%E3%83%99%E3%83%BC%E3%82%B9%E6%88%A6%E7%95%A5) · [マルチテナンシー (wiki)](https://github.com/AudricSan/Kintai/wiki/ja/%E3%83%9E%E3%83%AB%E3%83%81%E3%83%86%E3%83%8A%E3%83%B3%E3%82%B7%E3%83%BC)
 

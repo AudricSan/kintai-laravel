@@ -33,7 +33,7 @@ Kintai est le pont entre le tableur Excel et l'ERP d'entreprise : planning, poin
 - **Vous restez propriétaire de vos données.** Pas de boîte noire multi-tenant : chaque déploiement est une instance dédiée avec sa propre base de données. Passer de la démo hébergée à votre propre serveur, c'est juste un dump de base et un `git clone` — aucun verrouillage propriétaire.
 - **Pensé pour le multi-magasin réel.** Fuseaux horaires, devises, règles de pause et seuils de sous-effectif par magasin, fonctionnalités activables individuellement — pas un outil mono-site étiré pour l'occasion.
 - **Prêt pour le Japon, utilisable partout.** Export PDF compatible CJK, ordre des noms `姓 名`, affichage JPY/EUR/USD, traductions FR/EN/JA incluses — pensé pour les usages du retail japonais mais utilisable ailleurs.
-- **Aucune taxe framework.** Un cœur PHP 8.3 sur mesure d'environ 600 fichiers (pas de Laravel, pas de Symfony), avec Eloquent comme seul emprunt. Tourne aussi bien sur un VPS à 5 € — voir [Architecture (wiki)](https://github.com/AudricSan/Kintai/wiki/fr/Architecture).
+- **Modulaire par conception.** Un cœur Laravel 13 gère le planning, les utilisateurs, les magasins et l'authentification ; tout le reste (rapports journaliers, messagerie, échanges de shifts, paie) est livré en bundles autonomes, activables un par un. Désactivez ce dont vous n'avez pas besoin, gardez l'instance légère. Voir [Architecture (wiki)](https://github.com/AudricSan/Kintai/wiki/fr/Architecture).
 - **Réellement testé.** 589 tests PHPUnit couvrant le cœur, les repositories et les contrôleurs, exécutés à chaque push via GitHub Actions.
 
 ---
@@ -109,22 +109,40 @@ php scripts/db-migrate.php --dry-run   # aperçu des migrations en attente
 php scripts/db-migrate.php             # les applique
 ```
 
-Les propriétaires peuvent aussi déclencher une mise à jour en un clic depuis `/admin/backup`, qui récupère la dernière Release GitHub, sauvegarde la base et le code au préalable, et affiche une progression en direct.
+Les propriétaires peuvent aussi déclencher une mise à jour en un clic depuis `/admin/update`, en choisissant un canal (stable/beta/alpha) : elle récupère la Release GitHub correspondante, sauvegarde la base et le code au préalable, et affiche une progression en direct.
+
+Les instances encore en 0.x (avant Laravel) se mettent à jour de la même façon : l'archive de la release contient un relais `src/` → `app/`, si bien que la requête de mise à jour se termine sur le nouveau code et que le site sort du mode maintenance comme d'habitude.
+
+### Docker
+
+```bash
+git clone https://github.com/AudricSan/Kintai.git
+cd Kintai
+docker compose up -d
+```
+
+Ouvrez ensuite `http://localhost:8080/install.php` et installez comme ci-dessus (SQLite fonctionne tel quel ; pour MySQL, indiquez votre serveur de base de données à l'installateur). L'image fait tourner Apache et PHP 8.3 avec toutes les extensions dont Kintai a besoin, et ne sert que `public/`. Tout ce qui appartient à l'instance vit dans le volume `kintai-storage` : la base SQLite, les sauvegardes, les bundles installés, les fichiers envoyés, ainsi que `.env` et `config/database.local.php` (liés dans le volume au démarrage). Les variables d'environnement de `docker-compose.yml` (`APP_URL`, `MAIL_*`…) arrivent jusqu'à PHP.
+
+Pour mettre à jour, reconstruisez ou récupérez une image plus récente et recréez le conteneur (`docker compose build --pull && docker compose up -d`) : les migrations en attente s'appliquent au démarrage. N'utilisez pas la mise à jour en un clic dans un conteneur, dont les fichiers sont remplacés quand il est recréé. Les tâches planifiées passent par la crontab de l'hôte, par exemple `0 3 * * * docker compose -f /chemin/vers/docker-compose.yml exec -T -u www-data kintai php artisan kintai:cron backup`, ou par l'URL de cron avec un jeton (voir `scripts/cron.php`).
 
 ---
 
 ## Stack technique
 
-PHP 8.3 MVC sur mesure — pas de Laravel, pas de Symfony — avec `illuminate/database` (Eloquent) comme seule dépendance ORM. SQLite ou MySQL, interchangeables via la config. Vues PHP server-side, CSS/JS vanilla modulaire, aucun bundler.
+PHP 8.3 sur **Laravel 13** (Eloquent, Artisan). SQLite ou MySQL, interchangeables via la config. Vues Blade rendues côté serveur, CSS/JS vanilla modulaire, aucun bundler.
 
 ```
-public/index.php        → front controller
-src/Core/                → framework : conteneur DI, router, middlewares, repositories, services
-src/Bundles/*/           → modules autonomes activables (DailyReport, Messaging)
-src/UI/                  → contrôleurs Web + API, vues PHP
+public/index.php         → front controller de Laravel
+bootstrap/app.php        → application Laravel
+routes/web.php           → routes Laravel ; routes/kintai.php → routes de Kintai
+app/Core/                → cœur de Kintai : conteneur, routeur, middlewares, repositories, services
+app/UI/                  → contrôleurs Web + API, vues Blade
+app/Contract/            → le contrat de bundle (API stable pour les bundles)
 public/assets/           → CSS/JS modulaire, aucun build
 database/migrations/php/ → migrations Eloquent, SQLite + MySQL depuis un seul schéma
 ```
+
+Les bundles officiels vivent dans [kintai-laravel-bundles](https://github.com/AudricSan/kintai-laravel-bundles) (un dossier par bundle, vues Blade, contrat de bundle 1.31), vers lequel pointe le registry officiel. Leurs tests tournent contre ce dépôt.
 
 Pour aller plus loin : [Architecture (wiki)](https://github.com/AudricSan/Kintai/wiki/fr/Architecture) · [Stratégie base de données (wiki)](https://github.com/AudricSan/Kintai/wiki/fr/Strategie-base-de-donnees) · [Multi-Tenancy (wiki)](https://github.com/AudricSan/Kintai/wiki/fr/Multi-Tenancy)
 

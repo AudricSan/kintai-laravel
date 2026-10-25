@@ -1,6 +1,6 @@
 # Kintai — {{Label}}
 
-Bundle pour [Kintai](https://github.com/{{author}}/Kintai) (`{{slug}}`).
+Bundle pour [Kintai](https://github.com/AudricSan/kintai-laravel) (`{{slug}}`). Les vues (`Views/`) sont des gabarits Blade.
 
 ## Développement
 
@@ -9,7 +9,7 @@ composer install
 vendor/bin/phpunit
 ```
 
-Le dépôt doit être cloné à côté de Kintai : `KintaiBundleDev/kintai-bundle-{{slug}}` et `Kintai` (voir `tests/bootstrap.php`), avec ses dépendances installées (`composer install` dans `Kintai`).
+Le dépôt doit être cloné à côté de Kintai : `KintaiBundleDev/kintai-bundle-{{slug}}` et `kintai-laravel` (ou `KINTAI_CORE=/chemin/vers/kintai-laravel`, voir `tests/bootstrap.php`), avec ses dépendances installées (`composer install` dans `kintai-laravel`).
 Le test `tests/ContractTest.php` impose le contrat de bundle : schéma de `bundle.json`, classes et fonctions du Core
 autorisées, traductions (préfixe `{{prefix}}_`, parité fr/en/ja).
 

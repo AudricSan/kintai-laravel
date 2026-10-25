@@ -18,10 +18,13 @@ namespace kintai\Contract;
 final class Contract
 {
     /** Version du contrat fournie par ce Core. */
-    public const VERSION = '1.30.0';
+    public const VERSION = '1.31.0';
 
     /*
      * Historique :
+     * - 1.31.0 : vues Blade dans les bundles (Views/*.blade.php, prioritaires sur un .php du même nom) avec la directive
+     *   @includeInScope (« bundle::partiel » ou un partiel du Core, ex. « _partials._pdf-preview-toolbar »), qui insère
+     *   une vue dans la portée de la vue courante comme un include PHP.
      * - 1.30.0 : point d'extension Bundle::exportDatasets() avec kintai\Contract\Extension\ExportDataset (jeu de données
      *   exportable en JSON, CSV et Excel : permission par magasin, libre-service optionnel) et, côté fournisseur,
      *   kintai\Contract\Provider\ExportRowsProvider et ExportQuery (périmètre déjà autorisé par le Core).

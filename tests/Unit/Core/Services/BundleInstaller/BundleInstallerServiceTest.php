@@ -89,6 +89,7 @@ final class BundleInstallerServiceTest extends TestCase
         bool $withEntryClassFile = true,
         ?string $migrationFileContents = null,
         ?string $entryClassSource = null,
+        ?string $directory = null,
     ): string {
         $manifest = array_merge([
             'slug'        => 'fake-bundle',
@@ -104,6 +105,12 @@ final class BundleInstallerServiceTest extends TestCase
         $zip = new \ZipArchive();
         $zip->open($zipPath, \ZipArchive::CREATE);
         $root = 'AudricSan-kintai-bundle-fake-abc1234';
+        if ($directory !== null) {
+            // Zipball d'un dépôt de plusieurs bundles : un dossier par bundle sous la racine.
+            $zip->addFromString("{$root}/README.md", "# Bundles\n");
+            $zip->addFromString("{$root}/other-bundle/bundle.json", '{"slug": "other-bundle"}');
+            $root .= '/' . $directory;
+        }
         $zip->addFromString("{$root}/bundle.json", json_encode($manifest, JSON_PRETTY_PRINT));
         if ($withEntryClassFile) {
             $zip->addFromString(
@@ -495,5 +502,58 @@ PHP);
 
         $this->assertTrue($result->success);
         $this->assertTrue($result->activated);
+    }
+
+    public function testRepositoryUrlNamesARepositoryOrOneBundleFolderOfIt(): void
+    {
+        $this->assertSame(
+            ['owner' => 'AudricSan', 'repo' => 'kintai-bundle-fake', 'directory' => null],
+            BundleInstallerService::parseRepositoryUrl('https://github.com/AudricSan/kintai-bundle-fake/'),
+        );
+        $this->assertSame(
+            ['owner' => 'AudricSan', 'repo' => 'kintai-laravel-bundles', 'directory' => 'fake-bundle'],
+            BundleInstallerService::parseRepositoryUrl('https://github.com/AudricSan/kintai-laravel-bundles/tree/main/fake-bundle'),
+        );
+        foreach (['..', '.', 'a/b', ''] as $directory) {
+            $this->assertNull(BundleInstallerService::parseRepositoryUrl('https://github.com/AudricSan/kintai-laravel-bundles/tree/main/' . $directory), $directory);
+        }
+    }
+
+    public function testInstallFromABundlesRepositoryKeepsOnlyTheBundlesFolder(): void
+    {
+        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
+        $zipPath = $this->buildFixtureZip(directory: 'fake-bundle');
+        $service = $this->makeService(
+            fn(string $repo, string $version) => 'https://example.test/fake.zip',
+            function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
+        );
+
+        $this->installedBundles->expects($this->once())->method('upsert')->with('fake-bundle', '1.0.0', null);
+
+        $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-laravel-bundles/tree/main/fake-bundle', '1.0.0');
+
+        $this->assertTrue($result->success, (string) $result->error);
+        $this->assertFileExists($this->bundlesDir . '/fake-bundle/1.0.0/bundle.json');
+        $this->assertFileExists($this->bundlesDir . '/fake-bundle/1.0.0/src/FakeBundleBundle.php');
+        $this->assertFileDoesNotExist($this->bundlesDir . '/fake-bundle/1.0.0/README.md');
+        $this->assertDirectoryDoesNotExist($this->bundlesDir . '/fake-bundle/1.0.0/other-bundle');
+        $this->assertDirectoryDoesNotExist($this->bundlesDir . '/fake-bundle/.staging/1.0.0');
+    }
+
+    public function testInstallFromABundlesRepositoryFailsWhenTheFolderIsMissing(): void
+    {
+        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
+        $zipPath = $this->buildFixtureZip(directory: 'fake-bundle');
+        $service = $this->makeService(
+            fn(string $repo, string $version) => 'https://example.test/fake.zip',
+            function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
+        );
+
+        $this->installedBundles->expects($this->never())->method('upsert');
+
+        $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-laravel-bundles/tree/main/missing', '1.0.0');
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('missing/ introuvable', (string) $result->error);
     }
 }

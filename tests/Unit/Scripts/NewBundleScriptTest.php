@@ -37,7 +37,7 @@ final class NewBundleScriptTest extends TestCase
 
         $root = $this->dir . '/kintai-bundle-my-sample';
         foreach (['bundle.json', 'composer.json', 'phpunit.xml', 'routes.php', 'src/MySampleBundle.php', 'src/Controllers/Web/MySampleController.php',
-                  'Views/index.php', 'lang/fr.json', 'lang/en.json', 'lang/ja.json', 'tests/ContractTest.php', '.github/workflows/tests.yml', 'README.md', 'CHANGELOG.md'] as $file) {
+                  'Views/index.blade.php', 'lang/fr.json', 'lang/en.json', 'lang/ja.json', 'tests/ContractTest.php', '.github/workflows/tests.yml', 'README.md', 'CHANGELOG.md'] as $file) {
             $this->assertFileExists($root . '/' . $file);
         }
 
@@ -54,7 +54,7 @@ final class NewBundleScriptTest extends TestCase
         }
         $this->assertJson((string) file_get_contents($root . '/composer.json'));
 
-        foreach (['src/MySampleBundle.php', 'src/Controllers/Web/MySampleController.php', 'routes.php', 'Views/index.php', 'tests/ContractTest.php'] as $php) {
+        foreach (['src/MySampleBundle.php', 'src/Controllers/Web/MySampleController.php', 'routes.php', 'tests/ContractTest.php'] as $php) {
             exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($root . '/' . $php) . ' 2>&1', $out, $lint);
             $this->assertSame(0, $lint, $php);
         }

@@ -7,6 +7,7 @@ Kintaiの主要な変更履歴をここに記録しています。
 ## [Unreleased]
 
 ### 変更
+- **公式バンドルが Laravel 用リポジトリに移行しました**（[kintai-laravel-bundles](https://github.com/AudricSan/kintai-laravel-bundles)、バンドルごとに1フォルダ、バージョン 3.0.0、Blade ビュー）：公式レジストリはこのリポジトリを指すようになり、既存の公式エントリはマイグレーションで更新されます（手動で追加したレジストリは変更されません）。インストーラーは複数のバンドルをまとめたリポジトリに対応しました：その場合 `repository_url` はバンドルのフォルダ（`https://github.com/{owner}/{repo}/tree/{branch}/{folder}`）を指し、リリースのタグは `{folder}-vX.Y.Z`、アーカイブのうちそのフォルダだけがインストールされます。`scripts/new-bundle.php` は Blade ビューを生成し、`kintai-laravel` に対してテストします。
 - Kintai のミドルウェアが Laravel のミドルウェアスタックで実行されるようになりました（同じ順序、`php artisan route:list -v` で一覧表示）。誤って有効になっていた Laravel の既定のグローバルミドルウェア（`/api/*` の CORS ヘッダー、POST サイズ検査、入力のトリム）は無効にしました。
 - **Kintai は Laravel 13 で動作するようになりました**（機能の削除はありません）：Laravel のカーネル、ルーター（`php artisan route:list`）、サービスコンテナ、Blade ビュー、Artisan コマンド（`php artisan list kintai`）、認証ガードと Gate、バリデーター。バンドル、その契約（1.30.0）、ルートとビューはそのまま動作し、コアのパーシャルを旧パス `src/` で読み込むバンドルも同様です。0.x のインスタンスはいつもの「**更新**」ボタンで移行できます：リリースのアーカイブに `src/` → `app/` の中継が含まれ、更新リクエストが正常に完了します（メンテナンスモード解除、監査ログ記録）。
 
@@ -38,6 +39,7 @@ Kintaiの主要な変更履歴をここに記録しています。
 - 通知 — 削除されたシフトの通知は、従業員がプランニングでその日を表示した時点で既読になります。以前は存在しないシフト自体を指していたため「閲覧」されることがありませんでした。現在は日付を指します（`reference_type` `shift_day`、`shift_day_reference()`）。
 
 ### 追加
+- **バンドル契約 1.31.0**：バンドルの Blade ビュー（`Views/*.blade.php`、同名の `.php` ビューより優先）と `@includeInScope` ディレクティブ。バンドルのビュー（`slug::view`）やコアのパーシャル（`_partials._pdf-preview-toolbar` など）を、PHP の `include` と同じく現在のビューのスコープに挿入します。
 - **Docker イメージ**：`docker compose up -d` で Kintai が `http://localhost:8080` で動作します（Apache、PHP 8.3、Kintai が使うすべての拡張機能）。データベース、バックアップ、バンドル、アップロードファイル、`.env` と `config/database.local.php` は 1 つのボリュームに保存され、新しいイメージは起動時に未適用のマイグレーションを実行します。README の「Docker」を参照。
 - Wiki — 対象者別の新しい構成（はじめに、従業員ガイド、マネージャーガイド、管理、インストールと運用、開発者、プロジェクト）と、英語・フランス語・日本語の新規23ページ：クイックツアー、用語集、FAQ、プロフィール、ダッシュボード、通知、カレンダー（iCalとGoogleカレンダー。オーナー向けのGoogle Cloud設定を含む）、インストール可能なアプリ、バンドルと一覧、セットアップアシスタント、定期タスク、メールとプッシュの設定、トラブルシューティング、バンドルコントラクト、バンドル作成ガイド全文（`docs/` から移動）。サイドバーのグループはアプリが翻訳します（`docs_group_employee`、`_manager`、`_admin`、`_operations`、`_developers`、`_project`）。`php scripts/check-wiki.php <フォルダ>` は公開前にwikiを検証します：サイドバーの全ページが3言語に存在すること、言語行があること、内部リンクと画像が有効なこと。
 

@@ -21,6 +21,12 @@ use kintai\Core\Services\UpdateService;
  * seul dossier racine" après extraction), mêmes points d'injection par
  * closure pour les tests, mais installe un bundle tiers dans
  * storage/bundles/ au lieu de mettre à jour l'application elle-même.
+ *
+ * Un dépôt peut aussi regrouper plusieurs bundles, un par dossier (comme
+ * kintai-laravel-bundles) : son repository_url désigne alors le dossier du
+ * bundle (https://github.com/{owner}/{repo}/tree/{branche}/{dossier}), ses
+ * releases sont taguées `{dossier}-v{version}`, et seul ce dossier du zipball
+ * est installé.
  */
 final class BundleInstallerService
 {
@@ -189,7 +195,7 @@ final class BundleInstallerService
         }
 
         $progress(60, 'Vérification du bundle...');
-        $verified = $this->verifyAndExtract($zipPath, $slug, $version, $stagingContainer);
+        $verified = $this->verifyAndExtract($zipPath, $slug, $version, $stagingContainer, self::parseRepositoryUrl($repositoryUrl)['directory'] ?? null);
         @unlink($zipPath);
 
         if ($verified === null) {
@@ -225,29 +231,50 @@ final class BundleInstallerService
             return ($this->releaseFetcher)($repositoryUrl, $version);
         }
 
-        if (!preg_match('#^https://github\.com/([^/]+)/([^/]+?)/?$#', rtrim($repositoryUrl), $m)) {
+        $repository = self::parseRepositoryUrl($repositoryUrl);
+        if ($repository === null) {
             $this->lastError = "URL de dépôt non reconnue : {$repositoryUrl} (seuls les dépôts GitHub sont supportés pour l'instant).";
             return null;
         }
 
-        $apiUrl = "https://api.github.com/repos/{$m[1]}/{$m[2]}/releases/tags/v{$version}";
+        $tag    = ($repository['directory'] !== null ? $repository['directory'] . '-' : '') . "v{$version}";
+        $apiUrl = "https://api.github.com/repos/{$repository['owner']}/{$repository['repo']}/releases/tags/{$tag}";
         $body = $this->http->get($apiUrl, [
             'User-Agent: Kintai-BundleInstaller/1.0',
             'Accept: application/vnd.github+json',
         ], self::DOWNLOAD_TIMEOUT_SECONDS);
 
         if ($body === null) {
-            $this->lastError = "La release v{$version} de {$repositoryUrl} est introuvable ou inaccessible.";
+            $this->lastError = "La release {$tag} de {$repositoryUrl} est introuvable ou inaccessible.";
             return null;
         }
 
         $data = json_decode($body, true);
         if (!is_array($data) || !isset($data['zipball_url']) || !is_string($data['zipball_url'])) {
-            $this->lastError = "Réponse GitHub inattendue pour la release v{$version}.";
+            $this->lastError = "Réponse GitHub inattendue pour la release {$tag}.";
             return null;
         }
 
         return $data['zipball_url'];
+    }
+
+    /**
+     * Dépôt GitHub d'un bundle : https://github.com/{owner}/{repo} (un bundle par dépôt), ou
+     * https://github.com/{owner}/{repo}/tree/{branche}/{dossier} (un dossier d'un dépôt qui regroupe plusieurs bundles).
+     *
+     * @return array{owner: string, repo: string, directory: ?string}|null null si l'URL n'est pas reconnue
+     */
+    public static function parseRepositoryUrl(string $repositoryUrl): ?array
+    {
+        if (preg_match('#^https://github\.com/([^/]+)/([^/]+?)/?$#', rtrim($repositoryUrl), $m)) {
+            return ['owner' => $m[1], 'repo' => $m[2], 'directory' => null];
+        }
+        // Le dossier devient un chemin dans l'archive et un nom de tag : un seul segment, jamais « . » ni « .. ».
+        if (preg_match('#^https://github\.com/([^/]+)/([^/]+)/tree/[^/]+/([A-Za-z0-9_][A-Za-z0-9_.-]{0,99})/?$#', rtrim($repositoryUrl), $m)) {
+            return ['owner' => $m[1], 'repo' => $m[2], 'directory' => $m[3]];
+        }
+
+        return null;
     }
 
     private function download(string $url, string $destination): bool
@@ -267,12 +294,21 @@ final class BundleInstallerService
     /**
      * @return array{0: BundleManifest, 1: string}|null [manifeste, chemin du dossier extrait]
      */
-    private function verifyAndExtract(string $zipPath, string $expectedSlug, string $expectedVersion, string $stagingContainer): ?array
+    private function verifyAndExtract(string $zipPath, string $expectedSlug, string $expectedVersion, string $stagingContainer, ?string $directory = null): ?array
     {
         $extractedRoot = $this->extractZip($zipPath, $stagingContainer . '/extract');
         if ($extractedRoot === null) {
             $this->lastError = "L'archive ne contient pas exactement un dossier racine.";
             return null;
+        }
+
+        // Dépôt de plusieurs bundles : seul le dossier de celui-ci est installé (le reste part avec le dossier de préparation).
+        if ($directory !== null) {
+            $extractedRoot .= '/' . $directory;
+            if (!is_dir($extractedRoot) || is_link($extractedRoot)) {
+                $this->lastError = "Dossier {$directory}/ introuvable dans l'archive.";
+                return null;
+            }
         }
 
         $manifestPath = $extractedRoot . '/bundle.json';
