@@ -163,7 +163,11 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
      validation messages in the user's language, and its errors are answered like Kintai's own (422 JSON, or back to
      the form with the input kept). Every core view is a Blade template (`app/UI/View/**/*.blade.php`); a bundle's
      plain PHP views keep working, and the old `src/UI/View/_partials/*.php` paths still include the shared partials.
-   - Next: middlewares, session and CSRF on Laravel's own stack.
+   - Kintai's middlewares (global ones from `config/middleware.php`, then those of each route) run in Laravel's
+     middleware stack, in the same order (`php artisan route:list -v` lists them); an exception still crosses them
+     up to Kintai's error pages. Laravel's own global middlewares (CORS, POST size, input trimming) stay off.
+   - Kept on purpose: the PHP session and Kintai's CSRF token, so that nobody is logged out by the update and
+     bundles keep reading `$_SESSION`.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
 every form, logged in as the Owner, a manager and an employee, with and without bundles, must give the same response and leave the same database.

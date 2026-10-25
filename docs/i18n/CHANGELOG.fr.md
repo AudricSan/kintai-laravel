@@ -7,6 +7,7 @@ Toutes les évolutions notables de Kintai sont documentées ici.
 ## [Unreleased]
 
 ### Modifié
+- Les middlewares de Kintai passent désormais par la pile de Laravel (même ordre, listés par `php artisan route:list -v`). Les middlewares globaux par défaut de Laravel, actifs par erreur (en-têtes CORS sur `/api/*`, contrôle de taille des POST, nettoyage des saisies), sont désactivés.
 - **Kintai tourne désormais sur Laravel 13**, sans fonctionnalité retirée : noyau, routeur (`php artisan route:list`), conteneur de services, vues Blade, commandes Artisan (`php artisan list kintai`), garde d'authentification et Gate, et validateur de Laravel. Les bundles, leur contrat (1.30.0), leurs routes et leurs vues fonctionnent sans changement, y compris ceux qui incluent des partiels du cœur par leur ancien chemin `src/`. Une instance 0.x y passe par le bouton **Mettre à jour** habituel : l'archive de la release contient un relais `src/` → `app/` pour que la requête de mise à jour se termine proprement (mode maintenance levé, entrée du journal écrite).
 
 ### Corrigé

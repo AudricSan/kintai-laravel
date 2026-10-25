@@ -20,7 +20,10 @@ final class KintaiRoutes
     /** Clé de l'action Laravel qui porte la route Kintai. */
     public const ACTION_KEY = 'kintai.route';
 
-    public static function register(KintaiRouter $kintai, LaravelRouter $laravel): void
+    /**
+     * @param list<string> $globalMiddleware middlewares Kintai appliqués à toute requête (Application::globalMiddleware())
+     */
+    public static function register(KintaiRouter $kintai, LaravelRouter $laravel, array $globalMiddleware = []): void
     {
         $taken = [];
         foreach ($kintai->routes() as $route) {
@@ -43,10 +46,35 @@ final class KintaiRoutes
             if ($route->name !== null) {
                 $laravelRoute->name($route->name);
             }
+            $laravelRoute->middleware(self::middleware($globalMiddleware, $route->middleware));
         }
     }
 
     /** Chemin au format Laravel : {id:store} devient {id}, {path*} devient {path}. */
+    /**
+     * Pile de Laravel d'une route Kintai, dans l'ordre où Kintai l'exécutait : KintaiKernel (rendu des erreurs, journal
+     * d'accès), les middlewares globaux, ResolveKintaiRoute (route et paramètres), puis ceux de la route.
+     *
+     * @param list<string> $global
+     * @param list<string> $route
+     * @return list<string>
+     */
+    public static function middleware(array $global, array $route = [], bool $resolve = true): array
+    {
+        $stack = ['kintai.kernel'];
+        $position = 0;
+        foreach ($global as $class) {
+            $stack[] = 'kintai.mw:' . $class . ',' . $position++;
+        }
+        if ($resolve) {
+            $stack[] = 'kintai.resolve';
+        }
+        foreach ($route as $class) {
+            $stack[] = 'kintai.mw:' . $class . ',' . $position++;
+        }
+        return $stack;
+    }
+
     public static function uri(KintaiRoute $route): string
     {
         return (string) preg_replace('/\{(\w+)(?::\w+)?\*?\}/', '{$1}', $route->pattern);
