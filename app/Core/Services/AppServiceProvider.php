@@ -156,6 +156,11 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(NotificationService::class),
         ));
 
+        // Pointages lus à chaque appel (Attendances::current()) : les bundles actifs de la requête font foi.
+        $this->container->bind(TimesheetService::class, fn(Container $c) => new TimesheetService(
+            $c->make(ShiftRepositoryInterface::class),
+        ));
+
         $this->container->singleton(LicenseTokenVerifier::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/license_server.php';
             $config = file_exists($path) ? require $path : [];

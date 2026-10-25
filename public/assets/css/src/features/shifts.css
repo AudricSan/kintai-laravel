@@ -754,3 +754,29 @@
 .week-tools__label { flex: 1 1 12rem; }
 .week-tools__count { color: var(--color-text-muted); }
 .week-tools__name { flex: 1 1 14rem; max-width: 22rem; }
+
+/* ── Feuilles de temps (TimesheetService) : validation de la semaine et lignes à vérifier ─── */
+.timesheet-approval {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: .75rem 1rem;
+}
+.timesheet-approval__text {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+.timesheet-approval__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+.timesheet-approval--done { border-color: var(--color-success); background: var(--color-success-light); }
+.timesheet-approval--stale { border-color: var(--color-warning); background: var(--color-warning-light); }
+.timesheet-approval__warn { font-weight: 600; }
+.timesheet-row--anomaly td:first-child { box-shadow: inset 3px 0 0 var(--color-warning); }
+.timesheet-table .badge + .badge { margin-left: .25rem; }
+.timesheet-table .td-muted { display: block; font-size: .85em; }
