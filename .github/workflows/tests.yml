@@ -47,6 +47,38 @@ jobs:
       - name: Fresh install smoke test
         run: bash scripts/ci/install-smoke-test.sh
 
+  import-smoke:
+    # Importation de l'ancien Kintai (AudricSan/Kintai, installé avec ses données de démonstration) par l'installateur
+    # web en mode « importer » : migrations, comptes repris, base d'origine intacte, pages sans erreur.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: AudricSan/Kintai
+          ref: main
+          path: legacy
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-dev
+          composer install --no-interaction --prefer-dist --no-dev --working-dir=legacy
+
+      - name: Install the legacy instance
+        run: php legacy/scripts/provision.php --admin-email=owner@kintai.test --admin-password=Owner-Passw0rd! --app-url=http://127.0.0.1 --locale=fr --seed
+
+      - name: Import smoke test
+        run: bash scripts/ci/import-smoke-test.sh legacy owner@kintai.test 'Owner-Passw0rd!' alice.martin@kintai.local 'Demo1234!' chloe.dupont@kintai.local 'Demo1234!'
+
   provision-smoke:
     # Installation en ligne de commande (scripts/provision.php) sur une instance vierge : refus attendus, compte
     # Owner, URL publique, connexion. Job séparé : chaque test exige une instance sans installation.

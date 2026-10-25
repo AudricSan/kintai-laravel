@@ -134,4 +134,117 @@ final class WebInstallerTest extends TestCase
         $this->assertStringContainsString('Installation —', $log);
         $this->assertStringContainsString('install_error_not_writable', $log);
     }
+
+    // ─── Importation ──────────────────────────────────────────────────────────
+
+    /** Instance Kintai installée (ancienne disposition, code sous src/) : base SQLite, fichiers envoyés, .env. */
+    private function legacySource(): string
+    {
+        $source = $this->base . '_legacy';
+        mkdir($source . '/src/Core', 0777, true);
+        mkdir($source . '/config', 0777, true);
+        mkdir($source . '/storage/app', 0777, true);
+        mkdir($source . '/storage/uploads/avatars', 0777, true);
+        mkdir($source . '/storage/cache', 0777, true);
+        touch($source . '/src/Core/Application.php');
+        file_put_contents($source . '/config/database.local.php', "<?php return ['driver' => 'sqlite', 'connections' => []];\n");
+        file_put_contents($source . '/.env', "APP_NAME=Kintai\nAPP_LOCALE=ja\n");
+        file_put_contents($source . '/storage/uploads/avatars/1.png', 'png');
+        file_put_contents($source . '/storage/cache/storage-usage.json', '{}');
+        file_put_contents($source . '/storage/installed.lock', 'lock');
+        $pdo = new PDO('sqlite:' . $source . '/storage/app/database.sqlite');
+        $pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY)');
+        $pdo->exec('INSERT INTO users (id) VALUES (1)');
+        $pdo = null;
+        return $source;
+    }
+
+    private function import(string $source): InstallFailure
+    {
+        try {
+            (new WebInstaller($this->base))->import($source, 'en');
+        } catch (InstallFailure $e) {
+            return $e;
+        } finally {
+            if (is_dir($this->base . '_legacy')) {
+                $this->removeDir($this->base . '_legacy');
+            }
+        }
+        $this->fail('L\'importation aurait dû échouer');
+    }
+
+    public function testImportRefusesAMissingFolder(): void
+    {
+        $failure = $this->import($this->base . '/missing');
+
+        $this->assertSame('install_import_error_not_found', $failure->messageKey);
+    }
+
+    public function testImportRefusesItsOwnFolder(): void
+    {
+        $failure = $this->import($this->base);
+
+        $this->assertSame('install_import_error_same_folder', $failure->messageKey);
+    }
+
+    public function testImportRefusesAFolderWithoutAnInstalledKintai(): void
+    {
+        $source = $this->legacySource();
+        unlink($source . '/config/database.local.php');
+
+        $failure = $this->import($source);
+
+        $this->assertSame('install_import_error_not_kintai', $failure->messageKey);
+    }
+
+    public function testImportRefusesAnEmptySqliteDatabase(): void
+    {
+        $source = $this->legacySource();
+        file_put_contents($source . '/storage/app/database.sqlite', '');
+
+        $failure = $this->import($source);
+
+        $this->assertSame('install_import_error_database', $failure->messageKey);
+        $this->assertFileDoesNotExist($this->base . '/.env');
+    }
+
+    public function testImportNeverOverwritesADatabaseWithTables(): void
+    {
+        $sqlite = $this->base . '/' . WebInstaller::SQLITE_PATH;
+        $pdo = new PDO('sqlite:' . $sqlite);
+        $pdo->exec('CREATE TABLE stores (id INTEGER PRIMARY KEY)');
+        $pdo = null;
+
+        $failure = $this->import($this->legacySource());
+
+        $this->assertSame('install_error_database_not_empty', $failure->messageKey);
+        $pdo = new PDO('sqlite:' . $sqlite);
+        $this->assertSame('stores', $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table'")->fetchColumn());
+    }
+
+    public function testImportFailureRemovesEverythingItCopiedAndLeavesTheSourceUntouched(): void
+    {
+        $source = $this->legacySource();
+        $sourceDb = (string) file_get_contents($source . '/storage/app/database.sqlite');
+        file_put_contents($this->base . '/.env', "APP_LOCALE=fr\n");
+        // config/ remplacé par un fichier : l'écriture de config/database.local.php échoue, après la copie de la base,
+        // de storage/ et du .env.
+        rmdir($this->base . '/config');
+        file_put_contents($this->base . '/config', '');
+
+        try {
+            (new WebInstaller($this->base))->import($source, 'en');
+            $this->fail('L\'importation aurait dû échouer');
+        } catch (InstallFailure $e) {
+            $this->assertSame('install_error_not_writable', $e->messageKey);
+        }
+
+        $this->assertFileDoesNotExist($this->base . '/' . WebInstaller::SQLITE_PATH);
+        $this->assertDirectoryDoesNotExist($this->base . '/storage/uploads');
+        $this->assertFileDoesNotExist($this->base . '/storage/installed.lock');
+        $this->assertSame("APP_LOCALE=fr\n", file_get_contents($this->base . '/.env'));
+        $this->assertSame($sourceDb, file_get_contents($source . '/storage/app/database.sqlite'));
+        $this->assertFileExists($source . '/storage/uploads/avatars/1.png');
+        $this->removeDir($source);
+    }
 }
