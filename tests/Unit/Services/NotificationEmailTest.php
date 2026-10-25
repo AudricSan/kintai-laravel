@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Services;
 
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use kintai\Core\Jobs\DeliverNotification;
 use kintai\Core\BundleManager;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Mail\MailerService;
@@ -97,7 +99,7 @@ final class NotificationEmailTest extends TestCase
         $this->tokens   = new UnsubscribeTokens($this->settings);
     }
 
-    private function service(bool $configured = true, bool $withMailer = true): NotificationService
+    private function service(bool $configured = true, bool $withMailer = true, ?Dispatcher $bus = null): NotificationService
     {
         $transport = new class($this) implements MailTransportInterface {
             public function __construct(private NotificationEmailTest $test) {}
@@ -133,6 +135,7 @@ final class NotificationEmailTest extends TestCase
             $this->prefs,
             null,
             $withMailer ? $mailer : null,
+            $bus,
         );
     }
 
@@ -160,6 +163,59 @@ final class NotificationEmailTest extends TestCase
         $this->assertStringContainsString('href="' . htmlspecialchars($url, ENT_QUOTES) . '"', $mail['html']);
         $this->assertSame('<' . $url . '>', $mail['headers']['List-Unsubscribe']);
         $this->assertSame('List-Unsubscribe=One-Click', $mail['headers']['List-Unsubscribe-Post']);
+    }
+
+    public function testWithAQueueTheEmailLeavesWithTheJobNotDuringTheRequest(): void
+    {
+        $jobs = [];
+        $bus  = $this->createStub(Dispatcher::class);
+        $bus->method('dispatch')->willReturnCallback(static function (object $job) use (&$jobs): mixed {
+            $jobs[] = $job;
+            return null;
+        });
+        $service = $this->service(bus: $bus);
+
+        $service->notify(7, 'shift_assigned', 'notif_shift_assigned_body', [], 12, '/employee/shifts/day');
+
+        // La cloche est écrite tout de suite ; l'e-mail attend la tâche.
+        $this->assertSame(1, Notification::count());
+        $this->assertSame([], $this->sent);
+        $this->assertCount(1, $jobs);
+        $job = $jobs[0];
+        $this->assertInstanceOf(DeliverNotification::class, $job);
+        $this->assertSame(7, $job->userId);
+        $this->assertSame(Notification::first()->id, $job->notificationId);
+        $this->assertSame('/employee/shifts/day', $job->link);
+        $this->assertTrue($job->email);
+
+        // La tâche, une fois traitée (après la réponse, ou par queue:work), envoie le même e-mail qu'avant la file.
+        $service->deliver($job);
+        $this->assertCount(1, $this->sent);
+        $this->assertSame('[Kintai] Nouveau shift assigné', $this->sent[0]['subject']);
+
+        // Une tâche ne voyage qu'avec des valeurs simples : elle passe par une file « database » sans perte.
+        $this->assertEquals($job, unserialize(serialize($job)));
+    }
+
+    public function testAQueueThatFailsToAcceptTheJobDoesNotLoseTheEmail(): void
+    {
+        $bus = $this->createStub(Dispatcher::class);
+        $bus->method('dispatch')->willThrowException(new \RuntimeException('table jobs absente'));
+
+        $this->service(bus: $bus)->notify(7, 'shift_assigned', 'notif_shift_assigned_body');
+
+        $this->assertCount(1, $this->sent);
+    }
+
+    public function testNothingIsQueuedWhenTheUserTurnedEveryExternalChannelOff(): void
+    {
+        $this->prefs->saveChanges(7, ['shift_assigned' => ['push' => false, 'email' => false]]);
+        $bus = $this->createMock(Dispatcher::class);
+        $bus->expects($this->never())->method('dispatch');
+
+        $this->service(bus: $bus)->notify(7, 'shift_assigned', 'notif_shift_assigned_body');
+
+        $this->assertSame(1, Notification::count());
     }
 
     public function testTheEmailIsWrittenInTheRecipientsLanguage(): void
