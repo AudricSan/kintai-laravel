@@ -48,8 +48,9 @@ jobs:
         run: bash scripts/ci/install-smoke-test.sh
 
   import-smoke:
-    # Importation de l'ancien Kintai (AudricSan/Kintai, installé avec ses données de démonstration) par l'installateur
-    # web en mode « importer » : migrations, comptes repris, base d'origine intacte, pages sans erreur.
+    # Importation de l'ancien Kintai (AudricSan/Kintai, canal alpha : celui des dernières releases 0.x, installé avec ses
+    # données de démonstration) par l'installateur web en mode « importer » : migrations, comptes repris, base d'origine
+    # intacte, pages sans erreur. main n'a pas de release 0.x récente et son provision.php ne crée pas la base SQLite.
     runs-on: ubuntu-latest
 
     steps:
@@ -58,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: AudricSan/Kintai
-          ref: main
+          ref: alpha
           path: legacy
 
       - name: Setup PHP
