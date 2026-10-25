@@ -693,3 +693,35 @@
     z-index: 1;
 }
 
+
+/* ── Publication du planning (SchedulePublication) ───────────────────────────
+   Bandeau au-dessus de la timeline de gestion, et shifts en brouillon (pas encore visibles des employés). */
+.schedule-publication {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-4);
+    padding: .75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+.schedule-publication--draft {
+    border-style: dashed;
+    border-color: var(--color-warning);
+    background: var(--color-warning-light);
+}
+.schedule-publication__status { margin: 0; }
+.schedule-publication__hint {
+    display: block;
+    font-size: .85em;
+    color: var(--color-text-muted);
+}
+.schedule-publication__form { margin: 0; }
+
+.tl-bar--draft {
+    border-style: dashed !important;
+    opacity: .7;
+}

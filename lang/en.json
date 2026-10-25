@@ -1902,5 +1902,17 @@
     "user_picker_remove": "Remove",
     "user_picker_select_all": "Select all",
     "user_picker_select_none": "None",
-    "user_picker_count": ":count of :total selected"
+    "user_picker_count": ":count of :total selected",
+    "schedule_publication_enabled": "Publish the schedule before employees can see it",
+    "schedule_publication_hint": "Shifts created after the last publication stay a draft: employees do not see them and get nothing until you publish. When you turn this on, everything already scheduled stays visible.",
+    "schedule_nothing_published": "Nothing has been published for this store yet.",
+    "schedule_published_until": "Schedule published up to :date.",
+    "schedule_draft_hint": "Later shifts are drafts (dashed border): your employees cannot see them yet.",
+    "schedule_publish_until": "Publish up to :date",
+    "schedule_publish_confirm": "Publish the schedule up to :date? Every employee concerned will get a notification.",
+    "schedule_published_flash": "Schedule published. :count employee(s) notified.",
+    "schedule_publish_invalid": "Could not publish: schedule publication is not turned on for this store, or the date is invalid.",
+    "notif_schedule_published": "Schedule published",
+    "notif_schedule_published_body": "Your schedule is published up to :until: :count shift(s) at :store.",
+    "audit_schedule_published": "Schedule published"
 }

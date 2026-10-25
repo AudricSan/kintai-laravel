@@ -111,7 +111,7 @@ final class NotificationTypeRegistryTest extends TestCase
         ])->byCategory();
 
         $this->assertSame(['planning', 'requests', 'messages'], array_keys($grouped));
-        $this->assertCount(4, $grouped['planning']);
+        $this->assertCount(5, $grouped['planning']);
     }
 
     /** Les alertes système des Owners existent dans le registre (icône, push) mais ne sont pas une préférence à cocher. */

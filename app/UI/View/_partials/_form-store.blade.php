@@ -201,6 +201,14 @@ $dedResidentTax = $ded['resident_tax_monthly'] ?? 0;
     <div class="card card--c1 card--r3 card--col-3">
         <div class="card-header">{!! __('shift_settings') !!}</div>
         <div class="card-body form-stack">
+            <div class="form-group form-group--inline">
+                <label class="form-check">
+                    <input type="hidden" name="schedule_publication" value="0">
+                    <input type="checkbox" name="schedule_publication" value="1" {!! !empty($store['schedule_publication']) ? 'checked' : '' !!}>
+                    <span>{!! __('schedule_publication_enabled') !!}</span>
+                </label>
+                <span class="form-hint">{!! __('schedule_publication_hint') !!}</span>
+            </div>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">{!! __('week_start_day') !!}</label>

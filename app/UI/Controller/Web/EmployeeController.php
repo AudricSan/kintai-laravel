@@ -24,6 +24,7 @@ use kintai\Core\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\DashboardLayoutResolver;
 use kintai\Core\Services\NotificationService;
+use kintai\Core\Services\SchedulePublication;
 use kintai\UI\Controller\Web\HasBaseUrl;
 use kintai\UI\Controller\Web\HasStoreFeatureCheck;
 use kintai\UI\ViewRenderer;
@@ -67,7 +68,8 @@ final class EmployeeController
         $userId = (int) ($user['id'] ?? 0);
         $today  = date('Y-m-d');
 
-        [$shiftsToday, $upcomingShifts] = self::personalShifts($this->shifts->findByUser($userId), $today);
+        // Brouillons écartés : l'employé ne voit que le planning publié (voir SchedulePublication).
+        [$shiftsToday, $upcomingShifts] = self::personalShifts(SchedulePublication::staffView($this->shifts->findByUser($userId)), $today);
 
         $storesMap   = [];
         foreach ($this->stores->findAllWithDeleted() as $s) {
@@ -196,7 +198,7 @@ final class EmployeeController
         $allUserIds   = array_merge([$userId], array_keys($colleagueIds));
         $shiftsByDate = [];
         foreach ($allUserIds as $uid) {
-            foreach ($this->shifts->findByUser($uid) as $s) {
+            foreach (SchedulePublication::staffView($this->shifts->findByUser($uid)) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d >= $monthStart && $d <= $monthEnd) {
                     $shiftsByDate[$d][] = $s;
@@ -296,7 +298,7 @@ final class EmployeeController
         $allUserIds   = array_merge([$userId], array_keys($colleagueIds));
         $shiftsByDate = [];
         foreach ($allUserIds as $uid) {
-            foreach ($this->shifts->findByUser($uid) as $s) {
+            foreach (SchedulePublication::staffView($this->shifts->findByUser($uid)) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d >= $weekStart && $d <= $weekEnd) {
                     $shiftsByDate[$d][] = $s;
@@ -432,7 +434,9 @@ final class EmployeeController
         // Shifts de la plage (store affiché uniquement), groupés par date puis user
         $shiftsByDateUser = []; // date → uid → shift[]
         if ($filterStoreId > 0) {
-            foreach ($this->shifts->findByStore($filterStoreId) as $s) {
+            // Brouillons visibles seulement de qui gère le planning du magasin.
+            $storeShifts = $this->shifts->findByStore($filterStoreId);
+            foreach ($canManage ? $storeShifts : SchedulePublication::staffView($storeShifts) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d < $rangeStart || $d > $rangeEnd) continue;
                 $uid = (int) ($s['user_id'] ?? 0);

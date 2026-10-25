@@ -70,6 +70,8 @@ final class NotificationTypeRegistry
             'shift_updated'  => new NotificationType('shift_updated', '🔄', 'planning', true, false, 'shift'),
             // Le shift n'existe plus : la notification désigne le JOUR (voir shift_day_reference()), vu dans le planning.
             'shift_deleted'  => new NotificationType('shift_deleted', '🗑', 'planning', true, true, 'shift_day'),
+            // Planning publié (SchedulePublication) : une notification par employé qui résume ses shifts devenus visibles.
+            'schedule_published' => new NotificationType('schedule_published', '📢', 'planning', true, true),
             // Liaison Google Calendar tombée (accès retiré, jeton expiré) : seul moyen de prévenir l'employé que son agenda ne suit plus.
             'calendar_sync_error' => new NotificationType('calendar_sync_error', '📆', 'planning', true, false),
             // Notifications système, Owners uniquement (SystemNotificationService) : push par défaut, pas d'e-mail.

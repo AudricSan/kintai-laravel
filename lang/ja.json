@@ -1902,5 +1902,17 @@
     "user_picker_remove": "削除",
     "user_picker_select_all": "すべて選択",
     "user_picker_select_none": "選択解除",
-    "user_picker_count": ":total人中:count人を選択"
+    "user_picker_count": ":total人中:count人を選択",
+    "schedule_publication_enabled": "シフトを公開してから従業員に表示する",
+    "schedule_publication_hint": "最後の公開日より後に作成したシフトは下書きになり、公開するまで従業員には表示されず、通知も送られません。有効にした時点で作成済みのシフトはすべて表示されたままです。",
+    "schedule_nothing_published": "この店舗ではまだ何も公開されていません。",
+    "schedule_published_until": ":dateまでのシフトを公開済みです。",
+    "schedule_draft_hint": "それ以降のシフトは下書きです（点線の枠）。従業員にはまだ表示されません。",
+    "schedule_publish_until": ":dateまで公開",
+    "schedule_publish_confirm": ":dateまでのシフトを公開しますか？対象の従業員全員に通知が届きます。",
+    "schedule_published_flash": "シフトを公開しました。:count人に通知しました。",
+    "schedule_publish_invalid": "公開できませんでした。この店舗でシフト公開が有効になっていないか、日付が正しくありません。",
+    "notif_schedule_published": "シフト公開",
+    "notif_schedule_published_body": ":untilまでのシフトが公開されました：:storeで:count件。",
+    "audit_schedule_published": "シフト公開"
 }

@@ -17,6 +17,7 @@ use kintai\Core\Request;
 use kintai\Core\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
+use kintai\Core\Services\SchedulePublication;
 use kintai\UI\Controller\Web\HasBaseUrl;
 
 final class IcalController
@@ -63,10 +64,11 @@ final class IcalController
         }
 
         $cutoff = date('Y-m-d H:i:s', strtotime('-30 days'));
-        $shifts = array_values(array_filter(
+        // Brouillons écartés (publication du planning) : ils arrivent dans l'agenda une fois publiés.
+        $shifts = SchedulePublication::staffView(array_values(array_filter(
             $this->shifts->findByUser($userId),
             fn($s) => (int) ($s['store_id'] ?? 0) === $storeId
-        ));
+        )));
         // Shifts supprimés récemment (30 jours) : émis comme VEVENT CANCELLED
         // par IcalService::build() pour que l'agenda synchronisé de l'employé
         // reflète explicitement la suppression au lieu de la manquer silencieusement.

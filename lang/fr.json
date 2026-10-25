@@ -1902,5 +1902,17 @@
     "user_picker_remove": "Retirer",
     "user_picker_select_all": "Tout sélectionner",
     "user_picker_select_none": "Aucun",
-    "user_picker_count": ":count sur :total sélectionné(s)"
+    "user_picker_count": ":count sur :total sélectionné(s)",
+    "schedule_publication_enabled": "Publier le planning avant de le montrer aux employés",
+    "schedule_publication_hint": "Les shifts créés après la dernière publication restent un brouillon : les employés ne les voient pas et ne reçoivent rien tant que vous n'avez pas publié. À l'activation, tout ce qui est déjà planifié reste visible.",
+    "schedule_nothing_published": "Rien n'est encore publié pour ce magasin.",
+    "schedule_published_until": "Planning publié jusqu'au :date.",
+    "schedule_draft_hint": "Les shifts suivants sont en brouillon (bordure en pointillés) : vos employés ne les voient pas encore.",
+    "schedule_publish_until": "Publier jusqu'au :date",
+    "schedule_publish_confirm": "Publier le planning jusqu'au :date ? Chaque employé concerné recevra une notification.",
+    "schedule_published_flash": "Planning publié. :count employé(s) prévenu(s).",
+    "schedule_publish_invalid": "Impossible de publier : la publication du planning n'est pas activée pour ce magasin, ou la date est invalide.",
+    "notif_schedule_published": "Planning publié",
+    "notif_schedule_published_body": "Votre planning est publié jusqu'au :until : :count shift(s) à :store.",
+    "audit_schedule_published": "Planning publié"
 }

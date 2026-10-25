@@ -293,6 +293,7 @@ $router->group('/admin', function ($r) {
     $r->get('/shifts/wage-preview', [AdminShiftController::class, 'wagePreview'],          name: 'admin.shifts.wage_preview', permission: 'shifts.view');
     $r->post('/shifts/create',      [AdminShiftController::class, 'storeShift'],           name: 'admin.shifts.store', permission: 'shifts.create');
     $r->post('/shifts/quick',       [AdminShiftController::class, 'quickShift'],           name: 'admin.shifts.quick', permission: 'shifts.create');
+    $r->post('/shifts/publish',     [AdminShiftController::class, 'publishSchedule'],      name: 'admin.shifts.publish', permission: 'shifts.update');
     $r->post('/shifts/bulk-delete', [AdminShiftController::class, 'bulkDeleteShifts'],     name: 'admin.shifts.bulk_delete', permission: 'shifts.delete');
     $r->get('/shifts/{id}/edit',    [AdminShiftController::class, 'editShift'],            name: 'admin.shifts.edit', permission: 'shifts.view');
     $r->post('/shifts/{id}/edit',   [AdminShiftController::class, 'updateShift'],          name: 'admin.shifts.update', permission: 'shifts.update');

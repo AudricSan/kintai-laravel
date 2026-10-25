@@ -42,6 +42,10 @@ $_minShiftMin   = (int) ($store_settings['min_shift_minutes']    ?? 0);
 $_maxShiftMin   = (int) ($store_settings['max_shift_minutes']    ?? 0);
 $_lowStaffStart = (int) ($store_settings['low_staff_hour_start'] ?? -1);
 $_lowStaffEnd   = (int) ($store_settings['low_staff_hour_end']   ?? -1);
+// Publication du planning (gestion seulement) : null = désactivée ; until = dernier jour visible des employés.
+$_publication   = $publication ?? null;
+$_isDraftDay    = static fn(string $date): bool => $_publication !== null
+    && ($_publication['until'] === null || $date > $_publication['until']);
 
 // ── Helpers timeline ─────────────────────────────────────────────────────────
 $T_START = 6 * 60;   // 06:00
@@ -79,7 +83,9 @@ $periodLabel = $period_mode === 'week'
 
 {!! Flash::fromQuery('success', [
     'created' => __('shift_created'), 'updated' => __('shift_updated'), 'deleted' => __('shift_deleted'),
+    'published' => __('schedule_published_flash', ['count' => (string) (int) ($_GET['notified'] ?? 0)]),
 ])->render() !!}
+{!! Flash::fromQuery('error', ['publish_invalid' => __('schedule_publish_invalid')])->render() !!}
 <div class="page-header">
     @if ($_canManage)
         <h2 class="page-header__title">{!! $page_heading ?? __('planning') !!} <span class="tl-subtitle">— {!! __('timeline') !!}</span></h2>
@@ -154,6 +160,35 @@ ob_start();
 
     {!! Button::make(__('today'))->ghost()->sm()->link('?store_id=' . $filter_store_id . '&start=' . $today . '&view=' . $period_mode)->render() !!}</div>
 {!! Card::make()->body(ob_get_clean())->render() !!}
+@if ($_publication !== null)
+    @php
+    // Brouillon dans la période affichée : proposer de publier jusqu'à son dernier jour.
+    $_rangeEnd = $lastDay->format('Y-m-d');
+    $_until    = $_publication['until'];
+    @endphp
+    <div class="schedule-publication{!! $_isDraftDay($_rangeEnd) ? ' schedule-publication--draft' : '' !!}">
+        <p class="schedule-publication__status">
+            @if ($_until === null)
+                📝 {!! __('schedule_nothing_published') !!}
+            @else
+                ✅ {!! __('schedule_published_until', ['date' => '<strong>' . e(date_label($_until)) . '</strong>']) !!}
+            @endif
+            @if ($_isDraftDay($_rangeEnd))
+                <span class="schedule-publication__hint">{!! __('schedule_draft_hint') !!}</span>
+            @endif
+        </p>
+        @if ($_isDraftDay($_rangeEnd))
+            <form method="POST" action="{!! route_url('admin.shifts.publish') !!}" class="schedule-publication__form"
+                  data-confirm="{{ __('schedule_publish_confirm', ['date' => date_label($_rangeEnd)]) }}">
+                {!! csrf_field() !!}
+                <input type="hidden" name="store_id" value="{!! (int) $filter_store_id !!}">
+                <input type="hidden" name="until" value="{{ $_rangeEnd }}">
+                <input type="hidden" name="redirect_to" value="{{ route_url('admin.shifts.timeline') . '?store_id=' . (int) $filter_store_id . '&start=' . $days[0]->format('Y-m-d') . '&view=' . $period_mode }}">
+                {!! Button::make('📢 ' . __('schedule_publish_until', ['date' => date_label($_rangeEnd)]))->primary()->sm()->submit()->render() !!}
+            </form>
+        @endif
+    </div>
+@endif
 @if (empty($all_user_ids))
     {!! Card::make()->body('<div class="empty-state">' . __('no_store_found') . '</div>')->render() !!}@else
 
@@ -383,7 +418,7 @@ ob_start();
                                          data-rate-detail="{!! $shRateDetail !!}"
                                          data-width-pct="{!! number_format($width, 5) !!}"
                                          @if ($_canManage)data-draggable="1"@endif
-                                         class="tl-bar{!! (int) ($highlight_id ?? 0) > 0 && (int) ($sh['id'] ?? 0) === (int) $highlight_id ? ' tl-bar--highlight' : '' !!} {!! style_class(['left' => number_format($left, 5) . '%', 'width' => number_format($width, 5) . '%', 'background' => $bg, 'border' => $border, 'color' => $textColor, 'text-shadow' => $shadow]) !!}">
+                                         class="tl-bar{!! (int) ($highlight_id ?? 0) > 0 && (int) ($sh['id'] ?? 0) === (int) $highlight_id ? ' tl-bar--highlight' : '' !!}{!! $_isDraftDay($dateStr) ? ' tl-bar--draft' : '' !!} {!! style_class(['left' => number_format($left, 5) . '%', 'width' => number_format($width, 5) . '%', 'background' => $bg, 'border' => $border, 'color' => $textColor, 'text-shadow' => $shadow]) !!}">
                                         @if ($width > 4)
                                             <span class="tl-bar-label tl-bar-label--main">
                                                 {!! TimelineHelpers::atFmt($sh['_sm']) !!}–{!! TimelineHelpers::atFmt($sh['_em']) !!}                                            </span>

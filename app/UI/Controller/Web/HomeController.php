@@ -20,6 +20,7 @@ use kintai\Core\Request;
 use kintai\Core\Response;
 use kintai\Core\Services\DashboardAlertService;
 use kintai\Core\Services\DashboardLayoutResolver;
+use kintai\Core\Services\SchedulePublication;
 use kintai\Core\Services\ShiftWageCalculator;
 use kintai\Core\Services\StoreStatsServiceInterface;
 use kintai\UI\ViewRenderer;
@@ -325,7 +326,7 @@ final class HomeController
             $result['stores_map'][(int) $s['id']] = $s['name'] ?? ('#' . $s['id']);
         }
         if (isset($enabled['shifts_today']) || isset($enabled['upcoming'])) {
-            [$result['shifts_today'], $result['upcoming']] = EmployeeController::personalShifts($this->shifts->findByUser($userId), $today);
+            [$result['shifts_today'], $result['upcoming']] = EmployeeController::personalShifts(SchedulePublication::staffView($this->shifts->findByUser($userId)), $today);
         }
 
         // Widgets employé des bundles : même contexte que sur le tableau de bord employé (ses propres magasins).

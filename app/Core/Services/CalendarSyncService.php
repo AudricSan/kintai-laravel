@@ -106,7 +106,7 @@ final class CalendarSyncService
         $present      = [];
 
         foreach ($this->shifts->findByUser($userId) as $shift) {
-            if (empty($shift['deleted_at']) && $this->inWindow((string) ($shift['shift_date'] ?? ''))) {
+            if (empty($shift['deleted_at']) && $this->inWindow((string) ($shift['shift_date'] ?? '')) && $this->isPublished($shift)) {
                 $this->repo->enqueue($connectionId, 'shift', (int) $shift['id']);
                 $present['shift:' . (int) $shift['id']] = true;
                 $queued++;
@@ -370,7 +370,8 @@ final class CalendarSyncService
         if ($sourceType === 'shift') {
             $shift = $this->shifts->findById($sourceId);
             if ($shift === null || !empty($shift['deleted_at']) || (int) ($shift['user_id'] ?? 0) !== $userId
-                || !$this->inWindow((string) ($shift['shift_date'] ?? ''))) {
+                || !$this->inWindow((string) ($shift['shift_date'] ?? '')) || !$this->isPublished($shift)) {
+                // Brouillon (publication du planning) compris : l'événement part à la publication.
                 return null;
             }
             $store = $this->stores->findById((int) $shift['store_id']) ?? [];
@@ -387,6 +388,12 @@ final class CalendarSyncService
             }
         }
         return null;
+    }
+
+    /** @param array<string, mixed> $shift */
+    private function isPublished(array $shift): bool
+    {
+        return SchedulePublication::current()?->isPublished($shift) ?? true;
     }
 
     /** @return list<array<string, mixed>> congés approuvés dont la période touche la fenêtre */

@@ -98,6 +98,7 @@ $actionLabels = [
     'shift.deleted'                      => __('audit_shift_deleted'),
     'shift.bulk_deleted'                 => __('audit_shift_bulk_deleted'),
     'shift.moved'                        => __('audit_shift_moved'),
+    'schedule.published'                 => __('audit_schedule_published'),
     'shift.conflict_resolved'            => __('audit_shift_conflict_resolved'),
     'shift.bulk_conflict_resolved'       => __('audit_shift_bulk_conflict_resolved'),
     'shifts.imported'                    => __('audit_shifts_imported'),
