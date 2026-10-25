@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Repositories;
 
+use kintai\Core\Database\RequestMemo;
 use kintai\Domain\Eloquent\RoleAssignment as EloquentRoleAssignment;
 
 final class DatabaseRoleAssignmentRepository implements RoleAssignmentRepositoryInterface
@@ -18,7 +19,8 @@ final class DatabaseRoleAssignmentRepository implements RoleAssignmentRepository
 
     public function findByUser(int $userId): array
     {
-        return EloquentRoleAssignment::where('user_id', $userId)->get()->toArray();
+        // Lu à chaque contrôle de droit : une fois par requête (voir RequestMemo).
+        return RequestMemo::remember('role_assignments.user.' . $userId, static fn(): array => EloquentRoleAssignment::where('user_id', $userId)->get()->toArray());
     }
 
     public function findByRole(int $roleId): array

@@ -98,7 +98,7 @@ final class NavigationTest extends TestCase
     {
         $keys = self::keys($this->navigation([])->items());
 
-        $this->assertSame(['shifts', 'calendar', 'shift_types', 'users', 'stores', 'employee_report', 'audit_log', 'settings'], $keys);
+        $this->assertSame(['shifts', 'calendar', 'shift_types', 'timesheets', 'users', 'stores', 'employee_report', 'audit_log', 'settings'], $keys);
     }
 
     /** Plus d'entrée historique : un bundle actif qui ne déclare rien n'apparaît pas dans la navigation. */

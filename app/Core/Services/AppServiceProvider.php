@@ -35,6 +35,7 @@ use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Services\BundleInstaller\BundleInstallerService;
 use kintai\Core\Services\BundleRegistry\BundleRegistryClient;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\UI\ViewRenderer;
 
@@ -79,6 +80,25 @@ final class AppServiceProvider extends ServiceProvider
         Log::setContainer($this->container);
     }
 
+    /**
+     * File d'attente des canaux externes des notifications (config/queue.php, QUEUE_CONNECTION). null quand la
+     * configuration de Laravel n'est pas chargée (scripts, socle des tests) ou vaut « sync » : envoi immédiat. La file
+     * « deferred » (par défaut) envoie une fois la réponse HTTP partie : en ligne de commande, rien ne la viderait.
+     */
+    private static function notificationQueue(Container $c): ?Dispatcher
+    {
+        try {
+            $default = $c->make('config')->get('queue.default');
+        } catch (\Throwable) {
+            return null;
+        }
+        if (!is_string($default) || $default === '' || $default === 'sync' || ($default === 'deferred' && PHP_SAPI === 'cli')) {
+            return null;
+        }
+
+        return $c->make(Dispatcher::class);
+    }
+
     private function registerBusinessServices(): void
     {
         $this->container->singleton(NotificationService::class, fn(Container $c) => new NotificationService(
@@ -90,6 +110,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(NotificationPreferenceService::class),
             $c->make(WebPushService::class),
             $c->make(NotificationMailer::class),
+            self::notificationQueue($c),
         ));
         $this->container->singleton(NotificationChannelStatus::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/push.php';
@@ -147,6 +168,18 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(ShiftRepositoryInterface::class),
             $c->make(ShiftTypeRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
+        ));
+
+        // Partagé : les réglages de publication lus une fois servent à tous les filtres de la requête.
+        $this->container->singleton(SchedulePublication::class, fn(Container $c) => new SchedulePublication(
+            $c->make(StoreRepositoryInterface::class),
+            $c->make(ShiftRepositoryInterface::class),
+            $c->make(NotificationService::class),
+        ));
+
+        // Pointages lus à chaque appel (Attendances::current()) : les bundles actifs de la requête font foi.
+        $this->container->bind(TimesheetService::class, fn(Container $c) => new TimesheetService(
+            $c->make(ShiftRepositoryInterface::class),
         ));
 
         $this->container->singleton(LicenseTokenVerifier::class, function (Container $c) {

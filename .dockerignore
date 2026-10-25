@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+config/database.local.php
+vendor
+tests
+storage/*
+!storage/.htaccess
+!storage/.gitkeep
+bootstrap/cache/*.php
+Dockerfile
+docker-compose.yml

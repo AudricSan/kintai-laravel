@@ -25,6 +25,8 @@ use kintai\UI\Controller\Web\SupportController;
 
 use kintai\UI\Controller\Web\Requests\AdminRequestsController;
 use kintai\UI\Controller\Web\Scheduling\AdminShiftController;
+use kintai\UI\Controller\Web\Scheduling\AdminShiftWeekController;
+use kintai\UI\Controller\Web\Scheduling\AdminTimesheetController;
 use kintai\UI\Controller\Web\Scheduling\AdminShiftImportController;
 use kintai\UI\Controller\Web\Scheduling\AdminShiftTypeController;
 
@@ -293,6 +295,16 @@ $router->group('/admin', function ($r) {
     $r->get('/shifts/wage-preview', [AdminShiftController::class, 'wagePreview'],          name: 'admin.shifts.wage_preview', permission: 'shifts.view');
     $r->post('/shifts/create',      [AdminShiftController::class, 'storeShift'],           name: 'admin.shifts.store', permission: 'shifts.create');
     $r->post('/shifts/quick',       [AdminShiftController::class, 'quickShift'],           name: 'admin.shifts.quick', permission: 'shifts.create');
+    $r->post('/shifts/publish',     [AdminShiftController::class, 'publishSchedule'],      name: 'admin.shifts.publish', permission: 'shifts.update');
+    $r->post('/shifts/copy-week',   [AdminShiftWeekController::class, 'copyPreviousWeek'], name: 'admin.shifts.copy_week', permission: 'shifts.create');
+    $r->post('/shifts/templates',   [AdminShiftWeekController::class, 'saveTemplate'],     name: 'admin.shifts.templates.save', permission: 'shifts.update');
+    $r->post('/shifts/templates/{id}/apply',  [AdminShiftWeekController::class, 'applyTemplate'],  name: 'admin.shifts.templates.apply', permission: 'shifts.create');
+    $r->post('/shifts/templates/{id}/delete', [AdminShiftWeekController::class, 'deleteTemplate'], name: 'admin.shifts.templates.delete', permission: 'shifts.update');
+    // Feuilles de temps : shifts prévus comparés aux pointages, validation de la semaine
+    $r->get('/timesheets',          [AdminTimesheetController::class, 'index'],            name: 'admin.timesheets', permission: 'shifts.view');
+    $r->get('/timesheets/export',   [AdminTimesheetController::class, 'export'],           name: 'admin.timesheets.export', permission: 'shifts.view');
+    $r->post('/timesheets/approve', [AdminTimesheetController::class, 'approve'],          name: 'admin.timesheets.approve', permission: 'shifts.update');
+    $r->post('/timesheets/reopen',  [AdminTimesheetController::class, 'reopen'],           name: 'admin.timesheets.reopen', permission: 'shifts.update');
     $r->post('/shifts/bulk-delete', [AdminShiftController::class, 'bulkDeleteShifts'],     name: 'admin.shifts.bulk_delete', permission: 'shifts.delete');
     $r->get('/shifts/{id}/edit',    [AdminShiftController::class, 'editShift'],            name: 'admin.shifts.edit', permission: 'shifts.view');
     $r->post('/shifts/{id}/edit',   [AdminShiftController::class, 'updateShift'],          name: 'admin.shifts.update', permission: 'shifts.update');

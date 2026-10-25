@@ -2,7 +2,8 @@
 /**
  * Page de l'installateur web (public/install.php). Autonome : l'application n'est pas démarrée, pas de layout ni de
  * jeton CSRF (aucune session avant l'installation). Aucun style ni script en ligne : public/assets/css/src/features/install.css
- * et public/assets/js/modules/install.js.
+ * et public/assets/js/modules/install.js. Reste en PHP simple, hors Blade : elle doit s'afficher même quand un prérequis
+ * manque (extension, dossier storage/ non inscriptible), puisque c'est elle qui le signale.
  *
  * @var string                $BASE_URL
  * @var string                $locale

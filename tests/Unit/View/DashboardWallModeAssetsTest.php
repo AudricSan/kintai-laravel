@@ -24,7 +24,7 @@ final class DashboardWallModeAssetsTest extends TestCase
         $root       = dirname(__DIR__, 3);
         $this->css  = (string) file_get_contents($root . '/public/assets/css/src/features/dashboard.css');
         $this->js   = (string) file_get_contents($root . '/public/assets/js/modules/dashboard-live.js');
-        $this->view = (string) file_get_contents($root . '/app/UI/View/_partials/_dashboard-actions.php');
+        $this->view = (string) file_get_contents($root . '/app/UI/View/_partials/_dashboard-actions.blade.php');
     }
 
     public function testTheExitButtonStartsHiddenAndDisabled(): void

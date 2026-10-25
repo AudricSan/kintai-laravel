@@ -44,7 +44,7 @@ final class ContractTest extends TestCase
 
     public function testTranslationsFollowTheContract(): void
     {
-        $report = TranslationContractChecker::violations($this->root, '{{slug}}', dirname($this->root, 2) . '/Kintai/lang');
+        $report = TranslationContractChecker::violations($this->root, '{{slug}}', BASE_PATH . '/lang');
 
         $this->assertSame([], array_filter($report), json_encode($report, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }

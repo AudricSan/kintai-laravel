@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
+use Illuminate\Contracts\Bus\Dispatcher;
+use kintai\Core\Jobs\DeliverNotification;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 
@@ -27,6 +29,8 @@ class NotificationService
         private readonly ?WebPushService $webPush = null,
         // Optionnel : sans lui, pas d'e-mail.
         private readonly ?NotificationMailer $mailer = null,
+        // Optionnel : sans file d'attente, les canaux externes sont servis pendant la requête (tests, scripts).
+        private readonly ?Dispatcher $bus = null,
     ) {}
 
     /**
@@ -81,25 +85,70 @@ class NotificationService
         $notificationId = (int) ($saved['id'] ?? 0);
         $pushTitle      = $title === 'notif_' . $type ? 'Kintai' : $title;
 
-        // Un canal en panne ou refusé par l'utilisateur ne gêne jamais les autres : un bloc chacun.
+        // Choix des canaux maintenant (préférences préchargées par notifyMany()), envoi par la file d'attente : la
+        // requête n'attend ni FCM, ni le web push, ni le serveur SMTP. Sans file (tests, scripts), envoi immédiat.
+        $push     = $this->safeChannelEnabled($userId, $type, 'push');
+        $delivery = new DeliverNotification(
+            userId: $userId,
+            type: $type,
+            title: $pushTitle,
+            body: $body,
+            referenceId: $referenceId,
+            link: $link,
+            notificationId: $notificationId,
+            push: $push,
+            quiet: $push && $this->safeIsQuiet($userId, $type),
+            email: $this->mailer !== null && $this->safeChannelEnabled($userId, $type, 'email'),
+        );
+        if (!$delivery->push && !$delivery->email) {
+            return;
+        }
+
         try {
-            if ($this->channelEnabled($userId, $type, 'push')) {
-                $this->sendPush($userId, $type, $pushTitle, $body, $referenceId, $link, $notificationId, $this->isQuiet($userId, $type));
+            if ($this->bus !== null) {
+                $this->bus->dispatch($delivery);
+                return;
+            }
+        } catch (\Throwable $e) {
+            // File indisponible (table jobs absente, Redis injoignable…) : la notification part quand même, tout de suite.
+            Log::warning('notification_queue_failed', ['user_id' => $userId, 'type' => $type, 'error' => $e->getMessage()]);
+        }
+        $this->deliver($delivery);
+    }
+
+    /**
+     * Envoie une notification vers ses canaux externes, choisis par notify(). Appelée par la tâche DeliverNotification
+     * (ou directement, sans file). Ne lève jamais : un canal en panne ne gêne pas les autres, un bloc chacun.
+     */
+    public function deliver(DeliverNotification $delivery): void
+    {
+        try {
+            if ($delivery->push) {
+                $this->sendPush($delivery->userId, $delivery->type, $delivery->title, $delivery->body, $delivery->referenceId, $delivery->link, $delivery->notificationId, $delivery->quiet);
             }
         } catch (\Throwable) {
         }
 
-        // E-mail : préférence du type seulement, envoi immédiat. Un e-mail ne réveille personne : les heures silencieuses
-        // ne le retiennent pas. NotificationMailer ne lève
-        // jamais ; le try/catch n'est qu'une ceinture-bretelles.
+        // E-mail : préférence du type seulement. Un e-mail ne réveille personne : les heures silencieuses ne le
+        // retiennent pas. NotificationMailer ne lève jamais ; le try/catch n'est qu'une ceinture-bretelles.
         try {
-            if ($this->mailer !== null && $this->channelEnabled($userId, $type, 'email')) {
-                $user = $this->users->findById($userId);
+            if ($delivery->email && $this->mailer !== null) {
+                $user = $this->users->findById($delivery->userId);
                 if ($user !== null) {
-                    $this->mailer->send($user, $type, $pushTitle, $body, $notificationId);
+                    $this->mailer->send($user, $delivery->type, $delivery->title, $delivery->body, $delivery->notificationId);
                 }
             }
         } catch (\Throwable) {
+        }
+    }
+
+    /** channelEnabled() sans jamais lever : une préférence illisible coupe ce canal, pas la notification. */
+    private function safeChannelEnabled(int $userId, string $type, string $channel): bool
+    {
+        try {
+            return $this->channelEnabled($userId, $type, $channel);
+        } catch (\Throwable) {
+            return false;
         }
     }
 
@@ -168,6 +217,16 @@ class NotificationService
             return true;
         }
         return $this->preferences->isEnabled($userId, $type, $channel);
+    }
+
+    /** isQuiet() sans jamais lever : dans le doute, le push part sans son ni vibration. */
+    private function safeIsQuiet(int $userId, string $type): bool
+    {
+        try {
+            return $this->isQuiet($userId, $type);
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     /** L'utilisateur est dans ses heures silencieuses : le push part sans son ni vibration. Jamais pour la notification de test. */

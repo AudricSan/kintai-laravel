@@ -89,6 +89,7 @@ final class NotificationPreferenceControllerTest extends TestCase
             [['type' => 'shift_assigned', 'category' => 'planning', 'push' => true, 'email' => true],
              ['type' => 'shift_updated', 'category' => 'planning', 'push' => true, 'email' => false],
              ['type' => 'shift_deleted', 'category' => 'planning', 'push' => true, 'email' => true],
+             ['type' => 'schedule_published', 'category' => 'planning', 'push' => true, 'email' => true],
              ['type' => 'calendar_sync_error', 'category' => 'planning', 'push' => true, 'email' => false]],
             $data['preferences'],
         );

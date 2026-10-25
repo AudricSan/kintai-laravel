@@ -9,12 +9,12 @@ use PHPUnit\Framework\TestCase;
 final class ConventionTest extends TestCase
 {
     private const EXCEPTIONS = [
-        'shifts-timeline-print.php',  // dynamic date in @page @bottom-center
+        'shifts-timeline-print.blade.php',  // dynamic date in @page @bottom-center
         'daily-report-pdf.php',       // mPDF requires embedded CSS
         'reports-hiring-pdf.php',     // mPDF requires embedded CSS
         'reports-resignation-pdf.php',// mPDF requires embedded CSS
         'reports-salary-pdf.php',     // mPDF requires embedded CSS
-        'users-export-pdf.php',       // mPDF requires embedded CSS
+        'users-export-pdf.blade.php', // mPDF requires embedded CSS
         'reports-resignation-export-pdf.php', // mPDF requires embedded CSS
         'reports-salary-export-pdf.php',      // mPDF requires embedded CSS
     ];

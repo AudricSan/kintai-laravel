@@ -25,6 +25,7 @@ use kintai\Core\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvailabilityGuard;
 use kintai\Core\Services\NotificationService;
+use kintai\Core\Services\SchedulePublication;
 use kintai\Core\Services\ShiftServiceInterface;
 use kintai\UI\Controller\Web\Scheduling\AdminShiftController;
 use kintai\UI\ViewRenderer;
@@ -46,6 +47,7 @@ final class AdminShiftControllerTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminShiftController $controller = null;
+    private ?SchedulePublication $publication = null;
 
     protected function setUp(): void
     {
@@ -83,6 +85,7 @@ final class AdminShiftControllerTest extends TestCase
                 $this->shiftService,
                 $permissions,
                 new AvailabilityGuard($this->createStub(AvailabilityRepositoryInterface::class)),
+                $this->publication,
             );
         }
 
@@ -1037,5 +1040,52 @@ final class AdminShiftControllerTest extends TestCase
             mkdir($dir, 0777, true);
         }
         touch($file);
+    }
+
+    // -------------------------------------------------------------------------
+    // Publication du planning : un brouillon ne prévient personne
+    // -------------------------------------------------------------------------
+
+    /** Magasin 1 à publication du planning, publié jusqu'au 2026-08-05 : les jours suivants sont un brouillon. */
+    private function withPublicationUntil(string $until): void
+    {
+        $stores = $this->createStub(StoreRepositoryInterface::class);
+        $stores->method('findById')->willReturn(['id' => 1, 'name' => 'Boutique Test', 'schedule_publication' => 1, 'schedule_published_until' => $until]);
+        $this->publication = new SchedulePublication($stores, $this->createStub(ShiftRepositoryInterface::class));
+    }
+
+    public function testDeletingADraftShiftNotifiesNobody(): void
+    {
+        $this->withPublicationUntil('2026-08-05');
+        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
+        $this->notifs = $this->createMock(NotificationService::class);
+        $draft = ['id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-06', 'start_time' => '09:00', 'end_time' => '17:00'];
+        $this->shifts->method('findById')->willReturn($draft);
+        $this->shifts->expects($this->once())->method('delete')->with(10)->willReturn(1);
+        $this->notifs->expects($this->never())->method('notify');
+
+        $req = new Request();
+        $req->setAttribute('managed_store_ids', null);
+        $req->setRouteParams(['id' => 10]);
+
+        $this->assertSame(302, $this->controller()->deleteShift($req)->status());
+    }
+
+    public function testDeletingAPublishedShiftStillNotifies(): void
+    {
+        $this->withPublicationUntil('2026-08-05');
+        $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
+        $this->notifs = $this->createMock(NotificationService::class);
+        $published = ['id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-05', 'start_time' => '09:00', 'end_time' => '17:00'];
+        $this->shifts->method('findById')->willReturn($published);
+        $this->shifts->method('delete')->willReturn(1);
+        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Boutique Test']);
+        $this->notifs->expects($this->once())->method('notify')->with(5, 'shift_deleted');
+
+        $req = new Request();
+        $req->setAttribute('managed_store_ids', null);
+        $req->setRouteParams(['id' => 10]);
+
+        $this->controller()->deleteShift($req);
     }
 }

@@ -43,6 +43,7 @@ return [
         'currency_symbol'     => ['since' => '1.24.0', 'status' => 'stable', 'params' => ['currency', 'jpySymbolStyle'], 'returns' => 'string', 'role' => 'Symbole d\'une devise.'],
         'store_currency_style' => ['since' => '1.24.0', 'status' => 'stable', 'params' => ['store'], 'returns' => 'string', 'role' => 'Style du symbole yen configuré pour un magasin.'],
         'bundle_asset_path'   => ['since' => '1.24.0', 'status' => 'provisoire', 'params' => ['slug', 'path'], 'returns' => '?string', 'role' => 'Chemin disque d\'un fichier public/ du bundle (PDF, images embarquées) ; sera remplacé par un service de ressources.'],
+        'shift_is_published'  => ['since' => '1.32.0', 'status' => 'stable', 'params' => ['shift'], 'returns' => 'bool', 'role' => 'Vrai si le shift est visible des employés ; faux pour un brouillon (magasin à publication du planning, date après la dernière publication).'],
         'storage_path'        => ['since' => '1.24.0', 'status' => 'provisoire', 'params' => ['path'], 'returns' => 'string', 'role' => 'Chemin du dossier de stockage de l\'instance ; sera remplacé par un service de fichiers du bundle.'],
     ],
     'internal' => [

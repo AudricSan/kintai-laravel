@@ -120,8 +120,8 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
     {
         // shift_updated : push décoché (défaut oui), e-mail coché (défaut non). Les autres types restent par défaut.
         $_POST = [
-            'push'          => ['shift_assigned', 'shift_deleted', 'calendar_sync_error'],
-            'email'         => ['shift_assigned', 'shift_updated', 'shift_deleted'],
+            'push'          => ['shift_assigned', 'shift_deleted', 'schedule_published', 'calendar_sync_error'],
+            'email'         => ['shift_assigned', 'shift_updated', 'shift_deleted', 'schedule_published'],
             'quiet_enabled' => '1',
             'quiet_start'   => '22:00',
             'quiet_end'     => '07:00',
@@ -165,8 +165,8 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
         $this->controller->saveNotificationPreferences(new Request());
 
-        // 4 types du Core, tout décoché : écart partout où le défaut était « activé » (4 push + 2 e-mails).
-        $this->assertSame(6,NotificationPreference::where('enabled', false)->count());
+        // 5 types du Core, tout décoché : écart partout où le défaut était « activé » (5 push + 3 e-mails).
+        $this->assertSame(8,NotificationPreference::where('enabled', false)->count());
         $this->assertNull($this->usersById[9]['quiet_hours_start']);
     }
 

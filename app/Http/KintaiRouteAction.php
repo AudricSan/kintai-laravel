@@ -5,31 +5,27 @@ declare(strict_types=1);
 namespace kintai\Http;
 
 use Illuminate\Foundation\Application;
-use Illuminate\Routing\Route as LaravelRoute;
-use kintai\Core\Request as KintaiRequest;
-use kintai\Core\Route as KintaiRoute;
+use Illuminate\Http\Request as IlluminateRequest;
+use kintai\Http\Middleware\CarriedResponse;
+use kintai\Http\Middleware\KintaiKernel;
+use kintai\Http\Middleware\ResolveKintaiRoute;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Throwable;
 
-/** Action des routes Kintai déclarées à Laravel ({@see KintaiRoutes}) : exécute la route Kintai trouvée par Laravel. */
+/**
+ * Action Laravel d'une route Kintai (voir KintaiRoutes) : le contrôleur Kintai, une fois passés les middlewares de la
+ * pile de Laravel (KintaiKernel, middlewares globaux, ResolveKintaiRoute, middlewares de la route).
+ */
 final class KintaiRouteAction
 {
-    public function __invoke(Application $laravel, LaravelRoute $laravelRoute): SymfonyResponse
+    public function __invoke(Application $laravel, IlluminateRequest $request): SymfonyResponse
     {
-        $app     = KintaiHttp::app($laravel);
-        $request = new KintaiRequest();
-        $route   = $laravelRoute->getAction(KintaiRoutes::ACTION_KEY);
+        [$route, $deferred] = $request->attributes->get(ResolveKintaiRoute::RESOLVED);
 
-        // Paramètres extraits comme le faisait le routeur Kintai, par l'expression de la route sur le chemin décodé.
-        // Laravel sert aussi HEAD par les routes GET ; Kintai non (405) : le routeur Kintai traite alors la requête.
-        $match = null;
-        if ($route instanceof KintaiRoute && $route->method === $request->method() && preg_match($route->regex, $request->uri(), $m)) {
-            $params = [];
-            foreach ($route->paramNames as $i => $name) {
-                $params[$name] = $m[$i + 1];
-            }
-            $match = [$route, $params];
+        try {
+            return CarriedResponse::of(KintaiHttp::app($laravel)->runController(KintaiKernel::request($request), $route, $deferred));
+        } catch (Throwable $e) {
+            return CarriedResponse::thrown($e);
         }
-
-        return KintaiBridge::toSymfony($app->handle($request, $match));
     }
 }

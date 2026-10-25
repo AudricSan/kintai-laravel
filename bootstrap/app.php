@@ -17,7 +17,16 @@ $app = Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Kintai applique ses propres middlewares globaux (config/middleware.php) : aucun middleware Laravel ne
         // retouche la requête avant elle.
-        $middleware->use([]);
+        // Aucun middleware global de Laravel (CORS, taille des POST, TrimStrings…) : Kintai a les siens, dans sa pile.
+        // use([]) ne suffit pas (une liste vide rend celle par défaut de Laravel) : on garde le seul sans effet sur
+        // la requête, qui exécute les defer() en fin de réponse.
+        $middleware->use([\Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks::class]);
+        // Middlewares Kintai dans la pile de Laravel (voir kintai\Http\KintaiRoutes::middleware()).
+        $middleware->alias([
+            'kintai.kernel'  => \kintai\Http\Middleware\KintaiKernel::class,
+            'kintai.mw'      => \kintai\Http\Middleware\KintaiMiddleware::class,
+            'kintai.resolve' => \kintai\Http\Middleware\ResolveKintaiRoute::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

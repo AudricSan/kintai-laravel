@@ -63,7 +63,6 @@ $template = __DIR__ . '/bundle-template';
 $map = [
     'src/Bundle.php'                    => "src/{$studly}Bundle.php",
     'src/Controllers/Web/Controller.php' => "src/Controllers/Web/{$studly}Controller.php",
-    'Views/index.php'                   => 'Views/index.php',
     'gitignore'                         => '.gitignore',
     'tests/ContractTest.php'            => 'tests/ContractTest.php',
 ];

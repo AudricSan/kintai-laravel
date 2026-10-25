@@ -4,22 +4,36 @@ declare(strict_types=1);
 
 namespace kintai\Core\Mail;
 
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
+
 /**
- * Client SMTP minimal sans dépendance tierce.
- * Supporte STARTTLS (port 587) et SSL direct (port 465), AUTH LOGIN.
+ * Envoi SMTP par Symfony Mailer, le transport du mailer de Laravel : SSL direct (port 465), STARTTLS (587) ou sans
+ * chiffrement, authentification choisie avec le serveur (LOGIN, PLAIN, CRAM-MD5…), message MIME construit par
+ * symfony/mime (type de chaque pièce jointe deviné, encodage des en-têtes, Message-ID, Date).
+ *
+ * Remplace le client SMTP écrit à la main : même constructeur, même send(), même getLastError() pour la page de test
+ * d'e-mail de l'Owner.
  */
 final class SmtpTransport implements MailTransportInterface
 {
-    /** @var resource|null */
-    private mixed $socket = null;
-
     private ?string $lastError = null;
+
+    /** @var (\Closure(): TransportInterface)|null */
+    private readonly ?\Closure $transportFactory;
 
     public function getLastError(): ?string
     {
         return $this->lastError;
     }
 
+    /**
+     * @param string                              $encryption 'ssl' (SSL direct), 'tls' (STARTTLS) ou autre valeur (aucun)
+     * @param (\Closure(): TransportInterface)|null $transportFactory remplace la connexion au serveur (tests)
+     */
     public function __construct(
         private readonly string $host,
         private readonly int    $port,
@@ -27,7 +41,10 @@ final class SmtpTransport implements MailTransportInterface
         private readonly string $password,
         private readonly string $encryption,
         private readonly int    $timeout = 30,
-    ) {}
+        ?\Closure $transportFactory = null,
+    ) {
+        $this->transportFactory = $transportFactory;
+    }
 
     /**
      * @param string[] $to
@@ -42,182 +59,77 @@ final class SmtpTransport implements MailTransportInterface
         array  $attachmentPaths = [],
         array  $extraHeaders = [],
     ): bool {
+        $this->lastError = null;
         try {
-            $this->connect();
-            $this->authenticate();
-
-            $this->command('MAIL FROM:<' . $fromAddress . '>', [250]);
-            foreach ($to as $recipient) {
-                $this->command('RCPT TO:<' . trim($recipient) . '>', [250, 251]);
-            }
-
-            $this->command('DATA', [354]);
-            $this->write($this->buildRawMessage($fromAddress, $fromName, $to, $subject, $htmlBody, $attachmentPaths, $extraHeaders));
-            $this->write('.');
-            $this->expectCode([250]);
-
-            $this->command('QUIT', [221]);
+            $this->transport()->send($this->message($fromAddress, $fromName, $to, $subject, $htmlBody, $attachmentPaths, $extraHeaders));
         } catch (\Throwable $e) {
             $this->lastError = $e->getMessage();
             error_log('[Kintai][SMTP] ' . $e->getMessage());
             return false;
-        } finally {
-            if (is_resource($this->socket)) {
-                @fclose($this->socket);
-                $this->socket = null;
-            }
         }
 
         return true;
     }
 
-    private function connect(): void
-    {
-        $proto   = $this->encryption === 'ssl' ? 'ssl' : 'tcp';
-        $address = $proto . '://' . $this->host . ':' . $this->port;
-
-        $this->socket = @stream_socket_client(
-            $address, $errno, $errstr, $this->timeout, STREAM_CLIENT_CONNECT,
-        );
-
-        if (!is_resource($this->socket)) {
-            throw new \RuntimeException("SMTP connexion échouée vers {$address} : {$errstr} ({$errno})");
-        }
-
-        stream_set_timeout($this->socket, $this->timeout);
-        $this->expectCode([220]);
-
-        $domain = gethostname() ?: 'localhost';
-        $this->ehlo($domain);
-
-        if ($this->encryption === 'tls') {
-            $this->command('STARTTLS', [220]);
-            if (!stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-                throw new \RuntimeException('STARTTLS : impossible d\'activer le chiffrement.');
-            }
-            $this->ehlo($domain);
-        }
-    }
-
-    private function ehlo(string $domain): void
-    {
-        try {
-            $this->command('EHLO ' . $domain, [250]);
-        } catch (\Throwable) {
-            $this->command('HELO ' . $domain, [250]);
-        }
-    }
-
-    private function authenticate(): void
-    {
-        if ($this->username === '') {
-            return;
-        }
-        $this->command('AUTH LOGIN', [334]);
-        $this->command(base64_encode($this->username), [334]);
-        $this->command(base64_encode($this->password), [235]);
-    }
-
-    /** @param int[] $expected */
-    private function command(string $cmd, array $expected): string
-    {
-        $this->write($cmd);
-        return $this->expectCode($expected);
-    }
-
-    /** @param int[] $codes */
-    private function expectCode(array $codes): string
-    {
-        $response = '';
-        while (is_resource($this->socket) && ($line = fgets($this->socket, 512)) !== false) {
-            $response .= $line;
-            if (isset($line[3]) && $line[3] === ' ') {
-                break;
-            }
-        }
-        $code = (int) substr($response, 0, 3);
-        if (!in_array($code, $codes, true)) {
-            throw new \RuntimeException("SMTP code inattendu {$code}: " . trim($response));
-        }
-        return $response;
-    }
-
-    private function write(string $data): void
-    {
-        fwrite($this->socket, $data . "\r\n");
-    }
-
-    /** @param string[] $to  @param string[] $attachmentPaths */
-    private function buildRawMessage(
+    /**
+     * Message envoyé, tel que construit pour send() (exposé pour les tests).
+     *
+     * @param string[]              $to
+     * @param string[]              $attachmentPaths
+     * @param array<string, string> $extraHeaders
+     */
+    public function message(
         string $fromAddress,
         string $fromName,
         array  $to,
         string $subject,
         string $htmlBody,
-        array  $attachmentPaths,
+        array  $attachmentPaths = [],
         array  $extraHeaders = [],
-    ): string {
-        $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-        $fromHeader     = $fromName !== ''
-            ? '=?UTF-8?B?' . base64_encode($fromName) . '?= <' . $fromAddress . '>'
-            : $fromAddress;
-        $dateHeader     = date('r');
-        $messageId      = '<' . bin2hex(random_bytes(12)) . '@' . ($this->host) . '>';
-
-        if (empty($attachmentPaths)) {
-            $raw = implode("\r\n", [
-                'Date: ' . $dateHeader,
-                'Message-ID: ' . $messageId,
-                'From: ' . $fromHeader,
-                'To: ' . implode(', ', $to),
-                'Subject: ' . $encodedSubject,
-                ...MailHeaders::format($extraHeaders),
-                'MIME-Version: 1.0',
-                'Content-Type: text/html; charset=UTF-8',
-                'Content-Transfer-Encoding: quoted-printable',
-                '',
-                quoted_printable_encode($htmlBody),
-            ]);
-            return $this->dotStuff($raw);
-        }
-
-        $boundary = '----=_Part_' . bin2hex(random_bytes(8));
-        $msg      = implode("\r\n", [
-            'Date: ' . $dateHeader,
-            'Message-ID: ' . $messageId,
-            'From: ' . $fromHeader,
-            'To: ' . implode(', ', $to),
-            'Subject: ' . $encodedSubject,
-            ...MailHeaders::format($extraHeaders),
-            'MIME-Version: 1.0',
-            'Content-Type: multipart/mixed; boundary="' . $boundary . '"',
-            '',
-            '--' . $boundary,
-            'Content-Type: text/html; charset=UTF-8',
-            'Content-Transfer-Encoding: quoted-printable',
-            '',
-            quoted_printable_encode($htmlBody),
-        ]);
+    ): Email {
+        $email = (new Email())
+            ->from(new Address($fromAddress, $fromName))
+            ->to(...array_map(static fn(string $address): Address => new Address(trim($address)), $to))
+            ->subject($subject)
+            ->html($htmlBody);
 
         foreach ($attachmentPaths as $path) {
-            if (!file_exists($path)) {
-                continue;
+            if (is_file($path)) {
+                $email->attachFromPath($path, basename($path));
             }
-            $filename = basename($path);
-            $encoded  = chunk_split(base64_encode((string) file_get_contents($path)));
-            $msg .= "\r\n--{$boundary}\r\n"
-                . "Content-Type: application/pdf; name=\"{$filename}\"\r\n"
-                . "Content-Transfer-Encoding: base64\r\n"
-                . "Content-Disposition: attachment; filename=\"{$filename}\"\r\n"
-                . "\r\n" . $encoded;
         }
 
-        return $this->dotStuff($msg . "\r\n--{$boundary}--");
+        // Mêmes règles qu'avant : un en-tête au nom invalide ou à la valeur multiligne est écarté (MailHeaders).
+        foreach (MailHeaders::format($extraHeaders) as $line) {
+            [$name, $value] = explode(': ', $line, 2);
+            $email->getHeaders()->addTextHeader($name, $value);
+        }
+
+        return $email;
     }
 
-    /** RFC 5321 §4.5.2 : toute ligne commençant par '.' doit être préfixée d'un '.' supplémentaire. */
-    private function dotStuff(string $data): string
+    private function transport(): TransportInterface
     {
-        return preg_replace('/^(\\.)/m', '.$1', $data) ?? $data;
+        if ($this->transportFactory !== null) {
+            return ($this->transportFactory)();
+        }
+
+        $encryption = strtolower(trim($this->encryption));
+        // 'ssl' : TLS dès la connexion. 'tls' : STARTTLS exigé, comme avant (un serveur qui ne le propose pas est
+        // refusé, rien ne part en clair). Toute autre valeur : sans chiffrement.
+        $transport = new EsmtpTransport($this->host, $this->port, $encryption === 'ssl');
+        $transport->setAutoTls($encryption === 'tls');
+        $transport->setRequireTls($encryption === 'tls');
+        if ($this->username !== '') {
+            $transport->setUsername($this->username);
+            $transport->setPassword($this->password);
+        }
+
+        $stream = $transport->getStream();
+        if ($stream instanceof SocketStream) {
+            $stream->setTimeout(max(1, $this->timeout));
+        }
+
+        return $transport;
     }
 }

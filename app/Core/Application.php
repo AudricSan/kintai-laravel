@@ -112,6 +112,12 @@ final class Application
         $this->globalMiddleware = $middleware;
     }
 
+    /** @return list<string> middlewares appliqués à toute requête (config/middleware.php), dans l'ordre */
+    public function globalMiddleware(): array
+    {
+        return array_values($this->globalMiddleware);
+    }
+
     public function isDebug(): bool
     {
         return $this->debug;
@@ -161,11 +167,23 @@ final class Application
      */
     public function handle(Request $request, ?array $match = null): Response
     {
+        return $this->handleWith($request, fn (Request $request): Response => $this->dispatch($request, $match));
+    }
+
+    /**
+     * Enveloppe commune de toute requête : $inner produit la réponse (middlewares, route, contrôleur) ; une exception
+     * qui en sort est rendue par handleException(), puis la requête entre au journal d'accès. Quand les middlewares
+     * passent par la pile de Laravel, $inner est le reste de cette pile (kintai\Http\Middleware\KintaiKernel).
+     *
+     * @param \Closure(Request): Response $inner
+     */
+    public function handleWith(Request $request, \Closure $inner): Response
+    {
         $this->container->instance(Request::class, $request);
         $startedAt = microtime(true);
 
         try {
-            $response = $this->dispatch($request, $match);
+            $response = $inner($request);
         } catch (Throwable $e) {
             $response = $this->handleException($e, $request);
         }
@@ -232,39 +250,60 @@ final class Application
     private function dispatch(Request $request, ?array $match = null): Response
     {
         $resolveAndRun = function (Request $request) use ($match): Response {
-            [$route, $params] = $match ?? $this->router->dispatch($request->method(), $request->uri());
+            [$route, $deferred] = $this->resolveRoute($request, $match);
 
-            // Paramètres typés traduits en identifiants AVANT les middlewares de route (les contrôles d'accès les
-            // lisent), mais la 301 ou la 404 qui en découle n'est rendue qu'APRÈS eux : un visiteur non connecté ou
-            // sans droit ne doit apprendre ni le nom d'un magasin ni l'existence d'un numéro d'employé.
-            $deferred = null;
-            if ($route->bindings !== []) {
-                [$params, $deferred] = $this->bindRouteParams($route, $params, $request);
-            }
-
-            $request->setRouteParams($params);
-            $request->setAttribute('route_name', $route->name);
-            // Règle RBAC déclarée sur la route elle-même (voir Route::$permission),
-            // exploitée par PermissionMiddleware/ApiPermissionMiddleware.
-            $request->setAttribute('route_permission', $route->permission);
-
-            // Core handler: resolve controller, call method
-            $core = function (Request $request) use ($route, $deferred) {
-                if ($deferred instanceof Throwable) {
-                    throw $deferred;
-                }
-                if ($deferred instanceof Response) {
-                    return $deferred;
-                }
-                [$controllerClass, $method] = $route->handler;
-                $controller = $this->container->make($controllerClass);
-                return $controller->$method($request);
-            };
-
-            return $this->pipeline->run($request, $route->middleware, $core);
+            return $this->runRoute($request, $route, $deferred);
         };
 
         return $this->pipeline->run($request, $this->globalMiddleware, $resolveAndRun);
+    }
+
+    /**
+     * Trouve la route de la requête (ou lève 404 / 405) et prépare la requête pour ses middlewares et son contrôleur.
+     *
+     * Paramètres typés traduits en identifiants AVANT les middlewares de route (les contrôles d'accès les lisent), mais
+     * la 301 ou la 404 qui en découle n'est rendue qu'APRÈS eux : un visiteur non connecté ou sans droit ne doit
+     * apprendre ni le nom d'un magasin ni l'existence d'un numéro d'employé.
+     *
+     * @param array{0: Route, 1: array<string, string>}|null $match
+     * @return array{0: Route, 1: Response|Throwable|null} la route et ce qu'il faudra rendre à la place du contrôleur
+     */
+    public function resolveRoute(Request $request, ?array $match = null): array
+    {
+        [$route, $params] = $match ?? $this->router->dispatch($request->method(), $request->uri());
+
+        $deferred = null;
+        if ($route->bindings !== []) {
+            [$params, $deferred] = $this->bindRouteParams($route, $params, $request);
+        }
+
+        $request->setRouteParams($params);
+        $request->setAttribute('route_name', $route->name);
+        // Règle RBAC déclarée sur la route elle-même (voir Route::$permission),
+        // exploitée par PermissionMiddleware/ApiPermissionMiddleware.
+        $request->setAttribute('route_permission', $route->permission);
+
+        return [$route, $deferred];
+    }
+
+    /** Middlewares de la route puis son contrôleur (ou la réponse différée de resolveRoute()). */
+    public function runRoute(Request $request, Route $route, Response|Throwable|null $deferred): Response
+    {
+        return $this->pipeline->run($request, $route->middleware, fn (Request $request): Response => $this->runController($request, $route, $deferred));
+    }
+
+    /** Le contrôleur de la route, ou la réponse différée de resolveRoute() (301 vers l'URL canonique, 404). */
+    public function runController(Request $request, Route $route, Response|Throwable|null $deferred): Response
+    {
+        if ($deferred instanceof Throwable) {
+            throw $deferred;
+        }
+        if ($deferred instanceof Response) {
+            return $deferred;
+        }
+        [$controllerClass, $method] = $route->handler;
+        $controller = $this->container->make($controllerClass);
+        return $controller->$method($request);
     }
 
     /**
@@ -314,6 +353,12 @@ final class Application
     private function handleException(Throwable $e, Request $request): Response
     {
         $wantsJson = $request->wantsJson() || $request->getAttribute('wantsJson', false);
+
+        // Validateur de Laravel (validator(...)->validate(), Validator::make) : même réponse qu'une validation Kintai.
+        if ($e instanceof \Illuminate\Validation\ValidationException) {
+            $errors = array_map(static fn(array $messages): string => (string) reset($messages), $e->errors());
+            $e      = new ValidationException($errors, $errors !== [] ? reset($errors) : null);
+        }
 
         if ($e instanceof ValidationException) {
             if ($wantsJson) {

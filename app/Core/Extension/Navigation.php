@@ -308,6 +308,8 @@ final class Navigation
                 icon: 'calendar', activePaths: ['/admin/shifts/calendar'], order: 20),
             new NavItem('shift_types', NavItem::PLANNING, 'shift_types', 'admin.shift_types', 'admin.shift_types',
                 icon: 'tag', activePaths: ['/admin/shift-types'], order: 30),
+            new NavItem('timesheets', NavItem::PLANNING, 'timesheets', 'admin.timesheets', null,
+                icon: 'clock', activePaths: ['/admin/timesheets'], order: 50),
             new NavItem('users', NavItem::HR, 'staff', 'admin.users', 'admin.users',
                 icon: 'users', activePaths: ['/admin/users'], order: 10, mobile: true),
             new NavItem('stores', NavItem::HR, 'stores', 'admin.stores', 'admin.stores',

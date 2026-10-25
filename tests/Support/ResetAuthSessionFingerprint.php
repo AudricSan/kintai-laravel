@@ -15,7 +15,7 @@ use PHPUnit\TextUI\Configuration\Configuration;
  * $_SESSION est global au processus PHPUnit. AuthService y range l'empreinte du hash de mot de
  * passe (auth_pw_fp) à la connexion ou à la première requête d'une session : sans remise à zéro,
  * cette empreinte d'un test fuit vers le suivant, dont l'utilisateur simulé a un autre hash, et
- * la session y serait révoquée à tort. Chaque test repart donc sans empreinte.
+ * la session y serait révoquée à tort. Chaque test repart donc sans empreinte, et sans RequestMemo.
  */
 final class ResetAuthSessionFingerprint implements Extension
 {
@@ -25,6 +25,8 @@ final class ResetAuthSessionFingerprint implements Extension
             public function notify(PreparationStarted $event): void
             {
                 unset($_SESSION['auth_pw_fp']);
+                // Même raison pour les lectures de comptes et de droits gardées le temps d'une requête.
+                \kintai\Core\Database\RequestMemo::flush();
             }
         });
     }

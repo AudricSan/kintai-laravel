@@ -117,6 +117,20 @@ php scripts/db-migrate.php             # apply them
 
 Owners can also trigger a one-click update from `/admin/update`, choosing a release channel (stable/beta/alpha); it pulls the matching GitHub Release, backs up the database and code first, and shows live progress.
 
+Instances still on 0.x (before Laravel) update the same way: the release archive carries a `src/` → `app/` relay, so the update request finishes on the new code and the site leaves maintenance mode as usual.
+
+### Docker
+
+```bash
+git clone https://github.com/AudricSan/Kintai.git
+cd Kintai
+docker compose up -d
+```
+
+Then open `http://localhost:8080/install.php` and install as above (SQLite works out of the box; for MySQL, give the installer your database server). The image runs Apache and PHP 8.3 with every extension Kintai uses, and serves only `public/`. Everything the instance owns lives in the `kintai-storage` volume: the SQLite database, backups, installed bundles, uploaded files, and `.env` and `config/database.local.php` (linked into the volume at start-up). Environment variables set in `docker-compose.yml` (`APP_URL`, `MAIL_*`…) reach PHP.
+
+To update, rebuild or pull a newer image and recreate the container (`docker compose build --pull && docker compose up -d`): pending migrations run at start-up. Do not use the one-click update inside a container, since its files are replaced when the container is recreated. Scheduled tasks run from one line in the host's crontab, every minute: `* * * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan schedule:run` (times in `config/schedule.php`), or through the cron URL with a token (see `scripts/cron.php`).
+
 ---
 
 ## Tech stack
@@ -139,11 +153,27 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
 1. **Done — Kintai runs on the Laravel kernel.** Laravel receives every request and hands it to the Kintai application
    (`app/Http/KintaiBridge.php`). Routes, middlewares, controllers, views, bundles and the bundle contract are
    unchanged; Laravel's database manager is the single connection (Capsule, Eloquent and `DB::` share it).
-2. **In progress — Laravel replaces the home-made pieces one by one** (container, router, middlewares, session, auth,
-   validation, views in Blade, Artisan commands).
+2. **In progress — Laravel replaces the home-made pieces one by one.**
+   - Done: one service container (Kintai's container stores its bindings in Laravel's), Kintai and bundle routes
+     registered in Laravel's router (`php artisan route:list`), views rendered by Laravel's view engine (Blade views
+     are now possible), and every maintenance script available as an Artisan command (`php artisan list kintai`,
+     e.g. `php artisan kintai:cron backup`; the `scripts/*.php` files keep working). Laravel's `auth()`, `Auth::`,
+     `@auth` and the Gate (`Gate::allows('shifts.update', $storeId)`, `@can`) answer with Kintai's logged-in user and
+     RBAC permissions. Laravel's validator (`validator()`, `Validator::make`, `->validate()`) speaks Kintai's
+     validation messages in the user's language, and its errors are answered like Kintai's own (422 JSON, or back to
+     the form with the input kept). Every core view is a Blade template (`app/UI/View/**/*.blade.php`); a bundle's
+     plain PHP views keep working, and the old `src/UI/View/_partials/*.php` paths still include the shared partials.
+   - Kintai's middlewares (global ones from `config/middleware.php`, then those of each route) run in Laravel's
+     middleware stack, in the same order (`php artisan route:list -v` lists them); an exception still crosses them
+     up to Kintai's error pages. Laravel's own global middlewares (CORS, POST size, input trimming) stay off.
+   - Kept on purpose: the PHP session and Kintai's CSRF token, so that nobody is logged out by the update and
+     bundles keep reading `$_SESSION`.
+   - The official bundles live in [kintai-laravel-bundles](https://github.com/AudricSan/kintai-laravel-bundles)
+     (one folder per bundle, Blade views, bundle contract 1.31), which the official registry points to. Their tests
+     run against this repository.
 
 Every step keeps the full PHPUnit suite green and is checked against the original application: every GET page and
-every form, logged in as the Owner, must give the same response and leave the same database.
+every form, logged in as the Owner, a manager and an employee, with and without bundles, must give the same response and leave the same database.
 
 Deeper dives: [Architecture (wiki)](https://github.com/AudricSan/Kintai/wiki/Architecture) · [Database Strategy (wiki)](https://github.com/AudricSan/Kintai/wiki/Database-Strategy) · [Multi-Tenancy (wiki)](https://github.com/AudricSan/Kintai/wiki/Multi-Tenancy)
 

@@ -21,6 +21,7 @@ use kintai\Core\Request;
 use kintai\Core\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\RoleAssignmentSyncService;
+use kintai\Core\Services\SchedulePublication;
 use kintai\Core\Services\StoreServiceInterface;
 use kintai\Core\Services\StoreStatsServiceInterface;
 use kintai\Core\Routing\RouteSlugService;
@@ -42,6 +43,7 @@ final class AdminStoreController
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly PermissionService $permissions,
         private readonly ?RouteSlugService $routeSlugs = null,
+        private readonly ?SchedulePublication $publication = null,
     ) {}
 
     /**
@@ -112,6 +114,10 @@ final class AdminStoreController
             ]);
         } catch (PlanLimitExceededException $e) {
             throw new ValidationException(['store' => $e->getMessage()]);
+        }
+
+        if ((int) ($savedStore['id'] ?? 0) > 0 && $this->publication !== null && $request->postFlag('schedule_publication', 0) === 1) {
+            $this->publication->configure((int) $savedStore['id'], true);
         }
 
         $this->auditLogger->log($request, 'store.created', 'store', (int) ($savedStore['id'] ?? 0), [
@@ -237,6 +243,10 @@ final class AdminStoreController
         ];
 
         $newStoreData = $this->storeService->updateStore($storeId, $data);
+        // Publication du planning : réglée à part, son activation publie ce qui est déjà planifié (aucun shift ne disparaît).
+        if ($request->hasPost('schedule_publication') && $this->publication !== null) {
+            $this->publication->configure($storeId, $request->postFlag('schedule_publication', 0) === 1);
+        }
 
         $this->auditLogger->logUpdate($request, 'store.updated', 'store', $storeId, $store, $newStoreData, [
             'name' => $request->post('name', $store['name'] ?? ''),

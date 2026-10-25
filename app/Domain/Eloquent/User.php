@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace kintai\Domain\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
+use kintai\Domain\Eloquent\Concerns\FlushesRequestMemo;
 use kintai\Domain\Eloquent\Casts\HexColor;
 
 final class User extends Model
 {
+    use FlushesRequestMemo;
+
     protected $table = 'users';
     protected $guarded = []; // Allow mass assignment for now to simplify migration
     public $timestamps = false;

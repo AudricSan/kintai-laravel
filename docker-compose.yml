@@ -1,0 +1,15 @@
+# Kintai en local ou sur un serveur : docker compose up -d, puis http://localhost:8080/install.php.
+# Mise à jour : docker compose build --pull (ou une image plus récente) puis docker compose up -d ; les migrations en
+# attente passent au démarrage. Toutes les données de l'instance sont dans le volume kintai-storage.
+services:
+  kintai:
+    build: .
+    image: kintai:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - kintai-storage:/var/www/html/storage
+    restart: unless-stopped
+
+volumes:
+  kintai-storage:

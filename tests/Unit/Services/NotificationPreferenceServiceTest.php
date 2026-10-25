@@ -134,11 +134,11 @@ final class NotificationPreferenceServiceTest extends TestCase
         $service = $this->service();
 
         // Cochés = exactement les valeurs par défaut de tous les types : aucune ligne.
-        $service->saveGrid(7, ['shift_assigned', 'shift_updated', 'shift_deleted', 'calendar_sync_error', 'acme_news', 'acme_legacy'], ['shift_assigned', 'shift_deleted']);
+        $service->saveGrid(7, ['shift_assigned', 'shift_updated', 'shift_deleted', 'schedule_published', 'calendar_sync_error', 'acme_news', 'acme_legacy'], ['shift_assigned', 'shift_deleted', 'schedule_published']);
         $this->assertSame(0, NotificationPreference::count());
 
         // Push de shift_updated coupé, e-mail de shift_updated activé : deux écarts.
-        $service->saveGrid(7, ['shift_assigned', 'shift_deleted', 'calendar_sync_error', 'acme_news', 'acme_legacy'], ['shift_assigned', 'shift_deleted', 'shift_updated']);
+        $service->saveGrid(7, ['shift_assigned', 'shift_deleted', 'schedule_published', 'calendar_sync_error', 'acme_news', 'acme_legacy'], ['shift_assigned', 'shift_deleted', 'shift_updated', 'schedule_published']);
         $rows = NotificationPreference::orderBy('channel')->get(['type', 'channel', 'enabled'])->toArray();
         $this->assertCount(2, $rows);
         $this->assertSame([['type' => 'shift_updated', 'channel' => 'email', 'enabled' => true], ['type' => 'shift_updated', 'channel' => 'push', 'enabled' => false]], $rows);
@@ -148,7 +148,7 @@ final class NotificationPreferenceServiceTest extends TestCase
         $this->assertTrue($fresh->isEnabled(7, 'shift_updated', 'email'));
 
         // Retour aux valeurs par défaut : les écarts disparaissent.
-        $service->saveGrid(7, ['shift_assigned', 'shift_updated', 'shift_deleted', 'calendar_sync_error', 'acme_news', 'acme_legacy'], ['shift_assigned', 'shift_deleted']);
+        $service->saveGrid(7, ['shift_assigned', 'shift_updated', 'shift_deleted', 'schedule_published', 'calendar_sync_error', 'acme_news', 'acme_legacy'], ['shift_assigned', 'shift_deleted', 'schedule_published']);
         $this->assertSame(0, NotificationPreference::count());
     }
 
@@ -195,7 +195,7 @@ final class NotificationPreferenceServiceTest extends TestCase
         $grid = $this->service()->grid(7);
 
         $this->assertSame(['planning', 'messages', 'system'], array_keys($grid));
-        $this->assertSame(['shift_assigned', 'shift_updated', 'shift_deleted', 'calendar_sync_error'], array_map(fn($r) => $r['type']->type, $grid['planning']));
+        $this->assertSame(['shift_assigned', 'shift_updated', 'shift_deleted', 'schedule_published', 'calendar_sync_error'], array_map(fn($r) => $r['type']->type, $grid['planning']));
         $this->assertSame(['push' => false, 'email' => false], ['push' => $grid['messages'][0]['push'], 'email' => $grid['messages'][0]['email']]);
         $this->assertSame('acme_legacy', $grid['system'][0]['type']->type);
     }
