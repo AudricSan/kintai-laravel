@@ -85,7 +85,27 @@ $periodLabel = $period_mode === 'week'
     'created' => __('shift_created'), 'updated' => __('shift_updated'), 'deleted' => __('shift_deleted'),
     'published' => __('schedule_published_flash', ['count' => (string) (int) ($_GET['notified'] ?? 0)]),
 ])->render() !!}
-{!! Flash::fromQuery('error', ['publish_invalid' => __('schedule_publish_invalid')])->render() !!}
+@php
+// Compte rendu d'une copie de semaine ou d'un modèle appliqué : créés, puis non recopiés par raison.
+$_weekReport = static function (string $key): string {
+    $text = __($key, ['count' => (string) (int) ($_GET['created'] ?? 0)]);
+    $parts = [];
+    foreach (['not_member', 'timeoff', 'unavailable', 'overlap'] as $_r) {
+        if ((int) ($_GET['skipped_' . $_r] ?? 0) > 0) {
+            $parts[] = __('week_skipped_' . $_r, ['count' => (string) (int) $_GET['skipped_' . $_r]]);
+        }
+    }
+    return $parts === [] ? $text : $text . ' ' . __('week_skipped_intro') . ' ' . implode(', ', $parts) . '.';
+};
+@endphp
+{!! Flash::fromQuery('success', [
+    'week_copied' => $_weekReport('week_copied_flash'), 'template_applied' => $_weekReport('template_applied_flash'),
+    'template_saved' => __('template_saved_flash'), 'template_deleted' => __('template_deleted_flash'),
+])->render() !!}
+{!! Flash::fromQuery('error', [
+    'publish_invalid' => __('schedule_publish_invalid'), 'week_invalid' => __('week_invalid'),
+    'week_source_empty' => __('week_source_empty'), 'template_invalid' => __('template_invalid'),
+])->render() !!}
 <div class="page-header">
     @if ($_canManage)
         <h2 class="page-header__title">{!! $page_heading ?? __('planning') !!} <span class="tl-subtitle">— {!! __('timeline') !!}</span></h2>
@@ -188,6 +208,52 @@ ob_start();
             </form>
         @endif
     </div>
+@endif
+@if (($week_tools ?? null) !== null)
+    @php $_weekRedirect = route_url('admin.shifts.timeline') . '?store_id=' . (int) $filter_store_id . '&start=' . $days[0]->format('Y-m-d') . '&view=week'; @endphp
+    <details class="week-tools">
+        <summary class="week-tools__summary">🗓 {!! __('week_tools_title') !!}</summary>
+        <div class="week-tools__body">
+            <form method="POST" action="{!! route_url('admin.shifts.copy_week') !!}" class="week-tools__row"
+                  data-confirm="{{ __('week_copy_confirm') }}">
+                {!! csrf_field() !!}
+                <input type="hidden" name="store_id" value="{!! (int) $filter_store_id !!}">
+                <input type="hidden" name="target_start" value="{{ $days[0]->format('Y-m-d') }}">
+                <input type="hidden" name="redirect_to" value="{{ $_weekRedirect }}">
+                <span class="week-tools__label">{!! __('week_copy_hint') !!}</span>
+                {!! Button::make('📋 ' . __('week_copy_previous'))->ghost()->sm()->submit()->render() !!}
+            </form>
+            @if ($week_tools['templates_enabled'])
+                <form method="POST" action="{!! route_url('admin.shifts.templates.save') !!}" class="week-tools__row">
+                    {!! csrf_field() !!}
+                    <input type="hidden" name="store_id" value="{!! (int) $filter_store_id !!}">
+                    <input type="hidden" name="week_start" value="{{ $days[0]->format('Y-m-d') }}">
+                    <input type="hidden" name="redirect_to" value="{{ $_weekRedirect }}">
+                    <input type="text" name="name" class="form-control week-tools__name" maxlength="100" required
+                           placeholder="{{ __('template_name_placeholder') }}" aria-label="{{ __('template_name_placeholder') }}">
+                    {!! Button::make('💾 ' . __('template_save'))->ghost()->sm()->submit()->render() !!}
+                </form>
+                @foreach ($week_tools['templates'] as $_tpl)
+                    <div class="week-tools__row">
+                        <span class="week-tools__label">{{ $_tpl['name'] }} <span class="week-tools__count">· {!! __('template_shift_count', ['count' => (string) count($_tpl['entries'])]) !!}</span></span>
+                        <form method="POST" action="{!! route_url('admin.shifts.templates.apply', ['id' => $_tpl['id']]) !!}" class="form-contents"
+                              data-confirm="{{ __('template_apply_confirm', ['name' => $_tpl['name']]) }}">
+                            {!! csrf_field() !!}
+                            <input type="hidden" name="target_start" value="{{ $days[0]->format('Y-m-d') }}">
+                            <input type="hidden" name="redirect_to" value="{{ $_weekRedirect }}">
+                            {!! Button::make(__('template_apply'))->primary()->sm()->submit()->render() !!}
+                        </form>
+                        <form method="POST" action="{!! route_url('admin.shifts.templates.delete', ['id' => $_tpl['id']]) !!}" class="form-contents"
+                              data-confirm="{{ __('template_delete_confirm', ['name' => $_tpl['name']]) }}">
+                            {!! csrf_field() !!}
+                            <input type="hidden" name="redirect_to" value="{{ $_weekRedirect }}">
+                            {!! Button::make('🗑')->ghost()->sm()->submit()->attrs(['aria-label' => __('template_delete'), 'title' => __('template_delete')])->render() !!}
+                        </form>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+    </details>
 @endif
 @if (empty($all_user_ids))
     {!! Card::make()->body('<div class="empty-state">' . __('no_store_found') . '</div>')->render() !!}@else

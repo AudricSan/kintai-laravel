@@ -10,6 +10,7 @@ use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\SchedulePublication;
 use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
+use kintai\Core\Repositories\ShiftWeekTemplateRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Contract\Event\OpenShiftClosed;
@@ -48,6 +49,8 @@ final class AdminShiftController
         private readonly AvailabilityGuard $availabilityGuard,
         // Publication du planning par magasin ; null (tests, appel direct) : tout est publié, comme avant.
         private readonly ?SchedulePublication $publication = null,
+        // Modèles de semaine proposés sur la timeline ; null : bloc des modèles masqué.
+        private readonly ?ShiftWeekTemplateRepositoryInterface $weekTemplates = null,
     ) {}
 
     /**
@@ -567,6 +570,10 @@ final class AdminShiftController
                 ? ['until' => $this->publication->publishedUntil($filterStoreId)]
                 : null,
             'week_start_day'      => $weekStartDay,
+            // Semaine type (copie de la semaine précédente, modèles) : vue semaine, pour qui gère le magasin.
+            'week_tools'          => $canManage && $filterStoreId > 0 && $viewMode === 'week'
+                ? ['templates' => $this->weekTemplates?->findByStore($filterStoreId) ?? [], 'templates_enabled' => $this->weekTemplates !== null]
+                : null,
             'all_users'           => $this->users->findAll(),
             'all_stores'          => $availStores,
             'all_types'           => $this->shiftTypesForManaged($managedIds),
