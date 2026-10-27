@@ -116,7 +116,7 @@ final class InstallInputTest extends TestCase
 
     public function testImportOnlyNeedsTheFolderAndTheLanguage(): void
     {
-        $input = InstallInput::fromPost(['install_mode' => 'import', 'import_path' => ' /var/www/kintai ', 'app_locale' => 'fr'], 'en');
+        $input = InstallInput::fromPost(['install_mode' => 'import', 'import_from' => 'folder', 'import_path' => ' /var/www/kintai ', 'app_locale' => 'fr'], 'en');
 
         $this->assertSame(InstallInput::MODE_IMPORT, $input->mode);
         $this->assertSame('/var/www/kintai', $input->importPath);
@@ -125,7 +125,34 @@ final class InstallInputTest extends TestCase
 
     public function testImportWithoutAFolderIsRefused(): void
     {
-        $this->assertSame(['install_import_error_path'], $this->errors(['install_mode' => 'import', 'import_path' => '']));
+        $this->assertSame(['install_import_error_path'], $this->errors(['install_mode' => 'import', 'import_from' => 'folder', 'import_path' => '']));
+    }
+
+    /** @param array<string, mixed> $upload */
+    private function fileErrors(?array $upload): array
+    {
+        $files = $upload === null ? [] : ['import_file' => $upload + ['tmp_name' => '/tmp/php123', 'name' => 'backup.zip', 'size' => 10]];
+        return InstallInput::fromPost(['install_mode' => 'import', 'app_locale' => 'fr'], 'en', $files)->errors(self::LANGUAGES, $this->requirements());
+    }
+
+    public function testImportFromAFileIsTheDefaultAndOnlyNeedsTheFile(): void
+    {
+        $input = InstallInput::fromPost(['install_mode' => 'import'], 'en', ['import_file' => [
+            'tmp_name' => '/tmp/php123', 'name' => '../../backup_20261025.zip', 'error' => UPLOAD_ERR_OK, 'size' => 10,
+        ]]);
+
+        $this->assertSame(InstallInput::IMPORT_FROM_FILE, $input->importFrom);
+        $this->assertSame('backup_20261025.zip', $input->importUpload['name'] ?? null);
+        $this->assertSame([], $this->fileErrors(['error' => UPLOAD_ERR_OK]));
+    }
+
+    public function testImportFromAFileReportsTheUploadProblem(): void
+    {
+        $this->assertSame(['install_import_error_file_missing'], $this->fileErrors(null));
+        $this->assertSame(['install_import_error_file_missing'], $this->fileErrors(['error' => UPLOAD_ERR_NO_FILE]));
+        $this->assertSame(['install_import_error_file_missing'], $this->fileErrors(['error' => UPLOAD_ERR_OK, 'size' => 0]));
+        $this->assertSame(['install_import_error_file_too_large'], $this->fileErrors(['error' => UPLOAD_ERR_INI_SIZE]));
+        $this->assertSame(['install_import_error_file_upload'], $this->fileErrors(['error' => UPLOAD_ERR_PARTIAL]));
     }
 
     public function testUnknownModeFallsBackToAFreshInstallation(): void

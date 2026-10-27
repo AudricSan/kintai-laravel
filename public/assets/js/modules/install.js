@@ -1,7 +1,7 @@
 /**
  * Installateur web (public/install.php) : affiche les champs de l'installation neuve ou de l'importation selon le
- * mode choisi (ceux qui sont masqués sont désactivés, donc ni requis ni envoyés), les champs MySQL selon le pilote
- * choisi, et réaffiche la page
+ * mode choisi (ceux qui sont masqués sont désactivés, donc ni requis ni envoyés), le choix du fichier ou le chemin du
+ * dossier à importer, avec le nom du fichier choisi, les champs MySQL selon le pilote choisi, et réaffiche la page
  * dans la langue sélectionnée (envoi du formulaire avec switch_language : rien n'est installé, les champs saisis
  * sont conservés, sauf les mots de passe).
  */
@@ -48,12 +48,24 @@
         });
     }
 
+    var importFile = form.querySelector('[data-install-import-file]');
+    var importFolder = form.querySelector('[data-install-import-folder]');
+
+    function syncImportFrom() {
+        var checked = form.querySelector('[data-install-import-from]:checked');
+        var fromFolder = !!checked && checked.value === 'folder';
+        toggle(importFile, !fromFolder);
+        toggle(importFolder, fromFolder);
+    }
+
     function syncMode() {
         var checked = form.querySelector('[data-install-mode]:checked');
         var isImport = !!checked && checked.value === 'import';
         toggle(fresh, !isImport);
         toggle(importing, isImport);
-        if (!isImport) {
+        if (isImport) {
+            syncImportFrom();
+        } else {
             syncDriver();
         }
         if (submit) {
@@ -64,7 +76,20 @@
     form.querySelectorAll('[data-install-mode]').forEach(function (radio) {
         radio.addEventListener('change', syncMode);
     });
+    form.querySelectorAll('[data-install-import-from]').forEach(function (radio) {
+        radio.addEventListener('change', syncImportFrom);
+    });
     syncMode();
+
+    var file = form.querySelector('[data-install-file]');
+    var fileName = form.querySelector('[data-install-file-name]');
+    if (file && fileName) {
+        file.addEventListener('change', function () {
+            fileName.textContent = file.files && file.files.length > 0
+                ? file.files[0].name
+                : fileName.getAttribute('data-empty');
+        });
+    }
 
     var language = form.querySelector('[data-install-language]');
     if (language) {

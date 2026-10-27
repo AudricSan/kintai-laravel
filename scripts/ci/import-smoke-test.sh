@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Test de fumée : importation d'une instance Kintai existante par le vrai installateur web (mode « importer »).
 #
-# Usage : CI=true bash scripts/ci/import-smoke-test.sh <dossier de l'instance à importer> <e-mail Owner> <mot de passe>
-#         [<e-mail> <mot de passe>]…
+# Usage : CI=true bash scripts/ci/import-smoke-test.sh <dossier de l'instance, ou fichier .zip / .sqlite> <e-mail Owner>
+#         <mot de passe> [<e-mail> <mot de passe>]…
 #
 # L'instance à importer est déjà installée (en CI : l'ancien Kintai, AudricSan/Kintai, installé par son
-# scripts/provision.php avec les données de démonstration). Le script lance `php -S` sur public/, soumet le formulaire
-# de public/install.php en mode importation, puis vérifie que l'installation est verrouillée, que toutes les
+# scripts/provision.php avec les données de démonstration). Avec un dossier, le formulaire importe depuis ce dossier ;
+# avec un fichier (sauvegarde .zip de Kintai ou base SQLite), il l'envoie comme le bouton « Choisir un fichier… ». Le
+# script lance `php -S` sur public/, soumet le formulaire de public/install.php en mode importation, puis vérifie que l'installation est verrouillée, que toutes les
 # migrations sont appliquées, que les comptes actifs sont tous repris, que la base d'origine n'a pas changé, et que
 # chaque compte donné peut se connecter et parcourir ses pages sans erreur (scripts/ci/crawl-smoke.php).
 #
@@ -26,18 +27,34 @@ if [ -e config/database.local.php ] || [ -e storage/installed.lock ]; then
   exit 2
 fi
 if [ "$#" -lt 3 ]; then
-  echo "Usage : $0 <dossier de l'instance à importer> <e-mail Owner> <mot de passe> [<e-mail> <mot de passe>]…" >&2
+  echo "Usage : $0 <dossier de l'instance, ou fichier .zip / .sqlite> <e-mail Owner> <mot de passe> [<e-mail> <mot de passe>]…" >&2
   exit 2
 fi
-
-SOURCE="$(cd "$1" && pwd)"
-shift
-SOURCE_DB="$SOURCE/storage/app/database.sqlite"
-[ -f "$SOURCE_DB" ] || { echo "Base SQLite introuvable : $SOURCE_DB" >&2; exit 2; }
 
 PORT="${SMOKE_PORT:-18766}"
 BASE="http://127.0.0.1:$PORT"
 WORK="$(mktemp -d)"
+
+if [ -f "$1" ]; then
+  # Fichier envoyé : la base à comparer est celle qu'il contient ; c'est le fichier lui-même qui ne doit pas changer.
+  SOURCE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+  FORM=(-F "import_from=file" -F "import_file=@$SOURCE")
+  case "$SOURCE" in
+    *.zip) php -r '$z = new ZipArchive(); $z->open($argv[1]) === true && $z->extractTo($argv[2], "database.sqlite") || exit(1);' "$SOURCE" "$WORK" \
+             || { echo "database.sqlite introuvable dans $SOURCE" >&2; exit 2; }
+           SOURCE_DB="$WORK/database.sqlite" ;;
+    *)     SOURCE_DB="$SOURCE" ;;
+  esac
+  SOURCE_HASHED="$SOURCE"
+else
+  SOURCE="$(cd "$1" && pwd)"
+  FORM=(-F "import_from=folder" -F "import_path=$SOURCE")
+  SOURCE_DB="$SOURCE/storage/app/database.sqlite"
+  SOURCE_HASHED="$SOURCE_DB"
+fi
+shift
+[ -f "$SOURCE_DB" ] || { echo "Base SQLite introuvable : $SOURCE_DB" >&2; exit 2; }
+
 SERVER_PID=""
 cleanup() {
   [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null || true
@@ -55,7 +72,7 @@ fail() {
 # Dernière ligne seulement : certains PHP affichent des avertissements de démarrage sur la sortie standard.
 sql() { php -r '$d = new PDO("sqlite:" . $argv[1]); echo $d->query($argv[2])->fetchColumn(), PHP_EOL;' "$1" "$2" 2>/dev/null | tail -n 1 | tr -d '[:space:]'; }
 
-source_hash=$(sha1sum "$SOURCE_DB" | cut -d' ' -f1)
+source_hash=$(sha1sum "$SOURCE_HASHED" | cut -d' ' -f1)
 source_users=$(sql "$SOURCE_DB" "SELECT COUNT(*) FROM users WHERE is_active = 1")
 
 mkdir -p storage/app storage/logs
@@ -70,9 +87,7 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/install.php")
 [ "$code" = "200" ] || fail "GET /install.php a répondu $code"
 
 curl -s -o "$WORK/install.html" -X POST "$BASE/install.php" \
-  --data-urlencode "install_mode=import" \
-  --data-urlencode "import_path=$SOURCE" \
-  --data-urlencode "app_locale=fr"
+  -F "install_mode=import" -F "app_locale=fr" "${FORM[@]}"
 
 if grep -qE "alert--danger|Fatal error|Warning</b>" "$WORK/install.html"; then
   fail "l'importation a renvoyé une erreur : $(grep -oE -m1 '<li>[^<]{0,200}|Fatal error[^<]{0,120}|Warning</b>[^<]{0,120}' "$WORK/install.html") — $(tail -n 5 storage/logs/error.log 2>/dev/null)"
@@ -86,7 +101,7 @@ expected=$(find database/migrations/php -maxdepth 1 -name '*.php' | wc -l | tr -
 [ "$applied" = "$expected" ] || fail "$applied migration(s) enregistrée(s) sur $expected"
 users=$(sql "$DB" "SELECT COUNT(*) FROM users WHERE is_active = 1")
 [ "$users" = "$source_users" ] || fail "$users compte(s) actif(s) importé(s) sur $source_users"
-[ "$(sha1sum "$SOURCE_DB" | cut -d' ' -f1)" = "$source_hash" ] || fail "la base de l'instance importée a été modifiée"
+[ "$(sha1sum "$SOURCE_HASHED" | cut -d' ' -f1)" = "$source_hash" ] || fail "la base ou le fichier importé a été modifié"
 
 # Connexion de chaque compte et parcours de ses pages.
 php scripts/ci/crawl-smoke.php "$BASE" "$@" || fail "pages en erreur sur l'instance importée"

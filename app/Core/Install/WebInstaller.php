@@ -27,8 +27,9 @@ use Throwable;
 
 /**
  * Installation d'une instance neuve, appelée par public/install.php : fichier d'environnement, base de données,
- * migrations, compte Owner, verrou. Ou importation d'une instance Kintai existante (import()), par exemple l'ancienne
- * version d'avant Laravel : sa base, ses fichiers et sa configuration sont repris, puis les migrations appliquées.
+ * migrations, compte Owner, verrou. Ou importation d'une instance Kintai existante, par exemple l'ancienne version
+ * d'avant Laravel : depuis son dossier sur le serveur (import() : base, fichiers et configuration), ou depuis un fichier
+ * envoyé par le navigateur (importFile() : sauvegarde .zip de Kintai ou base SQLite) ; puis les migrations appliquées.
  *
  * Tout ou rien : chaque écriture enregistre de quoi l'annuler, et un échec à n'importe quelle étape remet l'instance
  * dans l'état d'avant (fichier d'environnement restauré, base SQLite ou MySQL créée par l'installateur supprimée,
@@ -52,6 +53,9 @@ final class WebInstaller
         'app/database.sqlite', 'app/database.sqlite-wal', 'app/database.sqlite-shm', 'app/database.sqlite-journal',
         'installed.lock',
     ];
+
+    /** Début de tout fichier SQLite 3. */
+    private const SQLITE_HEADER = "SQLite format 3\0";
 
     /** @var list<Closure> annulations, jouées en ordre inverse */
     private array $undo = [];
@@ -117,7 +121,7 @@ final class WebInstaller
      *
      * @param string      $locale    langue écrite dans .env si l'instance importée n'en avait pas
      * @param string|null $publicUrl adresse d'où l'on importe : la nouvelle adresse publique de l'instance
-     * @return array{migrations:int, users:int, bundles: list<array{slug:string, version:string}>}
+     * @return array{migrations:int, users:int, bundles: list<array{slug:string, version:string}>, missing_bundles: list<string>}
      * @throws InstallFailure
      */
     public function import(string $sourceDir, string $locale, ?string $publicUrl = null): array
@@ -143,37 +147,52 @@ final class WebInstaller
             $this->copyTree($source . '/storage', $this->basePath . '/storage', '');
             $this->writeFile('config/database.local.php', '<?php return ' . var_export($database, true) . ';' . PHP_EOL);
 
-            $app = new Application($this->basePath);
-            $app->boot();
-            $migrations = (new MigrationRunner($app))->run();
-
-            // Comme scripts/db-migrate.php : migrations en attente des bundles installés dynamiquement.
-            $bundleRunner = new BundleMigrationRunner($app);
-            foreach ($app->container()->make(InstalledBundleRepositoryInterface::class)->all() as $bundle) {
-                $path = $this->basePath . "/storage/bundles/{$bundle['slug']}/{$bundle['active_version']}/database/migrations";
-                $migrations += count($bundleRunner->runPendingFor((string) $bundle['slug'], $path));
-            }
-            $bundles = [];
-            foreach ((new InstalledBundleManifestStore($this->basePath . '/storage/bundles/installed.json'))->all() as $slug => $entry) {
-                $bundles[] = ['slug' => (string) $slug, 'version' => (string) ($entry['active_version'] ?? '')];
-            }
-
-            $users = $app->container()->make(UserRepositoryInterface::class)->countActive();
-            if ($users === 0) {
-                throw new InstallFailure('install_import_error_empty', ['name' => $source]);
-            }
-
-            if ($publicUrl !== null) {
-                $app->container()->make(AppSettingsRepositoryInterface::class)->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
-            }
-
-            $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
-
-            return ['migrations' => $migrations, 'users' => $users, 'bundles' => $bundles];
+            return $this->finishImport($source, $publicUrl);
         } catch (Throwable $e) {
             $this->log($e);
             $this->rollback();
             throw InstallFailure::from($e);
+        }
+    }
+
+    /**
+     * Importe un fichier envoyé depuis le navigateur : une sauvegarde de Kintai (.zip de /admin/backups : database.sqlite,
+     * backup.json et uploads/) ou une base SQLite seule (storage/app/database.sqlite de l'instance). La base est copiée
+     * en SQLite et les fichiers envoyés de la sauvegarde vont dans storage/uploads/ ; puis les migrations, comme import().
+     *
+     * Une sauvegarde ne contient pas le code des bundles : ceux qui étaient installés sont listés dans le résultat
+     * (missing_bundles), à réinstaller depuis le catalogue ; leurs données et migrations déjà appliquées sont gardées.
+     *
+     * @param string $file chemin du fichier reçu (tmp_name de l'envoi)
+     * @param string $name nom d'origine du fichier, pour les messages
+     * @return array{migrations:int, users:int, bundles: list<array{slug:string, version:string}>, missing_bundles: list<string>}
+     * @throws InstallFailure
+     */
+    public function importFile(string $file, string $name, string $locale, ?string $publicUrl = null): array
+    {
+        $this->undo = [];
+        $extracted = null;
+
+        try {
+            $this->writeLocale($locale);
+
+            $database = $file;
+            if (!$this->isSqlite($file)) {
+                $extracted = $this->openBackup($file, $name);
+                $database = $extracted;
+            }
+            $this->importSqlite($database);
+            $this->writeFile('config/database.local.php', '<?php return ' . var_export(['driver' => 'sqlite', 'connections' => []], true) . ';' . PHP_EOL);
+
+            return $this->finishImport($name, $publicUrl);
+        } catch (Throwable $e) {
+            $this->log($e);
+            $this->rollback();
+            throw InstallFailure::from($e);
+        } finally {
+            if ($extracted !== null) {
+                @unlink($extracted);
+            }
         }
     }
 
@@ -366,6 +385,138 @@ final class WebInstaller
                 $this->undo[] = static fn () => @unlink($target);
             }
         }
+    }
+
+    /**
+     * Fin commune des importations : migrations du Core et des bundles, contrôle des comptes, adresse publique, verrou.
+     *
+     * @return array{migrations:int, users:int, bundles: list<array{slug:string, version:string}>, missing_bundles: list<string>}
+     */
+    private function finishImport(string $name, ?string $publicUrl): array
+    {
+        $app = new Application($this->basePath);
+        $app->boot();
+        $migrations = (new MigrationRunner($app))->run();
+
+        // Comme scripts/db-migrate.php : migrations en attente des bundles installés dynamiquement. Un bundle dont le
+        // code n'a pas été repris (importation d'une sauvegarde) est seulement signalé : à réinstaller depuis le catalogue.
+        $bundleRunner = new BundleMigrationRunner($app);
+        $missing = [];
+        foreach ($app->container()->make(InstalledBundleRepositoryInterface::class)->all() as $bundle) {
+            $dir = $this->basePath . "/storage/bundles/{$bundle['slug']}/{$bundle['active_version']}";
+            if (!is_dir($dir)) {
+                $missing[] = (string) $bundle['slug'];
+                continue;
+            }
+            $migrations += count($bundleRunner->runPendingFor((string) $bundle['slug'], $dir . '/database/migrations'));
+        }
+        $bundles = [];
+        foreach ((new InstalledBundleManifestStore($this->basePath . '/storage/bundles/installed.json'))->all() as $slug => $entry) {
+            $bundles[] = ['slug' => (string) $slug, 'version' => (string) ($entry['active_version'] ?? '')];
+        }
+
+        $users = $app->container()->make(UserRepositoryInterface::class)->countActive();
+        if ($users === 0) {
+            throw new InstallFailure('install_import_error_empty', ['name' => $name]);
+        }
+
+        if ($publicUrl !== null) {
+            $app->container()->make(AppSettingsRepositoryInterface::class)->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
+        }
+
+        $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
+
+        return ['migrations' => $migrations, 'users' => $users, 'bundles' => $bundles, 'missing_bundles' => $missing];
+    }
+
+    private function isSqlite(string $file): bool
+    {
+        $handle = @fopen($file, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+        $header = (string) fread($handle, strlen(self::SQLITE_HEADER));
+        fclose($handle);
+        return $header === self::SQLITE_HEADER;
+    }
+
+    /**
+     * Sauvegarde .zip de Kintai : sa base est extraite dans un fichier temporaire (renvoyé, supprimé par l'appelant) et
+     * ses fichiers envoyés (uploads/) copiés dans storage/uploads/, sans écraser ce qui existe déjà.
+     */
+    private function openBackup(string $file, string $name): string
+    {
+        $zip = class_exists(\ZipArchive::class) ? new \ZipArchive() : null;
+        if ($zip === null || $zip->open($file, \ZipArchive::RDONLY) !== true) {
+            throw new InstallFailure('install_import_error_file', ['name' => $name]);
+        }
+
+        try {
+            if ($zip->locateName('database.sqlite') === false) {
+                // Sauvegarde d'une instance MySQL : son export SQL ne se rejoue pas en SQLite.
+                throw new InstallFailure(
+                    $zip->locateName('database.sql') !== false ? 'install_import_error_backup_mysql' : 'install_import_error_file',
+                    ['name' => $name],
+                );
+            }
+
+            $database = (string) tempnam(sys_get_temp_dir(), 'kintai-import-');
+            $this->extractEntry($zip, 'database.sqlite', $database);
+            if (!$this->isSqlite($database)) {
+                @unlink($database);
+                throw new InstallFailure('install_import_error_file', ['name' => $name]);
+            }
+
+            $uploads = $this->basePath . '/storage/uploads';
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entry = (string) $zip->getNameIndex($i);
+                if (!str_starts_with($entry, 'uploads/') || str_ends_with($entry, '/')) {
+                    continue;
+                }
+                $relative = substr($entry, strlen('uploads/'));
+                // Chemin de l'archive refusé s'il sort de storage/uploads/ (« .. », chemin absolu, barre inverse).
+                $parts = explode('/', $relative);
+                if (str_contains($relative, '\\') || in_array('..', $parts, true) || in_array('', $parts, true)) {
+                    continue;
+                }
+                $target = $uploads . '/' . $relative;
+                if (file_exists($target)) {
+                    continue;
+                }
+                $this->makeDirectory(dirname($target), 'storage/uploads/' . dirname($relative));
+                $this->undo[] = static fn () => @unlink($target);
+                $this->extractEntry($zip, $entry, $target);
+            }
+        } finally {
+            $zip->close();
+        }
+
+        return $database;
+    }
+
+    private function extractEntry(\ZipArchive $zip, string $entry, string $target): void
+    {
+        $in = $zip->getStream($entry);
+        $out = @fopen($target, 'wb');
+        if ($in === false || $out === false) {
+            throw new InstallFailure('install_error_not_writable', ['name' => basename($target)]);
+        }
+        stream_copy_to_stream($in, $out);
+        fclose($in);
+        fclose($out);
+    }
+
+    /** Crée un dossier et ses parents manquants, chacun retiré à l'annulation s'il est resté vide. */
+    private function makeDirectory(string $dir, string $label): void
+    {
+        if (is_dir($dir)) {
+            return;
+        }
+        $this->makeDirectory(dirname($dir), dirname($label));
+        if (!@mkdir($dir, 0755)) {
+            throw new InstallFailure('install_error_not_writable', ['name' => $label]);
+        }
+        $this->undo[] = static fn () => @rmdir($dir);
     }
 
     // ─── Annulation ───────────────────────────────────────────────────────────

@@ -247,4 +247,90 @@ final class WebInstallerTest extends TestCase
         $this->assertFileExists($source . '/storage/uploads/avatars/1.png');
         $this->removeDir($source);
     }
+
+    // ─── Importation d'un fichier ─────────────────────────────────────────────
+
+    /** Sauvegarde .zip comme celles de /admin/backups de l'ancien Kintai, avec une entrée qui tente de sortir de uploads/. */
+    private function backupZip(bool $withDatabase = true): string
+    {
+        $file = $this->base . '_backup.zip';
+        $zip = new \ZipArchive();
+        $zip->open($file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        if ($withDatabase) {
+            $db = $this->base . '_db.sqlite';
+            $pdo = new PDO('sqlite:' . $db);
+            $pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY)');
+            $pdo = null;
+            $zip->addFromString('database.sqlite', (string) file_get_contents($db));
+            unlink($db);
+        } else {
+            $zip->addFromString('database.sql', 'CREATE TABLE users (id INT);');
+        }
+        $zip->addFromString('backup.json', '{"driver":"sqlite"}');
+        $zip->addFromString('uploads/avatars/1.png', 'png');
+        $zip->addFromString('uploads/../../escaped.txt', 'x');
+        $zip->close();
+        return $file;
+    }
+
+    private function importFile(string $file): InstallFailure
+    {
+        try {
+            (new WebInstaller($this->base))->importFile($file, basename($file), 'en');
+        } catch (InstallFailure $e) {
+            return $e;
+        } finally {
+            @unlink($file);
+        }
+        $this->fail('L\'importation aurait dû échouer');
+    }
+
+    public function testImportFileRefusesAFileThatIsNeitherABackupNorADatabase(): void
+    {
+        file_put_contents($this->base . '_notes.txt', 'hello');
+
+        $failure = $this->importFile($this->base . '_notes.txt');
+
+        $this->assertSame('install_import_error_file', $failure->messageKey);
+        $this->assertFileDoesNotExist($this->base . '/.env');
+        $this->assertFileDoesNotExist($this->base . '/' . WebInstaller::SQLITE_PATH);
+    }
+
+    public function testImportFileRefusesAMysqlBackup(): void
+    {
+        $failure = $this->importFile($this->backupZip(withDatabase: false));
+
+        $this->assertSame('install_import_error_backup_mysql', $failure->messageKey);
+        $this->assertDirectoryDoesNotExist($this->base . '/storage/uploads');
+    }
+
+    public function testImportFileNeverOverwritesADatabaseWithTables(): void
+    {
+        $sqlite = $this->base . '/' . WebInstaller::SQLITE_PATH;
+        $pdo = new PDO('sqlite:' . $sqlite);
+        $pdo->exec('CREATE TABLE stores (id INTEGER PRIMARY KEY)');
+        $pdo = null;
+
+        $failure = $this->importFile($this->backupZip());
+
+        $this->assertSame('install_error_database_not_empty', $failure->messageKey);
+        $pdo = new PDO('sqlite:' . $sqlite);
+        $this->assertSame('stores', $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table'")->fetchColumn());
+    }
+
+    public function testImportFileFailureRemovesTheDatabaseAndTheUploadedFiles(): void
+    {
+        // config/ remplacé par un fichier : l'écriture de config/database.local.php échoue, après la copie de la base et
+        // des fichiers envoyés de la sauvegarde.
+        rmdir($this->base . '/config');
+        file_put_contents($this->base . '/config', '');
+
+        $failure = $this->importFile($this->backupZip());
+
+        $this->assertSame('install_error_not_writable', $failure->messageKey);
+        $this->assertFileDoesNotExist($this->base . '/' . WebInstaller::SQLITE_PATH);
+        $this->assertDirectoryDoesNotExist($this->base . '/storage/uploads');
+        $this->assertFileDoesNotExist($this->base . '/escaped.txt');
+        $this->assertFileDoesNotExist(dirname($this->base) . '/escaped.txt');
+    }
 }
