@@ -198,3 +198,36 @@
 .install-accounts__item + .install-accounts__item { border-top: 1px solid var(--color-border); }
 
 .install-accounts__role { color: var(--color-text-muted); }
+
+/* Choix du fichier à importer : le champ natif reste focalisable mais invisible, le bouton est son <label>. */
+.install-file {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.install-file__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.install-file__input:focus-visible + .install-file__button {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.install-file__name {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+
+.install-file[hidden],
+.form-group[hidden] {
+    display: none;
+}
+

@@ -15,6 +15,7 @@
  * @var array|null            $result       voir WebInstaller::install()
  * @var string                $setup_url
  * @var string                $login_url
+ * @var string                $upload_limit taille maximale d'un fichier envoyé (ex. « 40 Mo »)
  * @var string                $demo_password
  * @var array<string, mixed>  $old          valeurs envoyées ($_POST), jamais les mots de passe
  */
@@ -24,6 +25,7 @@ use kintai\UI\Components\Button;
 $e = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES);
 $field = static fn (string $key, string $default = ''): string => is_string($old[$key] ?? null) ? $old[$key] : $default;
 $mode = $field('install_mode') === 'import' ? 'import' : 'fresh';
+$importFrom = $field('import_from') === 'folder' ? 'folder' : 'file';
 $driver = $field('db_driver', in_array('sqlite', $drivers, true) ? 'sqlite' : ($drivers[0] ?? 'sqlite'));
 $failed = array_values(array_filter($checks, static fn (array $c): bool => !$c['ok']));
 $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c['blocking']));
@@ -58,6 +60,9 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
                         <li class="install-accounts__item"><span><?= $e($bundle['slug']) ?></span><code><?= $e($bundle['version']) ?></code></li>
                     <?php endforeach; ?>
                 </ul>
+            <?php endif; ?>
+            <?php if (($result['missing_bundles'] ?? []) !== []): ?>
+                <?= Alert::make(__('install_import_missing_bundles', ['names' => implode(', ', $result['missing_bundles'])]))->warning()->render() ?>
             <?php endif; ?>
             <?= Button::make(__('install_import_login'))->primary()->full()->link($login_url)->render() ?>
 
@@ -115,7 +120,7 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
                 </ul>
             </details>
 
-            <form method="POST" action="" class="form-stack" data-install-form data-import-label="<?= $e(__('install_import_submit')) ?>">
+            <form method="POST" action="" enctype="multipart/form-data" class="form-stack" data-install-form data-import-label="<?= $e(__('install_import_submit')) ?>">
 
                 <?php if ($languages !== []): ?>
                 <section class="install-section">
@@ -147,12 +152,30 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
 
                 <section class="install-section" data-install-import<?= $mode === 'import' ? '' : ' hidden' ?>>
                     <h2 class="install-section__title"><?= $e(__('install_section_import')) ?></h2>
-                    <div class="form-group">
+                    <div class="install-drivers" role="radiogroup" aria-label="<?= $e(__('install_section_import')) ?>">
+                        <?php foreach (['file', 'folder'] as $value): ?>
+                            <label class="install-driver">
+                                <input type="radio" name="import_from" value="<?= $value ?>" class="install-driver__input" data-install-import-from <?= $importFrom === $value ? 'checked' : '' ?>>
+                                <span class="install-driver__label"><?= $e(__('install_import_from_' . $value)) ?></span>
+                                <small class="install-driver__hint"><?= $e(__('install_import_from_' . $value . '_hint')) ?></small>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="form-group" data-install-import-file<?= $importFrom === 'file' ? '' : ' hidden' ?>>
+                        <span class="form-label form-label--required"><?= $e(__('install_import_file')) ?></span>
+                        <div class="install-file">
+                            <input type="file" id="import_file" name="import_file" class="install-file__input" accept=".zip,.sqlite,.db,application/zip" required data-install-file>
+                            <label for="import_file" class="btn btn--secondary install-file__button"><?= $e(__('install_import_file_choose')) ?></label>
+                            <span class="install-file__name" data-install-file-name data-empty="<?= $e(__('install_import_file_none')) ?>"><?= $e(__('install_import_file_none')) ?></span>
+                        </div>
+                        <p class="form-hint"><?= $e(__('install_import_file_hint', ['size' => $upload_limit])) ?></p>
+                    </div>
+                    <div class="form-group" data-install-import-folder<?= $importFrom === 'folder' ? '' : ' hidden' ?>>
                         <label class="form-label form-label--required" for="import_path"><?= $e(__('install_import_path')) ?></label>
                         <input type="text" id="import_path" name="import_path" class="form-control" value="<?= $e($field('import_path')) ?>" placeholder="<?= $e(__('install_import_path_placeholder')) ?>" required>
                         <p class="form-hint"><?= $e(__('install_import_path_hint')) ?></p>
+                        <p class="form-hint"><?= $e(__('install_import_mysql_hint')) ?></p>
                     </div>
-                    <p class="form-hint"><?= $e(__('install_import_mysql_hint')) ?></p>
                 </section>
 
                 <div class="install-fresh" data-install-fresh<?= $mode === 'fresh' ? '' : ' hidden' ?>>

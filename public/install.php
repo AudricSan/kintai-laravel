@@ -78,14 +78,28 @@ $installBase  = base_url();
 $switchingLanguage = isset($_POST['switch_language']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
-    $input = InstallInput::fromPost($_POST, $defaultLocale);
+    $input = InstallInput::fromPost($_POST, $defaultLocale, $_FILES);
     $errors = array_map(static fn (string $key): string => __($key), $input->errors($languageCodes, $requirements));
+
+    // Envoi plus gros que post_max_size : PHP vide $_POST et $_FILES, seul le volume annoncé reste.
+    if ($_POST === [] && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $_POST = ['install_mode' => InstallInput::MODE_IMPORT];
+        $errors = [__('install_import_error_file_too_large')];
+    }
 
     if ($errors === [] && $input->mode === InstallInput::MODE_IMPORT) {
         try {
             // Les comptes et leurs mots de passe viennent de l'instance importée : connexion habituelle ensuite.
             $publicUrl = PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase);
-            $result = ['mode' => InstallInput::MODE_IMPORT] + (new WebInstaller(BASE_PATH))->import($input->importPath, $input->locale, $publicUrl);
+            $installer = new WebInstaller(BASE_PATH);
+            $upload = $input->importUpload;
+            if ($input->importFrom === InstallInput::IMPORT_FROM_FILE && $upload !== null && is_uploaded_file($upload['tmp_name'])) {
+                $result = ['mode' => InstallInput::MODE_IMPORT] + $installer->importFile($upload['tmp_name'], $upload['name'], $input->locale, $publicUrl);
+            } elseif ($input->importFrom === InstallInput::IMPORT_FROM_FOLDER) {
+                $result = ['mode' => InstallInput::MODE_IMPORT] + $installer->import($input->importPath, $input->locale, $publicUrl);
+            } else {
+                throw new InstallFailure('install_import_error_file_upload');
+            }
             $registerTranslations($pageLocale);
         } catch (InstallFailure $e) {
             $registerTranslations($pageLocale);
@@ -134,6 +148,16 @@ $view = [
     'result'           => $result,
     'setup_url'        => $installBase . '/admin/setup',
     'login_url'        => $installBase . '/login',
+    // Taille maximale d'un fichier envoyé : la plus petite des deux limites de PHP.
+    'upload_limit'     => (static function (): string {
+        $bytes = static function (string $v): int {
+            $n = (int) $v;
+            return match (strtoupper(substr(trim($v), -1))) { 'G' => $n << 30, 'M' => $n << 20, 'K' => $n << 10, default => $n };
+        };
+        $limits = array_filter([$bytes((string) ini_get('upload_max_filesize')), $bytes((string) ini_get('post_max_size'))]);
+        $max = $limits === [] ? 0 : min($limits);
+        return $max >= 1 << 30 ? round($max / (1 << 30), 1) . ' Go' : ($max >= 1 << 20 ? round($max / (1 << 20)) . ' Mo' : round($max / 1024) . ' Ko');
+    })(),
     'demo_password'    => \kintai\Core\Database\DemoDataSeeder::PASSWORD,
     'old'              => $_POST,
     'default_host'     => (string) env('DB_HOST', '127.0.0.1'),

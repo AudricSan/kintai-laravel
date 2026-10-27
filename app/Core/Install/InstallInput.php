@@ -19,6 +19,10 @@ final class InstallInput
     public const MODE_FRESH = 'fresh';
     public const MODE_IMPORT = 'import';
 
+    /** Importation depuis un fichier envoyé par le navigateur (WebInstaller::importFile()) ou un dossier du serveur. */
+    public const IMPORT_FROM_FILE = 'file';
+    public const IMPORT_FROM_FOLDER = 'folder';
+
     public function __construct(
         public readonly string $firstName,
         public readonly string $lastName,
@@ -35,11 +39,25 @@ final class InstallInput
         public readonly bool $demoData,
         public readonly string $mode = self::MODE_FRESH,
         public readonly string $importPath = '',
+        public readonly string $importFrom = self::IMPORT_FROM_FILE,
+        /** @var array{tmp_name:string, name:string, error:int, size:int}|null fichier envoyé (import_file de $_FILES) */
+        public readonly ?array $importUpload = null,
     ) {}
 
-    /** @param array<string, mixed> $post $_POST ; $defaultLocale sert quand app_locale est absent (installation scriptée) */
-    public static function fromPost(array $post, string $defaultLocale): self
+    /**
+     * @param array<string, mixed> $post  $_POST ; $defaultLocale sert quand app_locale est absent (installation scriptée)
+     * @param array<string, mixed> $files $_FILES
+     */
+    public static function fromPost(array $post, string $defaultLocale, array $files = []): self
     {
+        $upload = $files['import_file'] ?? null;
+        $upload = is_array($upload) && is_string($upload['tmp_name'] ?? null) ? [
+            'tmp_name' => $upload['tmp_name'],
+            'name'     => is_string($upload['name'] ?? null) ? basename($upload['name']) : '',
+            'error'    => (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE),
+            'size'     => (int) ($upload['size'] ?? 0),
+        ] : null;
+
         $str = static fn (string $key, string $default = ''): string => is_string($post[$key] ?? null) ? $post[$key] : $default;
 
         return new self(
@@ -58,6 +76,8 @@ final class InstallInput
             demoData:             isset($post['run_seeds']),
             mode:                 $str('install_mode') === self::MODE_IMPORT ? self::MODE_IMPORT : self::MODE_FRESH,
             importPath:           trim($str('import_path')),
+            importFrom:           $str('import_from') === self::IMPORT_FROM_FOLDER ? self::IMPORT_FROM_FOLDER : self::IMPORT_FROM_FILE,
+            importUpload:         $upload,
         );
     }
 
@@ -117,7 +137,7 @@ final class InstallInput
 
     /**
      * Importation : le compte, la base et les options viennent de l'instance importée ; seuls la langue de la page
-     * et le dossier de l'instance sont demandés.
+     * et le fichier envoyé (ou le dossier de l'instance) sont demandés.
      *
      * @param list<string> $languageCodes
      * @return list<string>
@@ -128,8 +148,18 @@ final class InstallInput
         if ($languageCodes !== [] && !in_array($this->locale, $languageCodes, true)) {
             $errors[] = 'install_error_language';
         }
-        if ($this->importPath === '') {
-            $errors[] = 'install_import_error_path';
+        if ($this->importFrom === self::IMPORT_FROM_FOLDER) {
+            if ($this->importPath === '') {
+                $errors[] = 'install_import_error_path';
+            }
+        } else {
+            $error = $this->importUpload['error'] ?? UPLOAD_ERR_NO_FILE;
+            $errors = [...$errors, ...match (true) {
+                $error === UPLOAD_ERR_OK && ($this->importUpload['size'] ?? 0) > 0 => [],
+                $error === UPLOAD_ERR_OK, $error === UPLOAD_ERR_NO_FILE           => ['install_import_error_file_missing'],
+                $error === UPLOAD_ERR_INI_SIZE, $error === UPLOAD_ERR_FORM_SIZE   => ['install_import_error_file_too_large'],
+                default                                                         => ['install_import_error_file_upload'],
+            }];
         }
         if (!$requirements->canInstall()) {
             $errors[] = 'install_error_requirements';

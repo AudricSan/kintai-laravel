@@ -51,7 +51,13 @@ jobs:
     # Importation de l'ancien Kintai (AudricSan/Kintai, canal alpha : celui des dernières releases 0.x, installé avec ses
     # données de démonstration) par l'installateur web en mode « importer » : migrations, comptes repris, base d'origine
     # intacte, pages sans erreur. main n'a pas de release 0.x récente et son provision.php ne crée pas la base SQLite.
+    # Deux façons d'importer : depuis le dossier de l'instance, et en envoyant une sauvegarde .zip créée par l'ancien
+    # Kintai (scripts/cron.php backup, comme le bouton de /admin/backups).
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [folder, backup]
 
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +72,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
+          extensions: pdo_sqlite, mbstring, gd, intl, curl, zip, openssl
           coverage: none
 
       - name: Install dependencies
@@ -78,7 +84,14 @@ jobs:
         run: php legacy/scripts/provision.php --admin-email=owner@kintai.test --admin-password=Owner-Passw0rd! --app-url=http://127.0.0.1 --locale=fr --seed
 
       - name: Import smoke test
-        run: bash scripts/ci/import-smoke-test.sh legacy owner@kintai.test 'Owner-Passw0rd!' alice.martin@kintai.local 'Demo1234!' chloe.dupont@kintai.local 'Demo1234!'
+        run: |
+          set -euo pipefail
+          source=legacy
+          if [ "${{ matrix.source }}" = "backup" ]; then
+            php legacy/scripts/cron.php backup
+            source=$(ls legacy/storage/backups/backup_*.zip | head -n 1)
+          fi
+          bash scripts/ci/import-smoke-test.sh "$source" owner@kintai.test 'Owner-Passw0rd!' alice.martin@kintai.local 'Demo1234!' chloe.dupont@kintai.local 'Demo1234!'
 
   provision-smoke:
     # Installation en ligne de commande (scripts/provision.php) sur une instance vierge : refus attendus, compte
