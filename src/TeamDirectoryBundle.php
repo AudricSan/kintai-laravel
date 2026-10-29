@@ -15,10 +15,6 @@ final class TeamDirectoryBundle extends Bundle
         return 'team-directory';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {

@@ -9,8 +9,8 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\View\ViewRenderer;
 
 /**
@@ -33,7 +33,7 @@ final class TeamDirectoryController
 
     public function index(Request $request): Response
     {
-        $user    = $request->getAttribute('auth_user');
+        $user    = $request->attributes->get('auth_user');
         $userId  = (int) ($user['id'] ?? 0);
         $isOwner = !empty($user['is_admin']);
 
@@ -65,7 +65,7 @@ final class TeamDirectoryController
         }
         usort($colleagues, fn($a, $b) => strcmp($this->displayName($a['user']), $this->displayName($b['user'])));
 
-        return Response::html($this->view->render('team-directory::team-directory', [
+        return response($this->view->render('team-directory::team-directory', [
             'title'      => __('team_directory'),
             'colleagues' => $colleagues,
             'stores_map' => $this->storesMap(),
@@ -74,10 +74,10 @@ final class TeamDirectoryController
 
     public function show(Request $request): Response
     {
-        $user     = $request->getAttribute('auth_user');
+        $user     = $request->attributes->get('auth_user');
         $userId   = (int) ($user['id'] ?? 0);
         $isOwner  = !empty($user['is_admin']);
-        $targetId = (int) $request->param('id');
+        $targetId = (int) $request->route('id');
 
         $target = $this->users->findById($targetId);
         if ($target === null || empty($target['is_active'])) {
@@ -95,7 +95,7 @@ final class TeamDirectoryController
             throw new NotFoundException(__('error_user_not_found'));
         }
 
-        return Response::html($this->view->render('team-directory::team-directory-show', [
+        return response($this->view->render('team-directory::team-directory-show', [
             'title'      => $this->displayName($target),
             'colleague'  => $target,
             'store_ids'  => $this->storeIdsFor($targetId),

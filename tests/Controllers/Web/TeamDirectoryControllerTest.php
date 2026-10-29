@@ -11,7 +11,7 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
@@ -93,8 +93,8 @@ final class TeamDirectoryControllerTest extends TestCase
 
     private function requestAs(int $userId, bool $isAdmin = false): Request
     {
-        $request = new Request();
-        $request->setAttribute('auth_user', ['id' => $userId, 'is_admin' => $isAdmin ? 1 : 0]);
+        $request = Request::capture();
+        $request->attributes->set('auth_user', ['id' => $userId, 'is_admin' => $isAdmin ? 1 : 0]);
         return $request;
     }
 
@@ -113,13 +113,13 @@ final class TeamDirectoryControllerTest extends TestCase
         // collègues), ce que ce test détecterait en resserrant l'attente ci-dessous.
         $response = $this->controller->index($this->requestAs(self::ME));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowAllowsViewingOwnHiddenProfile(): void
     {
         $response = $this->controller->show($this->requestWithParam(self::COLLEAGUE_HIDDEN, self::COLLEAGUE_HIDDEN));
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowForbidsViewingColleagueFromAnotherStore(): void
@@ -143,12 +143,12 @@ final class TeamDirectoryControllerTest extends TestCase
     public function testShowAllowsOwnerToViewAnyoneAcrossStores(): void
     {
         $response = $this->controller->show($this->requestWithParam(self::ME, self::OTHER_STORE_USER, true));
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowAllowsColleagueSharingAStore(): void
     {
         $response = $this->controller->show($this->requestWithParam(self::ME, self::COLLEAGUE_VISIBLE));
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 }
