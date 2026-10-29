@@ -84,7 +84,7 @@ final class AppResetControllerTest extends TestCase
     protected function tearDown(): void
     {
         $_POST = [];
-        $_SESSION = [];
+        session()->flush();
         putenv('KINTAI_STORAGE_PATH');
         $it = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->tmpDir, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -180,7 +180,7 @@ final class AppResetControllerTest extends TestCase
 
     public function testExecuteRunsFactoryResetLogsOutAndRedirectsHome(): void
     {
-        $_SESSION['auth_user_id'] = 1;
+        session()->put('auth_user_id', 1);
         $backup = $this->backup->create('test');
         $_POST = ['mode' => 'factory', 'backup_filename' => $backup['filename']];
 
@@ -189,7 +189,7 @@ final class AppResetControllerTest extends TestCase
         $this->assertSame(302, $response->status());
         $this->assertSame('/', $this->locationOf($response));
         $this->assertSame(0, Capsule::table('users')->count(), 'users doit être vidé en mode usine');
-        $this->assertArrayNotHasKey('auth_user_id', $_SESSION, 'la session doit être détruite après un reset usine');
+        $this->assertFalse(session()->has('auth_user_id'), 'la session doit être détruite après un reset usine');
         $this->assertFileDoesNotExist($this->tmpDir . '/storage/installed.lock');
     }
 }

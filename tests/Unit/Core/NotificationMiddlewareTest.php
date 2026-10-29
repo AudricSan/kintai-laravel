@@ -37,9 +37,6 @@ final class NotificationMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
         $this->container = new Container();
         $this->view       = new ViewRenderer(sys_get_temp_dir());
         $this->container->instance(ViewRenderer::class, $this->view);
@@ -48,7 +45,7 @@ final class NotificationMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
     }
 
     private function bindAuth(?array $user): void
@@ -69,7 +66,7 @@ final class NotificationMiddlewareTest extends TestCase
         $this->container->instance(AuthService::class, $auth);
 
         if ($user !== null) {
-            $_SESSION['auth_user_id'] = $user['id'];
+            session()->put('auth_user_id', $user['id']);
         }
     }
 

@@ -21,14 +21,15 @@ final class CsrfMiddlewareTest extends TestCase
     protected function setUp(): void
     {
         $this->server = $_SERVER;
-        $_SESSION = ['_csrf_token' => 'bon-jeton'];
+        session()->flush();
+        session()->put(['_token' => 'bon-jeton']);
     }
 
     protected function tearDown(): void
     {
         $_SERVER = $this->server;
         $_POST = [];
-        $_SESSION = [];
+        session()->flush();
     }
 
     private function post(string $uri, array $fields, bool $ajax = false): Request
@@ -69,7 +70,7 @@ final class CsrfMiddlewareTest extends TestCase
 
     public function testAConnectedUserGetsTheTranslated419Page(): void
     {
-        $_SESSION['auth_user_id'] = 3;
+        session()->put('auth_user_id', 3);
 
         try {
             $this->handle($this->post('/Kintai/profile', []));

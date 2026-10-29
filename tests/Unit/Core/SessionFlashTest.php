@@ -43,7 +43,7 @@ final class SessionFlashTest extends TestCase
 
     public function testMalformedSessionDataIsIgnored(): void
     {
-        $_SESSION['_kintai_flash'] = ['pas un tableau', ['type' => 'danger']];
+        session()->put('_kintai_flash', ['pas un tableau', ['type' => 'danger']]);
 
         $this->assertSame([], SessionFlash::pull());
     }

@@ -24,7 +24,11 @@ final class ResetAuthSessionFingerprint implements Extension
         $facade->registerSubscriber(new class implements PreparationStartedSubscriber {
             public function notify(PreparationStarted $event): void
             {
-                unset($_SESSION['auth_pw_fp']);
+                // Certains tests remplacent le conteneur global par un conteneur vide : on remet l application.
+                $app = $GLOBALS["kintai_test_app"];
+                \Illuminate\Container\Container::setInstance($app);
+                \Illuminate\Support\Facades\Facade::setFacadeApplication($app);
+                $app->make("session")->flush();
                 // Même raison pour les lectures de comptes et de droits gardées le temps d'une requête.
                 \kintai\Core\Database\RequestMemo::flush();
             }

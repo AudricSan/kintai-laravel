@@ -51,8 +51,8 @@ final class I18nMiddleware implements MiddlewareInterface
         }
 
         // Non connecté : sélecteur de la page de connexion.
-        if (isset($_SESSION['locale']) && in_array($_SESSION['locale'], $activeCodes, true)) {
-            return $_SESSION['locale'];
+        if (in_array(session()->get("locale"), $activeCodes, true)) {
+            return session()->get("locale");
         }
 
         // Langue du dernier compte connecté sur ce navigateur.

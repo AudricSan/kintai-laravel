@@ -38,15 +38,12 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = self::USER_ID;
+        session()->put('auth_user_id', self::USER_ID);
     }
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
     }
 

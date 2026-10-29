@@ -18,10 +18,11 @@ namespace kintai\Contract;
 final class Contract
 {
     /** Version du contrat fournie par ce Core. */
-    public const VERSION = '1.32.0';
+    public const VERSION = '2.0.0';
 
     /*
      * Historique :
+     * - 2.0.0 : passage à Laravel natif. csrf_token() et csrf_field() sont ceux de Laravel (session et jeton natifs).
      * - 1.32.0 : fonction shift_is_published() (publication du planning par magasin : un shift en brouillon n'est pas
      *   visible des employés, un bundle qui montre des shifts aux employés l'écarte).
      * - 1.31.0 : vues Blade dans les bundles (Views/*.blade.php, prioritaires sur un .php du même nom) avec la directive

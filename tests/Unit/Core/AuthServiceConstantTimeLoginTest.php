@@ -34,10 +34,7 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION = [];
+        session()->flush();
 
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
@@ -61,7 +58,7 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
 
     protected function tearDown(): void
     {
-        $_SESSION = [];
+        session()->flush();
     }
 
     /** @param callable(): bool $attempt */

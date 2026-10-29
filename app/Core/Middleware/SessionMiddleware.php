@@ -5,40 +5,53 @@ declare(strict_types=1);
 namespace kintai\Core\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Session\Session;
+use Illuminate\Support\Facades\File;
 use kintai\Core\Request;
 use kintai\Core\Response;
 
+/**
+ * Démarre la session de Laravel (pilote de config/session.php) pour la requête, la sauvegarde ensuite et pose son
+ * cookie. Remplacé par StartSession de Laravel quand les routes seront natives.
+ */
 final class SessionMiddleware implements MiddlewareInterface
 {
     public function handle(Request $request, Closure $next): Response
     {
-        self::start($request->isSecure());
-        // Ancienne copie de la ligne utilisateur (hash du mot de passe compris), écrite par AuthController jusqu'au
-        // 01/10/2026 sans jamais être relue : on la retire des sessions encore ouvertes.
-        unset($_SESSION['auth_user']);
+        $session = app('session.store');
+        if (config('session.driver') === 'file') {
+            File::ensureDirectoryExists((string) config('session.files'));
+        }
+        $id = $request->cookie($session->getName());
+        if (is_string($id) && $id !== '') {
+            $session->setId($id);
+        }
+        $session->start();
 
-        return $next($request);
+        try {
+            return $next($request);
+        } finally {
+            $session->save();
+            $this->queueCookie($session, $request);
+        }
     }
 
-    /** Ouvre la session de l'application (paramètres de config/session.php) si elle ne l'est pas déjà. */
-    public static function start(bool $secureRequest): void
+    /** Cookie de session, à chaque réponse : sa durée est glissante, comme le rafraîchissait Laravel. */
+    private function queueCookie(Session $session, Request $request): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            $configFile = dirname(__DIR__, 3) . '/config/session.php';
-            $config = file_exists($configFile) ? require $configFile : [];
-
-            $secure = (bool) ($config['secure'] ?? false) || $secureRequest;
-
-            session_set_cookie_params([
-                'lifetime' => $config['lifetime'] ?? 7200,
-                'path'     => $config['path'] ?? '/',
-                'secure'   => $secure,
-                'httponly' => $config['httponly'] ?? true,
-                'samesite' => $config['samesite'] ?? 'Lax',
-            ]);
-
-            session_name($config['name'] ?? 'kintai_session');
-            session_start();
+        if (headers_sent()) {
+            return;
         }
+
+        $config = config('session');
+        $secure = $config['secure'] ?? null;
+        setcookie($session->getName(), $session->getId(), [
+            'expires'  => ($config['expire_on_close'] ?? false) ? 0 : time() + (int) $config['lifetime'] * 60,
+            'path'     => (string) $config['path'],
+            'domain'   => $config['domain'] ?: '',
+            'secure'   => $secure === null ? $request->isSecure() : (bool) $secure,
+            'httponly' => (bool) $config['http_only'],
+            'samesite' => (string) ($config['same_site'] ?? 'lax'),
+        ]);
     }
 }

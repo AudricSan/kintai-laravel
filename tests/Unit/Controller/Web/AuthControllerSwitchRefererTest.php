@@ -36,9 +36,6 @@ final class AuthControllerSwitchRefererTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
         $this->previous = self::swapContainer(new Container());
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
@@ -72,7 +69,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
     {
         $_SERVER = [];
         $_POST = [];
-        unset($_SESSION['locale'], $_SESSION['device_view']);
+        session()->forget(['locale', 'device_view']);
         self::swapContainer($this->previous);
     }
 

@@ -55,9 +55,9 @@ final class CalendarLinkController
         [$mode, $storeId] = $this->nameChoice($request);
         $verifier = rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
         $state    = bin2hex(random_bytes(24));
-        $_SESSION[self::SESSION_KEY] = [
+        session()->put(self::SESSION_KEY, [
             'state' => $state, 'verifier' => $verifier, 'at' => time(), 'mode' => $mode, 'store_id' => $storeId,
-        ];
+        ]);
 
         $user = $this->auth->user() ?? [];
         return Response::redirect($this->client->authorizationUrl(
@@ -71,8 +71,7 @@ final class CalendarLinkController
     /** GET /profile/calendar/google/callback : retour de Google (autorisation donnée, refusée ou expirée). */
     public function callback(Request $request): Response
     {
-        $pending = $_SESSION[self::SESSION_KEY] ?? null;
-        unset($_SESSION[self::SESSION_KEY]);
+        $pending = session()->pull(self::SESSION_KEY);
         $userId = (int) ($this->auth->user()['id'] ?? 0);
 
         if (!is_array($pending) || (time() - (int) ($pending['at'] ?? 0)) > self::STATE_TTL

@@ -17,7 +17,6 @@ use kintai\Core\Response;
  */
 final class CsrfMiddleware implements MiddlewareInterface
 {
-    private const SESSION_KEY = '_csrf_token';
     private const FIELD_NAME  = '_token';
 
     /**
@@ -28,8 +27,10 @@ final class CsrfMiddleware implements MiddlewareInterface
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (empty($_SESSION[self::SESSION_KEY])) {
-            $_SESSION[self::SESSION_KEY] = bin2hex(random_bytes(32));
+        $expected = session()->token();
+        if ($expected === null || $expected === "") {
+            session()->regenerateToken();
+            $expected = session()->token();
         }
 
         $realMethod = strtoupper($request->server('REQUEST_METHOD', 'GET'));
@@ -39,7 +40,7 @@ final class CsrfMiddleware implements MiddlewareInterface
             $token = $request->post(self::FIELD_NAME)
                   ?? $request->header('X-CSRF-Token');
 
-            if (!hash_equals($_SESSION[self::SESSION_KEY], (string) $token)) {
+            if (!hash_equals((string) $expected, (string) $token)) {
                 return $this->rejected($request);
             }
         }

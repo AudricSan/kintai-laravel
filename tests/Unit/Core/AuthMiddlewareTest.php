@@ -75,7 +75,7 @@ final class AuthMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
     }
 
     /**
@@ -84,7 +84,7 @@ final class AuthMiddlewareTest extends TestCase
      */
     private function bindAuthenticatedUser(array $permissions, bool $isSystemRole = false, bool $isManagerRole = false): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 10, 'display_name' => 'Test']);
@@ -224,7 +224,7 @@ final class AuthMiddlewareTest extends TestCase
 
     public function testRedirectsToLoginWhenNotAuthenticated(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $users = $this->createStub(UserRepositoryInterface::class);
         $this->container->instance(AuthService::class, new AuthService(
             $users,

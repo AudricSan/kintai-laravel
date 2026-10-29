@@ -1,5 +1,5 @@
 {
-    "version": "1.32.0",
+    "version": "2.0.0",
     "surface": {
         "kintai\\Contract\\Auth\\AuthService": {
             "status": "provisoire",
@@ -263,12 +263,12 @@
         "csrf_field": {
             "status": "stable",
             "params": [],
-            "returns": "string"
+            "returns": "Illuminate\\Support\\HtmlString"
         },
         "csrf_token": {
             "status": "stable",
             "params": [],
-            "returns": "string"
+            "returns": "?string"
         },
         "currency_symbol": {
             "status": "stable",

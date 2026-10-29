@@ -49,10 +49,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = self::USER_ID;
+        session()->put('auth_user_id', self::USER_ID);
 
         $this->currentPassword = bin2hex(random_bytes(8));
         $this->row = [
@@ -122,7 +119,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
     }
 
@@ -154,11 +151,12 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     public function testAnotherDeviceSessionIsRevokedByThePasswordChange(): void
     {
         $this->assertTrue($this->auth->check());
-        $otherDevice = $_SESSION; // session d'un autre appareil, liée à l'ancien mot de passe
+        $otherDevice = session()->all(); // session d'un autre appareil, liée à l'ancien mot de passe
 
         $this->changePassword($this->currentPassword, bin2hex(random_bytes(8)));
 
-        $_SESSION = $otherDevice;
+        session()->flush();
+        session()->put($otherDevice);
         $this->assertFalse($this->auth->check());
     }
 

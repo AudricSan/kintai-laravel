@@ -157,7 +157,7 @@ final class AuthController
 
             // Laisser la préférence BD de l'utilisateur prendre effet (I18nMiddleware), et la retenir pour la page
             // de connexion de ce navigateur après déconnexion.
-            unset($_SESSION['locale']);
+            session()->forget("locale");
             LocaleCookie::remember(is_array($authUser) ? (string) ($authUser['language'] ?? '') : null);
 
             if ($this->auth->isAdmin()) {
@@ -181,9 +181,9 @@ final class AuthController
     {
         $target = $request->post('device_view', '');
         if (in_array($target, ['mobile', 'desktop'], true)) {
-            $_SESSION['device_view'] = $target;
+            session()->put("device_view", $target);
         } else {
-            unset($_SESSION['device_view']); // retour à la détection auto
+            session()->forget("device_view"); // retour à la détection auto
         }
 
         // Retour à la page d'origine seulement si elle appartient au site (back_url() vérifie l'origine du Referer) :
@@ -212,7 +212,7 @@ final class AuthController
                 LocaleCookie::remember($locale);
             }
         } else {
-            $_SESSION['locale'] = $locale;
+            session()->put("locale", $locale);
         }
 
         // Retour à la page d'origine seulement si elle appartient au site (back_url() vérifie l'origine du Referer) :

@@ -38,12 +38,9 @@ final class CalendarLinkControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
         $this->setUpCalendarFixture();
-        $_SESSION['auth_user_id'] = $this->alice;
-        unset($_SESSION['_kintai_gcal_oauth'], $_SESSION['_kintai_flash']);
+        session()->put('auth_user_id', $this->alice);
+        session()->forget(['_kintai_gcal_oauth', '_kintai_flash']);
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id, 'email' => 'alice@kintai.test', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null]);
@@ -70,7 +67,7 @@ final class CalendarLinkControllerTest extends TestCase
     protected function tearDown(): void
     {
         $this->tearDownCalendarFixture();
-        unset($_SESSION['auth_user_id'], $_SESSION['_kintai_gcal_oauth'], $_SESSION['_kintai_flash']);
+        session()->forget(['auth_user_id', '_kintai_gcal_oauth', '_kintai_flash']);
         $_POST = [];
         $_GET  = [];
     }
@@ -110,9 +107,9 @@ final class CalendarLinkControllerTest extends TestCase
         $this->assertStringStartsWith('https://accounts.google.com/o/oauth2/v2/auth?', $url);
         parse_str((string) parse_url($url, PHP_URL_QUERY), $q);
         $this->assertSame('https://kintai.test/profile/calendar/google/callback', $q['redirect_uri']);
-        $this->assertSame($_SESSION['_kintai_gcal_oauth']['state'], $q['state']);
-        $this->assertSame(GoogleCalendarClient::codeChallenge($_SESSION['_kintai_gcal_oauth']['verifier']), $q['code_challenge']);
-        $this->assertStringNotContainsString($_SESSION['_kintai_gcal_oauth']['verifier'], $url, 'le vérificateur PKCE ne quitte jamais le serveur');
+        $this->assertSame(session()->get('_kintai_gcal_oauth')['state'], $q['state']);
+        $this->assertSame(GoogleCalendarClient::codeChallenge(session()->get('_kintai_gcal_oauth')['verifier']), $q['code_challenge']);
+        $this->assertStringNotContainsString(session()->get('_kintai_gcal_oauth')['verifier'], $url, 'le vérificateur PKCE ne quitte jamais le serveur');
     }
 
     public function testConnectIsRefusedWhenTheOwnerHasNotEnabledTheFeature(): void
@@ -122,7 +119,7 @@ final class CalendarLinkControllerTest extends TestCase
         $response = $this->controller->connect(new Request());
 
         $this->assertStringEndsWith('/profile?tab=ical', $this->location($response));
-        $this->assertArrayNotHasKey('_kintai_gcal_oauth', $_SESSION);
+        $this->assertFalse(session()->has('_kintai_gcal_oauth'));
         $this->assertSame(['warning'], $this->flashTypes());
     }
 
@@ -140,7 +137,7 @@ final class CalendarLinkControllerTest extends TestCase
         $this->assertStringStartsWith('enc1:', $connection['refresh_token']);
         $this->assertCount(1, $this->repo->dueQueue(10), 'le shift à venir est déjà en file');
         $this->assertSame(['success'], $this->flashTypes());
-        $this->assertArrayNotHasKey('_kintai_gcal_oauth', $_SESSION, 'le state est à usage unique');
+        $this->assertFalse(session()->has('_kintai_gcal_oauth'), 'le state est à usage unique');
     }
 
     public function testCallbackWithAForgedOrMissingStateIsRejected(): void
@@ -173,7 +170,7 @@ final class CalendarLinkControllerTest extends TestCase
     public function testAnExpiredStateIsRejected(): void
     {
         $state = $this->startOauth();
-        $_SESSION['_kintai_gcal_oauth']['at'] = time() - 3600;
+        session()->put('_kintai_gcal_oauth.at', time() - 3600);
 
         $this->returnFromGoogle(['state' => $state, 'code' => 'c']);
 
@@ -285,7 +282,7 @@ final class CalendarLinkControllerTest extends TestCase
 
     private function panel(array $calendar): string
     {
-        $_SESSION['_csrf_token'] = 'x';
+        session()->put('_token', 'x');
         $router = new Router();
         foreach (['profile.calendar.connect', 'profile.calendar.options', 'profile.calendar.resync', 'profile.calendar.disconnect'] as $i => $name) {
             $router->post('/p' . $i, ['X', 'y'], name: $name);

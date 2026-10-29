@@ -37,10 +37,7 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = self::USER_ID;
+        session()->put('auth_user_id', self::USER_ID);
 
         $this->viewDir = sys_get_temp_dir() . '/kintai-auth-profile-test';
         $this->ensureViewFile($this->viewDir, 'auth.profile', "<?= !empty(\$has_default_password) ? 'DEFAULT_PW_WARNING' : 'NO_WARNING' ?>");
@@ -85,7 +82,7 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
     }
 
     public function testWarningShownWhenPasswordIsStillTheDefault(): void

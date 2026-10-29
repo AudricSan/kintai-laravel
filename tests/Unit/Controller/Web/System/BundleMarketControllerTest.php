@@ -512,7 +512,7 @@ final class BundleMarketControllerTest extends TestCase
             'version'     => '1.0.0',
             'namespace'   => 'kintai\\Bundles\\Installed\\FakeBundle',
             'entry_class' => 'kintai\\Bundles\\Installed\\FakeBundle\\FakeBundleBundle',
-            'kintai_contract' => '^1.0',
+            'kintai_contract' => '^2.0',
             'kintai_core' => ['min' => '0.1.0', 'max' => '0.9.0'],
         ];
 

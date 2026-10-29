@@ -45,7 +45,8 @@ final class I18nMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['locale'], $_SESSION['auth_user_id'], $_ENV['APP_LOCALE']);
+        session()->forget(['locale', 'auth_user_id']);
+        unset($_ENV['APP_LOCALE']);
         $_COOKIE = [];
     }
 
@@ -81,7 +82,7 @@ final class I18nMiddlewareTest extends TestCase
     public function testSessionLocaleUsedWhenActive(): void
     {
         $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
-        $_SESSION['locale'] = 'fr';
+        session()->put('locale', 'fr');
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
@@ -92,7 +93,7 @@ final class I18nMiddlewareTest extends TestCase
     {
         $this->languages->method('findAllActive')->willReturn([['code' => 'en']]);
         $this->languages->method('findDefault')->willReturn(['code' => 'en']);
-        $_SESSION['locale'] = 'fr'; // fr désactivée entre-temps par l'Owner
+        session()->put('locale', 'fr'); // fr désactivée entre-temps par l'Owner
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
@@ -106,8 +107,8 @@ final class I18nMiddlewareTest extends TestCase
         $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'language' => 'ja']);
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
-        $_SESSION['auth_user_id'] = 1;
-        $_SESSION['locale'] = 'fr';
+        session()->put('auth_user_id', 1);
+        session()->put('locale', 'fr');
         $_COOKIE['kintai_locale'] = 'en';
 
         $this->middleware()->handle($req, $this->noop());
@@ -122,7 +123,7 @@ final class I18nMiddlewareTest extends TestCase
         $_ENV['APP_LOCALE'] = 'ja';
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
-        $_SESSION['auth_user_id'] = 1;
+        session()->put('auth_user_id', 1);
 
         $this->middleware()->handle($req, $this->noop());
 

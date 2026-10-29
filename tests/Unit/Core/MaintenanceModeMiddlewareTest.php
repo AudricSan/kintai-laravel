@@ -31,7 +31,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
     }
 
     private function makeRequest(string $uri, string $method = 'GET'): Request
@@ -80,7 +80,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
         $this->container->instance(AuthService::class, new AuthService($users, $storeUsers, $stores, $roles, $roleAssignments, $this->createStub(RememberTokenRepositoryInterface::class)));
 
         if ($user !== null) {
-            $_SESSION['auth_user_id'] = $user['id'];
+            session()->put('auth_user_id', $user['id']);
         }
     }
 

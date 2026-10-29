@@ -32,7 +32,7 @@ final class EmptyStorePagesTest extends TestCase
     protected function setUp(): void
     {
         $this->view = new ViewRenderer(self::VIEWS);
-        $_SESSION['_csrf_token'] = 'test-token';
+        session()->put('_token', 'test-token');
         $router = new Router();
         $router->get('/admin/stores', ['X', 'y'], name: 'admin.stores');
         Container::getInstance()->instance(Router::class, $router);
@@ -40,7 +40,7 @@ final class EmptyStorePagesTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['_csrf_token']);
+        session()->forget('_token');
     }
 
     private function emptyStats(): array

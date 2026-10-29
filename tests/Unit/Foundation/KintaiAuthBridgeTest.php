@@ -60,7 +60,7 @@ final class KintaiAuthBridgeTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id'], $_SESSION['auth_pw_fp']);
+        session()->forget(['auth_user_id', 'auth_pw_fp']);
         Container::setInstance($this->previous);
     }
 
@@ -75,7 +75,7 @@ final class KintaiAuthBridgeTest extends TestCase
 
     public function testTheSessionUserIsTheLaravelUser(): void
     {
-        $_SESSION['auth_user_id'] = 7;
+        session()->put('auth_user_id', 7);
         $guard = new KintaiGuard();
 
         $this->assertTrue($guard->check());

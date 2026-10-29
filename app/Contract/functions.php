@@ -22,8 +22,8 @@ declare(strict_types=1);
 return [
     'declared' => [
         '__'                  => ['since' => '1.24.0', 'status' => 'stable', 'params' => ['key', 'replace'], 'returns' => 'string', 'role' => 'Traduction dans la langue courante ; renvoie la clé si elle est absente. Les paramètres remplacent « :nom ».'],
-        'csrf_token'          => ['since' => '1.24.0', 'status' => 'stable', 'params' => [], 'returns' => 'string', 'role' => 'Jeton CSRF de la session.'],
-        'csrf_field'          => ['since' => '1.24.0', 'status' => 'stable', 'params' => [], 'returns' => 'string', 'role' => 'Champ caché HTML du jeton CSRF, à placer dans chaque formulaire POST.'],
+        'csrf_token'          => ['since' => '1.24.0', 'status' => 'stable', 'params' => [], 'returns' => '?string', 'role' => 'Jeton CSRF de la session.'],
+        'csrf_field'          => ['since' => '1.24.0', 'status' => 'stable', 'params' => [], 'returns' => 'Illuminate\Support\HtmlString', 'role' => 'Champ caché HTML du jeton CSRF, à placer dans chaque formulaire POST.'],
         'csp_nonce'           => ['since' => '1.24.0', 'status' => 'stable', 'params' => [], 'returns' => 'string', 'role' => 'Nonce de la requête pour un <script nonce="…"> inévitable.'],
         'style_class'         => ['since' => '1.24.0', 'status' => 'stable', 'params' => ['declarations'], 'returns' => 'string', 'role' => 'Classe CSS portant des déclarations connues au rendu seulement (sans attribut style).'],
         'inline_styles'       => ['since' => '1.24.0', 'status' => 'stable', 'params' => [], 'returns' => 'string', 'role' => 'Bloc de styles à nonce regroupant les classes de style_class().'],

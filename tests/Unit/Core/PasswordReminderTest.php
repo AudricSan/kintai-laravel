@@ -34,10 +34,7 @@ final class PasswordReminderTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION = [];
+        session()->flush();
 
         $this->row = [
             'id'            => 7,
@@ -68,7 +65,7 @@ final class PasswordReminderTest extends TestCase
 
     protected function tearDown(): void
     {
-        $_SESSION = [];
+        session()->flush();
     }
 
     private function hash(string $password): string
@@ -115,14 +112,14 @@ final class PasswordReminderTest extends TestCase
     public function testSessionWithoutPlaintextStillDetectsDefaultPassword(): void
     {
         // Session ouverte sans passer par attempt() (cookie « rester connecté », ancienne session).
-        $_SESSION['auth_user_id'] = 7;
+        session()->put('auth_user_id', 7);
         $this->assertTrue($this->auth->mustChangePassword());
     }
 
     public function testSessionWithoutPlaintextAcceptsOtherPassword(): void
     {
         $this->row['password_hash'] = $this->hash(bin2hex(random_bytes(6)));
-        $_SESSION['auth_user_id'] = 7;
+        session()->put('auth_user_id', 7);
         $this->assertFalse($this->auth->mustChangePassword());
     }
 

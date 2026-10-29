@@ -33,10 +33,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION = [];
+        session()->flush();
 
         // Valeurs générées à l'exécution : aucun mot de passe en clair dans le dépôt.
         $this->pwOne = bin2hex(random_bytes(8));
@@ -69,7 +66,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
     protected function tearDown(): void
     {
-        $_SESSION = [];
+        session()->flush();
     }
 
     private function loginNormally(): void
@@ -92,7 +89,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
         $this->assertFalse($this->auth->check());
         $this->assertNull($this->auth->user());
-        $this->assertArrayNotHasKey('auth_user_id', $_SESSION);
+        $this->assertFalse(session()->has('auth_user_id'));
     }
 
     public function testSessionOfASoftDeletedUserIsRefused(): void
@@ -105,7 +102,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
     public function testSessionOfAnUnknownUserIsRefused(): void
     {
-        $_SESSION['auth_user_id'] = 999;
+        session()->put('auth_user_id', 999);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(null);
         $auth = new AuthService(
@@ -143,22 +140,24 @@ final class AuthServiceSessionRevocationTest extends TestCase
     public function testAnotherSessionIsStillRevokedWhenTheCurrentOneRefreshes(): void
     {
         $this->loginNormally();
-        $otherDeviceSession = $_SESSION;
+        $otherDeviceSession = session()->all();
 
         $this->row['password_hash'] = password_hash($this->pwTwo, PASSWORD_BCRYPT, ['cost' => 4]);
         $this->auth->refreshSessionAfterPasswordChange($this->row);
 
         // On simule la session de l'autre appareil (empreinte ancienne).
-        $_SESSION = $otherDeviceSession;
+        session()->flush();
+        session()->put($otherDeviceSession);
         $this->assertFalse($this->auth->check());
     }
 
     public function testSessionOpenedBeforeTheFingerprintExistedAdoptsItOnFirstRequest(): void
     {
-        $_SESSION = ['auth_user_id' => 42]; // session « historique », sans empreinte
+        session()->flush();
+        session()->put(['auth_user_id' => 42]); // session « historique », sans empreinte
 
         $this->assertTrue($this->auth->check());
-        $this->assertArrayHasKey('auth_pw_fp', $_SESSION);
+        $this->assertTrue(session()->has('auth_pw_fp'));
 
         // Une fois adoptée, un changement de mot de passe la révoque.
         $this->row['password_hash'] = password_hash($this->pwTwo, PASSWORD_BCRYPT, ['cost' => 4]);
@@ -168,7 +167,8 @@ final class AuthServiceSessionRevocationTest extends TestCase
     public function testRowWithoutIsActiveKeyIsTreatedAsActive(): void
     {
         unset($this->row['is_active']);
-        $_SESSION = ['auth_user_id' => 42];
+        session()->flush();
+        session()->put(['auth_user_id' => 42]);
 
         $this->assertTrue($this->auth->check());
     }

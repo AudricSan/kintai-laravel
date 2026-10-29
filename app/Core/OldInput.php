@@ -25,7 +25,7 @@ final class OldInput
         foreach ($post as $name => $value) {
             self::flatten((string) $name, $value, $fields);
         }
-        $_SESSION[self::SESSION_KEY] = ['action' => $action, 'fields' => array_slice($fields, 0, self::MAX_FIELDS, true)];
+        session()->put(self::SESSION_KEY, ['action' => $action, 'fields' => array_slice($fields, 0, self::MAX_FIELDS, true)]);
     }
 
     /**
@@ -35,8 +35,7 @@ final class OldInput
      */
     public static function pull(): ?array
     {
-        $old = $_SESSION[self::SESSION_KEY] ?? null;
-        unset($_SESSION[self::SESSION_KEY]);
+        $old = session()->pull(self::SESSION_KEY);
         return is_array($old) && isset($old['action'], $old['fields']) ? $old : null;
     }
 

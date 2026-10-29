@@ -41,10 +41,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = self::USER_ID;
+        session()->put('auth_user_id', self::USER_ID);
 
         // Valeurs générées à l'exécution : aucun mot de passe en clair dans le dépôt.
         $this->rightPassword = bin2hex(random_bytes(8));
@@ -83,7 +80,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
     }
 

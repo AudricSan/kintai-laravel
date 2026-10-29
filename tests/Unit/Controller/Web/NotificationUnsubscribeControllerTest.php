@@ -49,7 +49,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
             $table->unique(['user_id', 'type', 'channel']);
         });
 
-        $_SESSION['_csrf_token'] = 'test-token';
+        session()->put('_token', 'test-token');
         $router = new Router();
         $router->post('/notifications/unsubscribe', ['X', 'y'], name: 'notifications.unsubscribe.confirm');
         $router->get('/login', ['X', 'y'], name: 'auth.login');
@@ -74,7 +74,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['_csrf_token']);
+        session()->forget('_token');
         $_GET = [];
     }
 
@@ -155,7 +155,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         $_SERVER['REQUEST_URI']    = $uri;
         $_POST = [];
         $request = new Request();
-        $_SESSION['_csrf_token'] = 'attendu';
+        session()->put('_token', 'attendu');
 
         return (new CsrfMiddleware())->handle($request, fn() => Response::empty())->status();
     }

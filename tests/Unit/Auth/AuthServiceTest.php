@@ -27,10 +27,7 @@ final class AuthServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         unset($_COOKIE['kintai_remember']);
 
         $this->users           = $this->createStub(UserRepositoryInterface::class);
@@ -86,7 +83,7 @@ final class AuthServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         unset($_COOKIE['kintai_remember']);
     }
 
@@ -119,7 +116,7 @@ final class AuthServiceTest extends TestCase
         $result = $this->auth()->attempt('user@test.com', 'secret123');
 
         $this->assertTrue($result);
-        $this->assertSame(10, $_SESSION['auth_user_id']);
+        $this->assertSame(10, session()->get('auth_user_id'));
     }
 
     public function testAttemptFailsForUnknownEmail(): void
@@ -244,7 +241,7 @@ final class AuthServiceTest extends TestCase
     public function testUserReturnsUserFromDatabase(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $user = $this->activeUser();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($user);
 
@@ -258,9 +255,9 @@ final class AuthServiceTest extends TestCase
 
     public function testLogoutClearsSession(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->auth()->logout();
-        $this->assertArrayNotHasKey('auth_user_id', $_SESSION);
+        $this->assertFalse(session()->has('auth_user_id'));
     }
 
     public function testCheckReturnsFalseAfterLogout(): void
@@ -285,7 +282,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsAdminReturnsTrueForOwnerRoleAssignment(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertTrue($this->auth()->isAdmin());
@@ -293,7 +290,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsAdminReturnsFalseForRegularUser(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->roleAssignments->method('findByUser')->willReturn([]);
         $this->assertFalse($this->auth()->isAdmin());
@@ -304,7 +301,7 @@ final class AuthServiceTest extends TestCase
         // La colonne users.is_admin brute n'est plus la source de vérité —
         // seule une affectation role_assignments de portée globale à un rôle
         // système compte désormais.
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, true));
         $this->roleAssignments->method('findByUser')->willReturn([]);
         $this->assertFalse($this->auth()->isAdmin());
@@ -323,7 +320,7 @@ final class AuthServiceTest extends TestCase
     public function testManagedStoreIdsEmptyForGlobalAdmin(): void
     {
         // Admin global → retourne [] (pas de restriction)
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertSame([], $this->auth()->managedStoreIds());
@@ -331,7 +328,7 @@ final class AuthServiceTest extends TestCase
 
     public function testManagedStoreIdsForRoleFlaggedManager(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 2, ['employees.view', 'employees.create'], isManager: true);
 
@@ -341,7 +338,7 @@ final class AuthServiceTest extends TestCase
 
     public function testManagedStoreIdsEmptyForRoleWithoutPermissionsNorManagerFlag(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, [], isManager: false); // rôle sans permission ni flag manager (ex. Employé)
 
@@ -358,7 +355,7 @@ final class AuthServiceTest extends TestCase
      */
     public function testManagedStoreIdsIncludesStoreForManagerFlaggedRoleGrantingOnlyViewPermissions(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.view'], isManager: true);
 
@@ -374,7 +371,7 @@ final class AuthServiceTest extends TestCase
      */
     public function testManagedStoreIdsEmptyForRoleGrantingPermissionButNotFlaggedManager(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.create'], isManager: false);
 
@@ -387,7 +384,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsManagerTrueForGlobalAdmin(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertTrue($this->auth()->isManager());
@@ -395,7 +392,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsManagerTrueForRoleFlaggedManager(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 2, ['employees.view', 'employees.create'], isManager: true);
         $this->assertTrue($this->auth()->isManager());
@@ -403,7 +400,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsManagerFalseForRoleWithoutPermissionsNorManagerFlag(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, [], isManager: false);
         $this->assertFalse($this->auth()->isManager());
@@ -412,7 +409,7 @@ final class AuthServiceTest extends TestCase
     /** Régression : voir testManagedStoreIdsIncludesStoreForManagerFlaggedRoleGrantingOnlyViewPermissions. */
     public function testIsManagerTrueForManagerFlaggedRoleGrantingOnlyViewPermissions(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.view'], isManager: true);
         $this->assertTrue($this->auth()->isManager());
@@ -421,7 +418,7 @@ final class AuthServiceTest extends TestCase
     /** Régression : voir testManagedStoreIdsEmptyForRoleGrantingPermissionButNotFlaggedManager. */
     public function testIsManagerFalseForRoleGrantingPermissionButNotFlaggedManager(): void
     {
-        $_SESSION['auth_user_id'] = 10;
+        session()->put('auth_user_id', 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.create'], isManager: false);
         $this->assertFalse($this->auth()->isManager());
@@ -497,7 +494,7 @@ final class AuthServiceTest extends TestCase
         $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
 
         $this->assertFalse($this->auth()->attemptViaRememberCookie('selector123.validator456'));
-        $this->assertArrayNotHasKey('auth_user_id', $_SESSION);
+        $this->assertFalse(session()->has('auth_user_id'));
     }
 
     public function testAttemptViaRememberCookieFailsWithWrongValidator(): void
@@ -512,7 +509,7 @@ final class AuthServiceTest extends TestCase
         $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
 
         $this->assertFalse($this->auth()->attemptViaRememberCookie('selector123.wrong-validator'));
-        $this->assertArrayNotHasKey('auth_user_id', $_SESSION);
+        $this->assertFalse(session()->has('auth_user_id'));
     }
 
     public function testAttemptViaRememberCookieFailsForInactiveUser(): void
@@ -551,7 +548,7 @@ final class AuthServiceTest extends TestCase
         $result = $this->auth()->attemptViaRememberCookie('selector123.validator456');
 
         $this->assertTrue($result);
-        $this->assertSame(10, $_SESSION['auth_user_id']);
+        $this->assertSame(10, session()->get('auth_user_id'));
     }
 
     public function testLogoutRevokesMatchingRememberToken(): void

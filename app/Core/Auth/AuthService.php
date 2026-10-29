@@ -72,7 +72,7 @@ final class AuthService
             return false;
         }
 
-        session_regenerate_id(true);
+        session()->regenerate();
         $this->bindSession($user);
         $this->rememberPasswordStrength($user, $password);
         if ($remember) {
@@ -115,7 +115,7 @@ final class AuthService
             return false;
         }
 
-        session_regenerate_id(true);
+        session()->regenerate();
         $this->bindSession($user);
         $this->rememberPasswordStrength($user, $password);
         if ($remember) {
@@ -166,7 +166,7 @@ final class AuthService
 
         $this->rememberTokens->deleteBySelector($selector);
 
-        session_regenerate_id(true);
+        session()->regenerate();
         $this->bindSession($user);
         $this->issueRememberToken((int) $user['id']);
 
@@ -179,7 +179,7 @@ final class AuthService
      */
     public static function sessionUserId(): ?int
     {
-        $id = $_SESSION[self::SESSION_KEY] ?? null;
+        $id = session()->get(self::SESSION_KEY);
         return is_numeric($id) ? (int) $id : null;
     }
 
@@ -190,7 +190,7 @@ final class AuthService
      */
     public function user(): ?array
     {
-        $id = $_SESSION[self::SESSION_KEY] ?? null;
+        $id = session()->get(self::SESSION_KEY);
         if ($id === null) {
             return null;
         }
@@ -209,9 +209,9 @@ final class AuthService
         // Le mot de passe a changé depuis l'ouverture de cette session (par l'utilisateur, par
         // réinitialisation ou par un admin) : elle est révoquée, y compris sur les autres appareils.
         // Une session ouverte avant l'introduction de l'empreinte l'adopte à sa première requête.
-        $stored = $_SESSION[self::SESSION_PW_FINGERPRINT] ?? null;
+        $stored = session()->get(self::SESSION_PW_FINGERPRINT);
         if (!is_string($stored)) {
-            $_SESSION[self::SESSION_PW_FINGERPRINT] = $this->fingerprint($user);
+            session()->put(self::SESSION_PW_FINGERPRINT, $this->fingerprint($user));
         } elseif (!hash_equals($stored, $this->fingerprint($user))) {
             $this->dropSession();
             return null;
@@ -223,7 +223,7 @@ final class AuthService
     /** L'utilisateur est-il connecté (session valide, compte toujours actif) ? */
     public function check(): bool
     {
-        return !empty($_SESSION[self::SESSION_KEY]) && $this->user() !== null;
+        return !empty(session()->get(self::SESSION_KEY)) && $this->user() !== null;
     }
 
     /**
@@ -244,13 +244,13 @@ final class AuthService
         }
 
         $fingerprint = $this->fingerprint($user);
-        $state = $_SESSION[self::SESSION_PW_WEAK] ?? null;
+        $state = session()->get(self::SESSION_PW_WEAK);
         if (!is_array($state) || !hash_equals((string) ($state['fp'] ?? ''), $fingerprint)) {
             $state = [
                 'fp'   => $fingerprint,
                 'weak' => password_verify(PasswordPolicy::DEFAULT_PASSWORD, (string) ($user['password_hash'] ?? '')),
             ];
-            $_SESSION[self::SESSION_PW_WEAK] = $state;
+            session()->put(self::SESSION_PW_WEAK, $state);
         }
 
         return (bool) $state['weak'];
@@ -262,35 +262,30 @@ final class AuthService
      */
     public function refreshSessionAfterPasswordChange(array $user): void
     {
-        $_SESSION[self::SESSION_PW_FINGERPRINT] = $this->fingerprint($user);
+        session()->put(self::SESSION_PW_FINGERPRINT, $this->fingerprint($user));
         // Le nouveau mot de passe a passé PasswordPolicy : il ne doit plus être réclamé.
-        $_SESSION[self::SESSION_PW_WEAK] = ['fp' => $this->fingerprint($user), 'weak' => false];
+        session()->put(self::SESSION_PW_WEAK, ['fp' => $this->fingerprint($user), 'weak' => false]);
     }
 
     /** Mémorise, à la connexion, si le mot de passe saisi est trop court (clair disponible uniquement ici). */
     private function rememberPasswordStrength(array $user, string $password): void
     {
-        $_SESSION[self::SESSION_PW_WEAK] = [
+        session()->put(self::SESSION_PW_WEAK, [
             'fp'   => $this->fingerprint($user),
             'weak' => !PasswordPolicy::isLongEnough($password),
-        ];
+        ]);
     }
 
     private function bindSession(array $user): void
     {
-        $_SESSION[self::SESSION_KEY] = $user['id'];
-        $_SESSION[self::SESSION_PW_FINGERPRINT] = $this->fingerprint($user);
-        $_SESSION[self::SESSION_PW_REMINDER] = true;
+        session()->put(self::SESSION_KEY, $user['id']);
+        session()->put(self::SESSION_PW_FINGERPRINT, $this->fingerprint($user));
+        session()->put(self::SESSION_PW_REMINDER, true);
     }
 
     private function dropSession(): void
     {
-        unset(
-            $_SESSION[self::SESSION_KEY],
-            $_SESSION[self::SESSION_PW_FINGERPRINT],
-            $_SESSION[self::SESSION_PW_WEAK],
-            $_SESSION[self::SESSION_PW_REMINDER],
-        );
+        session()->forget([self::SESSION_KEY, self::SESSION_PW_FINGERPRINT, self::SESSION_PW_WEAK, self::SESSION_PW_REMINDER]);
     }
 
     /**
@@ -300,8 +295,7 @@ final class AuthService
      */
     public function consumePasswordReminder(): bool
     {
-        $pending = !empty($_SESSION[self::SESSION_PW_REMINDER]);
-        unset($_SESSION[self::SESSION_PW_REMINDER]);
+        $pending = !empty(session()->pull(self::SESSION_PW_REMINDER));
 
         return $pending && $this->mustChangePassword();
     }

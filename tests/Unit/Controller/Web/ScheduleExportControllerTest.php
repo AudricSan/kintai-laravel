@@ -77,12 +77,12 @@ final class ScheduleExportControllerTest extends TestCase
             new IcalService($translations),
             new AuditLogger(),
         );
-        $_SESSION['auth_user_id'] = 9;
+        session()->put('auth_user_id', 9);
     }
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id'], $_SESSION['auth_pw_fp']);
+        session()->forget(['auth_user_id', 'auth_pw_fp']);
         Log::reset();
         Container::getInstance()->forget(TranslationService::class);
     }
@@ -140,7 +140,7 @@ final class ScheduleExportControllerTest extends TestCase
 
     public function testAnonymousVisitorsAreSentToTheLogin(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $response = $this->controller->download($this->request(['format' => 'json', 'store_id' => '3']));
 
         $this->assertSame(302, $response->status());

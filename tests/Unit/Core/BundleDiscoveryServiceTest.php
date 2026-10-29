@@ -232,7 +232,7 @@ final class BundleDiscoveryServiceTest extends TestCase
 
     public function testABundleRequiringTheProvidedContractIsCompatible(): void
     {
-        $meta = $this->discoverOne('contract-ok', '1.0.0', ['kintai_contract' => '^1.0']);
+        $meta = $this->discoverOne('contract-ok', '1.0.0', ['kintai_contract' => '^2.0']);
 
         $this->assertNull($meta['incompatible']);
     }
@@ -256,7 +256,7 @@ final class BundleDiscoveryServiceTest extends TestCase
     {
         $dir = sys_get_temp_dir() . '/kintai-legacy-contract-' . uniqid();
         $this->writeFakeLegacyBundle($dir, 'FakeNoManifestBundle', 'fake-no-manifest');
-        $this->writeFakeLegacyBundle($dir, 'FakeContractBundle', 'fake-contract', ['kintai_contract' => '^1.0']);
+        $this->writeFakeLegacyBundle($dir, 'FakeContractBundle', 'fake-contract', ['kintai_contract' => '^2.0']);
         $empty = sys_get_temp_dir() . '/kintai-installed-' . uniqid();
         mkdir($empty, 0777, true);
 

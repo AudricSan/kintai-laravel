@@ -151,7 +151,7 @@ final class Log
             $rc['request_uri'],
             null,
             null,
-            session_id() ?: null,
+            session()->getId() ?: null,
         );
     }
 
@@ -183,7 +183,7 @@ final class Log
             $rc['request_uri'],
             $responseStatus,
             $durationMs,
-            session_id() ?: null,
+            session()->getId() ?: null,
         );
     }
 

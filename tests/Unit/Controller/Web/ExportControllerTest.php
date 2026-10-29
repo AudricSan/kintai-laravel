@@ -103,12 +103,12 @@ final class ExportControllerTest extends TestCase
             new IcalService($translations),
             new AuditLogger(),
         );
-        $_SESSION['auth_user_id'] = 5;
+        session()->put('auth_user_id', 5);
     }
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id'], $_SESSION['auth_pw_fp']);
+        session()->forget(['auth_user_id', 'auth_pw_fp']);
         Log::reset();
         foreach ($this->bound as $class) {
             Container::getInstance()->forget($class);
@@ -189,7 +189,7 @@ final class ExportControllerTest extends TestCase
 
     public function testAnonymousVisitorsAreSentToTheLogin(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $response = $this->controller->download($this->request(['dataset' => 'shifts', 'target' => 'me', 'format' => 'json']));
 
         $this->assertStringContainsString('/login', $response->headers()['Location']);

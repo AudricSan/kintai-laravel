@@ -23,14 +23,14 @@ final class ValidationFeedbackTest extends TestCase
     protected function setUp(): void
     {
         $this->server = $_SERVER;
-        $_SESSION = [];
+        session()->flush();
     }
 
     protected function tearDown(): void
     {
         $_SERVER = $this->server;
         $_POST = [];
-        $_SESSION = [];
+        session()->flush();
     }
 
     private function request(string $method, array $post, ?string $referer): Request

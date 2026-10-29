@@ -83,12 +83,9 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $this->previousContainer = (new \ReflectionProperty(Container::class, 'instance'))->getValue();
         $this->activeBundles('team-directory');
 
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
 
         $userId = 7;
-        $_SESSION['auth_user_id'] = $userId;
+        session()->put('auth_user_id', $userId);
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->users->method('findById')->with($userId)->willReturn([
@@ -125,7 +122,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
         (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, $this->previousContainer);
     }

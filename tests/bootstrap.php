@@ -9,6 +9,6 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 putenv('SESSION_DRIVER=array');
 $_ENV['SESSION_DRIVER'] = $_SERVER['SESSION_DRIVER'] = 'array';
 
-$app = require dirname(__DIR__) . '/bootstrap/standalone.php';
+$app = $GLOBALS["kintai_test_app"] = require dirname(__DIR__) . "/bootstrap/standalone.php";
 $app->loadEnvironmentFrom('.env.testing');
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();

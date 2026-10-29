@@ -18,7 +18,7 @@ final class ProfileNotificationsTabTest extends TestCase
 {
     protected function setUp(): void
     {
-        $_SESSION['_csrf_token'] = 'test-token';
+        session()->put('_token', 'test-token');
         $router = new Router();
         $router->get('/profile', ['X', 'y'], name: 'profile');
         $router->post('/profile/notifications', ['X', 'y'], name: 'profile.notifications');
@@ -27,7 +27,7 @@ final class ProfileNotificationsTabTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['_csrf_token']);
+        session()->forget('_token');
     }
 
     private function render(array $grid, ?array $quiet, array $extra = []): string

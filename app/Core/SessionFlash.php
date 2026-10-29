@@ -23,10 +23,10 @@ final class SessionFlash
         if (trim($text) === '') {
             return;
         }
-        $_SESSION[self::SESSION_KEY][] = [
+        session()->push(self::SESSION_KEY, [
             'type' => in_array($type, self::TYPES, true) ? $type : 'warning',
             'text' => $text,
-        ];
+        ]);
     }
 
     /**
@@ -36,8 +36,7 @@ final class SessionFlash
      */
     public static function pull(): array
     {
-        $messages = $_SESSION[self::SESSION_KEY] ?? [];
-        unset($_SESSION[self::SESSION_KEY]);
+        $messages = session()->pull(self::SESSION_KEY, []);
 
         return is_array($messages) ? array_values(array_filter(
             $messages,

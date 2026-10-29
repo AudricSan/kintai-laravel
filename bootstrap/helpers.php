@@ -11,29 +11,10 @@ declare(strict_types=1);
  * scripts et tests —, avec la signature et le comportement que le contrat garantit aux bundles.
  *
  * - __()           : traductions JSON de Kintai (TranslationService), paramètres « :nom » ;
- * - csrf_token()   : jeton CSRF de la session PHP de Kintai (contrôlé par CsrfMiddleware) ;
- * - csrf_field()   : champ caché correspondant ;
  * - storage_path() : dossier storage/ (ou KINTAI_STORAGE_PATH pour les tests), le même que celui de Laravel.
  *
  * Les corps ne référencent les classes qu'à l'appel : ce fichier ne charge rien.
  */
-
-if (!function_exists('csrf_token')) {
-    function csrf_token(): string
-    {
-        if (empty($_SESSION['_csrf_token'])) {
-            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
-        }
-        return $_SESSION['_csrf_token'];
-    }
-}
-
-if (!function_exists('csrf_field')) {
-    function csrf_field(): string
-    {
-        return '<input type="hidden" name="_token" value="' . htmlspecialchars(csrf_token(), ENT_QUOTES) . '">';
-    }
-}
 
 if (!function_exists('storage_path')) {
     function storage_path(string $path = ''): string

@@ -30,10 +30,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = 9;
+        session()->put('auth_user_id', 9);
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
 
@@ -63,7 +60,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
     }
 

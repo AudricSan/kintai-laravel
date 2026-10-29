@@ -34,10 +34,7 @@ final class NotificationControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = 5;
+        session()->put('auth_user_id', 5);
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@example.com']);
@@ -76,7 +73,7 @@ final class NotificationControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
     }
 

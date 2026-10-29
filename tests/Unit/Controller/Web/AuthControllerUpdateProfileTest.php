@@ -35,21 +35,18 @@ final class AuthControllerUpdateProfileTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
     }
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id']);
+        session()->forget('auth_user_id');
         $_POST = [];
     }
 
     public function testPropagatesSaveFailureInsteadOfRedirectingToFalseSuccess(): void
     {
         $userId = 42;
-        $_SESSION['auth_user_id'] = $userId;
+        session()->put('auth_user_id', $userId);
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with($userId)->willReturn(['id' => $userId, 'language' => 'fr']);
@@ -94,7 +91,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
     public function testAnEmptyOrInactiveLanguageMeansFollowingTheInstance(): void
     {
         $userId = 43;
-        $_SESSION['auth_user_id'] = $userId;
+        session()->put('auth_user_id', $userId);
 
         $saved = [];
         $users = $this->createMock(UserRepositoryInterface::class);

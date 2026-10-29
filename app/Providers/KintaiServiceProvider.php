@@ -12,7 +12,6 @@ use kintai\Console\KintaiScriptCommand;
 use kintai\Foundation\Auth\KintaiGate;
 use kintai\Foundation\Auth\KintaiGuard;
 use kintai\Foundation\Bridge\KintaiTranslator;
-use kintai\Foundation\Bridge\NativeSessionStore;
 
 /**
  * Raccorde Laravel aux services de Kintai pendant la migration : les helpers de Laravel (__(), csrf_token(),
@@ -26,7 +25,6 @@ final class KintaiServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->instance('translator', new KintaiTranslator());
-        $this->app->instance('session', new NativeSessionStore());
     }
 
     public function boot(): void

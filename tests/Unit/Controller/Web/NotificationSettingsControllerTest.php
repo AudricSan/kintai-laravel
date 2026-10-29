@@ -62,10 +62,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION['auth_user_id'] = 1;
+        session()->put('auth_user_id', 1);
 
         $capsule = new Capsule();
         $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
@@ -94,7 +91,7 @@ final class NotificationSettingsControllerTest extends TestCase
             $table->unique(['user_id', 'type', 'channel']);
         });
 
-        $_SESSION['_csrf_token'] = 'x';
+        session()->put('_token', 'x');
         $router = new Router();
         // Routes citées par la page et ses onglets.
         foreach (['x', 'admin.owner_settings', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'admin.calendar_settings', 'admin.notifications_settings', 'admin.notifications_settings.save', 'admin.notifications_settings.test', 'admin.notifications_settings.vapid', 'home', 'auth.login'] as $i => $name) {
@@ -178,7 +175,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SESSION['auth_user_id'], $_SESSION['_csrf_token']);
+        session()->forget(['auth_user_id', '_token']);
         $_POST = [];
         $_GET  = [];
     }

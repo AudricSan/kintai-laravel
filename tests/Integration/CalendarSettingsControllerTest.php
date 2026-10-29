@@ -33,7 +33,7 @@ final class CalendarSettingsControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->setUpCalendarFixture();
-        $_SESSION['_csrf_token'] = 'x';
+        session()->put('_token', 'x');
         $router = new Router();
         // Routes citées par la page et par le bandeau d'onglets des réglages.
         foreach (['x', 'admin.owner_settings', 'admin.notifications_settings', 'admin.calendar_settings', 'admin.calendar_settings.save', 'admin.calendar_settings.test', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'home'] as $i => $name) {

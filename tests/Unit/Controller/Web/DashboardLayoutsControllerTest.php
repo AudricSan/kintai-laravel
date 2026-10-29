@@ -29,10 +29,7 @@ final class DashboardLayoutsControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            @session_start();
-        }
-        $_SESSION = [];
+        session()->flush();
         $this->layouts     = $this->createMock(UserDashboardLayoutRepositoryInterface::class);
         $this->prefs       = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
         $this->roleLayouts = $this->createMock(RoleDashboardLayoutRepositoryInterface::class);
@@ -52,7 +49,7 @@ final class DashboardLayoutsControllerTest extends TestCase
     protected function tearDown(): void
     {
         $_POST = [];
-        $_SESSION = [];
+        session()->flush();
     }
 
     private function request(array $post, array $user = ['id' => 7]): Request
