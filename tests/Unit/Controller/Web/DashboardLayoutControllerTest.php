@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Exceptions\ValidationException;
+use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Exceptions\ValidationException;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\UI\Controller\Web\DashboardLayoutController;
+use App\Services\AuditLogger;
+use App\Http\Controllers\DashboardLayoutController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

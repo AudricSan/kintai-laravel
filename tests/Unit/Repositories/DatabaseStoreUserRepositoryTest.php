@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseStoreUserRepository;
+use App\Repositories\DatabaseStoreUserRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\StoreUser as EloquentStoreUser;
+use App\Models\StoreUser as EloquentStoreUser;
 
 final class DatabaseStoreUserRepositoryTest extends TestCase
 {

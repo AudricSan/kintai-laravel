@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
+use App\Mail\MailerService;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
 /** Expéditeur des e-mails réglé par l'Owner : il l'emporte sur config/mail.php, pour tous les envois. */

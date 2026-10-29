@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseNotificationRepository;
-use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\PushNotificationService;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Services\NotificationTypeRegistry;
+use App\Repositories\DatabaseNotificationRepository;
+use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\NotificationService;
+use App\Services\PushNotificationService;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Services\NotificationTypeRegistry;
 use Illuminate\Translation\Translator;
-use kintai\Domain\Eloquent\Notification;
+use App\Models\Notification;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -322,7 +322,7 @@ final class NotificationServiceTest extends TestCase
     /** Une panne du « lu » automatique ne doit jamais empêcher d'afficher la page. */
     public function testMarkReadForNeverThrows(): void
     {
-        $repo = $this->createStub(\kintai\Core\Repositories\NotificationRepositoryInterface::class);
+        $repo = $this->createStub(\App\Repositories\NotificationRepositoryInterface::class);
         $repo->method('markReadByReference')->willThrowException(new \RuntimeException('base indisponible'));
         $service = new NotificationService($repo, $this->push, $this->translations, $this->users);
 

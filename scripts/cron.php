@@ -37,10 +37,10 @@ define('BASE_PATH', dirname(__DIR__));
 
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
-require BASE_PATH . '/app/Core/helpers.php';
+require BASE_PATH . '/app/Support/helpers.php';
 
-use kintai\Core\Cron\CronRunner;
-use kintai\Core\InstalledBundleAutoloader;
+use App\Cron\CronRunner;
+use App\InstalledBundleAutoloader;
 use Illuminate\Http\Request;
 
 // Même démarrage que le front controller (public/index.php) : fichier .env, puis classes des bundles installés,

@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\Requests;
+namespace Tests\Unit\Controller\Web\Requests;
 
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\BundleManager;
+use App\Auth\PermissionService;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Tests\Support\FakeBundleManagerFactory;
-use kintai\Tests\Support\FakeClaimsProvider;
-use kintai\Tests\Support\FakePendingTimeoffProvider;
-use kintai\UI\Controller\Web\Requests\AdminRequestsController;
-use kintai\UI\ViewRenderer;
+use App\Extension\ExtensionRegistry;
+use Tests\Support\FakeBundleManagerFactory;
+use Tests\Support\FakeClaimsProvider;
+use Tests\Support\FakePendingTimeoffProvider;
+use App\Http\Controllers\Requests\AdminRequestsController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**

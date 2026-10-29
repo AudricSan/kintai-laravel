@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Services\AvailabilityGuard;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Services\AvailabilityGuard;
 use PHPUnit\Framework\TestCase;
 
 /** Avertissement « employé non disponible » : jamais un blocage, seulement une information pour le planning. */

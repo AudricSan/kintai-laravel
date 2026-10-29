@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Http\Request;
-use kintai\UI\Controller\Web\PwaController;
+use App\Http\Controllers\PwaController;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

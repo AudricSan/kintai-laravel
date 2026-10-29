@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller;
+namespace Tests\Unit\Controller;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Translation\Translator;
-use kintai\Core\Services\WikiContentService;
-use kintai\Core\Services\WikiSyncService;
-use kintai\UI\Controller\Web\DocsController;
-use kintai\UI\ViewRenderer;
+use App\Services\WikiContentService;
+use App\Services\WikiSyncService;
+use App\Http\Controllers\DocsController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

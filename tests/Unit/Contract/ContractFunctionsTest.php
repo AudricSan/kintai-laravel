@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Contract;
+namespace Tests\Unit\Contract;
 
-use kintai\Tests\Support\ContractUsageScanner;
+use Tests\Support\ContractUsageScanner;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,7 +37,7 @@ final class ContractFunctionsTest extends TestCase
     {
         $known = array_merge(array_keys(self::functions()['declared']), self::functions()['internal']);
         $defined = [];
-        foreach (['app/Core/helpers.php', 'app/helpers.php'] as $file) {
+        foreach (['app/Support/helpers.php', 'app/helpers.php'] as $file) {
             preg_match_all('/^\s*function\s+(\w+)\s*\(/m', (string) file_get_contents(dirname(__DIR__, 3) . '/' . $file), $m);
             array_push($defined, ...$m[1]);
         }

@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Setup;
+namespace Tests\Unit\Core\Setup;
 
-use kintai\Core\Exceptions\PlanLimitExceededException;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Exceptions\PlanLimitExceededException;
+use App\Exceptions\ValidationException;
+use App\Mail\MailerService;
+use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\EnvFileWriter;
-use kintai\Core\Services\InstanceLocale;
-use kintai\Core\Services\NotificationChannelStatus;
-use kintai\Core\Services\NotificationPreferenceService;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\Services\StoreServiceInterface;
-use kintai\Core\Services\VapidKeyStore;
-use kintai\Core\Setup\MailStep;
-use kintai\Core\Setup\NotificationsStep;
-use kintai\Core\Setup\OperationsStep;
-use kintai\Core\Setup\OrganisationStep;
-use kintai\Core\Setup\StoreStep;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Services\AppSettingsService;
+use App\Services\EnvFileWriter;
+use App\Services\InstanceLocale;
+use App\Services\NotificationChannelStatus;
+use App\Services\NotificationPreferenceService;
+use App\Services\NotificationService;
+use App\Services\PublicUrlResolver;
+use App\Services\StoreServiceInterface;
+use App\Services\VapidKeyStore;
+use App\Setup\MailStep;
+use App\Setup\NotificationsStep;
+use App\Setup\OperationsStep;
+use App\Setup\OrganisationStep;
+use App\Setup\StoreStep;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -190,7 +190,7 @@ final class SetupStepsTest extends TestCase
         $sent = [];
         $factory = function (array $config) use (&$sent): MailerService {
             $sent['config'] = $config;
-            return new MailerService($config, new class($sent) implements \kintai\Core\Mail\MailTransportInterface {
+            return new MailerService($config, new class($sent) implements \App\Mail\MailTransportInterface {
                 public function __construct(private array &$sent) {}
 
                 public function send(string $fromAddress, string $fromName, array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $extraHeaders = []): bool

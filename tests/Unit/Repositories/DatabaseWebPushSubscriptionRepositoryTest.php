@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseWebPushSubscriptionRepository;
-use kintai\Domain\Eloquent\WebPushSubscription;
+use App\Repositories\DatabaseWebPushSubscriptionRepository;
+use App\Models\WebPushSubscription;
 use PHPUnit\Framework\TestCase;
 
 /** Contre le vrai schéma de `web_push_subscriptions` (2026_10_22_000000), sans mock. */

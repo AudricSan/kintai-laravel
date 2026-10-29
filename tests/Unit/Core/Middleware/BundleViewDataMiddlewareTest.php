@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Middleware;
+namespace Tests\Unit\Core\Middleware;
 
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
+use App\Bundles\Bundle;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Middleware\BundleViewDataMiddleware;
+use App\Extension\ExtensionRegistry;
+use App\Http\Middleware\BundleViewDataMiddleware;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,7 +21,7 @@ final class BundleViewDataMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new \kintai\Tests\Support\TestContainer();
+        $this->container = new \Tests\Support\TestContainer();
     }
 
     /** @param array<string, mixed> $active slug => variables déclarées (array, ou \Throwable levée) */

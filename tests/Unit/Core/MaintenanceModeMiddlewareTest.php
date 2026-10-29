@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Auth\AuthService;
+use App\Auth\AuthService;
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\ServiceUnavailableException;
-use kintai\Core\Middleware\MaintenanceModeMiddleware;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Exceptions\ServiceUnavailableException;
+use App\Http\Middleware\MaintenanceModeMiddleware;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\AppSettingsService;
+use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
 final class MaintenanceModeMiddlewareTest extends TestCase
@@ -26,7 +26,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new \kintai\Tests\Support\TestContainer();
+        $this->container = new \Tests\Support\TestContainer();
     }
 
     protected function tearDown(): void

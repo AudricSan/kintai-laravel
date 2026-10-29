@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Console;
+namespace Tests\Unit\Console;
 
-use kintai\Console\KintaiScriptCommand;
+use App\Console\KintaiScriptCommand;
 use PHPUnit\Framework\TestCase;
 
 final class KintaiScriptCommandTest extends TestCase

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Exceptions\ValidationException;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\Controller\Api\V1\StoreUserController;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\Http\Controllers\Api\V1\StoreUserController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Exceptions\ForbiddenException;
+use App\Exceptions\ForbiddenException;
 use PHPUnit\Framework\TestCase;
 
 final class StoreUserControllerTest extends TestCase

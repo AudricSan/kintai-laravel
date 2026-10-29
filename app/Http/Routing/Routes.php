@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http\Routing;
+namespace App\Http\Routing;
 
 use Illuminate\Routing\Route;
-use kintai\Core\Routing\RouteBinderRegistry;
-use kintai\Core\Routing\RouteParamBinder;
+use App\Routing\RouteBinderRegistry;
+use App\Routing\RouteParamBinder;
 
 /**
  * Ce que Kintai ajoute aux routes de Laravel : la règle de permission d'une route (->permission()), ses paramètres

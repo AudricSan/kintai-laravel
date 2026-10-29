@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
 /**
  * Génère une paire de clés RSA 2048 bits jetable pour les tests qui exercent

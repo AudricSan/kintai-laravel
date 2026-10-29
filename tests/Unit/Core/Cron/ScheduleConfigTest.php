@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
 use Cron\CronExpression;
-use kintai\Core\Cron\CronRunner;
+use App\Cron\CronRunner;
 use PHPUnit\Framework\TestCase;
 
 /** Planificateur (config/schedule.php, routes/console.php) : chaque tâche du Core y est, avec une expression valide. */

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Services\AppResetService;
+use App\Services\AppResetService;
 use PHPUnit\Framework\TestCase;
 
 final class AppResetServiceTest extends TestCase
@@ -135,7 +135,7 @@ final class AppResetServiceTest extends TestCase
         $managerId = $this->capsule->table('roles')->where('slug', 'manager')->value('id');
         $managerPermissions = $this->capsule->table('role_permissions')->where('role_id', $managerId)->count();
         $this->assertSame(
-            count(\kintai\Core\Auth\PermissionCatalog::MANAGER_DEFAULTS),
+            count(\App\Auth\PermissionCatalog::MANAGER_DEFAULTS),
             $managerPermissions,
             'le Manager doit récupérer toutes ses permissions par défaut',
         );

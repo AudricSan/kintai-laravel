@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseUserNavPrefsRepository;
+use App\Repositories\DatabaseUserNavPrefsRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\UserNavPref as EloquentUserNavPref;
+use App\Models\UserNavPref as EloquentUserNavPref;
 
 final class DatabaseUserNavPrefsRepositoryTest extends TestCase
 {

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Foundation\Auth;
+namespace App\Foundation\Auth;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
-use kintai\Core\Auth\AuthService;
+use App\Auth\AuthService;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 
 /**
  * Garde d'authentification Laravel adossée à celle de Kintai : auth()->user(), auth()->check(), Auth::id(), @auth…

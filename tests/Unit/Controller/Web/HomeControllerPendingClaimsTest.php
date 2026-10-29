@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\BundleManager;
+use App\Auth\PermissionService;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\DashboardAlertService;
-use kintai\Core\Services\StoreStatsServiceInterface;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Tests\Support\FakeBundleManagerFactory;
-use kintai\Tests\Support\FakeClaimsProvider;
-use kintai\Tests\Support\FakePendingTimeoffProvider;
-use kintai\UI\Controller\Web\HomeController;
-use kintai\UI\ViewRenderer;
+use App\Services\DashboardAlertService;
+use App\Services\StoreStatsServiceInterface;
+use App\Extension\ExtensionRegistry;
+use Tests\Support\FakeBundleManagerFactory;
+use Tests\Support\FakeClaimsProvider;
+use Tests\Support\FakePendingTimeoffProvider;
+use App\Http\Controllers\HomeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**

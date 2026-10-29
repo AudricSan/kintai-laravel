@@ -143,8 +143,8 @@ PHP 8.3 on **Laravel 13** (Eloquent, Artisan). SQLite or MySQL, interchangeable 
 public/index.php         → Laravel front controller
 bootstrap/app.php        → Laravel application
 routes/web.php           → Laravel routes; routes/kintai.php → Kintai's routes (being moved over)
-app/Core/                → Kintai core: container, router, middleware, repositories, services (being replaced by Laravel's)
-app/UI/                  → Web + API controllers, PHP views
+app/                → Kintai core: container, router, middleware, repositories, services (being replaced by Laravel's)
+app/View/                  → Web + API controllers, PHP views
 app/Contract/            → the bundle contract (stable API for bundles)
 public/assets/           → modular CSS/JS, no build step
 database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
@@ -165,7 +165,7 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
      `@auth` and the Gate (`Gate::allows('shifts.update', $storeId)`, `@can`) answer with Kintai's logged-in user and
      RBAC permissions. Laravel's validator (`validator()`, `Validator::make`, `->validate()`) speaks Kintai's
      validation messages in the user's language, and its errors are answered like Kintai's own (422 JSON, or back to
-     the form with the input kept). Every core view is a Blade template (`app/UI/View/**/*.blade.php`); a bundle's
+     the form with the input kept). Every core view is a Blade template (`resources/views/**/*.blade.php`); a bundle's
      plain PHP views keep working, and the old `src/UI/View/_partials/*.php` paths still include the shared partials.
    - Kintai's middlewares (global ones from `config/middleware.php`, then those of each route) run in Laravel's
      middleware stack, in the same order (`php artisan route:list -v` lists them); an exception still crosses them

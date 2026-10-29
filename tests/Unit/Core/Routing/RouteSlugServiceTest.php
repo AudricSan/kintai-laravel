@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Routing;
+namespace Tests\Unit\Core\Routing;
 
-use kintai\Core\Routing\RouteSlugService;
+use App\Routing\RouteSlugService;
 use PHPUnit\Framework\TestCase;
 
 /** Attribution des alias de magasins : nom tel quel par défaut, slug manuel prioritaire, historique conservé. */

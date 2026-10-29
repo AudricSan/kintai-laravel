@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\MascotResolver;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\MascotResolver;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

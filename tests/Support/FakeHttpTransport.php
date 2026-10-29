@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
-use kintai\Core\Services\Calendar\HttpTransportInterface;
+use App\Services\Calendar\HttpTransportInterface;
 
 /**
  * Transport HTTP factice : enregistre les requêtes et répond selon des règles « méthode + fin d'URL » (la première qui

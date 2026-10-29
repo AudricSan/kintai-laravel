@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
 use kintai\Contract\Provider\Attendance;
 use kintai\Contract\Provider\AttendanceProvider;

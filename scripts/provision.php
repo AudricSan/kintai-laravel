@@ -31,20 +31,20 @@ define('BASE_PATH', dirname(__DIR__));
 
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
-require_once BASE_PATH . '/app/Core/helpers.php';
+require_once BASE_PATH . '/app/Support/helpers.php';
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Auth\PasswordHasher;
-use kintai\Core\Auth\PasswordPolicy;
-use kintai\Core\Database\DemoDataSeeder;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\EnvFileWriter;
-use kintai\Core\Services\InstanceLocale;
-use kintai\Core\Services\PublicUrlResolver;
+use App\Auth\PasswordHasher;
+use App\Auth\PasswordPolicy;
+use App\Database\DemoDataSeeder;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\EnvFileWriter;
+use App\Services\InstanceLocale;
+use App\Services\PublicUrlResolver;
 
 // ─── Parse CLI options ───────────────────────────────────────────────────
 
@@ -283,9 +283,9 @@ try {
 
     // Comme l'installateur web : aucun bundle actif, l'Owner choisit licence et bundles dans /admin/setup (un
     // bandeau l'y invite à sa première connexion).
-    \kintai\Core\Services\SetupWizard::start(
+    \App\Services\SetupWizard::start(
         $container->make(AppSettingsRepositoryInterface::class),
-        $container->make(\kintai\Core\Services\AppSettingsService::class)->updateChannel(),
+        $container->make(\App\Services\AppSettingsService::class)->updateChannel(),
     );
     echo "[Kintai] Licence et bundles : à choisir dans /admin/setup à la première connexion de l'Owner.\n";
 

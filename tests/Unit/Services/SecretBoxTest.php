@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\SecretBox;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Services\SecretBox;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 /** Chiffrement des secrets gardés en base (jeton Google, secret client). */

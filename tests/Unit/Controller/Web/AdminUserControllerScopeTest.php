@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\OwnerGuard;
+use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Core\Services\RoleAssignmentSyncService;
-use kintai\UI\Controller\Web\Staff\AdminUserController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\LicenseClientService;
+use App\Services\Log;
+use App\Services\PlanLimitService;
+use App\Services\RoleAssignmentSyncService;
+use App\Http\Controllers\Staff\AdminUserController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -68,7 +68,7 @@ final class AdminUserControllerScopeTest extends TestCase
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $stores           = $this->createStub(StoreRepositoryInterface::class);
 
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
 

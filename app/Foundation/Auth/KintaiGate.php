@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Foundation\Auth;
+namespace App\Foundation\Auth;
 
-use kintai\Core\Auth\PermissionCatalog;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\PermissionCatalog;
+use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 
 /**

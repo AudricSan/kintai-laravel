@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\Services\ImageCompressionService;
+use App\Services\ImageCompressionService;
 use PHPUnit\Framework\TestCase;
 
 final class ImageCompressionServiceTest extends TestCase

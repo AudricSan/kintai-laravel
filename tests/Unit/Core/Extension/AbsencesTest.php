@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Extension;
+namespace Tests\Unit\Core\Extension;
 
 use kintai\Contract\Provider\Absence;
 use kintai\Contract\Provider\AbsenceProvider;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\Absences;
-use kintai\Core\Extension\ExtensionRegistry;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\Absences;
+use App\Extension\ExtensionRegistry;
 use PHPUnit\Framework\TestCase;
 
 /**

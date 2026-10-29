@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Components;
+namespace Tests\Unit\Components;
 
-use kintai\UI\Components\Table;
+use App\View\Components\Table;
 use PHPUnit\Framework\TestCase;
 
 /**

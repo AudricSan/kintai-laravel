@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use GuzzleHttp\Psr7\Response as PsrResponse;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Services\VapidKeyStore;
-use kintai\Core\Services\WebPushEndpointValidator;
-use kintai\Core\Services\WebPushService;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Services\VapidKeyStore;
+use App\Services\WebPushEndpointValidator;
+use App\Services\WebPushService;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;

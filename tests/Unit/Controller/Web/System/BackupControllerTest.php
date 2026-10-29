@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\BackupService;
-use kintai\Core\Services\GithubUpdateService;
+use App\Services\AppSettingsService;
+use App\Services\AuditLogger;
+use App\Services\BackupService;
+use App\Services\GithubUpdateService;
 use Illuminate\Translation\Translator;
-use kintai\Core\Services\UpdateService;
-use kintai\UI\Controller\Web\System\BackupController;
-use kintai\UI\ViewRenderer;
-use kintai\Tests\Support\VerifiedReleaseFixture;
+use App\Services\UpdateService;
+use App\Http\Controllers\System\BackupController;
+use App\View\ViewRenderer;
+use Tests\Support\VerifiedReleaseFixture;
 use PHPUnit\Framework\TestCase;
 
 final class BackupControllerTest extends TestCase
@@ -71,7 +71,7 @@ final class BackupControllerTest extends TestCase
         $this->removeDir($this->tmpDir);
         unset($_ENV['LARAVEL_STORAGE_PATH']);
         $_GET = [];
-        \kintai\Core\Services\Log::reset();
+        \App\Services\Log::reset();
 
         kintai_test_translator_reset();
     }
@@ -417,7 +417,7 @@ final class BackupControllerTest extends TestCase
 
     public function testDescribeFlashShowsNothingForAFailureWhoseDetailIsInTheSession(): void
     {
-        // Le détail est affiché par le layout depuis kintai\Core\SessionFlash : pas de second bandeau.
+        // Le détail est affiché par le layout depuis App\SessionFlash : pas de second bandeau.
         $this->assertNull($this->describeFlash($this->makeController(), 'error_failed'));
     }
 
@@ -443,10 +443,10 @@ final class BackupControllerTest extends TestCase
 
     public function testRestoreLogsBackupRestoredAction(): void
     {
-        $logs = $this->createMock(\kintai\Core\Repositories\LogRepositoryInterface::class);
-        $container = new \kintai\Tests\Support\TestContainer();
-        $container->instance(\kintai\Core\Repositories\LogRepositoryInterface::class, $logs);
-        \kintai\Core\Services\Log::setContainer($container);
+        $logs = $this->createMock(\App\Repositories\LogRepositoryInterface::class);
+        $container = new \Tests\Support\TestContainer();
+        $container->instance(\App\Repositories\LogRepositoryInterface::class, $logs);
+        \App\Services\Log::setContainer($container);
 
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
@@ -465,15 +465,15 @@ final class BackupControllerTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=restored', $this->locationOf($response));
 
-        \kintai\Core\Services\Log::reset();
+        \App\Services\Log::reset();
     }
 
     public function testDeleteLogsBackupDeletedAction(): void
     {
-        $logs = $this->createMock(\kintai\Core\Repositories\LogRepositoryInterface::class);
-        $container = new \kintai\Tests\Support\TestContainer();
-        $container->instance(\kintai\Core\Repositories\LogRepositoryInterface::class, $logs);
-        \kintai\Core\Services\Log::setContainer($container);
+        $logs = $this->createMock(\App\Repositories\LogRepositoryInterface::class);
+        $container = new \Tests\Support\TestContainer();
+        $container->instance(\App\Repositories\LogRepositoryInterface::class, $logs);
+        \App\Services\Log::setContainer($container);
 
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
@@ -488,7 +488,7 @@ final class BackupControllerTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=deleted', $this->locationOf($response));
 
-        \kintai\Core\Services\Log::reset();
+        \App\Services\Log::reset();
     }
 
     public function testDescribeFlashParsesUpdateSummary(): void

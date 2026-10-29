@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\OwnerGuard;
+use App\Auth\PermissionService;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

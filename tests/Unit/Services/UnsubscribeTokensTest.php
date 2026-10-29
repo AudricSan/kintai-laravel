@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\UnsubscribeTokens;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Services\UnsubscribeTokens;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 /** Signature des liens de désabonnement : propre à (utilisateur, type, canal) et à l'instance. */

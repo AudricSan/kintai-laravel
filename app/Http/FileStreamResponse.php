@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http;
+namespace App\Http;
 
 use Symfony\Component\HttpFoundation\StreamedResponse;
 

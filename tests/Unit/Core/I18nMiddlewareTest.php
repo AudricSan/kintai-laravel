@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Middleware\I18nMiddleware;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Http\Middleware\I18nMiddleware;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Translation\Translator;

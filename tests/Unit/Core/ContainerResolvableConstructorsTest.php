@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Auth\UserAnonymizer;
-use kintai\Core\Cron\CalendarSyncJob;
-use kintai\Core\Services\Calendar\CalendarEventBuilder;
-use kintai\Core\Services\Calendar\GoogleCalendarClient;
-use kintai\Core\Services\Calendar\GoogleCalendarSettings;
-use kintai\Core\Services\Calendar\GoogleRedirectUri;
-use kintai\Core\Services\CalendarSyncService;
-use kintai\Core\Services\SecretBox;
-use kintai\UI\Controller\Web\AuthController;
-use kintai\UI\Controller\Web\CalendarLinkController;
-use kintai\UI\Controller\Web\System\CalendarSettingsController;
+use App\Auth\UserAnonymizer;
+use App\Cron\CalendarSyncJob;
+use App\Services\Calendar\CalendarEventBuilder;
+use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Calendar\GoogleCalendarSettings;
+use App\Services\Calendar\GoogleRedirectUri;
+use App\Services\CalendarSyncService;
+use App\Services\SecretBox;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CalendarLinkController;
+use App\Http\Controllers\System\CalendarSettingsController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

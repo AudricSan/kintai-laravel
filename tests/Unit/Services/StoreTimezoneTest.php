@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Services\IcalService;
-use kintai\Core\Services\StoreTimezone;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Services\IcalService;
+use App\Services\StoreTimezone;
 use Illuminate\Translation\Translator;
-use kintai\Core\Validation\StoreValidator;
+use App\Validation\StoreValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\UI;
+namespace Tests\Unit\UI;
 
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

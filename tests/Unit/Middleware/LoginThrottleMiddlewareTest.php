@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Middleware;
+namespace Tests\Unit\Middleware;
 
 use Closure;
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Middleware\LoginThrottleMiddleware;
+use App\Exceptions\HttpException;
+use App\Http\Middleware\LoginThrottleMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Security\AttemptCounter;
+use App\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
 /**

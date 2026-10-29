@@ -2,31 +2,31 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\BundleManager;
+use App\Auth\AuthService;
+use App\Auth\PermissionService;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\FeatureManager;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\FeatureManager;
+use App\Http\Middleware\AuthMiddleware;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\EmployeeStatsService;
+use App\Services\EmployeeStatsService;
 use Illuminate\Translation\Translator;
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -42,7 +42,7 @@ final class AuthMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new \kintai\Tests\Support\TestContainer();
+        $this->container = new \Tests\Support\TestContainer();
         $this->view      = new ViewRenderer(sys_get_temp_dir());
         $this->container->instance(ViewRenderer::class, $this->view);
         $this->container->instance(FeatureManager::class, new FeatureManager([]));
@@ -192,8 +192,8 @@ final class AuthMiddlewareTest extends TestCase
     public function testRouteVisibleReflectsThePermissionDeclaredOnTheRoute(): void
     {
         $router = kintai_test_registrar();
-        $router->get('/admin/photos', [\kintai\UI\Controller\Web\HomeController::class, 'index'], name: 'admin.photos.index', permission: 'photos.view');
-        $router->get('/admin/owner-settings', [\kintai\UI\Controller\Web\HomeController::class, 'index'], name: 'admin.owner_settings', permission: 'public');
+        $router->get('/admin/photos', [\App\Http\Controllers\HomeController::class, 'index'], name: 'admin.photos.index', permission: 'photos.view');
+        $router->get('/admin/owner-settings', [\App\Http\Controllers\HomeController::class, 'index'], name: 'admin.owner_settings', permission: 'public');
 
         $this->bindAuthenticatedUser(['shifts.view']);
         $this->handle();
@@ -208,7 +208,7 @@ final class AuthMiddlewareTest extends TestCase
     public function testRouteVisibleTrueWhenPermissionGranted(): void
     {
         $router = kintai_test_registrar();
-        $router->get('/admin/photos', [\kintai\UI\Controller\Web\HomeController::class, 'index'], name: 'admin.photos.index', permission: 'photos.view');
+        $router->get('/admin/photos', [\App\Http\Controllers\HomeController::class, 'index'], name: 'admin.photos.index', permission: 'photos.view');
 
         $this->bindAuthenticatedUser(['photos.view']);
         $this->handle();

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
 use PHPUnit\Framework\TestCase;
 
@@ -17,7 +17,7 @@ final class Error403ViewTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include \kintai\UI\ViewRenderer::pathInScope('errors.403', (new \kintai\UI\ViewRenderer(__DIR__ . '/../../../app/UI/View'))->factory());
+        include \App\View\ViewRenderer::pathInScope('errors.403', (new \App\View\ViewRenderer(__DIR__ . '/../../../resources/views'))->factory());
         return ob_get_clean();
     }
 

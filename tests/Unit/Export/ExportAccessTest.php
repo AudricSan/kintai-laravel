@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Export;
+namespace Tests\Unit\Export;
 
 use kintai\Contract\Extension\ExportDataset;
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Export\ExportAccess;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Exceptions\ForbiddenException;
+use App\Export\ExportAccess;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

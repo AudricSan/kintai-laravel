@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
-use kintai\Foundation\AliasAwareContainer;
+use App\Foundation\AliasAwareContainer;
 
 /**
  * Conteneur vierge pour les tests qui remplacent le conteneur global (Container::setInstance()) : seules les liaisons

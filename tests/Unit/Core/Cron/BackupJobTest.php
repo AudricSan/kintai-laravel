@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Cron\BackupJob;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
+use App\Cron\BackupJob;
+use App\Repositories\AppSettingsRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\BackupService;
+use App\Services\AppSettingsService;
+use App\Services\AuditLogger;
+use App\Services\BackupService;
 
 final class BackupJobTest extends TestCase
 {

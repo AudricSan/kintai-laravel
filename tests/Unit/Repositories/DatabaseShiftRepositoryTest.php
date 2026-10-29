@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Extension\Events;
-use kintai\Core\Repositories\DatabaseShiftRepository;
-use kintai\Core\Services\ShiftChangeNotifier;
+use App\Extension\Events;
+use App\Repositories\DatabaseShiftRepository;
+use App\Services\ShiftChangeNotifier;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\Shift as EloquentShift;
-use kintai\Domain\Eloquent\ShiftDeletionLog as EloquentShiftDeletionLog;
+use App\Models\Shift as EloquentShift;
+use App\Models\ShiftDeletionLog as EloquentShiftDeletionLog;
 
 final class DatabaseShiftRepositoryTest extends TestCase
 {

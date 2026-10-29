@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\OldInput;
+use App\Exceptions\ValidationException;
+use App\OldInput;
 use Illuminate\Http\Request;
-use kintai\Core\SessionFlash;
-use kintai\Core\ValidationFeedback;
+use App\SessionFlash;
+use App\ValidationFeedback;
 use PHPUnit\Framework\TestCase;
 
 /**

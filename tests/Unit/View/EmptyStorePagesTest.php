@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Services\RoleAssignmentSyncService;
-use kintai\Core\Services\StoreStatsService;
-use kintai\UI\ViewRenderer;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Services\RoleAssignmentSyncService;
+use App\Services\StoreStatsService;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class EmptyStorePagesTest extends TestCase
 {
-    private const VIEWS = __DIR__ . '/../../../app/UI/View';
+    private const VIEWS = __DIR__ . '/../../../resources/views';
 
     private ViewRenderer $view;
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\GithubIssueService;
+use App\Services\GithubIssueService;
 use PHPUnit\Framework\TestCase;
 
 final class GithubIssueServiceTest extends TestCase

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\CredentialRevoker;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
-use kintai\Core\Repositories\PasswordResetRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\CredentialRevoker;
+use App\Mail\MailerService;
+use App\Repositories\ApiTokenRepositoryInterface;
+use App\Repositories\PasswordResetRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\PasswordResetService;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\UI\Controller\Web\PasswordResetController;
-use kintai\UI\ViewRenderer;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\PasswordResetService;
+use App\Services\PublicUrlResolver;
+use App\Http\Controllers\PasswordResetController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -135,9 +135,9 @@ final class PasswordResetControllerI18nTest extends TestCase
     {
         // Garde-fou contre le retour d'un texte en dur : ni accent, ni mot français courant.
         foreach ([
-            'app/UI/Controller/Web/PasswordResetController.php',
-            'app/UI/View/auth/reset-password.blade.php',
-            'app/UI/View/auth/forgot-password.blade.php',
+            'app/Http/Controllers/PasswordResetController.php',
+            'resources/views/auth/reset-password.blade.php',
+            'resources/views/auth/forgot-password.blade.php',
         ] as $file) {
             $code = (string) file_get_contents(dirname(__DIR__, 4) . '/' . $file);
             // On ignore les commentaires (écrits en français par convention du projet).

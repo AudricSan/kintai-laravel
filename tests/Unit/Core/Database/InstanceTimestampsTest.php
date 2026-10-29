@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Database;
+namespace Tests\Unit\Core\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Eloquent\Model;
-use kintai\Core\Database\InstanceTimestamps;
+use App\Database\InstanceTimestamps;
 use PHPUnit\Framework\TestCase;
 
 /**

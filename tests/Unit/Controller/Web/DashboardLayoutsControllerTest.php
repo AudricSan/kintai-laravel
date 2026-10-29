@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleDashboardLayoutRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardLayoutRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleDashboardLayoutRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\UserDashboardLayoutRepositoryInterface;
+use App\Repositories\UserDashboardPrefsRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\DashboardLayoutResolver;
-use kintai\Core\SessionFlash;
-use kintai\UI\Controller\Web\DashboardLayoutsController;
+use App\Services\AuditLogger;
+use App\Services\DashboardLayoutResolver;
+use App\SessionFlash;
+use App\Http\Controllers\DashboardLayoutsController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

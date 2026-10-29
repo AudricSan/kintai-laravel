@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\LogRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\GithubIssueService;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\UpdateService;
-use kintai\UI\Controller\Web\SupportController;
+use App\Services\AuditLogger;
+use App\Services\GithubIssueService;
+use App\Services\Log;
+use App\Services\UpdateService;
+use App\Http\Controllers\SupportController;
 use PHPUnit\Framework\TestCase;
 
 final class SupportControllerTest extends TestCase
@@ -22,7 +22,7 @@ final class SupportControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
 
@@ -95,7 +95,7 @@ final class SupportControllerTest extends TestCase
 
         $logRepo = $this->createMock(LogRepositoryInterface::class);
         $logRepo->expects($this->once())->method('record');
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $logRepo);
         Log::setContainer($container);
 

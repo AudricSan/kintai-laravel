@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Translation\FileLoader;
 use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\JsonTranslationRepository;
+use App\Repositories\JsonTranslationRepository;
 
 final class JsonTranslationRepositoryTest extends TestCase
 {

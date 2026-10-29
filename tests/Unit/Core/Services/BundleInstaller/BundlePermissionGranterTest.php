@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services\BundleInstaller;
+namespace Tests\Unit\Core\Services\BundleInstaller;
 
-use kintai\Core\Auth\PermissionCatalog;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Services\BundleInstaller\BundlePermissionGranter;
+use App\Auth\PermissionCatalog;
+use App\Bundles\Bundle;
+use App\Repositories\RoleRepositoryInterface;
+use App\Services\BundleInstaller\BundlePermissionGranter;
 use PHPUnit\Framework\TestCase;
 
 final class BundlePermissionGranterTest extends TestCase

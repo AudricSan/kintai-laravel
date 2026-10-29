@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleDashboardLayoutRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardLayoutRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Services\DashboardLayoutResolver;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleDashboardLayoutRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\UserDashboardLayoutRepositoryInterface;
+use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Services\DashboardLayoutResolver;
 use PHPUnit\Framework\TestCase;
 
 /** Disposition affichée : celle de l'utilisateur, sinon le défaut de son rôle (système d'abord), sinon le défaut du Core. */

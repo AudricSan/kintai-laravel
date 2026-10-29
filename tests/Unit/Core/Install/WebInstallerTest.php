@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Install;
+namespace Tests\Unit\Core\Install;
 
-use kintai\Core\Install\InstallFailure;
-use kintai\Core\Install\InstallInput;
-use kintai\Core\Install\WebInstaller;
+use App\Install\InstallFailure;
+use App\Install\InstallInput;
+use App\Install\WebInstaller;
 use PDO;
 use PHPUnit\Framework\TestCase;
 

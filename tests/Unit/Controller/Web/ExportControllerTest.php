@@ -2,42 +2,42 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\AuthService;
+use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use kintai\Core\Export\AvailabilitiesExport;
-use kintai\Core\Export\EmployeesExport;
-use kintai\Core\Export\ExportAccess;
-use kintai\Core\Export\ExportDirectory;
-use kintai\Core\Export\ExportWriter;
-use kintai\Core\Export\PayrollExport;
-use kintai\Core\Export\ShiftsExport;
-use kintai\Core\Export\ShiftTypesExport;
-use kintai\Core\Export\StoresExport;
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Export\AvailabilitiesExport;
+use App\Export\EmployeesExport;
+use App\Export\ExportAccess;
+use App\Export\ExportDirectory;
+use App\Export\ExportWriter;
+use App\Export\PayrollExport;
+use App\Export\ShiftsExport;
+use App\Export\ShiftTypesExport;
+use App\Export\StoresExport;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\IcalService;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\ScheduleExportService;
-use kintai\Core\Services\ShiftWageCalculator;
+use App\Services\AuditLogger;
+use App\Services\IcalService;
+use App\Services\Log;
+use App\Services\ScheduleExportService;
+use App\Services\ShiftWageCalculator;
 use Illuminate\Translation\Translator;
-use kintai\Core\Services\UserSelection;
-use kintai\UI\Controller\Web\ExportController;
-use kintai\UI\ViewRenderer;
+use App\Services\UserSelection;
+use App\Http\Controllers\ExportController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /** Page « Exports » : téléchargement de bout en bout pour un employé simple (ses données seulement). */
@@ -87,7 +87,7 @@ final class ExportControllerTest extends TestCase
         $translations = kintai_test_real_translator();
 
         $this->controller = new ExportController(
-            new ViewRenderer(dirname(__DIR__, 4) . '/app/UI/View'),
+            new ViewRenderer(dirname(__DIR__, 4) . '/resources/views'),
             new AuthService($users, $storeUsers, $stores, $roles, $assignments, $this->createStub(RememberTokenRepositoryInterface::class)),
             new ExportAccess($permissions, $stores, $storeUsers),
             new ExportWriter(),

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Auth\UserTargetGuard;
-use kintai\Tests\Support\ApiOwnerAuth;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Auth\UserTargetGuard;
+use Tests\Support\ApiOwnerAuth;
+use App\Exceptions\NotFoundException;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\UI\Controller\Api\V1\UserShiftRateController;
+use App\Services\AuditLogger;
+use App\Http\Controllers\Api\V1\UserShiftRateController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
+use App\Exceptions\ValidationException;
+use App\Repositories\ShiftTypeRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 final class UserShiftRateControllerTest extends TestCase

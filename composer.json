@@ -19,17 +19,18 @@
     },
     "autoload": {
         "psr-4": {
-            "kintai\\": "app/",
+            "App\\": "app/",
+            "kintai\\Contract\\": "app/Contract/",
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
-            "app/Core/helpers.php",
+            "app/Support/helpers.php",
             "app/helpers.php"
         ]
     },
     "autoload-dev": {
         "psr-4": {
-            "kintai\\Tests\\": "tests/"
+            "Tests\\": "tests/"
         }
     },
     "config": {

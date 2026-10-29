@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\SystemAlertSourceInterface;
-use kintai\Core\Services\SystemNotificationService;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Auth\OwnerGuard;
+use App\Auth\PermissionService;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\NotificationService;
+use App\Services\SystemAlertSourceInterface;
+use App\Services\SystemNotificationService;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

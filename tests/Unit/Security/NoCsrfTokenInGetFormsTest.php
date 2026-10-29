@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Security;
+namespace Tests\Unit\Security;
 
 use PHPUnit\Framework\TestCase;
 

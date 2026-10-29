@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Services\RoleAssignmentSyncService;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Services\RoleAssignmentSyncService;
 
 final class RoleAssignmentSyncServiceTest extends TestCase
 {

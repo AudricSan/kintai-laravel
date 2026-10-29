@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use Illuminate\Container\Container;
-use kintai\Core\FeatureManager;
-use kintai\Core\LicenseServiceProvider;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
+use App\FeatureManager;
+use App\LicenseServiceProvider;
+use App\Repositories\AppSettingsRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 // BASE_PATH est requis par LicenseServiceProvider (fallback vers config/license.php).
@@ -19,7 +19,7 @@ final class LicenseServiceProviderTest extends TestCase
 {
     public function testUsesEnabledBundlesFromAppSettingsWhenPresent(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $appSettings->method('get')->with(LicenseServiceProvider::SETTINGS_KEY)
             ->willReturn('["daily-report","store-photos"]');
@@ -35,7 +35,7 @@ final class LicenseServiceProviderTest extends TestCase
 
     public function testFallsBackToConfigFileWhenNoAppSettingsValueStored(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $appSettings->method('get')->with(LicenseServiceProvider::SETTINGS_KEY)->willReturn(null);
         $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
@@ -53,7 +53,7 @@ final class LicenseServiceProviderTest extends TestCase
         // Ce fournisseur tourne dans le constructeur d'Application, avant toute migration (installateur web,
         // `php artisan migrate` sur base neuve). La table app_settings n'existe pas encore : sans
         // repli, « no such table » empêchait toute installation neuve.
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
         $appSettings->method('get')->willThrowException(new \Illuminate\Database\QueryException(
             'sqlite',
@@ -71,7 +71,7 @@ final class LicenseServiceProviderTest extends TestCase
 
     public function testARawPdoErrorIsAlsoTolerated(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
         $appSettings->method('get')->willThrowException(new \PDOException('no such table: app_settings'));
         $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
@@ -84,7 +84,7 @@ final class LicenseServiceProviderTest extends TestCase
     public function testNonDatabaseErrorsAreNotSwallowed(): void
     {
         // Seules les erreurs de base sont tolérées : un vrai bogue doit rester visible.
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
         $appSettings->method('get')->willThrowException(new \LogicException('bogue'));
         $container->instance(AppSettingsRepositoryInterface::class, $appSettings);

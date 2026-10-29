@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
 use PHPUnit\Framework\TestCase;
 
@@ -12,7 +12,7 @@ final class FormUserPartialTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include \kintai\UI\ViewRenderer::pathInScope('_partials._form-user', (new \kintai\UI\ViewRenderer(__DIR__ . '/../../../app/UI/View'))->factory());
+        include \App\View\ViewRenderer::pathInScope('_partials._form-user', (new \App\View\ViewRenderer(__DIR__ . '/../../../resources/views'))->factory());
         return ob_get_clean();
     }
 

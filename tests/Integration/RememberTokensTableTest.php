@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\RememberToken;
-use kintai\Domain\Eloquent\User;
+use App\Models\RememberToken;
+use App\Models\User;
 use PHPUnit\Framework\TestCase;
 
 /**

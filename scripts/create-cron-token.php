@@ -20,10 +20,10 @@ define('BASE_PATH', dirname(__DIR__));
 
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
-require BASE_PATH . '/app/Core/helpers.php';
+require BASE_PATH . '/app/Support/helpers.php';
 
-use kintai\Core\Repositories\CronTokenRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\CronTokenRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 
 $opts = getopt('', ['user-id:', 'job::', 'name::', 'expires-in::']);
 

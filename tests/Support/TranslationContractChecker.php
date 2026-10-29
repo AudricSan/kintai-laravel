@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
-use kintai\Core\Repositories\JsonTranslationRepository;
+use App\Repositories\JsonTranslationRepository;
 
 /**
  * Contrôle les traductions d'un bundle contre le contrat (app/Contract/translation-keys.php) : utilisé par la CI de

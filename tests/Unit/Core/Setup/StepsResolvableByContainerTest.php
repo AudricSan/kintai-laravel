@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Setup;
+namespace Tests\Unit\Core\Setup;
 
 use PHPUnit\Framework\TestCase;
 
@@ -15,11 +15,11 @@ final class StepsResolvableByContainerTest extends TestCase
 {
     public function testNoSetupStepConstructorAsksForAClosure(): void
     {
-        $files = glob(dirname(__DIR__, 4) . '/app/Core/Setup/*.php') ?: [];
+        $files = glob(dirname(__DIR__, 4) . '/app/Setup/*.php') ?: [];
         $this->assertNotSame([], $files);
 
         foreach ($files as $file) {
-            $class = 'kintai\\Core\\Setup\\' . basename($file, '.php');
+            $class = 'App\\Setup\\' . basename($file, '.php');
             if (!class_exists($class)) {
                 continue;
             }

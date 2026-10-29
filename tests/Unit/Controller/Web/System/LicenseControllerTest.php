@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\FeatureManager;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\BundleDiscoveryService;
+use App\FeatureManager;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\PlanLimitService;
-use kintai\UI\Controller\Web\System\LicenseController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\LicenseClientService;
+use App\Services\PlanLimitService;
+use App\Http\Controllers\System\LicenseController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

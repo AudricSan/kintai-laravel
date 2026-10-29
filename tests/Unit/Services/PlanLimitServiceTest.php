@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Exceptions\PlanLimitExceededException;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\LicenseTokenVerifier;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Tests\Support\TestSigningKeypair;
+use App\Exceptions\PlanLimitExceededException;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\LicenseClientService;
+use App\Services\LicenseTokenVerifier;
+use App\Services\PlanLimitService;
+use Tests\Support\TestSigningKeypair;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

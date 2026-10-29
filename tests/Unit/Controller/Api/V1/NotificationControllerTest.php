@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\NotificationRepositoryInterface;
+use App\Exceptions\NotFoundException;
+use App\Repositories\NotificationRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\UI\Controller\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use kintai\Contract\Extension\ProfileSection;
-use kintai\Core\Auth\AuthService;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
+use App\Auth\AuthService;
+use App\Bundles\Bundle;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Repositories\IcalTokenRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Repositories\IcalTokenRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\AvatarImageOptimizer;
-use kintai\UI\Controller\Web\AuthController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\AvatarImageOptimizer;
+use App\Http\Controllers\AuthController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -73,7 +73,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, $bundles);
 
-        (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, new \kintai\Tests\Support\TestContainer());
+        (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, new \Tests\Support\TestContainer());
         Container::getInstance()->instance(BundleManager::class, $manager);
         Container::getInstance()->instance(ExtensionRegistry::class, new ExtensionRegistry($manager));
     }

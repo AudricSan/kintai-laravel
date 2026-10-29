@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Cron\CronJobInterface;
-use kintai\Core\Cron\CronRunner;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\CronTokenRepositoryInterface;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Cron\CronJobInterface;
+use App\Cron\CronRunner;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\CronTokenRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\BackupService;
-use kintai\Core\Services\GithubUpdateService;
-use kintai\Core\Services\UpdateService;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\BackupService;
+use App\Services\GithubUpdateService;
+use App\Services\UpdateService;
 use PHPUnit\Framework\Attributes\DataProvider;
-use kintai\Tests\Support\VerifiedReleaseFixture;
+use Tests\Support\VerifiedReleaseFixture;
 use PHPUnit\Framework\TestCase;
 
 final class GithubUpdateServiceTest extends TestCase

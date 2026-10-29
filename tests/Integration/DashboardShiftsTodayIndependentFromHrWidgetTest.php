@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Container\Container;
-use kintai\UI\Controller\Web\HomeController;
-use kintai\UI\ViewRenderer;
+use App\Http\Controllers\HomeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +27,7 @@ final class DashboardShiftsTodayIndependentFromHrWidgetTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
+        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         $router->get('/admin/dashboard/widgets', [\stdClass::class, 'x'], name: 'admin.dashboard.widgets');

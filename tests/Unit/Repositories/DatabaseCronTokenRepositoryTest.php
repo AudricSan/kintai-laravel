@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseCronTokenRepository;
+use App\Repositories\DatabaseCronTokenRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\CronToken as EloquentCronToken;
+use App\Models\CronToken as EloquentCronToken;
 
 final class DatabaseCronTokenRepositoryTest extends TestCase
 {

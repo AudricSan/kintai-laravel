@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Database;
+namespace Tests\Unit\Core\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\RequestMemo;
-use kintai\Core\Repositories\DatabaseRoleAssignmentRepository;
-use kintai\Core\Repositories\DatabaseRoleRepository;
-use kintai\Domain\Eloquent\Role;
+use App\Database\RequestMemo;
+use App\Repositories\DatabaseRoleAssignmentRepository;
+use App\Repositories\DatabaseRoleRepository;
+use App\Models\Role;
 use PHPUnit\Framework\TestCase;
 
 /**

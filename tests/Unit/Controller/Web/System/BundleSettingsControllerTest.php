@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\FeatureManager;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\BundleDiscoveryService;
+use App\FeatureManager;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\PlanLimitService;
-use kintai\UI\Controller\Web\System\BundleSettingsController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\LicenseClientService;
+use App\Services\PlanLimitService;
+use App\Http\Controllers\System\BundleSettingsController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -49,7 +49,7 @@ final class BundleSettingsControllerTest extends TestCase
         <?php
         declare(strict_types=1);
         namespace kintai\Bundles\TeamDirectory;
-        use kintai\Core\BundleContract\Bundle;
+        use App\Bundles\Bundle;
         final class TeamDirectoryBundle extends Bundle {
             public function getName(): string { return 'team-directory'; }
             public function getLabel(): string { return 'Fake Team Directory'; }
@@ -66,7 +66,7 @@ final class BundleSettingsControllerTest extends TestCase
             <?php
             declare(strict_types=1);
             namespace kintai\Bundles\FakeBundle{$i};
-            use kintai\Core\BundleContract\Bundle;
+            use App\Bundles\Bundle;
             final class FakeBundle{$i}Bundle extends Bundle {
                 public function getName(): string { return 'fake-bundle-{$i}'; }
                 public function getLabel(): string { return 'Fake Bundle {$i}'; }

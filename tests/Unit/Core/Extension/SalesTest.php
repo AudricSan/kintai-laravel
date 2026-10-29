@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Extension;
+namespace Tests\Unit\Core\Extension;
 
 use kintai\Contract\Provider\DailySales;
 use kintai\Contract\Provider\SalesProvider;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Extension\Sales;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Extension\Sales;
 use PHPUnit\Framework\TestCase;
 
 /**

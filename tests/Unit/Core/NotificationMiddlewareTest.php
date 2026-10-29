@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Auth\AuthService;
+use App\Auth\AuthService;
 use Illuminate\Container\Container;
-use kintai\Core\Middleware\NotificationMiddleware;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\NotificationRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Http\Middleware\NotificationMiddleware;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\NotificationRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\VapidKeyStore;
-use kintai\UI\ViewRenderer;
+use App\Services\VapidKeyStore;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -37,7 +37,7 @@ final class NotificationMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new \kintai\Tests\Support\TestContainer();
+        $this->container = new \Tests\Support\TestContainer();
         $this->view       = new ViewRenderer(sys_get_temp_dir());
         $this->container->instance(ViewRenderer::class, $this->view);
 

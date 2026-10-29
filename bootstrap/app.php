@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use kintai\Foundation\Application;
+use App\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use kintai\Http\ErrorResponder;
-use kintai\Http\KintaiHttp;
+use App\Http\ErrorResponder;
+use App\Http\KintaiHttp;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,16 +24,16 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // sur la requête, qui exécute les defer() en fin de réponse.
         $middleware->use([
             \Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks::class,
-            \kintai\Http\Middleware\AccessLog::class,
+            \App\Http\Middleware\AccessLog::class,
             ...(require __DIR__ . '/../config/middleware.php')['global'],
         ]);
         $middleware->alias([
-            'kintai.bind' => \kintai\Http\Middleware\BindRouteParameters::class,
+            'kintai.bind' => \App\Http\Middleware\BindRouteParameters::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Pages d'erreur et JSON de Kintai ; les erreurs HTTP prévues (404, 422, 429…) ne sont pas journalisées.
-        $exceptions->dontReport([\kintai\Core\Exceptions\HttpException::class]);
+        $exceptions->dontReport([\App\Exceptions\HttpException::class]);
         $exceptions->report(static function (Throwable $e): void {
             ErrorResponder::log($e);
         })->stop();

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Cron\LogPurgeJob;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\LogRepositoryInterface;
+use App\Cron\LogPurgeJob;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\AuditLogger;
+use App\Services\AppSettingsService;
+use App\Services\AuditLogger;
 
 final class LogPurgeJobTest extends TestCase
 {

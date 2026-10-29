@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Validation;
+namespace Tests\Unit\Validation;
 
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Validation\ColorRule;
-use kintai\Domain\Eloquent\Role;
-use kintai\Domain\Eloquent\ShiftType;
-use kintai\Domain\Eloquent\User;
+use App\Exceptions\ValidationException;
+use App\Validation\ColorRule;
+use App\Models\Role;
+use App\Models\ShiftType;
+use App\Models\User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

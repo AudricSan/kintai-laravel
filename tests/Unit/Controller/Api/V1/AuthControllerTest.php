@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\AuthService;
+use App\Exceptions\NotFoundException;
+use App\Repositories\ApiTokenRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\UI\Controller\Api\V1\AuthController;
+use App\Services\AuditLogger;
+use App\Http\Controllers\Api\V1\AuthController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

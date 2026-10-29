@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services\BundleRegistry;
+namespace Tests\Unit\Core\Services\BundleRegistry;
 
-use kintai\Core\Services\BundleRegistry\BundleRegistryEntry;
+use App\Services\BundleRegistry\BundleRegistryEntry;
 use PHPUnit\Framework\TestCase;
 
 /** Lecture de la table `commits` (version -> sha épinglé) d'une entrée de registry. */

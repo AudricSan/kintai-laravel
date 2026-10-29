@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
-use kintai\Core\Auth\PasswordHasher;
+use App\Auth\PasswordHasher;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +27,7 @@ final class PasswordHasherTest extends TestCase
     public function testNoOtherCodeHashesPasswordsOnItsOwn(): void
     {
         // Seuls PasswordHasher et le calcul factice de la connexion (AuthService, même coût) appellent password_hash().
-        $allowed = ['app/Core/Auth/PasswordHasher.php', 'app/Core/Auth/AuthService.php'];
+        $allowed = ['app/Auth/PasswordHasher.php', 'app/Auth/AuthService.php'];
         $base = dirname(__DIR__, 3);
         $offenders = [];
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base . '/app', \FilesystemIterator::SKIP_DOTS));
@@ -49,7 +49,7 @@ final class PasswordHasherTest extends TestCase
 
     public function testTheLoginTimingGuardUsesTheSameCost(): void
     {
-        $constant = new \ReflectionClassConstant(\kintai\Core\Auth\AuthService::class, 'TIMING_COST');
+        $constant = new \ReflectionClassConstant(\App\Auth\AuthService::class, 'TIMING_COST');
 
         $this->assertSame(PasswordHasher::COST, $constant->getValue());
     }

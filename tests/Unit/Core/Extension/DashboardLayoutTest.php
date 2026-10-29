@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Extension;
+namespace Tests\Unit\Core\Extension;
 
-use kintai\Core\Extension\DashboardLayout;
+use App\Extension\DashboardLayout;
 use PHPUnit\Framework\TestCase;
 
 final class DashboardLayoutTest extends TestCase

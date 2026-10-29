@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\DashboardAlertService;
-use kintai\Core\Services\StoreStatsServiceInterface;
-use kintai\UI\Controller\Web\HomeController;
-use kintai\UI\ViewRenderer;
+use App\Services\DashboardAlertService;
+use App\Services\StoreStatsServiceInterface;
+use App\Http\Controllers\HomeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**

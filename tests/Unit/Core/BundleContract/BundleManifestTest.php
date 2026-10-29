@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\BundleContract;
+namespace Tests\Unit\Core\BundleContract;
 
-use kintai\Core\BundleContract\BundleManifest;
+use App\Bundles\BundleManifest;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -108,16 +108,16 @@ final class BundleManifestTest extends TestCase
     {
         $manifest = BundleManifest::fromArray($this->validManifestData());
 
-        $this->assertNull($manifest->classFilePath('/bundles/feedback/1.0.0', 'kintai\\Core\\Application'));
+        $this->assertNull($manifest->classFilePath('/bundles/feedback/1.0.0', 'App\\Application'));
     }
 
     // -------------------------------------------------------------------------
     // Contrat de bundle versionné (kintai_contract)
     // -------------------------------------------------------------------------
 
-    private function manifestWith(array $extra): \kintai\Core\BundleContract\BundleManifest
+    private function manifestWith(array $extra): \App\Bundles\BundleManifest
     {
-        return \kintai\Core\BundleContract\BundleManifest::fromArray($extra + [
+        return \App\Bundles\BundleManifest::fromArray($extra + [
             'slug' => 'demo', 'name' => 'Demo', 'version' => '1.0.0',
             'namespace' => 'kintai\\Bundles\\Installed\\Demo', 'entry_class' => 'kintai\\Bundles\\Installed\\Demo\\DemoBundle',
         ]);

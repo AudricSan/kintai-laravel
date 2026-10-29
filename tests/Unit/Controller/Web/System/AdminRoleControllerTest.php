@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\BundleManager;
+use App\Auth\OwnerGuard;
+use App\Auth\PermissionService;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\RoleAssignmentSyncService;
-use kintai\Tests\Support\FakeBundleManagerFactory;
-use kintai\UI\Controller\Web\System\AdminRoleController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\RoleAssignmentSyncService;
+use Tests\Support\FakeBundleManagerFactory;
+use App\Http\Controllers\System\AdminRoleController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -386,7 +386,7 @@ final class AdminRoleControllerTest extends TestCase
         // timeoff déclare sa catégorie de permissions (contrat 1.2).
         $manager = FakeBundleManagerFactory::withActiveSlugs(['timeoff'], permissions: ['timeoff' => ['timeoff' => ['view', 'create', 'update', 'approve', 'delete']]]);
         Container::getInstance()->instance(BundleManager::class, $manager);
-        Container::getInstance()->instance(\kintai\Core\Extension\ExtensionRegistry::class, new \kintai\Core\Extension\ExtensionRegistry($manager));
+        Container::getInstance()->instance(\App\Extension\ExtensionRegistry::class, new \App\Extension\ExtensionRegistry($manager));
 
         $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->roles->method('getPermissions')->willReturn([]);

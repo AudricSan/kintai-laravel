@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ final class DashboardWallModeAssetsTest extends TestCase
         $root       = dirname(__DIR__, 3);
         $this->css  = (string) file_get_contents($root . '/public/assets/css/src/features/dashboard.css');
         $this->js   = (string) file_get_contents($root . '/public/assets/js/modules/dashboard-live.js');
-        $this->view = (string) file_get_contents($root . '/app/UI/View/_partials/_dashboard-actions.blade.php');
+        $this->view = (string) file_get_contents($root . '/resources/views/_partials/_dashboard-actions.blade.php');
     }
 
     public function testTheExitButtonStartsHiddenAndDisabled(): void

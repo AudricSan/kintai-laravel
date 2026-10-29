@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
-use kintai\Core\Auth\UserAnonymizer;
-use kintai\Core\Auth\CredentialRevoker;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
+use App\Auth\UserAnonymizer;
+use App\Auth\CredentialRevoker;
+use App\Repositories\RoleAssignmentRepositoryInterface;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Calendar\GoogleCalendarClient;
-use kintai\Core\Services\Calendar\GoogleRedirectUri;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\Repositories\DatabaseUserRepository;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Tests\Support\CalendarSyncFixture;
-use kintai\UI\Controller\Web\System\CalendarSettingsController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Calendar\GoogleRedirectUri;
+use App\Services\PublicUrlResolver;
+use App\Repositories\DatabaseUserRepository;
+use App\Repositories\ApiTokenRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use Tests\Support\CalendarSyncFixture;
+use App\Http\Controllers\System\CalendarSettingsController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /** Identifiants Google de l'instance (Owner), test des identifiants, et nettoyage à la suppression d'un compte. */
@@ -38,7 +38,7 @@ final class CalendarSettingsControllerTest extends TestCase
         foreach (['x', 'admin.owner_settings', 'admin.notifications_settings', 'admin.calendar_settings', 'admin.calendar_settings.save', 'admin.calendar_settings.test', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'home'] as $i => $name) {
             $router->get('/p' . $i, ['X', 'y'], name: $name);
         }
-        $this->view = new ViewRenderer(BASE_PATH . '/app/UI/View');
+        $this->view = new ViewRenderer(BASE_PATH . '/resources/views');
         $this->view->share('BASE_URL', '');
         $this->controller = new CalendarSettingsController(
             $this->view,

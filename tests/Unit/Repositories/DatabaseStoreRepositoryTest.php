@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseStoreRepository;
+use App\Repositories\DatabaseStoreRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\Store as EloquentStore;
-use kintai\Domain\Eloquent\StoreFeature;
-use kintai\Domain\Eloquent\StoreImportSetting;
-use kintai\Domain\Eloquent\StoreDeductionSetting;
+use App\Models\Store as EloquentStore;
+use App\Models\StoreFeature;
+use App\Models\StoreImportSetting;
+use App\Models\StoreDeductionSetting;
 
 final class DatabaseStoreRepositoryTest extends TestCase
 {

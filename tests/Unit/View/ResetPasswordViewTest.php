@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,7 +15,7 @@ final class ResetPasswordViewTest extends TestCase
 {
     public function testTheErrorMessageIsEscapedExactlyOnce(): void
     {
-        $html = (new ViewRenderer(dirname(__DIR__, 3) . '/app/UI/View'))->render('auth.reset-password', [
+        $html = (new ViewRenderer(dirname(__DIR__, 3) . '/resources/views'))->render('auth.reset-password', [
             'BASE_URL' => '',
             'token'    => 't',
             'valid'    => true,

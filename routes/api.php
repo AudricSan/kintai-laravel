@@ -3,23 +3,23 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Middleware\ApiPermissionMiddleware;
-use kintai\Core\Middleware\LoginThrottleMiddleware;
-use kintai\UI\Controller\Api\V1\ActivityController as ApiActivityController;
-use kintai\UI\Controller\Api\V1\AuthController as ApiAuthController;
-use kintai\UI\Controller\Api\V1\AvailabilityController as ApiAvailabilityController;
-use kintai\UI\Controller\Api\V1\IcalTokenController as ApiIcalTokenController;
-use kintai\UI\Controller\Api\V1\NotificationController as ApiNotificationController;
-use kintai\UI\Controller\Api\V1\NotificationPreferenceController as ApiNotificationPreferenceController;
-use kintai\UI\Controller\Api\V1\PushTokenController as ApiPushTokenController;
-use kintai\UI\Controller\Api\V1\ShiftController as ApiShiftController;
-use kintai\UI\Controller\Api\V1\ShiftTypeController as ApiShiftTypeController;
-use kintai\UI\Controller\Api\V1\StoreController as ApiStoreController;
-use kintai\UI\Controller\Api\V1\StoreUserController as ApiStoreUserController;
-use kintai\UI\Controller\Api\V1\UserController as ApiUserController;
-use kintai\UI\Controller\Api\V1\UserPrefsController as ApiUserPrefsController;
-use kintai\UI\Controller\Api\V1\UserShiftRateController as ApiUserShiftRateController;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Http\Middleware\ApiPermissionMiddleware;
+use App\Http\Middleware\LoginThrottleMiddleware;
+use App\Http\Controllers\Api\V1\ActivityController as ApiActivityController;
+use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
+use App\Http\Controllers\Api\V1\AvailabilityController as ApiAvailabilityController;
+use App\Http\Controllers\Api\V1\IcalTokenController as ApiIcalTokenController;
+use App\Http\Controllers\Api\V1\NotificationController as ApiNotificationController;
+use App\Http\Controllers\Api\V1\NotificationPreferenceController as ApiNotificationPreferenceController;
+use App\Http\Controllers\Api\V1\PushTokenController as ApiPushTokenController;
+use App\Http\Controllers\Api\V1\ShiftController as ApiShiftController;
+use App\Http\Controllers\Api\V1\ShiftTypeController as ApiShiftTypeController;
+use App\Http\Controllers\Api\V1\StoreController as ApiStoreController;
+use App\Http\Controllers\Api\V1\StoreUserController as ApiStoreUserController;
+use App\Http\Controllers\Api\V1\UserController as ApiUserController;
+use App\Http\Controllers\Api\V1\UserPrefsController as ApiUserPrefsController;
+use App\Http\Controllers\Api\V1\UserShiftRateController as ApiUserShiftRateController;
 
 // =============================================================================
 // API v1

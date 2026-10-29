@@ -17,7 +17,7 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 
-use kintai\Core\Services\WikiIntegrityChecker;
+use App\Services\WikiIntegrityChecker;
 
 $path = $argv[1] ?? (BASE_PATH . '/.wiki');
 if (!is_dir($path)) {

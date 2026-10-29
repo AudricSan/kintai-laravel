@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\PasswordResetRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\PasswordResetService;
+use App\Mail\MailerService;
+use App\Repositories\PasswordResetRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\PasswordResetService;
 
 final class PasswordResetServiceTest extends TestCase
 {

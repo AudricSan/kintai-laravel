@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Contract\Extension\NotificationType;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
-use kintai\Core\Repositories\DatabaseNotificationRepository;
-use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\NotificationPreferenceService;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\NotificationTypeRegistry;
-use kintai\Core\Services\PushNotificationService;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\DatabaseNotificationPreferenceRepository;
+use App\Repositories\DatabaseNotificationRepository;
+use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\NotificationPreferenceService;
+use App\Services\NotificationService;
+use App\Services\NotificationTypeRegistry;
+use App\Services\PushNotificationService;
 use Illuminate\Translation\Translator;
-use kintai\Domain\Eloquent\Notification;
-use kintai\Domain\Eloquent\NotificationPreference;
+use App\Models\Notification;
+use App\Models\NotificationPreference;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

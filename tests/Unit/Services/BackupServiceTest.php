@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Services\BackupService;
+use App\Services\BackupService;
 
 final class BackupServiceTest extends TestCase
 {

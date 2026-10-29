@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Foundation\Auth;
+namespace App\Foundation\Auth;
 
 use ArrayAccess;
 use Illuminate\Contracts\Auth\Authenticatable;

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\FeatureManager;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\BundleActivationService;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\PlanLimitService;
+use App\BundleDiscoveryService;
+use App\FeatureManager;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\BundleActivationService;
+use App\Services\LicenseClientService;
+use App\Services\PlanLimitService;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -35,7 +35,7 @@ final class BundleActivationServiceTest extends TestCase
             <?php
             declare(strict_types=1);
             namespace kintai\Bundles\ActivationFake{$letter};
-            use kintai\Core\BundleContract\Bundle;
+            use App\Bundles\Bundle;
             final class ActivationFake{$letter}Bundle extends Bundle {
                 public function getName(): string { return '{$slug}'; }
                 public function register(): void {}

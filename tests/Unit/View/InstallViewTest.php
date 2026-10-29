@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +20,7 @@ final class InstallViewTest extends TestCase
         if (!defined('BASE_PATH')) {
             define('BASE_PATH', $root);
         }
-        $this->assertSame(1, preg_match("#require BASE_PATH \\. '(/app/UI/View/[^']+)'#", (string) file_get_contents($root . '/public/install.php'), $m));
+        $this->assertSame(1, preg_match("#require BASE_PATH \\. '(/resources/views/[^']+)'#", (string) file_get_contents($root . '/public/install.php'), $m));
         $this->assertFileExists($root . $m[1]);
 
         $html = (static function (string $__file): string {

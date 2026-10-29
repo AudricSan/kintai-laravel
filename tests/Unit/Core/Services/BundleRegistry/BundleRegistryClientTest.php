@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services\BundleRegistry;
+namespace Tests\Unit\Core\Services\BundleRegistry;
 
-use kintai\Core\Services\BundleRegistry\BundleRegistryClient;
+use App\Services\BundleRegistry\BundleRegistryClient;
 use PHPUnit\Framework\TestCase;
 
 final class BundleRegistryClientTest extends TestCase

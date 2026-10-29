@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Validation;
+namespace Tests\Unit\Core\Validation;
 
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Validation\StoreValidator;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Validation\StoreValidator;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

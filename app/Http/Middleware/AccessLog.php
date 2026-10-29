@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http\Middleware;
+namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\Log;
+use App\Repositories\LogRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http;
+namespace App\Http;
 
 use Illuminate\Foundation\Application;
 
@@ -39,7 +39,7 @@ final class KintaiHttp
         require $laravel->basePath('routes/api.php');
 
         // Puis les routes des bundles actifs.
-        $laravel->make(\kintai\Core\BundleManager::class)->loadQueuedRoutes();
+        $laravel->make(\App\BundleManager::class)->loadQueuedRoutes();
     }
 
     /**

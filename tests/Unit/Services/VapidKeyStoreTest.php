@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\VapidKeyStore;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\VapidKeyStore;
 use Minishlink\WebPush\VAPID;
 use PHPUnit\Framework\TestCase;
 

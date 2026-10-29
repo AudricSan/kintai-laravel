@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use kintai\Core\Database\DatabaseConfig;
+use App\Database\DatabaseConfig;
 
 /**
  * Base de données de l'instance, pour Laravel (DB::, Eloquent, Artisan).

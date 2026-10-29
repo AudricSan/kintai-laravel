@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\WidgetGuard;
+use App\Services\WidgetGuard;
 use PHPUnit\Framework\TestCase;
 
 /** Un widget de bundle défaillant ne doit jamais faire tomber la page qui l'affiche. */

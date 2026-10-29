@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit;
+namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
@@ -28,7 +28,7 @@ final class ConventionTest extends TestCase
         $root = dirname(__DIR__, 2);
         $dirs = [];
         foreach (self::DOMAIN_DIRS as $dir) {
-            $dirs[] = "$root/app/UI/View/$dir";
+            $dirs[] = "$root/resources/views/$dir";
         }
         // Les vues déplacées dans des bundles restent soumises à la même convention.
         foreach (glob("$root/app/Bundles/*/Views", GLOB_ONLYDIR) ?: [] as $bundleViewsDir) {

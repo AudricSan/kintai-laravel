@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Extension;
+namespace Tests\Unit\Core\Extension;
 
 use kintai\Contract\Extension\PageOverlay;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Extension\PageOverlayHost;
-use kintai\Core\Extension\PageOverlays;
-use kintai\UI\ViewRenderer;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Extension\PageOverlayHost;
+use App\Extension\PageOverlays;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -200,10 +200,10 @@ final class PageOverlaysTest extends TestCase
         $overlays = $this->overlays(['acme' => [new PageOverlay('reminder', 'acme::ok', placement: PageOverlay::BAR)]]);
         $container = \Illuminate\Container\Container::getInstance();
         $container->instance(ViewRenderer::class, $this->view());
-        $container->instance(\kintai\Core\Auth\PermissionService::class, (new \ReflectionClass(\kintai\Core\Auth\PermissionService::class))->newInstanceWithoutConstructor());
-        $users = $this->createStub(\kintai\Core\Repositories\StoreUserRepositoryInterface::class);
+        $container->instance(\App\Auth\PermissionService::class, (new \ReflectionClass(\App\Auth\PermissionService::class))->newInstanceWithoutConstructor());
+        $users = $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class);
         $users->method('findByUser')->willReturn([]);
-        $container->instance(\kintai\Core\Repositories\StoreUserRepositoryInterface::class, $users);
+        $container->instance(\App\Repositories\StoreUserRepositoryInterface::class, $users);
 
         $html = PageOverlayHost::html(['id' => 7], '/admin/dashboard', null, $overlays);
 
@@ -227,10 +227,10 @@ final class PageOverlaysTest extends TestCase
         $overlays = $this->overlays(['acme' => [new PageOverlay('ask', 'acme::ok', null, null, null, null, 100, false, true)]]);
         $container = \Illuminate\Container\Container::getInstance();
         $container->instance(ViewRenderer::class, $this->view());
-        $container->instance(\kintai\Core\Auth\PermissionService::class, (new \ReflectionClass(\kintai\Core\Auth\PermissionService::class))->newInstanceWithoutConstructor());
-        $users = $this->createStub(\kintai\Core\Repositories\StoreUserRepositoryInterface::class);
+        $container->instance(\App\Auth\PermissionService::class, (new \ReflectionClass(\App\Auth\PermissionService::class))->newInstanceWithoutConstructor());
+        $users = $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class);
         $users->method('findByUser')->willReturn([['store_id' => 3]]);
-        $container->instance(\kintai\Core\Repositories\StoreUserRepositoryInterface::class, $users);
+        $container->instance(\App\Repositories\StoreUserRepositoryInterface::class, $users);
 
         $html = PageOverlayHost::html(['id' => 7], '/admin/dashboard', null, $overlays);
 

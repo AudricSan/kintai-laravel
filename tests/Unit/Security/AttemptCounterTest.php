@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Security;
+namespace Tests\Unit\Security;
 
-use kintai\Core\Security\AttemptCounter;
+use App\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
 final class AttemptCounterTest extends TestCase

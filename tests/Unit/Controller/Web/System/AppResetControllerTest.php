@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\AuthService;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppResetService;
-use kintai\Core\Services\BackupService;
-use kintai\UI\Controller\Web\System\AppResetController;
-use kintai\UI\ViewRenderer;
+use App\Services\AppResetService;
+use App\Services\BackupService;
+use App\Http\Controllers\System\AppResetController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**

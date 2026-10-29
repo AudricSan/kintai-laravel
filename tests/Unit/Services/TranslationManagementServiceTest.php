@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Services\TranslationManagementService;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
+use App\Services\TranslationManagementService;
+use App\Repositories\TranslationRepositoryInterface;
 
 final class TranslationManagementServiceTest extends TestCase
 {

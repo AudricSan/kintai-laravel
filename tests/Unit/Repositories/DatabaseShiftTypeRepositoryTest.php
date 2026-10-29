@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseShiftTypeRepository;
+use App\Repositories\DatabaseShiftTypeRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\ShiftType as EloquentShiftType;
-use kintai\Domain\Eloquent\ShiftTypeStore;
+use App\Models\ShiftType as EloquentShiftType;
+use App\Models\ShiftTypeStore;
 
 final class DatabaseShiftTypeRepositoryTest extends TestCase
 {

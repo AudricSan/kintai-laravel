@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\BundleContract;
+namespace Tests\Unit\Core\BundleContract;
 
-use kintai\Core\BundleContract\BundleManifest;
+use App\Bundles\BundleManifest;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

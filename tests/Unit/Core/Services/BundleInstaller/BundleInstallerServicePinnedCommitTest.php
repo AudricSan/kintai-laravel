@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services\BundleInstaller;
+namespace Tests\Unit\Core\Services\BundleInstaller;
 
-use kintai\Core\InstalledBundleManifestStore;
-use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
-use kintai\Core\Services\BundleInstaller\BundleInstallerService;
-use kintai\Core\Services\UpdateService;
+use App\InstalledBundleManifestStore;
+use App\Repositories\InstalledBundleRepositoryInterface;
+use App\Services\BundleInstaller\BundleInstallerService;
+use App\Services\UpdateService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

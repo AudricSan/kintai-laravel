@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Services\WikiContentService;
-use kintai\UI\Controller\Web\DocsController;
+use App\Exceptions\NotFoundException;
+use App\Services\WikiContentService;
+use App\Http\Controllers\DocsController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

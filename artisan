@@ -14,7 +14,7 @@ kintai_load_env_file(BASE_PATH);
 /** @var Illuminate\Foundation\Application $app */
 $app = require_once __DIR__ . '/bootstrap/app.php';
 
-(new kintai\Core\InstalledBundleAutoloader())->register();
+(new App\InstalledBundleAutoloader())->register();
 
 $status = $app->handleCommand(new ArgvInput());
 

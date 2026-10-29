@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
 use kintai\Contract\Event\EmployeeCreated;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\Events;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Tests\Support\ApiOwnerAuth;
-use kintai\Core\Exceptions\PlanLimitExceededException;
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\Events;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\StoreUserRepositoryInterface;
+use Tests\Support\ApiOwnerAuth;
+use App\Exceptions\PlanLimitExceededException;
+use App\Auth\OwnerGuard;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\PlanLimitService;
-use kintai\UI\Controller\Api\V1\UserController;
+use App\Services\AuditLogger;
+use App\Services\LicenseClientService;
+use App\Services\Log;
+use App\Services\PlanLimitService;
+use App\Http\Controllers\Api\V1\UserController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Exceptions\ValidationException;
+use App\Exceptions\ValidationException;
 use PHPUnit\Framework\TestCase;
 
 final class UserControllerTest extends TestCase
@@ -142,7 +142,7 @@ final class UserControllerTest extends TestCase
         $req = ApiOwnerAuth::owner(Request::capture());
         $req->setRouteParams(['id' => (string) ApiOwnerAuth::OWNER_ID]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->destroy($req);
     }
 
@@ -155,7 +155,7 @@ final class UserControllerTest extends TestCase
         $req = $this->makeJsonRequest(['is_active' => 0]);
         $req->setRouteParams(['id' => (string) ApiOwnerAuth::OWNER_ID]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->update($req);
     }
 

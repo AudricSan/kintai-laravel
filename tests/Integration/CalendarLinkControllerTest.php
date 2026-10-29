@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Cron\CalendarSyncJob;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\AuthService;
+use App\Cron\CalendarSyncJob;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Calendar\GoogleCalendarClient;
-use kintai\Core\Services\Calendar\GoogleRedirectUri;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\SessionFlash;
-use kintai\Tests\Support\CalendarSyncFixture;
-use kintai\UI\Controller\Web\CalendarLinkController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Calendar\GoogleRedirectUri;
+use App\Services\PublicUrlResolver;
+use App\SessionFlash;
+use Tests\Support\CalendarSyncFixture;
+use App\Http\Controllers\CalendarLinkController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -272,7 +272,7 @@ final class CalendarLinkControllerTest extends TestCase
         $job = new CalendarSyncJob($this->repo, $this->sync, $this->google);
 
         $this->assertSame('calendar-sync', $job->getName());
-        $this->assertContains('calendar-sync', \kintai\Core\Cron\CronRunner::CORE_JOBS);
+        $this->assertContains('calendar-sync', \App\Cron\CronRunner::CORE_JOBS);
     }
     // -------------------------------------------------------------------------
     // Encart du profil
@@ -285,7 +285,7 @@ final class CalendarLinkControllerTest extends TestCase
         foreach (['profile.calendar.connect', 'profile.calendar.options', 'profile.calendar.resync', 'profile.calendar.disconnect'] as $i => $name) {
             $router->post('/p' . $i, ['X', 'y'], name: $name);
         }
-        $view = new ViewRenderer(BASE_PATH . '/app/UI/View');
+        $view = new ViewRenderer(BASE_PATH . '/resources/views');
         $view->share('BASE_URL', '');
 
         return $view->render('auth._profile-google-calendar', ['calendar' => $calendar, 'stores' => [1 => ['id' => 1, 'name' => 'Shibuya']]]);

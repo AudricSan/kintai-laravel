@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\BundleManager;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\Events;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\DatabaseAvailabilityRepository;
-use kintai\Core\Repositories\DatabaseShiftRepository;
-use kintai\Core\Repositories\DatabaseShiftTypeRepository;
-use kintai\Core\Repositories\DatabaseShiftWeekTemplateRepository;
-use kintai\Core\Repositories\DatabaseStoreUserRepository;
-use kintai\Core\Repositories\DatabaseUserRepository;
-use kintai\Core\Services\AvailabilityGuard;
-use kintai\Core\Services\ShiftChangeNotifier;
-use kintai\Core\Services\WeekPlanner;
-use kintai\Tests\Support\FakeAbsenceProvider;
-use kintai\Tests\Support\FakeBundleManagerFactory;
+use App\Extension\Events;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\DatabaseAvailabilityRepository;
+use App\Repositories\DatabaseShiftRepository;
+use App\Repositories\DatabaseShiftTypeRepository;
+use App\Repositories\DatabaseShiftWeekTemplateRepository;
+use App\Repositories\DatabaseStoreUserRepository;
+use App\Repositories\DatabaseUserRepository;
+use App\Services\AvailabilityGuard;
+use App\Services\ShiftChangeNotifier;
+use App\Services\WeekPlanner;
+use Tests\Support\FakeAbsenceProvider;
+use Tests\Support\FakeBundleManagerFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

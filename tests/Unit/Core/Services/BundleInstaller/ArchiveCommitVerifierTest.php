@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services\BundleInstaller;
+namespace Tests\Unit\Core\Services\BundleInstaller;
 
-use kintai\Core\Services\BundleInstaller\ArchiveCommitVerifier;
+use App\Services\BundleInstaller\ArchiveCommitVerifier;
 use PHPUnit\Framework\TestCase;
 
 /**

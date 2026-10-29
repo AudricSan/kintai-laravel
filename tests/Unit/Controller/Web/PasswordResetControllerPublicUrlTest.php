@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\PasswordResetRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Mail\MailerService;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\PasswordResetRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\PasswordResetService;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\UI\Controller\Web\PasswordResetController;
-use kintai\UI\ViewRenderer;
+use App\Services\AppSettingsService;
+use App\Services\PasswordResetService;
+use App\Services\PublicUrlResolver;
+use App\Http\Controllers\PasswordResetController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

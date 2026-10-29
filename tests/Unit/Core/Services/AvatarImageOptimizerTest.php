@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\Services\AvatarImageOptimizer;
+use App\Services\AvatarImageOptimizer;
 use PHPUnit\Framework\TestCase;
 
 final class AvatarImageOptimizerTest extends TestCase

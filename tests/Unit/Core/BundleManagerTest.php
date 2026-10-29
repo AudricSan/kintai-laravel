@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
+use App\Bundles\Bundle;
+use App\BundleManager;
 use PHPUnit\Framework\TestCase;
 
 final class FakeIsActiveBundle extends Bundle

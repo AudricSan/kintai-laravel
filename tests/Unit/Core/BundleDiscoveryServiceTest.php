@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\InstalledBundleManifestStore;
+use App\Bundles\Bundle;
+use App\BundleDiscoveryService;
+use App\InstalledBundleManifestStore;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -176,7 +176,7 @@ final class BundleDiscoveryServiceTest extends TestCase
         <?php
         declare(strict_types=1);
         namespace {$namespace};
-        use kintai\Core\BundleContract\Bundle;
+        use App\Bundles\Bundle;
         final class {$className}Bundle extends Bundle {
             public function getName(): string { return '{$slug}'; }
             public function getLabel(): string { return 'Fake Installed Bundle'; }
@@ -204,7 +204,7 @@ final class BundleDiscoveryServiceTest extends TestCase
         <?php
         declare(strict_types=1);
         namespace {$namespace};
-        use kintai\Core\BundleContract\Bundle;
+        use App\Bundles\Bundle;
         final class {$dirName}Bundle extends Bundle {
             public function getName(): string { return '{$slug}'; }
             public function getLabel(): string { return 'Fake Legacy Bundle'; }

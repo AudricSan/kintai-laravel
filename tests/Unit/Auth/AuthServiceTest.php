@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
+use App\Auth\AuthService;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
 
 final class AuthServiceTest extends TestCase
 {

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Export;
+namespace Tests\Unit\Export;
 
 use kintai\Contract\Extension\ExportDataset;
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use kintai\Core\Export\ExportWriter;
+use App\Export\ExportWriter;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PHPUnit\Framework\TestCase;
 

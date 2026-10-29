@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
 use kintai\Contract\Event\ShiftDeleted;
 use kintai\Contract\Event\ShiftSaved;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\Events;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Services\ShiftChangeNotifier;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\Events;
+use App\Extension\ExtensionRegistry;
+use App\Services\ShiftChangeNotifier;
 use PHPUnit\Framework\TestCase;
 
 /**

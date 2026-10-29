@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\DatabaseCalendarSyncRepository;
-use kintai\Core\Repositories\DatabaseShiftRepository;
-use kintai\Core\Repositories\DatabaseShiftTypeRepository;
-use kintai\Core\Repositories\DatabaseStoreRepository;
-use kintai\Core\Repositories\DatabaseUserRepository;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\Calendar\CalendarEventBuilder;
-use kintai\Core\Services\Calendar\GoogleCalendarClient;
-use kintai\Core\Services\Calendar\GoogleCalendarSettings;
-use kintai\Core\Services\CalendarSyncService;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\Services\SecretBox;
+use App\Repositories\DatabaseCalendarSyncRepository;
+use App\Repositories\DatabaseShiftRepository;
+use App\Repositories\DatabaseShiftTypeRepository;
+use App\Repositories\DatabaseStoreRepository;
+use App\Repositories\DatabaseUserRepository;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Services\AppSettingsService;
+use App\Services\Calendar\CalendarEventBuilder;
+use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Calendar\GoogleCalendarSettings;
+use App\Services\CalendarSyncService;
+use App\Services\NotificationService;
+use App\Services\PublicUrlResolver;
+use App\Services\SecretBox;
 use Illuminate\Translation\Translator;
 
 if (!defined('BASE_PATH')) {

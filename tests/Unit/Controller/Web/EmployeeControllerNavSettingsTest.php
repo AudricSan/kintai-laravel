@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Repositories\IcalTokenRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\NotificationRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Repositories\IcalTokenRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\NotificationRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\PushNotificationService;
+use App\Services\AuditLogger;
+use App\Services\NotificationService;
+use App\Services\PushNotificationService;
 use Illuminate\Translation\Translator;
-use kintai\UI\Controller\Web\EmployeeController;
-use kintai\UI\ViewRenderer;
+use App\Http\Controllers\EmployeeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

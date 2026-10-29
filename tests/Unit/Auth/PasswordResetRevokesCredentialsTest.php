@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
-use kintai\Core\Auth\CredentialRevoker;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
-use kintai\Core\Repositories\PasswordResetRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\PasswordResetService;
+use App\Auth\CredentialRevoker;
+use App\Mail\MailerService;
+use App\Repositories\ApiTokenRepositoryInterface;
+use App\Repositories\PasswordResetRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\PasswordResetService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
 use kintai\Contract\Provider\Absence;
 use kintai\Contract\Provider\AbsenceProvider;
-use kintai\Core\BundleManager;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\ExtensionRegistry;
+use App\Extension\ExtensionRegistry;
 
 /**
  * Fournisseur d'absences factice, à la place de celui que déclare timeoff : pour tester les pages et services du Core

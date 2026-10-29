@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Cron\CronJobInterface;
-use kintai\Core\Cron\CronRunner;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\CronTokenRepositoryInterface;
+use App\Cron\CronJobInterface;
+use App\Cron\CronRunner;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\CronTokenRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\UI\Controller\Web\CronController;
+use App\Http\Controllers\CronController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

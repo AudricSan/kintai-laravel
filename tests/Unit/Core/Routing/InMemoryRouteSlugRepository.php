@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Routing;
+namespace Tests\Unit\Core\Routing;
 
-use kintai\Core\Repositories\RouteSlugRepositoryInterface;
+use App\Repositories\RouteSlugRepositoryInterface;
 
 /** Double en mémoire de la table route_slugs (et des numéros d'employé), pour les tests du routage lisible. */
 final class InMemoryRouteSlugRepository implements RouteSlugRepositoryInterface

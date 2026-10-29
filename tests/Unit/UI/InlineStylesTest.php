@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\UI;
+namespace Tests\Unit\UI;
 
-use kintai\UI\InlineStyles;
+use App\View\InlineStyles;
 use PHPUnit\Framework\TestCase;
 
 final class InlineStylesTest extends TestCase

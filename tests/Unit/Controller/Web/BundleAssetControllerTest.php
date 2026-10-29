@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\NotFoundException;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
 use Illuminate\Http\Request;
-use kintai\UI\Controller\Web\BundleAssetController;
+use App\Http\Controllers\BundleAssetController;
 use PHPUnit\Framework\TestCase;
 
 final class FakeControllerAssetBundle extends Bundle

@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonLanguageRepository;
 
 final class JsonLanguageRepositoryTest extends TestCase
 {

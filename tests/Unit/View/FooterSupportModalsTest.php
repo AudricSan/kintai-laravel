@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
 use Illuminate\Container\Container;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class FooterSupportModalsTest extends TestCase
 {
-    private const VIEWS = __DIR__ . '/../../../app/UI/View';
+    private const VIEWS = __DIR__ . '/../../../resources/views';
 
     protected function setUp(): void
     {
@@ -42,7 +42,7 @@ final class FooterSupportModalsTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include \kintai\UI\ViewRenderer::pathInScope('layout.partials.report-issue-modal', (new \kintai\UI\ViewRenderer(self::VIEWS))->factory());
+        include \App\View\ViewRenderer::pathInScope('layout.partials.report-issue-modal', (new \App\View\ViewRenderer(self::VIEWS))->factory());
         return (string) ob_get_clean();
     }
 
@@ -52,7 +52,7 @@ final class FooterSupportModalsTest extends TestCase
         $auth_user = ['id' => 1, 'is_admin' => 0];
         $isManager = false;
         ob_start();
-        include \kintai\UI\ViewRenderer::pathInScope('layout.partials._footer', (new \kintai\UI\ViewRenderer(self::VIEWS))->factory());
+        include \App\View\ViewRenderer::pathInScope('layout.partials._footer', (new \App\View\ViewRenderer(self::VIEWS))->factory());
         return (string) ob_get_clean();
     }
 

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Services\AppResetService;
+use App\Services\AppResetService;
 use PHPUnit\Framework\TestCase;
 
 final class AppResetServiceTest extends TestCase

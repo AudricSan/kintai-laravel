@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\ValidationException;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\UI\Controller\Web\HasAdminAccess;
-use kintai\UI\Controller\Web\Staff\HasStaffReportCrud;
+use App\Http\Controllers\HasAdminAccess;
+use App\Http\Controllers\Staff\HasStaffReportCrud;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

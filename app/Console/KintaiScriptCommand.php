@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Console;
+namespace App\Console;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArgvInput;

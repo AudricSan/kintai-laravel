@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Install;
+namespace Tests\Unit\Core\Install;
 
-use kintai\Core\Install\InstallRequirements;
+use App\Install\InstallRequirements;
 use PHPUnit\Framework\TestCase;
 
 final class InstallRequirementsTest extends TestCase

@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\Scheduling;
+namespace Tests\Unit\Controller\Web\Scheduling;
 
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\Controller\Web\Scheduling\AdminShiftTypeController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\Http\Controllers\Scheduling\AdminShiftTypeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Exceptions\ValidationException;
+use App\Exceptions\ValidationException;
 use PHPUnit\Framework\TestCase;
 
 final class AdminShiftTypeControllerTest extends TestCase
@@ -95,7 +95,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $req = $this->makePostRequest($_POST);
         $req->attributes->set('managed_store_ids', [1, 2]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->storeShiftType($req);
     }
 
@@ -137,7 +137,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateShiftType($req);
     }
 
@@ -168,7 +168,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateShiftType($req);
     }
 
@@ -188,7 +188,7 @@ final class AdminShiftTypeControllerTest extends TestCase
 
         $this->shiftTypes->expects($this->never())->method('delete');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteShiftType($req);
     }
 
@@ -203,7 +203,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteShiftType($req);
     }
 
@@ -248,7 +248,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 5]);
 
-        $this->expectException(\kintai\Core\Exceptions\NotFoundException::class);
+        $this->expectException(\App\Exceptions\NotFoundException::class);
         $this->controller()->toggleShiftTypeStore($req);
     }
 
@@ -263,7 +263,7 @@ final class AdminShiftTypeControllerTest extends TestCase
 
         $this->shiftTypes->expects($this->never())->method('enableForStore');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->toggleShiftTypeStore($req);
     }
 

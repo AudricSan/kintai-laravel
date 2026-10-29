@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\CalendarSubscriptionLinks;
+use App\Services\CalendarSubscriptionLinks;
 use PHPUnit\Framework\TestCase;
 
 /** Liens d'ajout en un clic d'un flux iCal aux agendas courants. */

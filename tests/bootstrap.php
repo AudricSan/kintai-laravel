@@ -28,9 +28,9 @@ function kintai_test_router(): Illuminate\Routing\Router
 }
 
 /** Enregistreur de routes à la manière des bundles ($router->get('/chemin', [Classe::class, 'm'], name: '…')). */
-function kintai_test_registrar(): kintai\Tests\Support\RouteRegistrar
+function kintai_test_registrar(): Tests\Support\RouteRegistrar
 {
-    return new kintai\Tests\Support\RouteRegistrar(kintai_test_router());
+    return new Tests\Support\RouteRegistrar(kintai_test_router());
 }
 
 /** Les vraies routes du cœur (routes/web.php et routes/api.php) dans un routeur vierge. */
@@ -67,7 +67,7 @@ Illuminate\Http\Request::macro('setRouteParams', function (array $params): void 
 
 // Aide des tests : base SQLite en mémoire neuve, installée comme connexion par défaut de l'application (DB::, Schema::,
 // Eloquent, migrateur). Renvoie la Capsule posée sur cette connexion.
-function kintai_test_database(): kintai\Core\Database\LaravelCapsule
+function kintai_test_database(): App\Database\LaravelCapsule
 {
     $app = $GLOBALS['kintai_test_app'];
     config(['database.connections.testing' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]]);
@@ -78,7 +78,7 @@ function kintai_test_database(): kintai\Core\Database\LaravelCapsule
     // Les modèles Eloquent reviennent sur le gestionnaire de l'application (un test peut avoir posé une autre Capsule).
     Illuminate\Database\Eloquent\Model::setConnectionResolver($app['db']);
 
-    $capsule = new kintai\Core\Database\LaravelCapsule($app);
+    $capsule = new App\Database\LaravelCapsule($app);
     $capsule->setAsGlobal();
 
     return $capsule;

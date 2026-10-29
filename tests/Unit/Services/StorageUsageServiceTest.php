@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\StorageUsageService;
+use App\Services\StorageUsageService;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

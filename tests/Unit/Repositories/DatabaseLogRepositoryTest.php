@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseLogRepository;
-use kintai\Core\Repositories\LogRepositoryInterface;
+use App\Repositories\DatabaseLogRepository;
+use App\Repositories\LogRepositoryInterface;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\ActivityEntry;
+use App\Models\ActivityEntry;
 
 final class DatabaseLogRepositoryTest extends TestCase
 {

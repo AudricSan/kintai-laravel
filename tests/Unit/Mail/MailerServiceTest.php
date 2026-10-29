@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Mail;
+namespace Tests\Unit\Mail;
 
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Mail\MailHeaders;
-use kintai\Core\Mail\MailTransportInterface;
+use App\Mail\MailerService;
+use App\Mail\MailHeaders;
+use App\Mail\MailTransportInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

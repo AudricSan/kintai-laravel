@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
 /**
  * Vérifie qu'un bundle n'utilise du Core que le contrat de bundle (kintai\Contract\…), plus une liste explicite de
@@ -23,7 +23,7 @@ final class ContractUsageScanner
         $violations = [];
         foreach (self::phpFiles($paths) as $file) {
             foreach (file($file) ?: [] as $i => $line) {
-                if (preg_match_all('/\\\\?\b(kintai\\\\(?:Core|UI|Domain)\\\\[A-Za-z0-9_\\\\]+)/', $line, $m) === 0) {
+                if (preg_match_all('/\\\\?\b(App\\\\[A-Za-z0-9_\\\\]+)/', $line, $m) === 0) {
                     continue;
                 }
                 foreach ($m[1] as $class) {

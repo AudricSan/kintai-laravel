@@ -19,13 +19,13 @@ if ($slug === null || $zip === null) {
 define('BASE_PATH', dirname(__DIR__, 2));
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
-require BASE_PATH . '/app/Core/helpers.php';
+require BASE_PATH . '/app/Support/helpers.php';
 
-use kintai\Core\InstalledBundleAutoloader;
-use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
-use kintai\Core\Services\BundleInstaller\BundleInstallerService;
-use kintai\Core\Services\BundleInstaller\BundlePermissionGranter;
-use kintai\Core\Services\UpdateService;
+use App\InstalledBundleAutoloader;
+use App\Repositories\InstalledBundleRepositoryInterface;
+use App\Services\BundleInstaller\BundleInstallerService;
+use App\Services\BundleInstaller\BundlePermissionGranter;
+use App\Services\UpdateService;
 
 kintai_load_env_file(BASE_PATH);
 (new InstalledBundleAutoloader())->register();

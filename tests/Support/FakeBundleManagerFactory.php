@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
+use App\Bundles\Bundle;
+use App\BundleManager;
 
 /**
  * Construit un BundleManager reflétant un ensemble donné de slugs "actifs",
@@ -13,7 +13,7 @@ use kintai\Core\BundleManager;
  * BundleManagerTest pour le détail de la technique (newInstanceWithoutConstructor
  * + injection réflexive de $bundles). À utiliser dans tout test qui simule un
  * bundle activé/désactivé/désinstallé pour du code passant par bundle_enabled()/
- * feat_bundle() (app/Core/helpers.php), qui lisent BundleManager::isActive()
+ * feat_bundle() (app/Support/helpers.php), qui lisent BundleManager::isActive()
  * depuis le CHANGELOG "extraction DailyReport" — pas FeatureManager::isEnabled()
  * seul, qui ne reflète que le réglage stocké, pas la présence réelle sur le disque.
  */

@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Routing;
+namespace Tests\Unit\Core\Routing;
 
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Routing\EmployeeRouteBinder;
-use kintai\Core\Routing\RouteBinderRegistry;
-use kintai\Core\Routing\StoreRouteBinder;
-use kintai\Http\Middleware\BindRouteParameters;
-use kintai\Http\Routing\Routes;
+use App\Repositories\StoreRepositoryInterface;
+use App\Routing\EmployeeRouteBinder;
+use App\Routing\RouteBinderRegistry;
+use App\Routing\StoreRouteBinder;
+use App\Http\Middleware\BindRouteParameters;
+use App\Http\Routing\Routes;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 

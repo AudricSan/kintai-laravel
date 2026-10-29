@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use Illuminate\Container\Container;
-use kintai\Core\Cron\CronJobInterface;
-use kintai\Core\Cron\CronRunner;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\CronTokenRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
+use App\Cron\CronJobInterface;
+use App\Cron\CronRunner;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
+use App\Repositories\CronTokenRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Translation\Translator;

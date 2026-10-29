@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseNotificationRepository;
-use kintai\Domain\Eloquent\Notification;
+use App\Repositories\DatabaseNotificationRepository;
+use App\Models\Notification;
 use PHPUnit\Framework\TestCase;
 
 /**

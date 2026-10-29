@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\InstalledBundleAutoloader;
-use kintai\Core\InstalledBundleManifestStore;
+use App\InstalledBundleAutoloader;
+use App\InstalledBundleManifestStore;
 use PHPUnit\Framework\TestCase;
 
 final class InstalledBundleAutoloaderTest extends TestCase

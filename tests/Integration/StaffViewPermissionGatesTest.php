@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use kintai\Contract\Extension\Action;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
 use Illuminate\Container\Container;
-use kintai\Tests\Support\FakeBundleManagerFactory;
-use kintai\UI\ViewRenderer;
+use Tests\Support\FakeBundleManagerFactory;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -26,7 +26,7 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
+        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         $router->get('/admin/users', [\stdClass::class, 'x'], name: 'admin.users');

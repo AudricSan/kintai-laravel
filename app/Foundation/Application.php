@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Foundation;
+namespace App\Foundation;
 
 use Illuminate\Foundation\Application as LaravelApplication;
 

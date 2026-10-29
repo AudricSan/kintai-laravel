@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\LicenseTokenVerifier;
-use kintai\Tests\Support\TestSigningKeypair;
+use App\Services\LicenseTokenVerifier;
+use Tests\Support\TestSigningKeypair;
 use PHPUnit\Framework\TestCase;
 
 final class LicenseTokenVerifierTest extends TestCase

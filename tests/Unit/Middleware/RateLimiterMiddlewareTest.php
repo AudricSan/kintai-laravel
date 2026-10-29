@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Middleware;
+namespace Tests\Unit\Middleware;
 
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Middleware\RateLimiterMiddleware;
+use App\Exceptions\HttpException;
+use App\Http\Middleware\RateLimiterMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Security\AttemptCounter;
+use App\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
 /** Limiteur générique : 5 requêtes par 5 minutes, par IP et par route, succès compris. */

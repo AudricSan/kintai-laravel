@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use Illuminate\Container\Container;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Repositories\ApiTokenRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\MockObject\MockObject;

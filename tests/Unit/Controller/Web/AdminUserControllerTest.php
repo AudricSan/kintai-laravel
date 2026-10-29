@@ -2,37 +2,37 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\OwnerGuard;
+use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\DailyReportRepositoryInterface;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\DailyReportRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Core\Services\RoleAssignmentSyncService;
-use kintai\UI\Controller\Web\Staff\AdminUserController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\LicenseClientService;
+use App\Services\Log;
+use App\Services\PlanLimitService;
+use App\Services\RoleAssignmentSyncService;
+use App\Http\Controllers\Staff\AdminUserController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Auth\UserAnonymizer;
-use kintai\Core\Auth\CredentialRevoker;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
+use App\Auth\UserAnonymizer;
+use App\Auth\CredentialRevoker;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\ApiTokenRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 final class AdminUserControllerTest extends TestCase
@@ -69,7 +69,7 @@ final class AdminUserControllerTest extends TestCase
     /** Branche $this->logRepo derrière Log::record() ; à rappeler quand un test le remplace par un mock. */
     private function registerLogRepository(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }
@@ -1172,7 +1172,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->userRates->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->setUserRate($req);
     }
 
@@ -1211,7 +1211,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->userRates->expects($this->never())->method('delete');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteUserRate($req);
     }
 
@@ -1240,7 +1240,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->method('findById')->willReturn(['id' => 7, 'is_active' => 1, 'deleted_at' => null]);
         $this->users->expects($this->never())->method('delete');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteUser($this->actingAsOwner(7));
     }
 
@@ -1265,7 +1265,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->method('findById')->willReturn(['id' => 7, 'is_active' => 1, 'deleted_at' => null, 'email' => 'o@x.test']);
         $this->users->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateUser($this->actingAsOwner(7, ['is_active' => '0']));
     }
 

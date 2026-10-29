@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Auth\PasswordPolicy;
-use kintai\Core\Database\DemoDataSeeder;
+use App\Auth\PasswordPolicy;
+use App\Database\DemoDataSeeder;
 use PHPUnit\Framework\TestCase;
 
 /**

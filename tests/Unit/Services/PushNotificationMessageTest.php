@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\PushNotificationService;
+use App\Services\PushNotificationService;
 use PHPUnit\Framework\TestCase;
 
 /** Message FCM : normal, ou muet et en priorité basse pendant les heures silencieuses de l'utilisateur. */

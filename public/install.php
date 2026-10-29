@@ -6,19 +6,19 @@ define('BASE_PATH', dirname(__DIR__));
 
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
-require BASE_PATH . '/app/Core/helpers.php';
+require BASE_PATH . '/app/Support/helpers.php';
 kintai_normalize_script_name();
 
 use Illuminate\Container\Container;
-use kintai\Core\Install\InstallFailure;
-use kintai\Core\Install\InstallInput;
-use kintai\Core\Install\InstallRequirements;
-use kintai\Core\Install\WebInstaller;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Services\InstanceLocale;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\Services\TranslationService;
+use App\Install\InstallFailure;
+use App\Install\InstallInput;
+use App\Install\InstallRequirements;
+use App\Install\WebInstaller;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Services\InstanceLocale;
+use App\Services\PublicUrlResolver;
+use App\Services\TranslationService;
 
 // ─── Déjà installé ────────────────────────────────────────────────────────────
 
@@ -101,8 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
             $registerTranslations($pageLocale);
 
             // Connexion de l'Owner (même session que l'application), puis assistant de configuration.
-            \kintai\Core\Middleware\SessionMiddleware::start($scheme === 'https');
-            Container::getInstance()->make(\kintai\Core\Auth\AuthService::class)->attempt($input->email, $input->password);
+            \App\Http\Middleware\SessionMiddleware::start($scheme === 'https');
+            Container::getInstance()->make(\App\Auth\AuthService::class)->attempt($input->email, $input->password);
 
             // Avec des comptes de démonstration, la page reste affichée : ils y sont listés.
             if ($result['demo_accounts'] === []) {
@@ -134,7 +134,7 @@ $view = [
     'result'           => $result,
     'setup_url'        => $installBase . '/admin/setup',
     'login_url'        => $installBase . '/login',
-    'demo_password'    => \kintai\Core\Database\DemoDataSeeder::PASSWORD,
+    'demo_password'    => \App\Database\DemoDataSeeder::PASSWORD,
     'old'              => $_POST,
     'default_host'     => (string) env('DB_HOST', '127.0.0.1'),
     'default_port'     => (string) env('DB_PORT', '3306'),
@@ -143,5 +143,5 @@ $view = [
 ];
 (static function (array $__vars): void {
     extract($__vars);
-    require BASE_PATH . '/app/UI/View/install/index.php';
+    require BASE_PATH . '/resources/views/install/index.php';
 })($view);

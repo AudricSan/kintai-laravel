@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\UserSelection;
-use kintai\Tests\Support\ApiOwnerAuth;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\UserSelection;
+use Tests\Support\ApiOwnerAuth;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\PublicUrlResolver;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\PublicUrlResolver;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Services\UpdateService;
+use App\Services\UpdateService;
 
 final class UpdateServiceTest extends TestCase
 {

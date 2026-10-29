@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseInstalledBundleRepository;
+use App\Repositories\DatabaseInstalledBundleRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 final class DatabaseInstalledBundleRepositoryTest extends TestCase

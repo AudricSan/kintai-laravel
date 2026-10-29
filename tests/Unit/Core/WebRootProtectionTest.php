@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use PHPUnit\Framework\TestCase;
 
@@ -81,7 +81,7 @@ final class WebRootProtectionTest extends TestCase
             'base SQLite'        => ['storage/app/database.sqlite'],
             'sauvegardes'        => ['storage/backups/backup_2026.zip'],
             'journaux'           => ['storage/logs/error.log'],
-            'code source'        => ['app/Core/Application.php'],
+            'code source'        => ['app/Application.php'],
             'composer'           => ['composer.json'],
             'configuration'      => ['config/database.local.php'],
             'dépôt git'          => ['.git/config'],

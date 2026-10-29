@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Cron\CronRunner;
-use kintai\Core\Cron\NotificationPurgeJob;
-use kintai\Core\Repositories\DatabaseNotificationRepository;
-use kintai\Core\Repositories\DatabaseWebPushSubscriptionRepository;
+use App\Cron\CronRunner;
+use App\Cron\NotificationPurgeJob;
+use App\Repositories\DatabaseNotificationRepository;
+use App\Repositories\DatabaseWebPushSubscriptionRepository;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Domain\Eloquent\Notification;
-use kintai\Domain\Eloquent\WebPushSubscription;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Services\AppSettingsService;
+use App\Models\Notification;
+use App\Models\WebPushSubscription;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 /** Purge des notifications lues (jamais des non lues) et des abonnements web push inutilisés, contre un vrai schéma. */

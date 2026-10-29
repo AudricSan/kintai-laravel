@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\LogRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\Log;
+use App\Services\Log;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,7 +29,7 @@ final class LogContextSpoofingTest extends TestCase
             $this->recorded = $args;
         });
 
-        $this->container = new \kintai\Tests\Support\TestContainer();
+        $this->container = new \Tests\Support\TestContainer();
         $this->container->instance(LogRepositoryInterface::class, $repo);
         Log::setContainer($this->container);
     }

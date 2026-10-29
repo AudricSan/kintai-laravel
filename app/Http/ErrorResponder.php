@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http;
+namespace App\Http;
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Exceptions\MethodNotAllowedException;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Services\Log;
-use kintai\Core\ValidationFeedback;
-use kintai\UI\ViewRenderer;
+use App\Exceptions\HttpException;
+use App\Exceptions\MethodNotAllowedException;
+use App\Exceptions\ValidationException;
+use App\Services\Log;
+use App\ValidationFeedback;
+use App\View\ViewRenderer;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;

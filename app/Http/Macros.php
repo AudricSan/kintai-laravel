@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http;
+namespace App\Http;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\ResponseFactory;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Response;
-use kintai\Http\Routing\Routes;
+use App\Http\Routing\Routes;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 

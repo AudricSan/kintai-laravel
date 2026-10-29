@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Exceptions\PlanLimitExceededException;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Core\Services\StoreService;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Exceptions\PlanLimitExceededException;
+use App\Services\LicenseClientService;
+use App\Services\PlanLimitService;
+use App\Services\StoreService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
+use App\Exceptions\NotFoundException;
+use App\Repositories\RoleAssignmentRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 final class StoreServiceTest extends TestCase
@@ -135,7 +135,7 @@ final class StoreServiceTest extends TestCase
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'code' => 'A', 'name' => 'Store A']);
         $this->stores->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->service()->updateStore(1, ['name' => 'Store A', 'currency' => '<a href=//evil>SESSION</a>']);
     }
 
@@ -167,7 +167,7 @@ final class StoreServiceTest extends TestCase
         try {
             $this->service()->createStore(['code' => 'ST01', 'name' => 'Store B']);
             $this->fail('Un code déjà pris doit être refusé.');
-        } catch (\kintai\Core\Exceptions\ValidationException $e) {
+        } catch (\App\Exceptions\ValidationException $e) {
             $this->assertArrayHasKey('code', $e->errors, 'refus dû au doublon, pas au format');
         }
     }
@@ -182,7 +182,7 @@ final class StoreServiceTest extends TestCase
         try {
             $this->service()->updateStore(1, ['code' => 'b2', 'name' => 'Store A']);
             $this->fail('Un code déjà pris doit être refusé.');
-        } catch (\kintai\Core\Exceptions\ValidationException $e) {
+        } catch (\App\Exceptions\ValidationException $e) {
             $this->assertArrayHasKey('code', $e->errors);
         }
     }

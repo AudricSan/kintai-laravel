@@ -13,7 +13,7 @@
         </testsuite>
     </testsuites>
     <extensions>
-        <bootstrap class="kintai\Tests\Support\ResetAuthSessionFingerprint"/>
+        <bootstrap class="Tests\Support\ResetAuthSessionFingerprint"/>
     </extensions>
     <source>
         <include>

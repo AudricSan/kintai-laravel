@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services\BundleInstaller;
+namespace Tests\Unit\Core\Services\BundleInstaller;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Migrations\Migrator;
-use kintai\Core\InstalledBundleManifestStore;
-use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Services\BundleInstaller\BundlePermissionGranter;
-use kintai\Core\Services\BundleInstaller\BundleInstallerService;
-use kintai\Core\Services\UpdateService;
+use App\InstalledBundleManifestStore;
+use App\Repositories\InstalledBundleRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Services\BundleInstaller\BundlePermissionGranter;
+use App\Services\BundleInstaller\BundleInstallerService;
+use App\Services\UpdateService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -436,7 +436,7 @@ return new class extends Migration {
             true,
             null,
             "<?php\nnamespace kintai\\Bundles\\Installed\\{$ns};\n"
-            . "final class FakeBundleBundle extends \\kintai\\Core\\BundleContract\\Bundle {\n"
+            . "final class FakeBundleBundle extends \\App\\Bundles\\Bundle {\n"
             . "    public function getName(): string { return 'fake-bundle'; }\n"
             . "    public function register(): void {}\n"
             . "    public function permissions(): array { return ['fake_items' => ['view', 'manage']]; }\n"

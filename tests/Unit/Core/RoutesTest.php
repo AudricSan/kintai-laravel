@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Middleware\LoginThrottleMiddleware;
-use kintai\Core\Middleware\RateLimiterMiddleware;
+use App\Http\Middleware\LoginThrottleMiddleware;
+use App\Http\Middleware\RateLimiterMiddleware;
 use PHPUnit\Framework\TestCase;
 
 /**

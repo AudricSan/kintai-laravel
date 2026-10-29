@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Install;
+namespace Tests\Unit\Core\Install;
 
-use kintai\Core\Install\InstallFailure;
+use App\Install\InstallFailure;
 use PDOException;
 use PHPUnit\Framework\TestCase;
 

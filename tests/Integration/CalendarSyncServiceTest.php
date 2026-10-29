@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Container\Container;
-use kintai\Core\Services\Calendar\CalendarEventBuilder;
+use App\Services\Calendar\CalendarEventBuilder;
 use Illuminate\Translation\Translator;
-use kintai\Tests\Support\CalendarSyncFixture;
+use Tests\Support\CalendarSyncFixture;
 use PHPUnit\Framework\TestCase;
 
 /**

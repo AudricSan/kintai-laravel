@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\BundleManager;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Middleware\CsrfMiddleware;
-use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Extension\ExtensionRegistry;
+use App\Http\Middleware\CsrfMiddleware;
+use App\Repositories\DatabaseNotificationPreferenceRepository;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\NotificationPreferenceService;
-use kintai\Core\Services\NotificationTypeRegistry;
-use kintai\Core\Services\UnsubscribeTokens;
-use kintai\Domain\Eloquent\NotificationPreference;
-use kintai\Tests\Support\InMemoryAppSettings;
-use kintai\UI\Controller\Web\NotificationUnsubscribeController;
-use kintai\UI\ViewRenderer;
+use App\Services\NotificationPreferenceService;
+use App\Services\NotificationTypeRegistry;
+use App\Services\UnsubscribeTokens;
+use App\Models\NotificationPreference;
+use Tests\Support\InMemoryAppSettings;
+use App\Http\Controllers\NotificationUnsubscribeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -65,7 +65,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
             $this->createStub(UserRepositoryInterface::class),
         );
         $this->tokens = new UnsubscribeTokens(new InMemoryAppSettings());
-        $view = new ViewRenderer(dirname(__DIR__, 4) . '/app/UI/View');
+        $view = new ViewRenderer(dirname(__DIR__, 4) . '/resources/views');
         $view->share('BASE_URL', '');
         $this->controller = new NotificationUnsubscribeController($view, $this->tokens, $this->prefs);
     }

@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Foundation;
+namespace Tests\Unit\Foundation;
 
 use Illuminate\Auth\Access\Gate;
 use Illuminate\Container\Container as IlluminateContainer;
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\AuthService;
+use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Foundation\Auth\KintaiGate;
-use kintai\Foundation\Auth\KintaiGuard;
-use kintai\Foundation\Auth\KintaiUser;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Foundation\Auth\KintaiGate;
+use App\Foundation\Auth\KintaiGuard;
+use App\Foundation\Auth\KintaiUser;
 use PHPUnit\Framework\TestCase;
 
 final class KintaiAuthBridgeTest extends TestCase
@@ -44,7 +44,7 @@ final class KintaiAuthBridgeTest extends TestCase
         $roles->method('findById')->willReturn(['id' => 2, 'is_system' => 0]);
         $roles->method('getPermissions')->willReturn(['shifts.update']);
 
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(UserRepositoryInterface::class, $users);
         $container->instance(AuthService::class, new AuthService(
             $users,

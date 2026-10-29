@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\SessionFlash;
+use App\SessionFlash;
 use PHPUnit\Framework\TestCase;
 
 /** Messages transportés par la session à la place de l'URL, affichés une seule fois. */

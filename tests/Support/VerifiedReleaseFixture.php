@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
-use kintai\Core\Services\GithubUpdateService;
+use App\Services\GithubUpdateService;
 
 /**
  * Simule une release publiée par release.yml pour GithubUpdateService : archive kintai-{tag}.zip (avec

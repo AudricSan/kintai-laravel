@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Setup;
+namespace Tests\Unit\Core\Setup;
 
-use kintai\Core\Services\BundleRegistry\BundleRegistryEntry;
-use kintai\Core\Setup\SetupQuestionnaire;
+use App\Services\BundleRegistry\BundleRegistryEntry;
+use App\Setup\SetupQuestionnaire;
 use PHPUnit\Framework\TestCase;
 
 /** Questionnaire de l'étape Bundles : questions utiles, recommandation, priorité, questions des bundles tiers. */

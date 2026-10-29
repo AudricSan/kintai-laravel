@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseLogRepository;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\DatabaseLogRepository;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\UI\Controller\Web\System\ActivityController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Http\Controllers\System\ActivityController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /** Purge manuelle du journal d'activité : par ancienneté ou totale, sur une vraie base SQLite en mémoire. */

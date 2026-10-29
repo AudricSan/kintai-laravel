@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
+use App\Services\AuditLogger;
 
 final class AuditLoggerTest extends TestCase
 {

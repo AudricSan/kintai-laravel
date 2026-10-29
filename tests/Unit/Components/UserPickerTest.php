@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Components;
+namespace Tests\Unit\Components;
 
-use kintai\UI\Components\UserPicker;
+use App\View\Components\UserPicker;
 use PHPUnit\Framework\TestCase;
 
 /**

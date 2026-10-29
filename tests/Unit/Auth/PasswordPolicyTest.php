@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
-use kintai\Core\Auth\PasswordPolicy;
+use App\Auth\PasswordPolicy;
 use PHPUnit\Framework\TestCase;
 
 final class PasswordPolicyTest extends TestCase

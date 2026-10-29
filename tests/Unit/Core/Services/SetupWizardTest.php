@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\FeatureManager;
-use kintai\Core\InstalledBundleManifestStore;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\BundleActivationService;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Core\Services\SetupWizard;
+use App\BundleDiscoveryService;
+use App\FeatureManager;
+use App\InstalledBundleManifestStore;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\BundleActivationService;
+use App\Services\LicenseClientService;
+use App\Services\PlanLimitService;
+use App\Services\SetupWizard;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -80,7 +80,7 @@ final class SetupWizardTest extends TestCase
         mkdir($root . '/src', 0777, true);
         file_put_contents($root . '/bundle.json', json_encode(['slug' => $slug, 'name' => $slug, 'version' => $version, 'namespace' => $ns,
             'entry_class' => $ns . '\\' . $class . 'Bundle', 'kintai_contract' => '^1.0']));
-        file_put_contents($root . '/src/' . $class . 'Bundle.php', "<?php\nnamespace {$ns};\nfinal class {$class}Bundle extends \\kintai\\Core\\BundleContract\\Bundle {\n    public function getName(): string { return '{$slug}'; }\n    public function register(): void {}\n}\n");
+        file_put_contents($root . '/src/' . $class . 'Bundle.php', "<?php\nnamespace {$ns};\nfinal class {$class}Bundle extends \\App\\Bundles\\Bundle {\n    public function getName(): string { return '{$slug}'; }\n    public function register(): void {}\n}\n");
         require $root . '/src/' . $class . 'Bundle.php';
     }
 

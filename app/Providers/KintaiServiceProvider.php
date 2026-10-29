@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Providers;
+namespace App\Providers;
 
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use kintai\Console\KintaiScriptCommand;
-use kintai\Core\BundleManager;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Routing\EmployeeRouteBinder;
-use kintai\Core\Routing\RouteBinderRegistry;
-use kintai\Core\Routing\StoreRouteBinder;
-use kintai\UI\ViewRenderer;
-use kintai\Foundation\Auth\KintaiGate;
-use kintai\Foundation\Auth\KintaiGuard;
+use App\Console\KintaiScriptCommand;
+use App\BundleManager;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Routing\EmployeeRouteBinder;
+use App\Routing\RouteBinderRegistry;
+use App\Routing\StoreRouteBinder;
+use App\View\ViewRenderer;
+use App\Foundation\Auth\KintaiGate;
+use App\Foundation\Auth\KintaiGuard;
 
 /**
  * Raccorde Laravel aux services de Kintai pendant la migration : les helpers de Laravel (__(), csrf_token(),
@@ -45,7 +45,7 @@ final class KintaiServiceProvider extends ServiceProvider
         $this->app->extend('view', fn($view, $app) => $app->make(ViewRenderer::class)->factory());
 
         $this->app->singleton(ViewRenderer::class, function (): ViewRenderer {
-            $views = new ViewRenderer(BASE_PATH . '/app/UI/View');
+            $views = new ViewRenderer(BASE_PATH . '/resources/views');
             $views->share('BASE_URL', base_url());
             return $views;
         });
@@ -53,13 +53,13 @@ final class KintaiServiceProvider extends ServiceProvider
         // Contrôleurs : la redirection ou la 404 d'un paramètre typé est rendue juste avant l'action.
         $this->app->bind(
             \Illuminate\Routing\Contracts\ControllerDispatcher::class,
-            static fn($app): \kintai\Http\KintaiControllerDispatcher => new \kintai\Http\KintaiControllerDispatcher($app),
+            static fn($app): \App\Http\KintaiControllerDispatcher => new \App\Http\KintaiControllerDispatcher($app),
         );
     }
 
     public function boot(): void
     {
-        \kintai\Http\Macros::register();
+        \App\Http\Macros::register();
 
 
         // auth() et le Gate de Laravel lisent l'utilisateur et les permissions de Kintai.

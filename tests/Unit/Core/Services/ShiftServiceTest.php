@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\BundleManager;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Services\ShiftService;
-use kintai\Tests\Support\FakeAbsenceProvider;
+use App\Extension\ExtensionRegistry;
+use App\Services\ShiftService;
+use Tests\Support\FakeAbsenceProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ShiftServiceTest extends TestCase

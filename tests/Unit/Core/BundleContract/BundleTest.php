@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\BundleContract;
+namespace Tests\Unit\Core\BundleContract;
 
-use kintai\Core\BundleContract\Bundle;
+use App\Bundles\Bundle;
 use PHPUnit\Framework\TestCase;
 
 final class BundleTest extends TestCase
@@ -36,8 +36,8 @@ final class BundleTest extends TestCase
         mkdir($dir, 0777, true);
         file_put_contents($dir . '/LegacyStyleBundle.php', <<<'PHP'
             <?php
-            namespace kintai\Tests\Fixtures\LegacyStyle;
-            final class LegacyStyleBundle extends \kintai\Core\BundleContract\Bundle
+            namespace Tests\Fixtures\LegacyStyle;
+            final class LegacyStyleBundle extends \App\Bundles\Bundle
             {
                 public function getName(): string { return 'legacy-style'; }
                 public function register(): void {}
@@ -45,7 +45,7 @@ final class BundleTest extends TestCase
             PHP);
         require $dir . '/LegacyStyleBundle.php';
 
-        $bundle = (new \ReflectionClass(\kintai\Tests\Fixtures\LegacyStyle\LegacyStyleBundle::class))->newInstanceWithoutConstructor();
+        $bundle = (new \ReflectionClass(\Tests\Fixtures\LegacyStyle\LegacyStyleBundle::class))->newInstanceWithoutConstructor();
         $resolvePath = new \ReflectionMethod(Bundle::class, 'resolvePath');
         $resolvePath->setAccessible(true);
 
@@ -59,8 +59,8 @@ final class BundleTest extends TestCase
         touch($root . '/bundle.json');
         file_put_contents($root . '/src/InstalledStyleBundle.php', <<<'PHP'
             <?php
-            namespace kintai\Tests\Fixtures\InstalledStyle;
-            final class InstalledStyleBundle extends \kintai\Core\BundleContract\Bundle
+            namespace Tests\Fixtures\InstalledStyle;
+            final class InstalledStyleBundle extends \App\Bundles\Bundle
             {
                 public function getName(): string { return 'installed-style'; }
                 public function register(): void {}
@@ -68,7 +68,7 @@ final class BundleTest extends TestCase
             PHP);
         require $root . '/src/InstalledStyleBundle.php';
 
-        $bundle = (new \ReflectionClass(\kintai\Tests\Fixtures\InstalledStyle\InstalledStyleBundle::class))->newInstanceWithoutConstructor();
+        $bundle = (new \ReflectionClass(\Tests\Fixtures\InstalledStyle\InstalledStyleBundle::class))->newInstanceWithoutConstructor();
         $resolvePath = new \ReflectionMethod(Bundle::class, 'resolvePath');
         $resolvePath->setAccessible(true);
 

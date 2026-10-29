@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\HttpFetcher;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\LicenseTokenVerifier;
-use kintai\Tests\Support\TestSigningKeypair;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\HttpFetcher;
+use App\Services\LicenseClientService;
+use App\Services\LicenseTokenVerifier;
+use Tests\Support\TestSigningKeypair;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

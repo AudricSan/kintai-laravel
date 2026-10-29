@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Jobs\DeliverNotification;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Mail\MailTransportInterface;
-use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
-use kintai\Core\Repositories\DatabaseNotificationRepository;
-use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\NotificationMailer;
-use kintai\Core\Services\NotificationPreferenceService;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\NotificationTypeRegistry;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\Services\PushNotificationService;
+use App\Jobs\DeliverNotification;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Mail\MailerService;
+use App\Mail\MailTransportInterface;
+use App\Repositories\DatabaseNotificationPreferenceRepository;
+use App\Repositories\DatabaseNotificationRepository;
+use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\AppSettingsService;
+use App\Services\NotificationMailer;
+use App\Services\NotificationPreferenceService;
+use App\Services\NotificationService;
+use App\Services\NotificationTypeRegistry;
+use App\Services\PublicUrlResolver;
+use App\Services\PushNotificationService;
 use Illuminate\Translation\Translator;
-use kintai\Core\Services\UnsubscribeTokens;
-use kintai\Domain\Eloquent\Notification;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Services\UnsubscribeTokens;
+use App\Models\Notification;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Middleware;
+namespace Tests\Unit\Middleware;
 
-use kintai\Core\Middleware\SecurityHeadersMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;

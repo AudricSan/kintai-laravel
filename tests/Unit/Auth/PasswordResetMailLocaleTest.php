@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Auth;
+namespace Tests\Unit\Auth;
 
 use Illuminate\Container\Container;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\PasswordResetRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\PasswordResetService;
+use App\Mail\MailerService;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\PasswordResetRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\PasswordResetService;
 use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 

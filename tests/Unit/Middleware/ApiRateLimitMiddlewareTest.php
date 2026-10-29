@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Middleware;
+namespace Tests\Unit\Middleware;
 
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Middleware\ApiRateLimitMiddleware;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
+use App\Exceptions\HttpException;
+use App\Http\Middleware\ApiRateLimitMiddleware;
+use App\Repositories\AppSettingsRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Security\AttemptCounter;
-use kintai\Core\Services\AppSettingsService;
+use App\Security\AttemptCounter;
+use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -41,7 +41,7 @@ final class ApiRateLimitMiddlewareTest extends TestCase
         $repo = $this->createStub(AppSettingsRepositoryInterface::class);
         $repo->method('all')->willReturn($setting === null ? [] : [ApiRateLimitMiddleware::SETTING_KEY => $setting]);
 
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(AppSettingsService::class, new AppSettingsService($repo));
 
         return new ApiRateLimitMiddleware($container, new AttemptCounter($this->dir));

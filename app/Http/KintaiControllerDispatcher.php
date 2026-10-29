@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http;
+namespace App\Http;
 
 use Illuminate\Routing\ControllerDispatcher;
 use Illuminate\Routing\Route;
-use kintai\Http\Middleware\BindRouteParameters;
+use App\Http\Middleware\BindRouteParameters;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 

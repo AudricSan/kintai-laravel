@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\BundleManager;
+use App\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\Attendances;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\DatabaseShiftRepository;
-use kintai\Core\Repositories\DatabaseTimesheetApprovalRepository;
-use kintai\Core\Services\TimesheetService;
-use kintai\Tests\Support\FakeAttendanceProvider;
-use kintai\Tests\Support\FakeBundleManagerFactory;
+use App\Extension\Attendances;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\DatabaseShiftRepository;
+use App\Repositories\DatabaseTimesheetApprovalRepository;
+use App\Services\TimesheetService;
+use Tests\Support\FakeAttendanceProvider;
+use Tests\Support\FakeBundleManagerFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Export;
+namespace Tests\Unit\Export;
 
 use PHPUnit\Framework\TestCase;
 
@@ -14,7 +14,7 @@ final class ExportTranslationsTest extends TestCase
     {
         $root   = dirname(__DIR__, 3);
         $keys   = [];
-        $source = (string) file_get_contents($root . '/app/Core/Extension/ExportDatasets.php');
+        $source = (string) file_get_contents($root . '/app/Extension/ExportDatasets.php');
 
         // Libellés des jeux de données (« export_ds_… ») et colonnes (listes passées à columns(), clé « export_col_<nom> »).
         preg_match_all("/'(export_ds_[a-z_]+)'/", $source, $m);
@@ -28,7 +28,7 @@ final class ExportTranslationsTest extends TestCase
         }
 
         // Textes de la page, de son contrôleur, du contrôle d'accès et messages d'erreur construits par suffixe.
-        foreach (['/app/UI/View/exports/index.blade.php', '/app/UI/Controller/Web/ExportController.php', '/app/Core/Export/ExportAccess.php'] as $file) {
+        foreach (['/resources/views/exports/index.blade.php', '/app/Http/Controllers/ExportController.php', '/app/Export/ExportAccess.php'] as $file) {
             preg_match_all("/__\('(export_[a-z_]+)'\)/", (string) file_get_contents($root . $file), $m);
             array_push($keys, ...$m[1]);
         }

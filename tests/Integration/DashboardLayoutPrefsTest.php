@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseUserDashboardPrefsRepository;
+use App\Repositories\DatabaseUserDashboardPrefsRepository;
 use PHPUnit\Framework\TestCase;
 
 /** Disposition des tableaux de bord (user_dashboard_prefs.layout) : enregistrement indépendant des widgets activés. */

@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Auth\UserTargetGuard;
-use kintai\Core\BundleManager;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\UserTargetGuard;
+use App\BundleManager;
+use App\Exceptions\ValidationException;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\DatabaseNotificationPreferenceRepository;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\NotificationPreferenceService;
-use kintai\Core\Services\NotificationTypeRegistry;
-use kintai\Domain\Eloquent\NotificationPreference;
-use kintai\Tests\Support\ApiOwnerAuth;
-use kintai\UI\Controller\Api\V1\NotificationPreferenceController;
+use App\Services\NotificationPreferenceService;
+use App\Services\NotificationTypeRegistry;
+use App\Models\NotificationPreference;
+use Tests\Support\ApiOwnerAuth;
+use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use PHPUnit\Framework\TestCase;
 
 /** GET|PUT /api/v1/users/{user_id}/notification-preferences, contre un vrai schéma SQLite. */

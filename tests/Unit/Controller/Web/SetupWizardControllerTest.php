@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Container\Container;
-use kintai\Core\Exceptions\NotFoundException;
+use App\Exceptions\NotFoundException;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\FeatureManager;
-use kintai\Core\InstalledBundleManifestStore;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\BundleActivationService;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Core\Services\SetupWizard;
-use kintai\Core\Setup\SetupStepInterface;
-use kintai\Core\Setup\SetupSteps;
-use kintai\Tests\Support\InMemoryAppSettings;
-use kintai\UI\Controller\Web\System\SetupWizardController;
-use kintai\UI\ViewRenderer;
+use App\Services\AppSettingsService;
+use App\Services\AuditLogger;
+use App\BundleDiscoveryService;
+use App\FeatureManager;
+use App\InstalledBundleManifestStore;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\BundleActivationService;
+use App\Services\LicenseClientService;
+use App\Services\PlanLimitService;
+use App\Services\SetupWizard;
+use App\Setup\SetupStepInterface;
+use App\Setup\SetupSteps;
+use Tests\Support\InMemoryAppSettings;
+use App\Http\Controllers\System\SetupWizardController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -92,7 +92,7 @@ final class SetupWizardControllerTest extends TestCase
         $this->views = sys_get_temp_dir() . '/kintai-setup-views-' . bin2hex(random_bytes(4));
         mkdir($this->views . '/layout', 0777, true);
         file_put_contents($this->views . '/layout/app.php', '<?php echo $content ?? "";');
-        self::copyDir(BASE_PATH . '/app/UI/View/system', $this->views . '/system');
+        self::copyDir(BASE_PATH . '/resources/views/system', $this->views . '/system');
         $view = new ViewRenderer($this->views);
         $view->share('BASE_URL', '');
         $this->controller = new SetupWizardController(
@@ -102,7 +102,7 @@ final class SetupWizardControllerTest extends TestCase
             new AppSettingsService($this->store),
             new AuditLogger(),
             $steps,
-            new \kintai\Core\Setup\SetupQuestionnaire([
+            new \App\Setup\SetupQuestionnaire([
                 ['id' => 'timeoff', 'bundles' => ['timeoff'], 'icon' => 'x', 'theme' => 'requests'],
                 ['id' => 'timeclock', 'bundles' => ['timeclock'], 'icon' => 'y', 'theme' => 'planning'],
             ]),

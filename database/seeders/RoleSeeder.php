@@ -6,7 +6,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use kintai\Core\Auth\PermissionCatalog;
+use App\Auth\PermissionCatalog;
 
 /**
  * Les trois rôles par défaut (Owner, Manager, Employé). Owner est un rôle système : PermissionService lui accorde toutes

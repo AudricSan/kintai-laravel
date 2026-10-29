@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Helpers;
+namespace Tests\Unit\Helpers;
 
 use PHPUnit\Framework\TestCase;
 

@@ -17,9 +17,9 @@ declare(strict_types=1);
  * Usage : php scripts/set-release-version.php X.Y.Z [chemin-racine]
  */
 
-require_once __DIR__ . '/../app/Core/Services/UpdateService.php';
+require_once __DIR__ . '/../app/Services/UpdateService.php';
 
-use kintai\Core\Services\UpdateService;
+use App\Services\UpdateService;
 
 $version = $argv[1] ?? '';
 $base = rtrim($argv[2] ?? dirname(__DIR__), '/\\');

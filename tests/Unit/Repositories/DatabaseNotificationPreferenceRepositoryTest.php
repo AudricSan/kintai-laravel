@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
-use kintai\Domain\Eloquent\NotificationPreference;
+use App\Repositories\DatabaseNotificationPreferenceRepository;
+use App\Models\NotificationPreference;
 use PHPUnit\Framework\TestCase;
 
 /** Contre le vrai schéma de `notification_preferences` (2026_10_21_000000), sans mock. */

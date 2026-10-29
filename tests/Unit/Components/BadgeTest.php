@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Components;
+namespace Tests\Unit\Components;
 
 use PHPUnit\Framework\TestCase;
-use kintai\UI\Components\Badge;
+use App\View\Components\Badge;
 
 /**
  * Régression : DailyReport\Views\daily-reports.php réimplémentait sa propre table

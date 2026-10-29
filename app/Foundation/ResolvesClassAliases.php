@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Foundation;
+namespace App\Foundation;
 
 /**
  * Règles de résolution de l'ancien conteneur Kintai, appliquées au conteneur Illuminate.

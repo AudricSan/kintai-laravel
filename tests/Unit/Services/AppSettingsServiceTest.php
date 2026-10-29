@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\AppSettingsService;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
 final class AppSettingsServiceTest extends TestCase

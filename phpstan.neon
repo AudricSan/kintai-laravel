@@ -3,7 +3,7 @@ parameters:
     paths:
         - app
     excludePaths:
-        - app/UI/View
+        - resources/views
     treatPhpDocTypesAsCertain: false
     ignoreErrors:
         # Le trait HasAdminAccess lit $this->stores / storeUsers / users, fournis par les contrôleurs qui l'utilisent ;
@@ -15,4 +15,4 @@ parameters:
         # make() est un localisateur de services : le gabarit est volontairement renvoyé par classe.
         -
             identifier: method.templateTypeNotInParameter
-            path: app/Core/Container.php
+            path: app/Container.php

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Contract;
+namespace Tests\Unit\Contract;
 
 use kintai\Contract\Contract;
 use kintai\Contract\Extension\NavItem;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Services\Log;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Services\Log;
 use PHPUnit\Framework\TestCase;
 
 /** Point d'extension « navigation » (contrat 1.1) : objet NavItem et collecte par le registre du Core. */

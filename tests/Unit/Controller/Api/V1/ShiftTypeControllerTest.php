@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
-use kintai\Tests\Support\ApiOwnerAuth;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
+use Tests\Support\ApiOwnerAuth;
+use App\Auth\PermissionService;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\Controller\Api\V1\ShiftTypeController;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\Http\Controllers\Api\V1\ShiftTypeController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Exceptions\ValidationException;
+use App\Exceptions\ValidationException;
 use PHPUnit\Framework\TestCase;
 
 final class ShiftTypeControllerTest extends TestCase
@@ -97,7 +97,7 @@ final class ShiftTypeControllerTest extends TestCase
         $req = $this->asManager(Request::capture());
         $req->setRouteParams(['id' => '5']);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->managerOfStoreOne()->destroy($req);
     }
 
@@ -111,7 +111,7 @@ final class ShiftTypeControllerTest extends TestCase
         $req = $this->asManager(Request::capture());
         $req->setRouteParams(['id' => '5']);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->managerOfStoreOne()->update($req);
     }
 

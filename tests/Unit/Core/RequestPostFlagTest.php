@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
-use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
+use App\Repositories\UserNavPrefsRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\UI\Controller\Web\System\AdminController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Http\Controllers\System\AdminController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

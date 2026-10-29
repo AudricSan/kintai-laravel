@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseRoleDashboardLayoutRepository;
-use kintai\Core\Repositories\DatabaseUserDashboardLayoutRepository;
+use App\Repositories\DatabaseRoleDashboardLayoutRepository;
+use App\Repositories\DatabaseUserDashboardLayoutRepository;
 use PHPUnit\Framework\TestCase;
 
 /** Mises en page nommées d'un utilisateur et défaut par rôle, contre un vrai schéma (celui de la migration). */

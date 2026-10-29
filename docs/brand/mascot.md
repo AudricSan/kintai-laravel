@@ -168,7 +168,7 @@ couvre des contextes sans usage actuel dans l'app :
 
 **Mise à jour (20/09/2026)** : `public/assets/img/mascot/` est réparti en
 `mascot/kitsune/` et `mascot/tanuki/` (même arborescence dans chaque, y
-compris `http-error/`), résolu par `kintai\Core\Services\MascotResolver`
+compris `http-error/`), résolu par `App\Services\MascotResolver`
 (réglage Owner `app_mascot_mode` sur `/admin/owner-settings` : `mix` par
 défaut — tirage aléatoire par requête, aucune persistance —, ou figé sur
 `kitsune`/`tanuki`). Les 13 emplacements de vues passent par le helper

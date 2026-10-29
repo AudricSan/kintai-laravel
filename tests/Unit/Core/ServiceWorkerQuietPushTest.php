@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use PHPUnit\Framework\TestCase;
 
@@ -11,7 +11,7 @@ final class ServiceWorkerQuietPushTest extends TestCase
 {
     public function testPushHandlerShowsQuietNotificationsSilently(): void
     {
-        $js = (string) file_get_contents(dirname(__DIR__, 3) . '/app/Core/Templates/sw.js.tpl');
+        $js = (string) file_get_contents(dirname(__DIR__, 3) . '/resources/templates/sw.js.tpl');
 
         $this->assertStringContainsString("silent: data.quiet === '1'", $js);
         // La même option ne doit pas apparaître ailleurs : les autres notifications gardent leur son.

@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Export;
+namespace Tests\Unit\Export;
 
 use kintai\Contract\Provider\ExportQuery;
-use kintai\Core\Export\AvailabilitiesExport;
-use kintai\Core\Export\EmployeesExport;
-use kintai\Core\Export\ExportDirectory;
-use kintai\Core\Export\PayrollExport;
-use kintai\Core\Export\ShiftsExport;
-use kintai\Core\Export\ShiftTypesExport;
-use kintai\Core\Export\StoresExport;
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Services\ScheduleExportService;
-use kintai\Core\Services\ShiftWageCalculator;
+use App\Export\AvailabilitiesExport;
+use App\Export\EmployeesExport;
+use App\Export\ExportDirectory;
+use App\Export\PayrollExport;
+use App\Export\ShiftsExport;
+use App\Export\ShiftTypesExport;
+use App\Export\StoresExport;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Services\ScheduleExportService;
+use App\Services\ShiftWageCalculator;
 use PHPUnit\Framework\TestCase;
 
 /** Fournisseurs de lignes du Core : ils ne lisent que le périmètre reçu et n'exposent aucune donnée sensible. */

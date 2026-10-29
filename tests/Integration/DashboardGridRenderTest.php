@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Container\Container;
-use kintai\UI\Controller\Web\HomeController;
-use kintai\UI\ViewRenderer;
+use App\Http\Controllers\HomeController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /** Tableaux de bord : widgets rendus dans l'ordre et la largeur de la disposition de l'utilisateur. */
@@ -16,7 +16,7 @@ final class DashboardGridRenderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
+        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         foreach (['admin.dashboard.widgets', 'admin.dashboard.layout', 'admin.requests', 'admin.users', 'admin.stores', 'admin.shifts', 'admin.shift_types',

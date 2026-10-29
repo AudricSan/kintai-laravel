@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Contract;
+namespace Tests\Unit\Contract;
 
-use kintai\Tests\Support\TranslationContractChecker;
+use Tests\Support\TranslationContractChecker;
 use PHPUnit\Framework\TestCase;
 
 /** Contrôle des traductions d'un bundle contre le contrat : chaque règle sur un bundle d'essai. */

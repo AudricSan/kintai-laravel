@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class UserFormViewTest extends TestCase
@@ -21,7 +21,7 @@ final class UserFormViewTest extends TestCase
      */
     public function testEditModeDoesNotNestAFormInsideTheEditForm(): void
     {
-        $view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
+        $view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
 
         $html = $view->renderPartial('_partials._form-user', [
             'as_cards' => true,

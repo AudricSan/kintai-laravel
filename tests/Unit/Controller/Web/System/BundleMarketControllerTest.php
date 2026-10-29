@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web\System;
+namespace Tests\Unit\Controller\Web\System;
 
-use kintai\Core\BundleDiscoveryService;
-use kintai\Core\InstalledBundleManifestStore;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\BundleRegistryRepositoryInterface;
-use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
+use App\BundleDiscoveryService;
+use App\InstalledBundleManifestStore;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\BundleRegistryRepositoryInterface;
+use App\Repositories\InstalledBundleRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\BundleInstaller\BundleInstallerService;
-use kintai\Core\Services\BundleRegistry\BundleCatalogService;
-use kintai\Core\Services\BundleRegistry\BundleRegistryClient;
-use kintai\Core\Services\UpdateService;
-use kintai\UI\Controller\Web\System\BundleMarketController;
-use kintai\UI\ViewRenderer;
+use App\Services\AppSettingsService;
+use App\Services\AuditLogger;
+use App\Services\BundleInstaller\BundleInstallerService;
+use App\Services\BundleRegistry\BundleCatalogService;
+use App\Services\BundleRegistry\BundleRegistryClient;
+use App\Services\UpdateService;
+use App\Http\Controllers\System\BundleMarketController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -57,7 +57,7 @@ final class BundleMarketControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        \kintai\Core\SessionFlash::pull();
+        \App\SessionFlash::pull();
         $_GET = [];
         $_POST = [];
     }
@@ -402,7 +402,7 @@ final class BundleMarketControllerTest extends TestCase
         $location = $this->locationOf($response);
         $this->assertStringContainsString('error=failed', $location);
         $this->assertStringNotContainsString('refus', urldecode($location));
-        $flash = \kintai\Core\SessionFlash::pull();
+        $flash = \App\SessionFlash::pull();
         $this->assertSame('danger', $flash[0]['type'] ?? null);
         $this->assertStringContainsString('refus', $flash[0]['text'] ?? '');
     }

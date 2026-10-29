@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Services\ShiftWageCalculator;
+use App\Services\ShiftWageCalculator;
 
 final class ShiftWageCalculatorTest extends TestCase
 {

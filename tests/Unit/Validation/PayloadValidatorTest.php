@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Validation;
+namespace Tests\Unit\Validation;
 
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Validation\ApiPayloadRules;
-use kintai\Core\Validation\PayloadValidator;
+use App\Exceptions\ValidationException;
+use App\Validation\ApiPayloadRules;
+use App\Validation\PayloadValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

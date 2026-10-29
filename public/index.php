@@ -16,8 +16,8 @@ kintai_normalize_script_name();
 $app = require_once BASE_PATH . '/bootstrap/app.php';
 
 // Bundles installés dynamiquement (storage/bundles/) : hors PSR-4 standard,
-// voir kintai\Core\InstalledBundleAutoloader.
-(new kintai\Core\InstalledBundleAutoloader())->register();
+// voir App\InstalledBundleAutoloader.
+(new App\InstalledBundleAutoloader())->register();
 
 // Check if the application is installed
 $installedLockFile = BASE_PATH . '/storage/installed.lock';

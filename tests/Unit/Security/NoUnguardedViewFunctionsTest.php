@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Security;
+namespace Tests\Unit\Security;
 
 use PHPUnit\Framework\TestCase;
 
 /**
  * Une vue qui déclare une fonction globale sans garde provoque une erreur fatale (« Cannot redeclare ») si elle est
  * rendue deux fois dans un même processus (audit n°8 : store-stats et store-profitability). Toute déclaration en
- * début de ligne dans app/UI/View doit donc être placée dans un bloc if (!function_exists(...)) (indentée).
+ * début de ligne dans resources/views doit donc être placée dans un bloc if (!function_exists(...)) (indentée).
  */
 final class NoUnguardedViewFunctionsTest extends TestCase
 {
@@ -17,7 +17,7 @@ final class NoUnguardedViewFunctionsTest extends TestCase
     {
         $base = dirname(__DIR__, 3);
         $offenders = [];
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base . '/app/UI/View', \FilesystemIterator::SKIP_DOTS));
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base . '/resources/views', \FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $file) {
             if ($file->getExtension() !== 'php') {
                 continue;

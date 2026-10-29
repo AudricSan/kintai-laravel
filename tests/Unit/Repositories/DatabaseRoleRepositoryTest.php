@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseRoleRepository;
+use App\Repositories\DatabaseRoleRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\Role as EloquentRole;
-use kintai\Domain\Eloquent\RolePermission;
-use kintai\Domain\Eloquent\RoleAssignment;
+use App\Models\Role as EloquentRole;
+use App\Models\RolePermission;
+use App\Models\RoleAssignment;
 
 final class DatabaseRoleRepositoryTest extends TestCase
 {

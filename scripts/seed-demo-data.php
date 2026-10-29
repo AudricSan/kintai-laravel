@@ -37,17 +37,17 @@ define('BASE_PATH', dirname(__DIR__));
 
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
-require BASE_PATH . '/app/Core/helpers.php';
+require BASE_PATH . '/app/Support/helpers.php';
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\StorePhoto\Services\ImageCompressionService;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\ShiftWageCalculator;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\ShiftWageCalculator;
 
 const MARKER_KEY = 'demo_data_seeded_at';
 

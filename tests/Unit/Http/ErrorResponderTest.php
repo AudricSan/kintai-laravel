@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Http;
+namespace Tests\Unit\Http;
 
 use Illuminate\Http\Request;
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Exceptions\MethodNotAllowedException;
-use kintai\Http\ErrorResponder;
+use App\Exceptions\HttpException;
+use App\Exceptions\MethodNotAllowedException;
+use App\Http\ErrorResponder;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controllers;
+namespace Tests\Unit\Controllers;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\LogRepositoryInterface;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\PublicUrlResolver;
-use kintai\Core\Services\EnvFileWriter;
-use kintai\Core\Services\InstanceLocale;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\UI\Controller\Web\System\OwnerSettingsController;
-use kintai\UI\ViewRenderer;
+use App\Services\AppSettingsService;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\Services\PublicUrlResolver;
+use App\Services\EnvFileWriter;
+use App\Services\InstanceLocale;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Http\Controllers\System\OwnerSettingsController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class OwnerSettingsControllerTest extends TestCase
@@ -36,7 +36,7 @@ final class OwnerSettingsControllerTest extends TestCase
         touch($viewDir . '/owner-settings.php');
         touch($layoutDir . '/app.php');
 
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
     }

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Routing;
+namespace Tests\Unit\Core\Routing;
 
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Routing\EmployeeRouteBinder;
-use kintai\Core\Routing\StoreRouteBinder;
+use App\Repositories\StoreRepositoryInterface;
+use App\Routing\EmployeeRouteBinder;
+use App\Routing\StoreRouteBinder;
 use PHPUnit\Framework\TestCase;
 
 /** Segment d'URL ↔ identifiant : magasins par alias, employés par numéro d'employé (jamais par nom). */

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Container\Container;
-use kintai\Core\Services\SetupWizard;
-use kintai\UI\ViewRenderer;
+use App\Services\SetupWizard;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -20,7 +20,7 @@ final class SetupWizardRenderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(BASE_PATH . '/app/UI/View');
+        $this->view = new ViewRenderer(BASE_PATH . '/resources/views');
         $router = kintai_test_registrar();
         foreach ([
             'admin.setup', 'admin.setup.license', 'admin.setup.bundles', 'admin.setup.questions', 'admin.setup.step', 'admin.setup.finish', 'admin.owner_settings',

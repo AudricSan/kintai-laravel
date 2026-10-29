@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\JsonLanguageRepository;
-use kintai\Core\Repositories\JsonTranslationRepository;
+use App\Repositories\JsonLanguageRepository;
+use App\Repositories\JsonTranslationRepository;
 use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 

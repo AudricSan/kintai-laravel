@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Middleware\CsrfMiddleware;
+use App\Exceptions\HttpException;
+use App\Http\Middleware\CsrfMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;

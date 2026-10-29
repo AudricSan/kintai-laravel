@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Services\VapidKeyStore;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Services\VapidKeyStore;
 
 /**
  * Paire de clés VAPID de l'instance (web push natif). Si openssl ne sait pas la créer, le seeder réussit quand même :

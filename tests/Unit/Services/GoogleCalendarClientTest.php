@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\Calendar\GoogleCalendarClient;
-use kintai\Core\Services\Calendar\GoogleCalendarException;
-use kintai\Core\Services\Calendar\GoogleCalendarSettings;
-use kintai\Core\Services\SecretBox;
-use kintai\Tests\Support\FakeHttpTransport;
-use kintai\Tests\Support\InMemoryAppSettings;
+use App\Services\Calendar\GoogleCalendarClient;
+use App\Services\Calendar\GoogleCalendarException;
+use App\Services\Calendar\GoogleCalendarSettings;
+use App\Services\SecretBox;
+use Tests\Support\FakeHttpTransport;
+use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 /** Client Google : OAuth (code + PKCE, rafraîchissement) et appels de l'API Agenda, sur un transport factice. */

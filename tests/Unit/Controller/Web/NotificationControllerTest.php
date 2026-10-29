@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\AuthService;
-use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Repositories\NotificationRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\AuthService;
+use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Repositories\NotificationRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
-use kintai\Core\Services\WebPushEndpointValidator;
-use kintai\UI\Controller\Web\NotificationController;
-use kintai\UI\ViewRenderer;
+use App\Services\WebPushEndpointValidator;
+use App\Http\Controllers\NotificationController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\Stub;
@@ -63,7 +63,7 @@ final class NotificationControllerTest extends TestCase
                 $this->notifications,
                 $this->subscriptions,
                 new WebPushEndpointValidator(static fn(string $host): array => ['142.250.74.10']),
-                new ViewRenderer(dirname(__DIR__, 4) . '/app/UI/View'),
+                new ViewRenderer(dirname(__DIR__, 4) . '/resources/views'),
             );
         }
 
@@ -173,7 +173,7 @@ final class NotificationControllerTest extends TestCase
         $this->subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
         $this->subscriptions->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->pushSubscribe($this->makeJsonRequest($body));
     }
 
@@ -322,7 +322,7 @@ x", 'https://evil.example.com'] as $bad) {
         $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'user_id' => 999, 'link' => null]);
         $this->notifications->expects($this->never())->method('markRead');
 
-        $this->expectException(\kintai\Core\Exceptions\NotFoundException::class);
+        $this->expectException(\App\Exceptions\NotFoundException::class);
         $this->controller()->open($this->makeGetRequest(10));
     }
 
@@ -331,7 +331,7 @@ x", 'https://evil.example.com'] as $bad) {
         $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
         $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(null);
 
-        $this->expectException(\kintai\Core\Exceptions\NotFoundException::class);
+        $this->expectException(\App\Exceptions\NotFoundException::class);
         $this->controller()->open($this->makeGetRequest(10));
     }
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Contract;
+namespace Tests\Unit\Contract;
 
 use kintai\Contract\Contract;
 use kintai\Contract\VersionConstraint;

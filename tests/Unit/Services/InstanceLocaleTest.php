@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Services\EnvFileWriter;
-use kintai\Core\Services\InstanceLocale;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Services\EnvFileWriter;
+use App\Services\InstanceLocale;
 use PHPUnit\Framework\TestCase;
 
 final class InstanceLocaleTest extends TestCase

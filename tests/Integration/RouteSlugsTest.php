@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseRouteSlugRepository;
-use kintai\Core\Repositories\DatabaseStoreRepository;
-use kintai\Core\Repositories\DatabaseUserRepository;
-use kintai\Core\Routing\EmployeeRouteBinder;
-use kintai\Core\Routing\StoreRouteBinder;
+use App\Repositories\DatabaseRouteSlugRepository;
+use App\Repositories\DatabaseStoreRepository;
+use App\Repositories\DatabaseUserRepository;
+use App\Routing\EmployeeRouteBinder;
+use App\Routing\StoreRouteBinder;
 use PHPUnit\Framework\TestCase;
 
 /**

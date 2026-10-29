@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Utils;
+namespace Tests\Unit\Utils;
 
 use PHPUnit\Framework\TestCase;
-use kintai\UI\Utils\TimelineHelpers;
+use App\View\Utils\TimelineHelpers;
 
 final class TimelineHelpersTest extends TestCase
 {

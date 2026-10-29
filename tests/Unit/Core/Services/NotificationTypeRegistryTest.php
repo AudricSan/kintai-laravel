@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
 use kintai\Contract\Extension\NotificationType;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Services\NotificationTypeRegistry;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Services\NotificationTypeRegistry;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -119,7 +119,7 @@ final class NotificationTypeRegistryTest extends TestCase
     {
         $registry = $this->registry([]);
 
-        foreach (array_keys(\kintai\Core\Services\SystemNotificationService::REFERENCE_IDS) as $type) {
+        foreach (array_keys(\App\Services\SystemNotificationService::REFERENCE_IDS) as $type) {
             $this->assertNotNull($registry->get($type), $type);
             $this->assertSame('system', $registry->get($type)->category);
             $this->assertSame('system', $registry->get($type)->referenceType);

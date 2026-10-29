@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Cron;
+namespace Tests\Unit\Core\Cron;
 
-use kintai\Core\Cron\LicenseCheckJob;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
+use App\Cron\LicenseCheckJob;
+use App\Repositories\AppSettingsRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\LicenseClientService;
+use App\Services\LicenseClientService;
 use PHPUnit\Framework\TestCase;
 
 final class LicenseCheckJobTest extends TestCase

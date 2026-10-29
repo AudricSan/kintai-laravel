@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\ScheduleExportService;
+use App\Services\ScheduleExportService;
 use PHPUnit\Framework\TestCase;
 
 /** Export de l'horaire d'un employé : période bornée, shifts à plat, CSV sûr pour un tableur. */

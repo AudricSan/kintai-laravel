@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Services\PushNotificationService;
+use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Services\PushNotificationService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

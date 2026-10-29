@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Scripts;
+namespace Tests\Unit\Scripts;
 
-use kintai\Core\BundleContract\BundleManifest;
+use App\Bundles\BundleManifest;
 use PHPUnit\Framework\TestCase;
 
 /** Générateur de bundle (scripts/new-bundle.php) : le squelette produit est complet, valide et prêt à tester. */

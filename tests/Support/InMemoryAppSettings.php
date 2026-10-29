@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Support;
+namespace Tests\Support;
 
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\AppSettingsRepositoryInterface;
 
 /** Réglages de l'instance gardés en mémoire, pour les tests qui n'ont pas besoin de base. */
 final class InMemoryAppSettings implements AppSettingsRepositoryInterface

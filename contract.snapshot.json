@@ -3,23 +3,23 @@
     "surface": {
         "kintai\\Contract\\Auth\\AuthService": {
             "status": "provisoire",
-            "target": "kintai\\Core\\Auth\\AuthService"
+            "target": "App\\Auth\\AuthService"
         },
         "kintai\\Contract\\Auth\\PermissionService": {
             "status": "stable",
-            "target": "kintai\\Core\\Auth\\PermissionService"
+            "target": "App\\Auth\\PermissionService"
         },
         "kintai\\Contract\\Auth\\UserAnonymizer": {
             "status": "stable",
-            "target": "kintai\\Core\\Auth\\UserAnonymizer"
+            "target": "App\\Auth\\UserAnonymizer"
         },
         "kintai\\Contract\\Bundle": {
             "status": "stable",
-            "target": "kintai\\Core\\BundleContract\\Bundle"
+            "target": "App\\Bundles\\Bundle"
         },
         "kintai\\Contract\\BundleManifest": {
             "status": "stable",
-            "target": "kintai\\Core\\BundleContract\\BundleManifest"
+            "target": "App\\Bundles\\BundleManifest"
         },
         "kintai\\Contract\\Container": {
             "status": "stable",
@@ -27,87 +27,87 @@
         },
         "kintai\\Contract\\Cron\\CronJob": {
             "status": "stable",
-            "target": "kintai\\Core\\Cron\\CronJobInterface"
+            "target": "App\\Cron\\CronJobInterface"
         },
         "kintai\\Contract\\Data\\AppSettingsRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\AppSettingsRepositoryInterface"
+            "target": "App\\Repositories\\AppSettingsRepositoryInterface"
         },
         "kintai\\Contract\\Data\\ShiftRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\ShiftRepositoryInterface"
+            "target": "App\\Repositories\\ShiftRepositoryInterface"
         },
         "kintai\\Contract\\Data\\ShiftTypeRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\ShiftTypeRepositoryInterface"
+            "target": "App\\Repositories\\ShiftTypeRepositoryInterface"
         },
         "kintai\\Contract\\Data\\StoreRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\StoreRepositoryInterface"
+            "target": "App\\Repositories\\StoreRepositoryInterface"
         },
         "kintai\\Contract\\Data\\StoreUserRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\StoreUserRepositoryInterface"
+            "target": "App\\Repositories\\StoreUserRepositoryInterface"
         },
         "kintai\\Contract\\Data\\UserRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\UserRepositoryInterface"
+            "target": "App\\Repositories\\UserRepositoryInterface"
         },
         "kintai\\Contract\\Data\\UserShiftTypeRateRepositoryInterface": {
             "status": "stable",
-            "target": "kintai\\Core\\Repositories\\UserShiftTypeRateRepositoryInterface"
+            "target": "App\\Repositories\\UserShiftTypeRateRepositoryInterface"
         },
         "kintai\\Contract\\Exceptions\\ConflictException": {
             "status": "stable",
-            "target": "kintai\\Core\\Exceptions\\ConflictException"
+            "target": "App\\Exceptions\\ConflictException"
         },
         "kintai\\Contract\\Exceptions\\ForbiddenException": {
             "status": "stable",
-            "target": "kintai\\Core\\Exceptions\\ForbiddenException"
+            "target": "App\\Exceptions\\ForbiddenException"
         },
         "kintai\\Contract\\Exceptions\\NotFoundException": {
             "status": "stable",
-            "target": "kintai\\Core\\Exceptions\\NotFoundException"
+            "target": "App\\Exceptions\\NotFoundException"
         },
         "kintai\\Contract\\Exceptions\\ValidationException": {
             "status": "stable",
-            "target": "kintai\\Core\\Exceptions\\ValidationException"
+            "target": "App\\Exceptions\\ValidationException"
         },
         "kintai\\Contract\\Http\\Concerns\\HasAdminAccess": {
             "status": "provisoire",
-            "target": "kintai\\UI\\Controller\\Web\\HasAdminAccess"
+            "target": "App\\Http\\Controllers\\HasAdminAccess"
         },
         "kintai\\Contract\\Http\\Concerns\\HasBaseUrl": {
             "status": "stable",
-            "target": "kintai\\UI\\Controller\\Web\\HasBaseUrl"
+            "target": "App\\Http\\Controllers\\HasBaseUrl"
         },
         "kintai\\Contract\\Http\\Concerns\\HasStaffReportCrud": {
             "status": "provisoire",
-            "target": "kintai\\UI\\Controller\\Web\\Staff\\HasStaffReportCrud"
+            "target": "App\\Http\\Controllers\\Staff\\HasStaffReportCrud"
         },
         "kintai\\Contract\\Http\\Concerns\\HasStoreFeatureCheck": {
             "status": "provisoire",
-            "target": "kintai\\UI\\Controller\\Web\\HasStoreFeatureCheck"
+            "target": "App\\Http\\Controllers\\HasStoreFeatureCheck"
         },
         "kintai\\Contract\\Http\\Middleware\\ApiAuthMiddleware": {
             "status": "stable",
-            "target": "kintai\\Core\\Middleware\\ApiAuthMiddleware"
+            "target": "App\\Http\\Middleware\\ApiAuthMiddleware"
         },
         "kintai\\Contract\\Http\\Middleware\\ApiPermissionMiddleware": {
             "status": "stable",
-            "target": "kintai\\Core\\Middleware\\ApiPermissionMiddleware"
+            "target": "App\\Http\\Middleware\\ApiPermissionMiddleware"
         },
         "kintai\\Contract\\Http\\Middleware\\AuthMiddleware": {
             "status": "stable",
-            "target": "kintai\\Core\\Middleware\\AuthMiddleware"
+            "target": "App\\Http\\Middleware\\AuthMiddleware"
         },
         "kintai\\Contract\\Http\\Middleware\\PermissionMiddleware": {
             "status": "stable",
-            "target": "kintai\\Core\\Middleware\\PermissionMiddleware"
+            "target": "App\\Http\\Middleware\\PermissionMiddleware"
         },
         "kintai\\Contract\\Http\\Paginator": {
             "status": "stable",
-            "target": "kintai\\Core\\Api\\Paginator"
+            "target": "App\\Api\\Paginator"
         },
         "kintai\\Contract\\Http\\Request": {
             "status": "stable",
@@ -119,39 +119,39 @@
         },
         "kintai\\Contract\\Services\\AuditLogger": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\AuditLogger"
+            "target": "App\\Services\\AuditLogger"
         },
         "kintai\\Contract\\Services\\ImageCompressionService": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\ImageCompressionService"
+            "target": "App\\Services\\ImageCompressionService"
         },
         "kintai\\Contract\\Services\\Mailer": {
             "status": "stable",
-            "target": "kintai\\Core\\Mail\\MailerService"
+            "target": "App\\Mail\\MailerService"
         },
         "kintai\\Contract\\Services\\NotificationService": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\NotificationService"
+            "target": "App\\Services\\NotificationService"
         },
         "kintai\\Contract\\Services\\PdfCjkFontResolver": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\PdfCjkFontResolver"
+            "target": "App\\Services\\PdfCjkFontResolver"
         },
         "kintai\\Contract\\Services\\Sales": {
             "status": "stable",
-            "target": "kintai\\Core\\Extension\\Sales"
+            "target": "App\\Extension\\Sales"
         },
         "kintai\\Contract\\Services\\ShiftServiceInterface": {
             "status": "provisoire",
-            "target": "kintai\\Core\\Services\\ShiftServiceInterface"
+            "target": "App\\Services\\ShiftServiceInterface"
         },
         "kintai\\Contract\\Services\\ShiftWageCalculator": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\ShiftWageCalculator"
+            "target": "App\\Services\\ShiftWageCalculator"
         },
         "kintai\\Contract\\Services\\StoreStatsServiceInterface": {
             "status": "provisoire",
-            "target": "kintai\\Core\\Services\\StoreStatsServiceInterface"
+            "target": "App\\Services\\StoreStatsServiceInterface"
         },
         "kintai\\Contract\\Services\\TranslationService": {
             "status": "stable",
@@ -159,55 +159,55 @@
         },
         "kintai\\Contract\\Services\\UserSelection": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\UserSelection"
+            "target": "App\\Services\\UserSelection"
         },
         "kintai\\Contract\\View\\Components\\Badge": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Badge"
+            "target": "App\\View\\Components\\Badge"
         },
         "kintai\\Contract\\View\\Components\\Button": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Button"
+            "target": "App\\View\\Components\\Button"
         },
         "kintai\\Contract\\View\\Components\\Card": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Card"
+            "target": "App\\View\\Components\\Card"
         },
         "kintai\\Contract\\View\\Components\\EmptyState": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\EmptyState"
+            "target": "App\\View\\Components\\EmptyState"
         },
         "kintai\\Contract\\View\\Components\\FilterBar": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\FilterBar"
+            "target": "App\\View\\Components\\FilterBar"
         },
         "kintai\\Contract\\View\\Components\\Flash": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Flash"
+            "target": "App\\View\\Components\\Flash"
         },
         "kintai\\Contract\\View\\Components\\Form": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Form"
+            "target": "App\\View\\Components\\Form"
         },
         "kintai\\Contract\\View\\Components\\Modal": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Modal"
+            "target": "App\\View\\Components\\Modal"
         },
         "kintai\\Contract\\View\\Components\\Pagination": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Pagination"
+            "target": "App\\View\\Components\\Pagination"
         },
         "kintai\\Contract\\View\\Components\\Table": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\Table"
+            "target": "App\\View\\Components\\Table"
         },
         "kintai\\Contract\\View\\Components\\UserPicker": {
             "status": "stable",
-            "target": "kintai\\UI\\Components\\UserPicker"
+            "target": "App\\View\\Components\\UserPicker"
         },
         "kintai\\Contract\\View\\ViewRenderer": {
             "status": "stable",
-            "target": "kintai\\UI\\ViewRenderer"
+            "target": "App\\View\\ViewRenderer"
         }
     },
     "functions": {

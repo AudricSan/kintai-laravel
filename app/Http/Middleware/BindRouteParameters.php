@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http\Middleware;
+namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Http\Routing\Routes;
+use App\Exceptions\NotFoundException;
+use App\Http\Routing\Routes;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

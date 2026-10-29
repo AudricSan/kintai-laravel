@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Http\Request;
-use kintai\UI\Controller\Web\LegalController;
-use kintai\UI\ViewRenderer;
+use App\Http\Controllers\LegalController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class LegalControllerTest extends TestCase

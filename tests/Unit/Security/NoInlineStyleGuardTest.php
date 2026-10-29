@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Security;
+namespace Tests\Unit\Security;
 
 use PHPUnit\Framework\TestCase;
 
@@ -12,14 +12,14 @@ use PHPUnit\Framework\TestCase;
  * dès qu'une vue ou un module JS en réintroduit un.
  *
  * À faire à la place : une classe dans public/assets/css, ou style_class([...]) pour une valeur dynamique
- * (kintai\UI\InlineStyles), et <style nonce="<?= csp_nonce() ?>"> pour un bloc indispensable.
+ * (App\View\InlineStyles), et <style nonce="<?= csp_nonce() ?>"> pour un bloc indispensable.
  */
 final class NoInlineStyleGuardTest extends TestCase
 {
     /**
      * Fichiers hors CSP : le gabarit d'e-mail est lu par un client de messagerie, qui n'accepte que des styles en ligne.
      */
-    private const EXEMPT = ['app/Core/Services/PasswordResetService.php', 'app/Core/Services/NotificationMailer.php'];
+    private const EXEMPT = ['app/Services/PasswordResetService.php', 'app/Services/NotificationMailer.php'];
 
     /** @return array<string, string> chemin relatif => contenu, sans les lignes de commentaire */
     private function sources(string $dir, string $extension): array

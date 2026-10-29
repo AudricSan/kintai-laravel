@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Services;
+namespace Tests\Unit\Services;
 
-use kintai\Core\Services\WikiSyncService;
+use App\Services\WikiSyncService;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

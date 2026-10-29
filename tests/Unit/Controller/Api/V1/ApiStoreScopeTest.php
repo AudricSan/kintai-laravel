@@ -2,39 +2,39 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Api\V1;
+namespace Tests\Unit\Controller\Api\V1;
 
-use kintai\Core\Auth\CredentialRevoker;
-use kintai\Core\Auth\OwnerGuard;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Auth\UserTargetGuard;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Repositories\ApiTokenRepositoryInterface;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Repositories\IcalTokenRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\CredentialRevoker;
+use App\Auth\OwnerGuard;
+use App\Auth\PermissionService;
+use App\Auth\UserTargetGuard;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\ValidationException;
+use App\Repositories\ApiTokenRepositoryInterface;
+use App\Repositories\AppSettingsRepositoryInterface;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Repositories\IcalTokenRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\LicenseClientService;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\PlanLimitService;
-use kintai\Core\Services\StoreServiceInterface;
-use kintai\UI\Controller\Api\V1\AvailabilityController;
-use kintai\UI\Controller\Api\V1\IcalTokenController;
-use kintai\UI\Controller\Api\V1\ShiftController;
-use kintai\UI\Controller\Api\V1\StoreController;
-use kintai\UI\Controller\Api\V1\UserController;
+use App\Services\AuditLogger;
+use App\Services\LicenseClientService;
+use App\Services\Log;
+use App\Services\PlanLimitService;
+use App\Services\StoreServiceInterface;
+use App\Http\Controllers\Api\V1\AvailabilityController;
+use App\Http\Controllers\Api\V1\IcalTokenController;
+use App\Http\Controllers\Api\V1\ShiftController;
+use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\UserController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Auth\UserAnonymizer;
+use App\Auth\UserAnonymizer;
 use PHPUnit\Framework\TestCase;
 
 /**

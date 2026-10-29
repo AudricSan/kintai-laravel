@@ -17,7 +17,7 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 
-use kintai\Tests\Support\ContractSnapshot;
+use Tests\Support\ContractSnapshot;
 
 $file = BASE_PATH . '/contract.snapshot.json';
 $new  = ContractSnapshot::export();

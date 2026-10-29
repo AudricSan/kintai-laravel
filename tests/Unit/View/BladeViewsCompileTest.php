@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\View;
+namespace Tests\Unit\View;
 
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,7 +15,7 @@ final class BladeViewsCompileTest extends TestCase
 {
     public function testEveryCoreBladeViewCompilesToValidPhp(): void
     {
-        $base = dirname(__DIR__, 3) . '/app/UI/View';
+        $base = dirname(__DIR__, 3) . '/resources/views';
         $factory = (new ViewRenderer($base))->factory();
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS));
         $count = 0;

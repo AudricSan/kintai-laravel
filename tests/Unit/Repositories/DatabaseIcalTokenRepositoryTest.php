@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Repositories;
+namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Repositories\DatabaseIcalTokenRepository;
+use App\Repositories\DatabaseIcalTokenRepository;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Domain\Eloquent\IcalToken as EloquentIcalToken;
+use App\Models\IcalToken as EloquentIcalToken;
 
 final class DatabaseIcalTokenRepositoryTest extends TestCase
 {

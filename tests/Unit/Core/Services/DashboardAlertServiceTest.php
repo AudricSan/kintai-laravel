@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Services;
+namespace Tests\Unit\Core\Services;
 
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
 use Illuminate\Container\Container;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Extension\PendingRequests;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\DashboardAlertService;
-use kintai\Tests\Support\FakeAttendanceProvider;
-use kintai\Tests\Support\FakeBundleManagerFactory;
+use App\Extension\ExtensionRegistry;
+use App\Extension\PendingRequests;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\DashboardAlertService;
+use Tests\Support\FakeAttendanceProvider;
+use Tests\Support\FakeBundleManagerFactory;
 use PHPUnit\Framework\TestCase;
 
 /**

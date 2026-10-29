@@ -2,31 +2,31 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Auth\AuthService;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Repositories\AvailabilityRepositoryInterface;
-use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
-use kintai\Core\Repositories\IcalTokenRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RememberTokenRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Auth\AuthService;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Repositories\AvailabilityRepositoryInterface;
+use App\Repositories\DatabaseNotificationPreferenceRepository;
+use App\Repositories\IcalTokenRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\AvatarImageOptimizer;
-use kintai\Core\Services\NotificationPreferenceService;
-use kintai\Core\Services\NotificationTypeRegistry;
-use kintai\Domain\Eloquent\NotificationPreference;
-use kintai\UI\Controller\Web\AuthController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\AvatarImageOptimizer;
+use App\Services\NotificationPreferenceService;
+use App\Services\NotificationTypeRegistry;
+use App\Models\NotificationPreference;
+use App\Http\Controllers\AuthController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /** Onglet Notifications du profil : enregistrement de la grille et des heures silencieuses (POST /profile/notifications). */

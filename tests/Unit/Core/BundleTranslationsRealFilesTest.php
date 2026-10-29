@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Repositories\JsonTranslationRepository;
+use App\Repositories\JsonTranslationRepository;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {

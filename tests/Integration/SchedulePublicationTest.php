@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Repositories\DatabaseShiftRepository;
-use kintai\Core\Repositories\DatabaseStoreRepository;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\SchedulePublication;
-use kintai\Core\Services\ShiftChangeNotifier;
+use App\Repositories\DatabaseShiftRepository;
+use App\Repositories\DatabaseStoreRepository;
+use App\Services\NotificationService;
+use App\Services\SchedulePublication;
+use App\Services\ShiftChangeNotifier;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -39,7 +39,7 @@ final class SchedulePublicationTest extends TestCase
         kintai_test_migrate();
 
         // Les écritures de shifts n'annoncent rien ici (pas d'agenda externe à synchroniser).
-        ShiftChangeNotifier::override(new ShiftChangeNotifier(new \kintai\Core\Extension\Events(), static function (): void {}));
+        ShiftChangeNotifier::override(new ShiftChangeNotifier(new \App\Extension\Events(), static function (): void {}));
 
         $now = date('Y-m-d H:i:s');
         foreach (['alice', 'bob'] as $name) {

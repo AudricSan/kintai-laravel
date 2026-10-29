@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Extension;
+namespace Tests\Unit\Core\Extension;
 
 use kintai\Contract\Extension\DashboardWidget;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\DashboardWidgets;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\UI\ViewRenderer;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\DashboardWidgets;
+use App\Extension\ExtensionRegistry;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**

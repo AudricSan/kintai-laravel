@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Contract;
+namespace Tests\Unit\Contract;
 
 use Illuminate\Container\Container;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Tests\Support\ContractUsageScanner;
+use App\Repositories\UserRepositoryInterface;
+use Tests\Support\ContractUsageScanner;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -54,7 +54,7 @@ final class ContractSurfaceTest extends TestCase
 
     public function testTheContainerResolvesAnAliasToTheSameBinding(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $users = $this->createStub(UserRepositoryInterface::class);
         $container->instance(UserRepositoryInterface::class, $users);
 
@@ -64,7 +64,7 @@ final class ContractSurfaceTest extends TestCase
 
     public function testTheContainerAutowiresAConstructorTypedWithAnAlias(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $users = $this->createStub(UserRepositoryInterface::class);
         $container->instance(UserRepositoryInterface::class, $users);
 
@@ -81,24 +81,24 @@ final class ContractSurfaceTest extends TestCase
 
         $route = app('router')->getRoutes()->match(\Illuminate\Http\Request::create('/demo', 'GET'));
 
-        $this->assertSame([\kintai\Core\Middleware\AuthMiddleware::class], $route->gatherMiddleware());
+        $this->assertSame([\App\Http\Middleware\AuthMiddleware::class], $route->gatherMiddleware());
     }
 
     public function testTheScannerFlagsCoreClassesOutsideThePendingList(): void
     {
         $dir = sys_get_temp_dir() . '/kintai-contract-scan-' . bin2hex(random_bytes(3));
         mkdir($dir);
-        file_put_contents($dir . '/A.php', "<?php\nuse kintai\\Contract\\Http\\Request;\nuse kintai\\Core\\Request as R;\nuse kintai\\Core\\Repositories\\TimeoffRequestRepositoryInterface;\n\$x = new \\kintai\\UI\\Components\\Card();\n");
+        file_put_contents($dir . '/A.php', "<?php\nuse kintai\\Contract\\Http\\Request;\nuse App\\Request as R;\nuse App\\Repositories\\TimeoffRequestRepositoryInterface;\n\$x = new \\App\\View\\Components\\Card();\n");
         try {
-            $violations = ContractUsageScanner::violations([$dir], ['kintai\\Core\\Repositories\\TimeoffRequestRepositoryInterface']);
+            $violations = ContractUsageScanner::violations([$dir], ['App\\Repositories\\TimeoffRequestRepositoryInterface']);
         } finally {
             @unlink($dir . '/A.php');
             @rmdir($dir);
         }
 
         $this->assertCount(2, $violations);
-        $this->assertStringContainsString('kintai\\Core\\Request', $violations[0]);
-        $this->assertStringContainsString('kintai\\UI\\Components\\Card', $violations[1]);
+        $this->assertStringContainsString('App\\Request', $violations[0]);
+        $this->assertStringContainsString('App\\View\\Components\\Card', $violations[1]);
     }
 }
 

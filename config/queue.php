@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Files d'attente : envoi des canaux externes des notifications (push mobile, web push, e-mail), voir
- * kintai\Core\Jobs\DeliverNotification.
+ * App\Jobs\DeliverNotification.
  *
  * QUEUE_CONNECTION :
  *   deferred  (défaut) Envoi juste après la réponse HTTP, dans le même processus : rien à installer ni à planifier,

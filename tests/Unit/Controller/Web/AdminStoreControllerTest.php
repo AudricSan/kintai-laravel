@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Controller\Web;
+namespace Tests\Unit\Controller\Web;
 
-use kintai\Core\Auth\PermissionService;
+use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use kintai\Tests\Support\FakeBundleManagerFactory;
-use kintai\Core\Extension\StoreFeatures;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use Tests\Support\FakeBundleManagerFactory;
+use App\Extension\StoreFeatures;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\RoleAssignmentSyncService;
-use kintai\Core\Services\StoreServiceInterface;
-use kintai\Core\Services\StoreStatsServiceInterface;
-use kintai\UI\Controller\Web\Staff\AdminStoreController;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\Services\RoleAssignmentSyncService;
+use App\Services\StoreServiceInterface;
+use App\Services\StoreStatsServiceInterface;
+use App\Http\Controllers\Staff\AdminStoreController;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -60,7 +60,7 @@ final class AdminStoreControllerTest extends TestCase
     /** Branche $this->logRepo derrière Log::record() ; à rappeler quand un test le remplace par un mock. */
     private function registerLogRepository(): void
     {
-        $container = new \kintai\Tests\Support\TestContainer();
+        $container = new \Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }
@@ -91,7 +91,7 @@ final class AdminStoreControllerTest extends TestCase
     public function testStoreQuotaReachedSendsBackToTheFormInsteadOfA403(): void
     {
         $storeService = $this->createStub(StoreServiceInterface::class);
-        $storeService->method('createStore')->willThrowException(new \kintai\Core\Exceptions\PlanLimitExceededException('1 magasin maximum'));
+        $storeService->method('createStore')->willThrowException(new \App\Exceptions\PlanLimitExceededException('1 magasin maximum'));
         $controller = new AdminStoreController(
             new ViewRenderer(sys_get_temp_dir()),
             $this->users,
@@ -113,7 +113,7 @@ final class AdminStoreControllerTest extends TestCase
         try {
             $controller->storeStore($req);
             $this->fail('ValidationException attendue');
-        } catch (\kintai\Core\Exceptions\ValidationException $e) {
+        } catch (\App\Exceptions\ValidationException $e) {
             $this->assertSame(['store' => '1 magasin maximum'], $e->errors);
         }
     }
@@ -388,7 +388,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 2]);
         $this->users->method('findById')->willReturn(['id' => 2]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateMemberRole($req);
     }
 
@@ -399,7 +399,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 7]);
         $this->users->method('findById')->willReturn(['id' => 7]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateMemberRole($req);
     }
 
@@ -408,7 +408,7 @@ final class AdminStoreControllerTest extends TestCase
         $req = $this->prepareManagerScenario(['user_id' => '999', 'role_id' => '31']);
         $this->users->method('findById')->willReturn(null);
 
-        $this->expectException(\kintai\Core\Exceptions\NotFoundException::class);
+        $this->expectException(\App\Exceptions\NotFoundException::class);
         $this->controller()->addMember($req);
     }
 
@@ -492,7 +492,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->users->method('findById')->willReturn(['id' => 2]);
         $this->storeUsers->expects($this->never())->method('delete');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->controller()->removeMember($req);
     }
@@ -505,7 +505,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 2]);
         $this->users->method('findById')->willReturn(['id' => 2]);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->controller()->updateMemberRole($req);
     }
@@ -532,7 +532,7 @@ final class AdminStoreControllerTest extends TestCase
             return ['id' => $id] + $data;
         });
 
-        $acme = new class extends \kintai\Core\BundleContract\Bundle {
+        $acme = new class extends \App\Bundles\Bundle {
             public function __construct() {}
 
             public function getName(): string
@@ -547,7 +547,7 @@ final class AdminStoreControllerTest extends TestCase
                 return [new \kintai\Contract\Extension\StoreFeature('acme_board', 'acme_board')];
             }
         };
-        $manager = (new \ReflectionClass(\kintai\Core\BundleManager::class))->newInstanceWithoutConstructor();
+        $manager = (new \ReflectionClass(\App\BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, ['acme' => $acme]);
 
         $controller = new AdminStoreController(
@@ -558,7 +558,7 @@ final class AdminStoreControllerTest extends TestCase
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
-            new StoreFeatures(new \kintai\Core\Extension\ExtensionRegistry($manager), $manager),
+            new StoreFeatures(new \App\Extension\ExtensionRegistry($manager), $manager),
             new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
             new PermissionService($this->roleAssignments, $this->roles),
         );

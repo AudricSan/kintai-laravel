@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Integration;
+namespace Tests\Integration;
 
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class StoreFormViewTest extends TestCase
 {
     public function testAutoPauseFieldsReflectImportSettingsRatherThanStaleJsonColumn(): void
     {
-        $view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
+        $view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
 
         $store = [
             'id'   => 1,
@@ -49,7 +49,7 @@ final class StoreFormViewTest extends TestCase
 
     public function testAutoPauseFieldsFallBackToDefaultsWhenNoImportSettings(): void
     {
-        $view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
+        $view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
 
         $html = $view->renderPartial('_partials._form-store', [
             'mode'              => 'create',

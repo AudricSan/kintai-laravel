@@ -88,16 +88,16 @@ function wcag_contrast_color(string $hex): string
  */
 function csp_nonce(): string
 {
-    return \kintai\Core\Security\CspNonce::get();
+    return \App\Security\CspNonce::get();
 }
 
 /**
  * Classe CSS portant des déclarations dynamiques (couleur, largeur…) à la place d'un attribut style="…" :
- * `<div class="bar <?= style_class(['width' => $pct . '%']) ?>">`. Voir kintai\UI\InlineStyles.
+ * `<div class="bar <?= style_class(['width' => $pct . '%']) ?>">`. Voir App\View\InlineStyles.
  */
 function style_class(array $declarations): string
 {
-    return \kintai\UI\InlineStyles::classFor($declarations);
+    return \App\View\InlineStyles::classFor($declarations);
 }
 
 /**
@@ -106,6 +106,6 @@ function style_class(array $declarations): string
  */
 function inline_styles(): string
 {
-    $css = \kintai\UI\InlineStyles::pull();
+    $css = \App\View\InlineStyles::pull();
     return $css === '' ? '' : '<style nonce="' . csp_nonce() . '">' . $css . '</style>';
 }

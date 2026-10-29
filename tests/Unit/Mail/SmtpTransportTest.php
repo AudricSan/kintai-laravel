@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Mail;
+namespace Tests\Unit\Mail;
 
-use kintai\Core\Mail\SmtpTransport;
+use App\Mail\SmtpTransport;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\SentMessage;

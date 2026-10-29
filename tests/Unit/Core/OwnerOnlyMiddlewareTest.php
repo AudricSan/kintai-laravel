@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core;
+namespace Tests\Unit\Core;
 
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Middleware\OwnerOnlyMiddleware;
+use App\Exceptions\ForbiddenException;
+use App\Http\Middleware\OwnerOnlyMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;

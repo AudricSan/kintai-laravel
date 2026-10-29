@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Unit\Core\Routing;
+namespace Tests\Unit\Core\Routing;
 
-use kintai\Core\Routing\SlugGenerator;
+use App\Routing\SlugGenerator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
