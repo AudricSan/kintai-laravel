@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 
@@ -59,3 +61,5 @@ $typeLabels = [
         </div>
     </form>
 </div>
+
+@endsection

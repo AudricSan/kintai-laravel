@@ -17,7 +17,7 @@ use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
 use kintai\Contract\Http\Concerns\HasStoreFeatureCheck;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class EmployeeTimeoffController
 {
@@ -25,7 +25,7 @@ final class EmployeeTimeoffController
     use HasStoreFeatureCheck;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -59,12 +59,12 @@ final class EmployeeTimeoffController
             $this->notifs->markReadFor($userId, 'timeoff', array_map(fn($r) => (int) ($r['id'] ?? 0), $requests));
         }
 
-        return response($this->view->render('timeoff::employee-timeoff', [
+        return response($this->view->make('timeoff::employee-timeoff', [
             'title'    => 'Mes congés',
             'highlight_id' => (int) $request->query('highlight', 0),
             'requests' => $requests,
             'stores'   => $stores,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeTimeoff(Request $request): Response

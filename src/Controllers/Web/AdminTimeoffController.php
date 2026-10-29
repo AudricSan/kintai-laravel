@@ -16,13 +16,13 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class AdminTimeoffController
 {
     use HasAdminAccess;
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -80,7 +80,7 @@ final class AdminTimeoffController
             $this->notifs->markReadFor($viewerId, 'timeoff', array_map(fn($r) => (int) ($r['id'] ?? 0), $requests));
         }
 
-        return response($this->view->render('timeoff::timeoff', [
+        return response($this->view->make('timeoff::timeoff', [
             'title'         => 'Congés',
             'highlight_id'  => (int) $request->query('highlight', 0),
             'requests'      => $requests,
@@ -89,7 +89,7 @@ final class AdminTimeoffController
             'sort'          => $sort,
             'type_filter'   => $typeFilter,
             'status_filter' => $statusFilter,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -109,11 +109,11 @@ final class AdminTimeoffController
             strtolower(trim(($b['last_name'] ?? '') . ' ' . ($b['first_name'] ?? '')))
         ));
 
-        return response($this->view->render('timeoff::timeoff-form', [
+        return response($this->view->make('timeoff::timeoff-form', [
             'title' => __('timeoff_create_timeoff'),
             'users' => $users,
             'today' => date('Y-m-d'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**

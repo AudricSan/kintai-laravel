@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Badge;
 use kintai\Contract\View\Components\Button;
@@ -102,3 +104,5 @@ echo Flash::fromQuery('error', ['invalid_state' => __('timeoff_action_impossible
     })
     ->render()
 ?></div>
+
+@endsection
