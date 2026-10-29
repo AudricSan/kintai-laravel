@@ -188,9 +188,6 @@ jobs:
 
           rm -rf build && mkdir -p "build/${NAME}"
           git archive "$TAG" | tar -x -C "build/${NAME}"
-          # Relais src/ → app/ : une instance 0.x qui applique cette archive finit sa requête de mise à jour avec son
-          # ancien chargeur de classes, qui cherche le code sous src/ (voir le script).
-          php scripts/build-legacy-src-bridge.php "build/${NAME}"
           composer install --working-dir="build/${NAME}" --no-dev --optimize-autoloader --no-interaction --no-progress
           printf '{"tag": "%s", "commit": "%s"}\n' "$TAG" "$COMMIT" > "build/${NAME}/release-manifest.json"
 

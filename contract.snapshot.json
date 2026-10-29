@@ -1,5 +1,5 @@
 {
-    "version": "2.0.0",
+    "version": "1.0.0",
     "surface": {
         "kintai\\Contract\\Auth\\AuthService": {
             "status": "provisoire",
@@ -120,10 +120,6 @@
         "kintai\\Contract\\Http\\Response": {
             "status": "stable",
             "target": "Symfony\\Component\\HttpFoundation\\Response"
-        },
-        "kintai\\Contract\\Http\\Router": {
-            "status": "stable",
-            "target": "kintai\\Http\\Routing\\RouteRegistrar"
         },
         "kintai\\Contract\\Services\\AuditLogger": {
             "status": "stable",
@@ -525,6 +521,11 @@
         "actions": "(): array",
         "attendanceProviders": "(): array",
         "boot": "(): void",
+        "booted": "(Closure $callback): mixed",
+        "booting": "(Closure $callback): mixed",
+        "callBootedCallbacks": "(): mixed",
+        "callBootingCallbacks": "(): mixed",
+        "commands": "($commands): mixed",
         "cronJobs": "(): array",
         "dashboardStats": "(): array",
         "dashboardWidgets": "(): array",
@@ -536,17 +537,20 @@
         "getName": "(): string",
         "getPath": "(): string",
         "getVersion": "(): string",
+        "isDeferred": "(): mixed",
         "navigation": "(): array",
         "notificationTypes": "(): array",
         "pageOverlays": "(): array",
         "pendingRequestsProviders": "(): array",
         "permissions": "(): array",
         "profileSections": "(): array",
+        "provides": "(): mixed",
         "register": "(): void",
         "salesProviders": "(): array",
         "shiftFormSections": "(): array",
         "storeFeatures": "(): array",
         "swapProviders": "(): array",
-        "viewVariables": "(): array"
+        "viewVariables": "(): array",
+        "when": "(): mixed"
     }
 }
