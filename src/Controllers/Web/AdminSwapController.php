@@ -16,13 +16,13 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class AdminSwapController
 {
     use HasAdminAccess;
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly AuditLogger $auditLogger,
@@ -82,7 +82,7 @@ final class AdminSwapController
             ));
         }
 
-        return response($this->view->render('shift-swap::swap-form', [
+        return response($this->view->make('shift-swap::swap-form', [
             'title'            => __('shift_swap_create_swap'),
             'employees'        => $employees,
             'requester_id'     => $requesterId,
@@ -90,7 +90,7 @@ final class AdminSwapController
             'requester_shifts' => $requesterShifts,
             'target_shifts'    => $targetShifts,
             'stores_map'       => $this->buildStoresMap($managedIds),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -225,7 +225,7 @@ final class AdminSwapController
             if ($s !== null) $shiftsMap[$sid] = $s;
         }
 
-        return response($this->view->render('shift-swap::swap-requests', [
+        return response($this->view->make('shift-swap::swap-requests', [
             'title'         => 'Échanges de shifts',
             'swaps'         => $swaps,
             'users_map'     => $usersMap,
@@ -233,7 +233,7 @@ final class AdminSwapController
             'shifts_map'    => $shiftsMap,
             'sort'          => $sort,
             'status_filter' => $statusFilter,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function approveSwap(Request $request): Response

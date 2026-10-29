@@ -17,7 +17,7 @@ use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
 use kintai\Contract\Http\Concerns\HasStoreFeatureCheck;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class EmployeeSwapController
 {
@@ -25,7 +25,7 @@ final class EmployeeSwapController
     use HasStoreFeatureCheck;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
@@ -56,14 +56,14 @@ final class EmployeeSwapController
             $this->notifs->markReadFor($userId, 'swap', $swapIds);
         }
 
-        return response($this->view->render('shift-swap::swaps', [
+        return response($this->view->make('shift-swap::swaps', [
             'title'      => 'Échanges de shifts',
             'highlight_id' => (int) $request->query('highlight', 0),
             'sent'       => $sent,
             'received'   => $received,
             'users_map'  => $this->buildUsersMap(),
             'shifts_map' => $this->buildShiftsMap(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function createSwap(Request $request): Response
@@ -110,14 +110,14 @@ final class EmployeeSwapController
             $typesMap[(int) $t['id']] = $t;
         }
 
-        return response($this->view->render('shift-swap::swaps-form', [
+        return response($this->view->make('shift-swap::swaps-form', [
             'title'         => 'Demander un échange',
             'my_shifts'     => $myShifts,
             'colleagues'    => array_values($colleagues),
             'target_id'     => $targetId,
             'target_shifts' => $targetShifts,
             'types_map'     => $typesMap,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeSwap(Request $request): Response

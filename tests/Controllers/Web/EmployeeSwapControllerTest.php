@@ -16,7 +16,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -55,7 +55,7 @@ final class EmployeeSwapControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $viewDir = sys_get_temp_dir() . '/kintai-shift-swap-views';
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $view->addNamespace('shift-swap', $viewDir);
             $this->controller = new EmployeeSwapController(
                 $view,

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Card;
@@ -96,3 +98,5 @@ function swapLabel(array $shift, array $types_map): string {
 
     </div>
 </div>
+
+@endsection

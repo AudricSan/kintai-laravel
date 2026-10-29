@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Flash;
@@ -117,3 +119,5 @@ echo Flash::fromQuery('error', ['swap_conflict' => __('shift_swap_swap_conflict_
 
     </div>
 </div>
+
+@endsection

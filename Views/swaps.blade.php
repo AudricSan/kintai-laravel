@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Badge;
 use kintai\Contract\View\Components\Button;
@@ -129,3 +131,5 @@ $pendingReceived = array_values(array_filter(
         ->render() ?>
 </div>
 <?php endif; ?>
+
+@endsection
