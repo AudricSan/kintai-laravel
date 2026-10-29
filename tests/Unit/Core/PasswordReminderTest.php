@@ -8,7 +8,6 @@ use App\Auth\AuthService;
 use App\Auth\PasswordPolicy;
 use Illuminate\Container\Container;
 use App\Http\Middleware\PasswordReminderMiddleware;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -56,7 +55,7 @@ final class PasswordReminderTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->container = new \Tests\Support\TestContainer();
@@ -112,14 +111,14 @@ final class PasswordReminderTest extends TestCase
     public function testSessionWithoutPlaintextStillDetectsDefaultPassword(): void
     {
         // Session ouverte sans passer par attempt() (cookie « rester connecté », ancienne session).
-        session()->put('auth_user_id', 7);
+        session()->put(auth()->getName(), 7);
         $this->assertTrue($this->auth->mustChangePassword());
     }
 
     public function testSessionWithoutPlaintextAcceptsOtherPassword(): void
     {
         $this->row['password_hash'] = $this->hash(bin2hex(random_bytes(6)));
-        session()->put('auth_user_id', 7);
+        session()->put(auth()->getName(), 7);
         $this->assertFalse($this->auth->mustChangePassword());
     }
 
@@ -137,20 +136,6 @@ final class PasswordReminderTest extends TestCase
         $this->auth->refreshSessionAfterPasswordChange($this->row);
 
         $this->assertFalse($this->auth->mustChangePassword());
-    }
-
-    public function testAdminResettingToDefaultPasswordRevokesTheSession(): void
-    {
-        $strong = bin2hex(random_bytes(6));
-        $this->row['password_hash'] = $this->hash($strong);
-        $this->auth->attempt('emp@example.test', $strong);
-        $this->assertFalse($this->auth->mustChangePassword());
-
-        // Un admin remet « 0000 » : l'empreinte change, la session est révoquée (l'utilisateur devra
-        // se reconnecter, et sera alors forcé de changer).
-        $this->row['password_hash'] = $this->hash('0000');
-        $this->assertFalse($this->auth->mustChangePassword());
-        $this->assertFalse($this->auth->check());
     }
 
     /** @return array{0: Response, 1: bool, 2: bool} réponse, bandeau, fenêtre */
@@ -225,9 +210,9 @@ final class PasswordReminderTest extends TestCase
 
     public function testSessionRestoredWithoutPasswordAlsoShowsThePopupForTheDefaultPassword(): void
     {
-        // Session ouverte sans mot de passe en clair (cookie « rester connecté ») : même effet que bindSession().
-        $row = $this->row;
-        (fn() => $this->bindSession($row))->call($this->auth);
+        // Session ouverte sans mot de passe en clair (cookie « rester connecté ») : le garde de Laravel émet Login.
+        $user = (new \App\Models\User())->newFromBuilder($this->row);
+        auth()->guard()->login($user);
 
         [, $banner, $popup] = $this->page('/employee');
         $this->assertTrue($banner);

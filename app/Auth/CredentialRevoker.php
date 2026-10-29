@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Repositories\ApiTokenRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 
 /**
- * Révoque les identifiants persistants d'un utilisateur : cookies « rester connecté »
- * (30 jours) et jetons d'API. À appeler dès que le mot de passe change (par lui-même,
- * par réinitialisation ou par un admin) ou que le compte est désactivé/supprimé, sinon un
- * cookie ou un jeton volé survivrait au changement de mot de passe censé le neutraliser.
+ * Révoque les identifiants persistants d'un utilisateur : cookie « rester connecté » (jeton users.remember_token du
+ * garde de Laravel) et jetons d'API. À appeler dès que le mot de passe change (par lui-même, par réinitialisation ou
+ * par un admin) ou que le compte est désactivé/supprimé, sinon un cookie ou un jeton volé survivrait au changement de
+ * mot de passe censé le neutraliser.
  *
- * Les sessions PHP déjà ouvertes ne sont pas énumérables côté serveur : elles sont
- * invalidées par AuthService (compte inactif, ou empreinte du mot de passe qui a changé).
+ * Les sessions déjà ouvertes ne sont pas énumérables côté serveur : elles sont invalidées par AuthenticateSession
+ * (empreinte du mot de passe) et par AuthService (compte inactif).
  */
 final class CredentialRevoker
 {
     public function __construct(
-        private readonly RememberTokenRepositoryInterface $rememberTokens,
+        private readonly UserRepositoryInterface $users,
         private readonly ApiTokenRepositoryInterface $apiTokens,
     ) {}
 
     public function revokeAllFor(int $userId): void
     {
-        $this->rememberTokens->deleteByUserId($userId);
+        $this->users->revokeRememberToken($userId);
         $this->apiTokens->deleteByUserId($userId);
     }
 }

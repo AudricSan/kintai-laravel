@@ -7,7 +7,6 @@ namespace Tests\Unit\Core;
 use App\Auth\AuthService;
 use App\Auth\CredentialRevoker;
 use App\Repositories\ApiTokenRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -60,7 +59,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
     }
 
@@ -89,7 +88,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
         $this->assertFalse($this->auth->check());
         $this->assertNull($this->auth->user());
-        $this->assertFalse(session()->has('auth_user_id'));
+        $this->assertFalse(session()->has(auth()->getName()));
     }
 
     public function testSessionOfASoftDeletedUserIsRefused(): void
@@ -102,7 +101,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
     public function testSessionOfAnUnknownUserIsRefused(): void
     {
-        session()->put('auth_user_id', 999);
+        session()->put(auth()->getName(), 999);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(null);
         $auth = new AuthService(
@@ -111,20 +110,10 @@ final class AuthServiceSessionRevocationTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->assertFalse($auth->check());
-    }
-
-    public function testSessionOpenedBeforeAPasswordChangeIsRevoked(): void
-    {
-        $this->loginNormally();
-        // Un autre appareil / un admin / une réinitialisation change le mot de passe.
-        $this->row['password_hash'] = password_hash($this->pwTwo, PASSWORD_BCRYPT, ['cost' => 4]);
-
-        $this->assertFalse($this->auth->check());
-        $this->assertNull($this->auth->user());
     }
 
     public function testCurrentSessionSurvivesItsOwnPasswordChangeOnceRefreshed(): void
@@ -137,38 +126,11 @@ final class AuthServiceSessionRevocationTest extends TestCase
         $this->assertTrue($this->auth->check());
     }
 
-    public function testAnotherSessionIsStillRevokedWhenTheCurrentOneRefreshes(): void
-    {
-        $this->loginNormally();
-        $otherDeviceSession = session()->all();
-
-        $this->row['password_hash'] = password_hash($this->pwTwo, PASSWORD_BCRYPT, ['cost' => 4]);
-        $this->auth->refreshSessionAfterPasswordChange($this->row);
-
-        // On simule la session de l'autre appareil (empreinte ancienne).
-        session()->flush();
-        session()->put($otherDeviceSession);
-        $this->assertFalse($this->auth->check());
-    }
-
-    public function testSessionOpenedBeforeTheFingerprintExistedAdoptsItOnFirstRequest(): void
-    {
-        session()->flush();
-        session()->put(['auth_user_id' => 42]); // session « historique », sans empreinte
-
-        $this->assertTrue($this->auth->check());
-        $this->assertTrue(session()->has('auth_pw_fp'));
-
-        // Une fois adoptée, un changement de mot de passe la révoque.
-        $this->row['password_hash'] = password_hash($this->pwTwo, PASSWORD_BCRYPT, ['cost' => 4]);
-        $this->assertFalse($this->auth->check());
-    }
-
     public function testRowWithoutIsActiveKeyIsTreatedAsActive(): void
     {
         unset($this->row['is_active']);
         session()->flush();
-        session()->put(['auth_user_id' => 42]);
+        session()->put([auth()->getName() => 42]);
 
         $this->assertTrue($this->auth->check());
     }
@@ -180,8 +142,8 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
     public function testCredentialRevokerRemovesRememberCookiesAndApiTokens(): void
     {
-        $remember = $this->createMock(RememberTokenRepositoryInterface::class);
-        $remember->expects($this->once())->method('deleteByUserId')->with(42);
+        $remember = $this->createMock(UserRepositoryInterface::class);
+        $remember->expects($this->once())->method('revokeRememberToken')->with(42);
         $api = $this->createMock(ApiTokenRepositoryInterface::class);
         $api->expects($this->once())->method('deleteByUserId')->with(42)->willReturn(3);
 

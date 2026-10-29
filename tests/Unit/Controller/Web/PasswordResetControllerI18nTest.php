@@ -8,7 +8,6 @@ use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
 use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\PasswordResetRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Repositories\AppSettingsRepositoryInterface;
@@ -50,7 +49,7 @@ final class PasswordResetControllerI18nTest extends TestCase
             $this->users,
             new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             new CredentialRevoker(
-                $this->createStub(RememberTokenRepositoryInterface::class),
+                $this->createStub(UserRepositoryInterface::class),
                 $this->createStub(ApiTokenRepositoryInterface::class),
             ),
         );

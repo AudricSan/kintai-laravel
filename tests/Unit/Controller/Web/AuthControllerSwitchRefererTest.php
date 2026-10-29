@@ -9,7 +9,6 @@ use Illuminate\Container\Container;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -47,7 +46,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
         $auth = new AuthService(
             $users, $storeUsers, $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class), $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new AuthController(

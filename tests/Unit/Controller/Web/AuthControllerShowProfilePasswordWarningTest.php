@@ -8,7 +8,6 @@ use App\Auth\AuthService;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -37,7 +36,7 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', self::USER_ID);
+        session()->put(auth()->getName(), self::USER_ID);
 
         $this->viewDir = sys_get_temp_dir() . '/kintai-auth-profile-test';
         $this->ensureViewFile($this->viewDir, 'auth.profile', "<?= !empty(\$has_default_password) ? 'DEFAULT_PW_WARNING' : 'NO_WARNING' ?>");
@@ -62,7 +61,7 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new AuthController(
@@ -82,7 +81,7 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
     }
 
     public function testWarningShownWhenPasswordIsStillTheDefault(): void

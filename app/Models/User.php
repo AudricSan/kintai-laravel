@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\FlushesRequestMemo;
 use App\Models\Casts\HexColor;
+use App\Models\Concerns\FlushesRequestMemo;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-final class User extends Model
+/**
+ * Compte utilisateur, et utilisateur du garde de session de Laravel (config/auth.php). Le hash du mot de passe est dans
+ * la colonne password_hash.
+ */
+class User extends Authenticatable
 {
     use FlushesRequestMemo;
 
@@ -18,4 +22,14 @@ final class User extends Model
 
     // Une couleur invalide en base est remplacée à la lecture (voir HexColor).
     protected $casts = ['color' => HexColor::class . ':#3B82F6'];
+
+    public function getAuthPassword(): string
+    {
+        return (string) $this->password_hash;
+    }
+
+    public function getAuthPasswordName(): string
+    {
+        return 'password_hash';
+    }
 }

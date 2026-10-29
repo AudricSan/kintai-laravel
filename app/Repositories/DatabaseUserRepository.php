@@ -94,6 +94,11 @@ final class DatabaseUserRepository implements UserRepositoryInterface
      * @param int $id
      * @return int The number of deleted users (0 or 1).
      */
+    public function revokeRememberToken(int $userId): void
+    {
+        EloquentUser::whereKey($userId)->update(['remember_token' => null]);
+    }
+
     public function delete(int $id): int
     {
         $user = EloquentUser::find($id);

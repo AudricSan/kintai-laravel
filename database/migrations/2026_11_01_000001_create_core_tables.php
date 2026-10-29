@@ -16,6 +16,8 @@ return new class extends Migration
             $table->integer('id', true);
             $table->string('email')->unique();
             $table->string('password_hash');
+            // Jeton « rester connecté » du garde de session de Laravel.
+            $table->rememberToken();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('display_name');

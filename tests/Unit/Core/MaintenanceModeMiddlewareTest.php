@@ -9,7 +9,6 @@ use Illuminate\Container\Container;
 use App\Exceptions\ServiceUnavailableException;
 use App\Http\Middleware\MaintenanceModeMiddleware;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -31,7 +30,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
     }
 
     private function makeRequest(string $uri, string $method = 'GET'): Request
@@ -77,10 +76,10 @@ final class MaintenanceModeMiddlewareTest extends TestCase
             $roleAssignments->method('findByUser')->willReturn([]);
         }
 
-        $this->container->instance(AuthService::class, new AuthService($users, $storeUsers, $stores, $roles, $roleAssignments, $this->createStub(RememberTokenRepositoryInterface::class)));
+        $this->container->instance(AuthService::class, new AuthService($users, $storeUsers, $stores, $roles, $roleAssignments));
 
         if ($user !== null) {
-            session()->put('auth_user_id', $user['id']);
+            session()->put(auth()->getName(), $user['id']);
         }
     }
 

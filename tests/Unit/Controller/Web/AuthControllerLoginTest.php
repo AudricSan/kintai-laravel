@@ -8,7 +8,6 @@ use App\Auth\AuthService;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -29,7 +28,7 @@ final class AuthControllerLoginTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
 
         $this->users = $this->createStub(UserRepositoryInterface::class);
     }
@@ -42,7 +41,7 @@ final class AuthControllerLoginTest extends TestCase
             $stores          = $this->createStub(StoreRepositoryInterface::class);
             $roles           = $this->createStub(RoleRepositoryInterface::class);
             $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-            $rememberTokens = $this->createStub(RememberTokenRepositoryInterface::class);
+            $rememberTokens = $this->createStub(UserRepositoryInterface::class);
             $auth = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments, $rememberTokens);
             $roleAssignments->method('findByUser')->willReturn([]);
             $this->controller = new AuthController(
@@ -65,7 +64,7 @@ final class AuthControllerLoginTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 

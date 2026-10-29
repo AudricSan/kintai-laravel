@@ -8,7 +8,6 @@ use App\Auth\AuthService;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -39,14 +38,14 @@ final class AuthControllerUpdateProfileTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 
     public function testPropagatesSaveFailureInsteadOfRedirectingToFalseSuccess(): void
     {
         $userId = 42;
-        session()->put('auth_user_id', $userId);
+        session()->put(auth()->getName(), $userId);
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with($userId)->willReturn(['id' => $userId, 'language' => 'fr']);
@@ -58,7 +57,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
 
-        $rememberTokens = $this->createStub(RememberTokenRepositoryInterface::class);
+        $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
         $auth = new AuthService($users, $storeUsers, $stores, $roles, $roleAssignments, $rememberTokens);
 
@@ -91,7 +90,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
     public function testAnEmptyOrInactiveLanguageMeansFollowingTheInstance(): void
     {
         $userId = 43;
-        session()->put('auth_user_id', $userId);
+        session()->put(auth()->getName(), $userId);
 
         $saved = [];
         $users = $this->createMock(UserRepositoryInterface::class);
@@ -105,7 +104,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $stores          = $this->createStub(StoreRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-        $auth = new AuthService($users, $storeUsers, $stores, $this->createStub(RoleRepositoryInterface::class), $roleAssignments, $this->createStub(RememberTokenRepositoryInterface::class));
+        $auth = new AuthService($users, $storeUsers, $stores, $this->createStub(RoleRepositoryInterface::class), $roleAssignments);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);

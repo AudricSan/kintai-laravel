@@ -12,7 +12,6 @@ use Illuminate\Container\Container;
 use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\LogRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -44,7 +43,7 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
 
     private AdminUserController $controller;
     private UserRepositoryInterface&Stub $users;
-    private RememberTokenRepositoryInterface&MockObject $remember;
+    private UserRepositoryInterface&MockObject $remember;
     private ApiTokenRepositoryInterface&MockObject $api;
 
     protected function setUp(): void
@@ -76,7 +75,7 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
 
-        $this->remember = $this->createMock(RememberTokenRepositoryInterface::class);
+        $this->remember = $this->createMock(UserRepositoryInterface::class);
         $this->api      = $this->createMock(ApiTokenRepositoryInterface::class);
 
         $this->controller = new AdminUserController(
@@ -117,13 +116,13 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
 
     private function expectRevocation(): void
     {
-        $this->remember->expects($this->once())->method('deleteByUserId')->with(self::TARGET_ID);
+        $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::TARGET_ID);
         $this->api->expects($this->once())->method('deleteByUserId')->with(self::TARGET_ID)->willReturn(0);
     }
 
     private function expectNoRevocation(): void
     {
-        $this->remember->expects($this->never())->method('deleteByUserId');
+        $this->remember->expects($this->never())->method('revokeRememberToken');
         $this->api->expects($this->never())->method('deleteByUserId');
     }
 

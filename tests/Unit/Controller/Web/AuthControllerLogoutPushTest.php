@@ -8,7 +8,6 @@ use App\Auth\AuthService;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -28,12 +27,12 @@ final class AuthControllerLogoutPushTest extends TestCase
 {
     protected function setUp(): void
     {
-        session()->put('auth_user_id', 9);
+        session()->put(auth()->getName(), 9);
     }
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 
@@ -45,7 +44,7 @@ final class AuthControllerLogoutPushTest extends TestCase
         $stores          = $this->createStub(StoreRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-        $auth = new AuthService($users, $storeUsers, $stores, $this->createStub(RoleRepositoryInterface::class), $roleAssignments, $this->createStub(RememberTokenRepositoryInterface::class));
+        $auth = new AuthService($users, $storeUsers, $stores, $this->createStub(RoleRepositoryInterface::class), $roleAssignments);
 
         return new AuthController(
             new ViewRenderer(sys_get_temp_dir()),

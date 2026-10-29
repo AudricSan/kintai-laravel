@@ -7,7 +7,6 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use App\Repositories\NotificationRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -33,7 +32,7 @@ final class NotificationControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', 5);
+        session()->put(auth()->getName(), 5);
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@example.com']);
@@ -47,7 +46,7 @@ final class NotificationControllerTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $this->roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->notifications = $this->createStub(NotificationRepositoryInterface::class);
@@ -72,7 +71,7 @@ final class NotificationControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 

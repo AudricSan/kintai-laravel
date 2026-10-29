@@ -27,7 +27,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\AccessLog::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
-            \App\Http\Middleware\RememberMeMiddleware::class,
+            // Session fermée quand le mot de passe a changé depuis son ouverture (y compris sur les autres appareils).
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class,
             // Limitation de débit de /api/* (toutes routes, bundles compris), avant tout le reste du traitement.
             \App\Http\Middleware\ApiRateLimitMiddleware::class,
@@ -41,6 +42,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\BundleViewDataMiddleware::class,
             \App\Http\Middleware\NotificationMiddleware::class,
         ]);
+        // Session révoquée : retour à la page de connexion de Kintai.
+        $middleware->redirectGuestsTo(static fn() => base_url() . '/login');
         // Hors jeton CSRF : l'API (jetons d'API) et le désabonnement en un clic d'un client e-mail (RFC 8058), sans
         // session, qui se protège par une signature dans l'adresse.
         $middleware->validateCsrfTokens(except: ['api/*', 'notifications/unsubscribe']);

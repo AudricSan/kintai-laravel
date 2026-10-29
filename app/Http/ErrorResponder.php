@@ -70,6 +70,13 @@ final class ErrorResponder
             return $wantsJson ? response()->json(['error' => $message], 404) : self::page(404, $message);
         }
 
+        // Session révoquée (mot de passe changé depuis son ouverture) : retour à la connexion.
+        if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+            return $wantsJson
+                ? response()->json(['error' => $e->getMessage()], 401)
+                : redirect()->away(base_url() . '/login');
+        }
+
         if ($e instanceof AuthorizationException) {
             return $wantsJson ? response()->json(['error' => $e->getMessage()], 403) : self::page(403, $e->getMessage());
         }

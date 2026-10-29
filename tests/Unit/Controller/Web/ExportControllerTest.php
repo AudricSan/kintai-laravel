@@ -19,7 +19,6 @@ use App\Export\StoresExport;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -88,7 +87,7 @@ final class ExportControllerTest extends TestCase
 
         $this->controller = new ExportController(
             new ViewRenderer(dirname(__DIR__, 4) . '/resources/views'),
-            new AuthService($users, $storeUsers, $stores, $roles, $assignments, $this->createStub(RememberTokenRepositoryInterface::class)),
+            new AuthService($users, $storeUsers, $stores, $roles, $assignments),
             new ExportAccess($permissions, $stores, $storeUsers),
             new ExportWriter(),
             new UserSelection($storeUsers, $users, $permissions),
@@ -99,12 +98,12 @@ final class ExportControllerTest extends TestCase
             new IcalService($translations),
             new AuditLogger(),
         );
-        session()->put('auth_user_id', 5);
+        session()->put(auth()->getName(), 5);
     }
 
     protected function tearDown(): void
     {
-        session()->forget(['auth_user_id', 'auth_pw_fp']);
+        session()->forget([auth()->getName(), 'auth_pw_fp']);
         Log::reset();
         foreach ($this->bound as $class) {
             Container::getInstance()->offsetUnset($class);
@@ -185,7 +184,7 @@ final class ExportControllerTest extends TestCase
 
     public function testAnonymousVisitorsAreSentToTheLogin(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $response = $this->controller->download($this->request(['dataset' => 'shifts', 'target' => 'me', 'format' => 'json']));
 
         $this->assertStringContainsString('/login', $response->headers->get('Location'));

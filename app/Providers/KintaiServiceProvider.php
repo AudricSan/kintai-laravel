@@ -16,7 +16,6 @@ use App\Routing\RouteBinderRegistry;
 use App\Routing\StoreRouteBinder;
 use App\View\ViewRenderer;
 use App\Foundation\Auth\KintaiGate;
-use App\Foundation\Auth\KintaiGuard;
 
 /**
  * Raccorde Laravel aux services de Kintai pendant la migration : les helpers de Laravel (__(), csrf_token(),
@@ -66,8 +65,7 @@ final class KintaiServiceProvider extends ServiceProvider
         }
 
 
-        // auth() et le Gate de Laravel lisent l'utilisateur et les permissions de Kintai.
-        Auth::extend('kintai', static fn(): KintaiGuard => new KintaiGuard());
+        // Le Gate de Laravel répond avec les permissions RBAC de Kintai.
         Gate::before(KintaiGate::before(...));
 
         // Les scripts de scripts/ sont aussi des commandes Artisan (php artisan kintai:cron backup…).

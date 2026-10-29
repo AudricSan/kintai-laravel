@@ -3,14 +3,21 @@
 declare(strict_types=1);
 
 return [
-    // Garde Laravel (auth(), Auth::, @auth) : l'utilisateur connecté de Kintai, voir App\Foundation\Auth\KintaiGuard.
     'defaults' => [
-        'guard' => 'kintai',
+        'guard' => 'web',
     ],
 
     'guards' => [
-        'kintai' => [
-            'driver' => 'kintai',
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+    ],
+
+    'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
         ],
     ],
 

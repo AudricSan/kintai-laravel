@@ -6,7 +6,6 @@ namespace Tests\Integration;
 
 use App\Auth\AuthService;
 use App\Cron\CalendarSyncJob;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -38,7 +37,7 @@ final class CalendarLinkControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->setUpCalendarFixture();
-        session()->put('auth_user_id', $this->alice);
+        session()->put(auth()->getName(), $this->alice);
         session()->forget(['_kintai_gcal_oauth', '_kintai_flash']);
 
         $users = $this->createStub(UserRepositoryInterface::class);
@@ -53,7 +52,7 @@ final class CalendarLinkControllerTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new CalendarLinkController(
@@ -66,7 +65,7 @@ final class CalendarLinkControllerTest extends TestCase
     protected function tearDown(): void
     {
         $this->tearDownCalendarFixture();
-        session()->forget(['auth_user_id', '_kintai_gcal_oauth', '_kintai_flash']);
+        session()->forget([auth()->getName(), '_kintai_gcal_oauth', '_kintai_flash']);
         $_POST = [];
         $_GET  = [];
     }

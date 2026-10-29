@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use App\Auth\AuthService;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -46,7 +45,7 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
             $this->stores,
             $this->createStub(RoleRepositoryInterface::class),
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $secret = bin2hex(random_bytes(8));

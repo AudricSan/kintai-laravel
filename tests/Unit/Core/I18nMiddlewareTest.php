@@ -40,7 +40,7 @@ final class I18nMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget(['locale', 'auth_user_id']);
+        session()->forget(['locale', auth()->getName()]);
         unset($_ENV['APP_LOCALE']);
         $_COOKIE = [];
     }
@@ -102,7 +102,7 @@ final class I18nMiddlewareTest extends TestCase
         $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'language' => 'ja']);
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
-        session()->put('auth_user_id', 1);
+        session()->put(auth()->getName(), 1);
         session()->put('locale', 'fr');
         $_COOKIE['kintai_locale'] = 'en';
 
@@ -118,7 +118,7 @@ final class I18nMiddlewareTest extends TestCase
         $_ENV['APP_LOCALE'] = 'ja';
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
-        session()->put('auth_user_id', 1);
+        session()->put(auth()->getName(), 1);
 
         $this->middleware()->handle($req, $this->noop());
 

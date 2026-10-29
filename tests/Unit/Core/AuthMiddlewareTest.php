@@ -11,7 +11,6 @@ use Illuminate\Container\Container;
 use App\FeatureManager;
 use App\Http\Middleware\AuthMiddleware;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -71,7 +70,7 @@ final class AuthMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
     }
 
     /**
@@ -80,7 +79,7 @@ final class AuthMiddlewareTest extends TestCase
      */
     private function bindAuthenticatedUser(array $permissions, bool $isSystemRole = false, bool $isManagerRole = false): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 10, 'display_name' => 'Test']);
@@ -105,7 +104,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->container->instance(AuthService::class, new AuthService(
             $users, $storeUsers, $stores, $roles, $assignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         ));
         $this->container->instance(PermissionService::class, new PermissionService($assignments, $roles));
         $this->container->instance(StoreUserRepositoryInterface::class, $storeUsers);
@@ -218,7 +217,7 @@ final class AuthMiddlewareTest extends TestCase
 
     public function testRedirectsToLoginWhenNotAuthenticated(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $users = $this->createStub(UserRepositoryInterface::class);
         $this->container->instance(AuthService::class, new AuthService(
             $users,
@@ -226,7 +225,7 @@ final class AuthMiddlewareTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         ));
 
         $response = $this->handle();

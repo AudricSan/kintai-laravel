@@ -6,6 +6,7 @@ namespace App\Foundation\Auth;
 
 use App\Auth\PermissionCatalog;
 use App\Auth\PermissionService;
+use App\Models\User;
 use Illuminate\Container\Container;
 
 /**
@@ -20,7 +21,7 @@ final class KintaiGate
     /** @param array<int, mixed> $arguments [identifiant du magasin] facultatif */
     public static function before(mixed $user, string $ability, array $arguments = []): ?bool
     {
-        if (!$user instanceof KintaiUser || !PermissionCatalog::exists($ability)) {
+        if (!$user instanceof User || !PermissionCatalog::exists($ability)) {
             return null;
         }
 

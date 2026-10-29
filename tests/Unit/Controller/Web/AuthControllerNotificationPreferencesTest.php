@@ -12,7 +12,6 @@ use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -39,7 +38,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', 9);
+        session()->put(auth()->getName(), 9);
 
         $capsule = new Capsule();
         $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
@@ -72,7 +71,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
             $stores,
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
@@ -103,7 +102,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 

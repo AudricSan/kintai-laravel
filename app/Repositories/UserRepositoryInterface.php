@@ -50,4 +50,7 @@ interface UserRepositoryInterface
      * @return int The number of deleted users (0 or 1).
      */
     public function delete(int $id): int;
+
+    /** Invalide le cookie « rester connecté » du compte (jeton users.remember_token effacé). */
+    public function revokeRememberToken(int $userId): void;
 }

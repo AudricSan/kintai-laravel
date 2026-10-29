@@ -6,7 +6,6 @@ namespace Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Auth\AuthService;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -64,7 +63,7 @@ final class AppResetControllerTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $view = new ViewRenderer(sys_get_temp_dir());
@@ -171,7 +170,7 @@ final class AppResetControllerTest extends TestCase
 
     public function testExecuteRunsFactoryResetLogsOutAndRedirectsHome(): void
     {
-        session()->put('auth_user_id', 1);
+        session()->put(auth()->getName(), 1);
         $backup = $this->backup->create('test');
         $_POST = ['mode' => 'factory', 'backup_filename' => $backup['filename']];
 
@@ -180,7 +179,7 @@ final class AppResetControllerTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('/', $this->locationOf($response));
         $this->assertSame(0, Capsule::table('users')->count(), 'users doit être vidé en mode usine');
-        $this->assertFalse(session()->has('auth_user_id'), 'la session doit être détruite après un reset usine');
+        $this->assertFalse(session()->has(auth()->getName()), 'la session doit être détruite après un reset usine');
         $this->assertFileDoesNotExist($this->tmpDir . '/storage/installed.lock');
     }
 }

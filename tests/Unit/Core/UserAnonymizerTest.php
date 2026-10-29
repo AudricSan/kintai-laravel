@@ -7,7 +7,6 @@ namespace Tests\Unit\Core;
 use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
 use App\Repositories\ApiTokenRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -22,7 +21,7 @@ final class UserAnonymizerTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RememberTokenRepositoryInterface&Stub $remember;
+    private UserRepositoryInterface&Stub $remember;
     private ApiTokenRepositoryInterface&Stub $api;
     private string $avatarDir;
 
@@ -30,7 +29,7 @@ final class UserAnonymizerTest extends TestCase
     {
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->remember    = $this->createStub(RememberTokenRepositoryInterface::class);
+        $this->remember    = $this->createStub(UserRepositoryInterface::class);
         $this->api         = $this->createStub(ApiTokenRepositoryInterface::class);
         $this->avatarDir   = sys_get_temp_dir() . '/kintai-avatars-' . bin2hex(random_bytes(4));
         mkdir($this->avatarDir);
@@ -82,7 +81,7 @@ final class UserAnonymizerTest extends TestCase
     public function testRolesAndCredentialsAreRevoked(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->remember = $this->createMock(RememberTokenRepositoryInterface::class);
+        $this->remember = $this->createMock(UserRepositoryInterface::class);
         $this->api = $this->createMock(ApiTokenRepositoryInterface::class);
         $this->users->method('findById')->willReturn(['id' => 12]);
         $this->users->method('save')->willReturnArgument(0);
@@ -93,7 +92,7 @@ final class UserAnonymizerTest extends TestCase
             $revoked[] = $id;
             return 1;
         });
-        $this->remember->expects($this->once())->method('deleteByUserId')->with(12);
+        $this->remember->expects($this->once())->method('revokeRememberToken')->with(12);
         $this->api->expects($this->once())->method('deleteByUserId')->with(12)->willReturn(0);
 
         $this->anonymizer()->anonymize(12);

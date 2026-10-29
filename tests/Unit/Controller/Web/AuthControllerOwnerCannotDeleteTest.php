@@ -11,7 +11,6 @@ use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -38,12 +37,12 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', self::USER_ID);
+        session()->put(auth()->getName(), self::USER_ID);
     }
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 
@@ -71,7 +70,7 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $roles,
             $assignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         return new AuthController(
@@ -86,11 +85,11 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
-            new CredentialRevoker($this->createStub(RememberTokenRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+            new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
             new UserAnonymizer(
                 $this->users,
                 $assignments,
-                new CredentialRevoker($this->createStub(RememberTokenRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+                new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
                 sys_get_temp_dir(),
             ),
         );

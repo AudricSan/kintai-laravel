@@ -11,10 +11,17 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 
 final class AuthServiceProvider extends ServiceProvider
 {
+    public function boot(): void
+    {
+        // Connexion par mot de passe ou par cookie « rester connecté » : la fenêtre de rappel s'affiche une fois.
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, fn() => $this->app->make(AuthService::class)->flagPasswordReminder());
+        // « Rester connecté » : 30 jours.
+        \Illuminate\Support\Facades\Auth::guard()->setRememberDuration(30 * 24 * 60);
+    }
+
     public function register(): void
     {
         $this->app->singleton(
@@ -25,7 +32,6 @@ final class AuthServiceProvider extends ServiceProvider
                 $c->make(StoreRepositoryInterface::class),
                 $c->make(RoleRepositoryInterface::class),
                 $c->make(RoleAssignmentRepositoryInterface::class),
-                $c->make(RememberTokenRepositoryInterface::class),
             )
         );
 

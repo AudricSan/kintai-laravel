@@ -13,7 +13,6 @@ use App\Extension\ExtensionRegistry;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -85,7 +84,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
 
 
         $userId = 7;
-        session()->put('auth_user_id', $userId);
+        session()->put(auth()->getName(), $userId);
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->users->method('findById')->with($userId)->willReturn([
@@ -97,7 +96,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $roles           = $this->createStub(RoleRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-        $rememberTokens = $this->createStub(RememberTokenRepositoryInterface::class);
+        $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
         $auth = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments, $rememberTokens);
 
@@ -122,7 +121,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
         (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, $this->previousContainer);
     }

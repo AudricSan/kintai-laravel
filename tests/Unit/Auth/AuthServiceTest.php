@@ -13,7 +13,6 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 
 final class AuthServiceTest extends TestCase
 {
@@ -22,27 +21,24 @@ final class AuthServiceTest extends TestCase
     private StoreRepositoryInterface&Stub $stores;
     private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
-    private RememberTokenRepositoryInterface&Stub $rememberTokens;
     private ?AuthService $auth = null;
 
     protected function setUp(): void
     {
-        session()->forget('auth_user_id');
-        unset($_COOKIE['kintai_remember']);
+        session()->forget(auth()->getName());
 
         $this->users           = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores          = $this->createStub(StoreRepositoryInterface::class);
         $this->roles           = $this->createStub(RoleRepositoryInterface::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->rememberTokens  = $this->createStub(RememberTokenRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function auth(): AuthService
     {
         if ($this->auth === null) {
-            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores, $this->roles, $this->roleAssignments, $this->rememberTokens);
+            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores, $this->roles, $this->roleAssignments);
         }
 
         return $this->auth;
@@ -83,8 +79,7 @@ final class AuthServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
-        unset($_COOKIE['kintai_remember']);
+        session()->forget(auth()->getName());
     }
 
     // -------------------------------------------------------------------------
@@ -116,7 +111,7 @@ final class AuthServiceTest extends TestCase
         $result = $this->auth()->attempt('user@test.com', 'secret123');
 
         $this->assertTrue($result);
-        $this->assertSame(10, session()->get('auth_user_id'));
+        $this->assertSame(10, session()->get(auth()->getName()));
     }
 
     public function testAttemptFailsForUnknownEmail(): void
@@ -241,7 +236,7 @@ final class AuthServiceTest extends TestCase
     public function testUserReturnsUserFromDatabase(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $user = $this->activeUser();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($user);
 
@@ -255,9 +250,9 @@ final class AuthServiceTest extends TestCase
 
     public function testLogoutClearsSession(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->auth()->logout();
-        $this->assertFalse(session()->has('auth_user_id'));
+        $this->assertFalse(session()->has(auth()->getName()));
     }
 
     public function testCheckReturnsFalseAfterLogout(): void
@@ -282,7 +277,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsAdminReturnsTrueForOwnerRoleAssignment(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertTrue($this->auth()->isAdmin());
@@ -290,7 +285,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsAdminReturnsFalseForRegularUser(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->roleAssignments->method('findByUser')->willReturn([]);
         $this->assertFalse($this->auth()->isAdmin());
@@ -301,7 +296,7 @@ final class AuthServiceTest extends TestCase
         // La colonne users.is_admin brute n'est plus la source de vérité —
         // seule une affectation role_assignments de portée globale à un rôle
         // système compte désormais.
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, true));
         $this->roleAssignments->method('findByUser')->willReturn([]);
         $this->assertFalse($this->auth()->isAdmin());
@@ -320,7 +315,7 @@ final class AuthServiceTest extends TestCase
     public function testManagedStoreIdsEmptyForGlobalAdmin(): void
     {
         // Admin global → retourne [] (pas de restriction)
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertSame([], $this->auth()->managedStoreIds());
@@ -328,7 +323,7 @@ final class AuthServiceTest extends TestCase
 
     public function testManagedStoreIdsForRoleFlaggedManager(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 2, ['employees.view', 'employees.create'], isManager: true);
 
@@ -338,7 +333,7 @@ final class AuthServiceTest extends TestCase
 
     public function testManagedStoreIdsEmptyForRoleWithoutPermissionsNorManagerFlag(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, [], isManager: false); // rôle sans permission ni flag manager (ex. Employé)
 
@@ -355,7 +350,7 @@ final class AuthServiceTest extends TestCase
      */
     public function testManagedStoreIdsIncludesStoreForManagerFlaggedRoleGrantingOnlyViewPermissions(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.view'], isManager: true);
 
@@ -371,7 +366,7 @@ final class AuthServiceTest extends TestCase
      */
     public function testManagedStoreIdsEmptyForRoleGrantingPermissionButNotFlaggedManager(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.create'], isManager: false);
 
@@ -384,7 +379,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsManagerTrueForGlobalAdmin(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertTrue($this->auth()->isManager());
@@ -392,7 +387,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsManagerTrueForRoleFlaggedManager(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 2, ['employees.view', 'employees.create'], isManager: true);
         $this->assertTrue($this->auth()->isManager());
@@ -400,7 +395,7 @@ final class AuthServiceTest extends TestCase
 
     public function testIsManagerFalseForRoleWithoutPermissionsNorManagerFlag(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, [], isManager: false);
         $this->assertFalse($this->auth()->isManager());
@@ -409,7 +404,7 @@ final class AuthServiceTest extends TestCase
     /** Régression : voir testManagedStoreIdsIncludesStoreForManagerFlaggedRoleGrantingOnlyViewPermissions. */
     public function testIsManagerTrueForManagerFlaggedRoleGrantingOnlyViewPermissions(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.view'], isManager: true);
         $this->assertTrue($this->auth()->isManager());
@@ -418,154 +413,10 @@ final class AuthServiceTest extends TestCase
     /** Régression : voir testManagedStoreIdsEmptyForRoleGrantingPermissionButNotFlaggedManager. */
     public function testIsManagerFalseForRoleGrantingPermissionButNotFlaggedManager(): void
     {
-        session()->put('auth_user_id', 10);
+        session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.create'], isManager: false);
         $this->assertFalse($this->auth()->isManager());
     }
 
-    // -------------------------------------------------------------------------
-    // "Rester connecté" (remember me, 30 jours)
-    // -------------------------------------------------------------------------
-
-    public function testAttemptWithRememberIssuesToken(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $user = $this->activeUser();
-        $this->users->method('findByEmail')->willReturn($user);
-        $this->rememberTokens->expects($this->once())
-            ->method('create')
-            ->with($this->callback(fn(array $data) => $data['user_id'] === 10
-                && isset($data['selector'], $data['validator_hash'], $data['expires_at'])))
-            ->willReturn([]);
-
-        $result = $this->auth()->attempt('user@test.com', 'secret123', remember: true);
-
-        $this->assertTrue($result);
-    }
-
-    public function testAttemptWithoutRememberDoesNotIssueToken(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $user = $this->activeUser();
-        $this->users->method('findByEmail')->willReturn($user);
-        $this->rememberTokens->expects($this->never())->method('create');
-
-        $this->auth()->attempt('user@test.com', 'secret123');
-    }
-
-    public function testAttemptByCodeWithRememberIssuesToken(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $store = ['id' => 5, 'code' => 'STORE01'];
-        $user  = array_merge($this->activeUser(), ['employee_code' => 'EMP001']);
-        $this->stores->method('findByCode')->willReturn($store);
-        $this->users->method('findByEmployeeCode')->willReturn($user);
-        $this->storeUsers->method('findMembership')->willReturn(['role' => 'staff']);
-        $this->rememberTokens->expects($this->once())->method('create')->willReturn([]);
-
-        $result = $this->auth()->attemptByCode('EMP001', 'STORE01', 'secret123', remember: true);
-
-        $this->assertTrue($result);
-    }
-
-    public function testAttemptViaRememberCookieFailsWithMalformedCookie(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $this->rememberTokens->expects($this->never())->method('findBySelector');
-        $this->assertFalse($this->auth()->attemptViaRememberCookie('not-a-valid-cookie'));
-    }
-
-    public function testAttemptViaRememberCookieFailsWithUnknownSelector(): void
-    {
-        $this->rememberTokens->method('findBySelector')->willReturn(null);
-        $this->assertFalse($this->auth()->attemptViaRememberCookie('selector123.validator456'));
-    }
-
-    public function testAttemptViaRememberCookieFailsWithExpiredToken(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $this->rememberTokens->method('findBySelector')->willReturn([
-            'user_id'        => 10,
-            'selector'       => 'selector123',
-            'validator_hash' => hash('sha256', 'validator456'),
-            'expires_at'     => date('Y-m-d H:i:s', time() - 3600),
-        ]);
-        $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
-
-        $this->assertFalse($this->auth()->attemptViaRememberCookie('selector123.validator456'));
-        $this->assertFalse(session()->has('auth_user_id'));
-    }
-
-    public function testAttemptViaRememberCookieFailsWithWrongValidator(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $this->rememberTokens->method('findBySelector')->willReturn([
-            'user_id'        => 10,
-            'selector'       => 'selector123',
-            'validator_hash' => hash('sha256', 'the-real-validator'),
-            'expires_at'     => date('Y-m-d H:i:s', time() + 3600),
-        ]);
-        $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
-
-        $this->assertFalse($this->auth()->attemptViaRememberCookie('selector123.wrong-validator'));
-        $this->assertFalse(session()->has('auth_user_id'));
-    }
-
-    public function testAttemptViaRememberCookieFailsForInactiveUser(): void
-    {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $this->rememberTokens->method('findBySelector')->willReturn([
-            'user_id'        => 10,
-            'selector'       => 'selector123',
-            'validator_hash' => hash('sha256', 'validator456'),
-            'expires_at'     => date('Y-m-d H:i:s', time() + 3600),
-        ]);
-        $user              = $this->activeUser();
-        $user['is_active'] = 0;
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($user);
-        $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
-
-        $this->assertFalse($this->auth()->attemptViaRememberCookie('selector123.validator456'));
-    }
-
-    public function testAttemptViaRememberCookieSucceedsAndRotatesToken(): void
-    {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $this->rememberTokens->method('findBySelector')->willReturn([
-            'user_id'        => 10,
-            'selector'       => 'selector123',
-            'validator_hash' => hash('sha256', 'validator456'),
-            'expires_at'     => date('Y-m-d H:i:s', time() + 3600),
-        ]);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($this->activeUser());
-        // Rotation : l'ancien sélecteur est supprimé, un nouveau token est émis.
-        $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
-        $this->rememberTokens->expects($this->once())->method('create')->willReturn([]);
-
-        $result = $this->auth()->attemptViaRememberCookie('selector123.validator456');
-
-        $this->assertTrue($result);
-        $this->assertSame(10, session()->get('auth_user_id'));
-    }
-
-    public function testLogoutRevokesMatchingRememberToken(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        $_COOKIE['kintai_remember'] = 'selector123.validator456';
-        $this->rememberTokens->expects($this->once())->method('deleteBySelector')->with('selector123');
-
-        $this->auth()->logout();
-    }
-
-    public function testLogoutWithoutRememberCookieDoesNotCallRepository(): void
-    {
-        $this->rememberTokens = $this->createMock(RememberTokenRepositoryInterface::class);
-        unset($_COOKIE['kintai_remember']);
-        $this->rememberTokens->expects($this->never())->method('deleteBySelector');
-
-        $this->auth()->logout();
-    }
 }

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Rôles et permissions, jetons (API, iCal, cron, mot de passe oublié, « se souvenir de moi »).
+ * Rôles et permissions, jetons (API, iCal, cron, mot de passe oublié).
  */
 return new class extends Migration
 {
@@ -95,21 +95,10 @@ return new class extends Migration
             $table->index('token', 'password_reset_tokens_token_index');
         });
 
-        Schema::create('remember_tokens', function (Blueprint $table) {
-            $table->integer('id', true);
-            $table->integer('user_id');
-            $table->string('selector', 24)->unique();
-            $table->string('validator_hash', 64);
-            $table->timestamp('expires_at', 0);
-            $table->timestamp('created_at', 0)->useCurrent();
-
-            $table->foreign('user_id', 'remember_tokens_user_id_foreign')->references('id')->on('users')->onDelete('cascade');
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('remember_tokens');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('cron_tokens');
         Schema::dropIfExists('ical_tokens');

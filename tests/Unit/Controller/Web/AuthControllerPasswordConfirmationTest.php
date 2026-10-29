@@ -9,7 +9,6 @@ use App\Auth\PasswordPolicy;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -41,7 +40,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', self::USER_ID);
+        session()->put(auth()->getName(), self::USER_ID);
 
         // Valeurs générées à l'exécution : aucun mot de passe en clair dans le dépôt.
         $this->rightPassword = bin2hex(random_bytes(8));
@@ -60,7 +59,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new AuthController(
@@ -80,7 +79,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 

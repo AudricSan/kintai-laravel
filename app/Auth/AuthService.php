@@ -5,41 +5,38 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Database\RequestMemo;
+use App\Models\User;
 use App\Repositories\DatabaseUserRepository;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
 
 /**
- * Service d'authentification basé sur les sessions PHP natives.
- * Stocke uniquement l'ID utilisateur en session ; recharge depuis la DB à chaque requête.
+ * Service d'authentification de l'application, au-dessus du garde de session de Laravel (Auth::guard()) : la connexion,
+ * la déconnexion, le « rester connecté » (cookie recaller et colonne users.remember_token) et la révocation d'une
+ * session dont le mot de passe a changé (AuthenticateSession) sont ceux de Laravel.
  *
- * isAdmin()/managedStoreIds() sont calculés à partir de role_assignments (RBAC
- * dynamique, task/mermission.md) plutôt que des colonnes historiques
- * users.is_admin/store_user.role. user() applique ce calcul directement sur
- * la clé 'is_admin' du tableau retourné : c'est le seul point de pontage
- * nécessaire pour que tout le reste de l'app (contrôleurs qui lisent
- * $request->getAttribute('auth_user')['is_admin'] directement plutôt que via
- * ce service) continue de fonctionner sans modification.
+ * Reste propre à l'application : la connexion par code employé + code magasin, le calcul RBAC de 'is_admin', les
+ * magasins gérés, et le rappel de mot de passe faible. Les contrôleurs lisent l'utilisateur sous forme de tableau
+ * (user()) : recalculé depuis la base à chaque requête.
+ *
+ * isAdmin()/managedStoreIds() sont calculés à partir de role_assignments (RBAC dynamique) plutôt que des colonnes
+ * historiques users.is_admin/store_user.role. user() applique ce calcul directement sur la clé 'is_admin' du tableau
+ * retourné : c'est le seul point de pontage nécessaire pour que tout le reste de l'app (contrôleurs qui lisent
+ * $request->attributes->get('auth_user')['is_admin'] directement plutôt que via ce service) continue de fonctionner.
  */
 final class AuthService
 {
-    private const SESSION_KEY = 'auth_user_id';
-    // Empreinte du hash de mot de passe au moment de la connexion : si le mot de passe change
-    // (lui-même, réinitialisation, admin), toute session ouverte avant devient invalide.
-    private const SESSION_PW_FINGERPRINT = 'auth_pw_fp';
     /** État « mot de passe à changer » de la session : ['fp' => empreinte du hash, 'weak' => bool]. */
     private const SESSION_PW_WEAK = 'auth_pw_weak';
     /** Posé à chaque nouvelle session : la fenêtre de rappel du mot de passe s'affiche une fois par connexion. */
     private const SESSION_PW_REMINDER = 'auth_pw_reminder_pending';
-    private const REMEMBER_COOKIE = 'kintai_remember';
     // Coût bcrypt des mots de passe créés par l'app (voir AdminUserController/PasswordResetService).
     // Même coût que PasswordHasher : le calcul factice doit durer autant qu'une vraie vérification.
     private const TIMING_COST = PasswordHasher::COST;
-    private const REMEMBER_LIFETIME_DAYS = 30;
 
     public function __construct(
         private readonly UserRepositoryInterface $users,
@@ -47,7 +44,6 @@ final class AuthService
         private readonly StoreRepositoryInterface $stores,
         private readonly RoleRepositoryInterface $roles,
         private readonly RoleAssignmentRepositoryInterface $roleAssignments,
-        private readonly RememberTokenRepositoryInterface $rememberTokens,
     ) {}
 
     /**
@@ -72,12 +68,7 @@ final class AuthService
             return false;
         }
 
-        session()->regenerate();
-        $this->bindSession($user);
-        $this->rememberPasswordStrength($user, $password);
-        if ($remember) {
-            $this->issueRememberToken((int) $user['id']);
-        }
+        $this->login($user, $password, $remember);
         return true;
     }
 
@@ -115,71 +106,30 @@ final class AuthService
             return false;
         }
 
-        session()->regenerate();
-        $this->bindSession($user);
-        $this->rememberPasswordStrength($user, $password);
-        if ($remember) {
-            $this->issueRememberToken((int) $user['id']);
-        }
+        $this->login($user, $password, $remember);
         return true;
     }
 
-    /**
-     * Relit le cookie "rester connecté" (posé par issueRememberToken) et reconnecte
-     * l'utilisateur s'il est valide. Fait tourner le token à chaque utilisation réussie
-     * (ancien sélecteur supprimé, nouveau émis) : limite la fenêtre de rejeu si le cookie
-     * a fuité, sans jamais forcer l'utilisateur à se reconnecter tant qu'il revient avant
-     * expiration. $cookieValue permet de s'affranchir de $_COOKIE dans les tests.
-     */
-    public function attemptViaRememberCookie(?string $cookieValue = null): bool
+    /** Ouvre la session de Laravel pour ce compte (nouvel identifiant de session, cookie « rester connecté » au besoin). */
+    private function login(array $user, string $password, bool $remember): void
     {
-        $cookieValue ??= $_COOKIE[self::REMEMBER_COOKIE] ?? null;
-        if (!$cookieValue || !str_contains($cookieValue, '.')) {
-            return false;
-        }
-
-        [$selector, $validator] = explode('.', $cookieValue, 2);
-        $token = $this->rememberTokens->findBySelector($selector);
-        if ($token === null) {
-            $this->clearRememberCookie();
-            return false;
-        }
-
-        // Sélecteur valide mais mauvais validateur, ou token expiré : le cookie est
-        // potentiellement volé/rejoué — on révoque par précaution plutôt que d'échouer
-        // silencieusement en le laissant réutilisable.
-        if (
-            strtotime((string) $token['expires_at']) < time()
-            || !hash_equals((string) $token['validator_hash'], hash('sha256', $validator))
-        ) {
-            $this->rememberTokens->deleteBySelector($selector);
-            $this->clearRememberCookie();
-            return false;
-        }
-
-        $user = $this->users->findById((int) $token['user_id']);
-        if ($user === null || empty($user['is_active']) || !empty($user['deleted_at'])) {
-            $this->rememberTokens->deleteBySelector($selector);
-            $this->clearRememberCookie();
-            return false;
-        }
-
-        $this->rememberTokens->deleteBySelector($selector);
-
-        session()->regenerate();
-        $this->bindSession($user);
-        $this->issueRememberToken((int) $user['id']);
-
-        return true;
+        // Le compte vient d'être lu par le dépôt : pas de seconde lecture pour le modèle du garde.
+        Auth::guard()->login((new User())->newFromBuilder($user), $remember);
+        $this->rememberPasswordStrength($user, $password);
     }
 
+    /** La fenêtre de rappel du mot de passe s'affichera une fois pour cette connexion (événement Login de Laravel). */
+    public function flagPasswordReminder(): void
+    {
+        session()->put(self::SESSION_PW_REMINDER, true);
+    }
     /**
      * Identifiant du compte de la session, sans aucune vérification (compte actif, mot de passe inchangé) : réservé
      * aux usages qui ne donnent aucun droit, comme le choix de la langue d'affichage (I18nMiddleware).
      */
     public static function sessionUserId(): ?int
     {
-        $id = session()->get(self::SESSION_KEY);
+        $id = session()->get(Auth::guard()->getName());
         return is_numeric($id) ? (int) $id : null;
     }
 
@@ -190,7 +140,7 @@ final class AuthService
      */
     public function user(): ?array
     {
-        $id = session()->get(self::SESSION_KEY);
+        $id = self::sessionUserId();
         if ($id === null) {
             return null;
         }
@@ -203,17 +153,7 @@ final class AuthService
         // Une session ouverte ne doit jamais survivre à la désactivation ou à la suppression
         // du compte : seules la connexion et le cookie « rester connecté » le vérifiaient.
         if ($user === null || !($user['is_active'] ?? 1) || !empty($user['deleted_at'])) {
-            $this->dropSession();
-            return null;
-        }
-        // Le mot de passe a changé depuis l'ouverture de cette session (par l'utilisateur, par
-        // réinitialisation ou par un admin) : elle est révoquée, y compris sur les autres appareils.
-        // Une session ouverte avant l'introduction de l'empreinte l'adopte à sa première requête.
-        $stored = session()->get(self::SESSION_PW_FINGERPRINT);
-        if (!is_string($stored)) {
-            session()->put(self::SESSION_PW_FINGERPRINT, $this->fingerprint($user));
-        } elseif (!hash_equals($stored, $this->fingerprint($user))) {
-            $this->dropSession();
+            $this->logout();
             return null;
         }
         $user['is_admin'] = $this->hasOwnerRole((int) $user['id']) ? 1 : 0;
@@ -223,7 +163,7 @@ final class AuthService
     /** L'utilisateur est-il connecté (session valide, compte toujours actif) ? */
     public function check(): bool
     {
-        return !empty(session()->get(self::SESSION_KEY)) && $this->user() !== null;
+        return self::sessionUserId() !== null && $this->user() !== null;
     }
 
     /**
@@ -262,7 +202,8 @@ final class AuthService
      */
     public function refreshSessionAfterPasswordChange(array $user): void
     {
-        session()->put(self::SESSION_PW_FINGERPRINT, $this->fingerprint($user));
+        // Empreinte de session de Laravel (AuthenticateSession) : sans elle, la session courante serait révoquée aussi.
+        session()->put('password_hash_' . Auth::getDefaultDriver(), Auth::guard()->hashPasswordForCookie((string) ($user['password_hash'] ?? '')));
         // Le nouveau mot de passe a passé PasswordPolicy : il ne doit plus être réclamé.
         session()->put(self::SESSION_PW_WEAK, ['fp' => $this->fingerprint($user), 'weak' => false]);
     }
@@ -274,18 +215,6 @@ final class AuthService
             'fp'   => $this->fingerprint($user),
             'weak' => !PasswordPolicy::isLongEnough($password),
         ]);
-    }
-
-    private function bindSession(array $user): void
-    {
-        session()->put(self::SESSION_KEY, $user['id']);
-        session()->put(self::SESSION_PW_FINGERPRINT, $this->fingerprint($user));
-        session()->put(self::SESSION_PW_REMINDER, true);
-    }
-
-    private function dropSession(): void
-    {
-        session()->forget([self::SESSION_KEY, self::SESSION_PW_FINGERPRINT, self::SESSION_PW_WEAK, self::SESSION_PW_REMINDER]);
     }
 
     /**
@@ -349,67 +278,11 @@ final class AuthService
         return !empty($this->managedStoreIds());
     }
 
-    /** Déconnecte l'utilisateur courant (et révoque le "rester connecté" s'il y en a un). */
+    /** Déconnecte l'utilisateur courant : session fermée, jeton « rester connecté » renouvelé et cookie effacé. */
     public function logout(): void
     {
-        $this->dropSession();
-        $this->revokeRememberCookie();
-    }
-
-    /**
-     * Émet un nouveau token "rester connecté" (30 jours) : sélecteur en clair (indexé,
-     * sert à la recherche) + hash SHA-256 du validateur (jamais stocké en clair) — schéma
-     * repris de celui déjà utilisé pour api_tokens, adapté en sélecteur/validateur pour
-     * qu'une lecture de la table seule ne permette pas de rejouer un cookie volé côté DB.
-     */
-    private function issueRememberToken(int $userId): void
-    {
-        $selector  = bin2hex(random_bytes(12));
-        $validator = bin2hex(random_bytes(32));
-        $expires   = time() + self::REMEMBER_LIFETIME_DAYS * 86400;
-
-        $this->rememberTokens->create([
-            'user_id'        => $userId,
-            'selector'       => $selector,
-            'validator_hash' => hash('sha256', $validator),
-            'expires_at'     => date('Y-m-d H:i:s', $expires),
-        ]);
-
-        $this->setRememberCookie($selector . '.' . $validator, $expires);
-    }
-
-    /** Révoque le token en base associé au cookie courant (s'il existe) et efface le cookie. */
-    private function revokeRememberCookie(): void
-    {
-        $cookieValue = $_COOKIE[self::REMEMBER_COOKIE] ?? null;
-        if ($cookieValue && str_contains($cookieValue, '.')) {
-            [$selector] = explode('.', $cookieValue, 2);
-            $this->rememberTokens->deleteBySelector($selector);
-        }
-        $this->clearRememberCookie();
-    }
-
-    private function setRememberCookie(string $value, int $expires): void
-    {
-        setcookie(self::REMEMBER_COOKIE, $value, [
-            'expires'  => $expires,
-            'path'     => '/',
-            'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-    }
-
-    private function clearRememberCookie(): void
-    {
-        setcookie(self::REMEMBER_COOKIE, '', [
-            'expires'  => time() - 3600,
-            'path'     => '/',
-            'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-        unset($_COOKIE[self::REMEMBER_COOKIE]);
+        Auth::guard()->logout();
+        session()->forget([self::SESSION_PW_WEAK, self::SESSION_PW_REMINDER, 'password_hash_' . Auth::getDefaultDriver()]);
     }
 
     /**

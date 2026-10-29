@@ -9,7 +9,6 @@ use App\Exceptions\NotFoundException;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -30,7 +29,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', 9);
+        session()->put(auth()->getName(), 9);
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
 
@@ -39,7 +38,7 @@ final class AuthControllerAvatarTest extends TestCase
         $roles           = $this->createStub(RoleRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-        $rememberTokens = $this->createStub(RememberTokenRepositoryInterface::class);
+        $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
         $auth = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments, $rememberTokens);
 
@@ -60,7 +59,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $_POST = [];
     }
 

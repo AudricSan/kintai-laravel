@@ -9,7 +9,6 @@ use Illuminate\Container\Container;
 use App\Exceptions\NotFoundException;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -63,7 +62,7 @@ final class ScheduleExportControllerTest extends TestCase
                 $stores,
                 $this->createStub(RoleRepositoryInterface::class),
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
-                $this->createStub(RememberTokenRepositoryInterface::class),
+                $this->createStub(UserRepositoryInterface::class),
             ),
             $this->shifts,
             $types,
@@ -73,12 +72,12 @@ final class ScheduleExportControllerTest extends TestCase
             new IcalService($translations),
             new AuditLogger(),
         );
-        session()->put('auth_user_id', 9);
+        session()->put(auth()->getName(), 9);
     }
 
     protected function tearDown(): void
     {
-        session()->forget(['auth_user_id', 'auth_pw_fp']);
+        session()->forget([auth()->getName(), 'auth_pw_fp']);
         Log::reset();
         kintai_test_translator_reset();
     }
@@ -136,7 +135,7 @@ final class ScheduleExportControllerTest extends TestCase
 
     public function testAnonymousVisitorsAreSentToTheLogin(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
         $response = $this->controller->download($this->request(['format' => 'json', 'store_id' => '3']));
 
         $this->assertSame(302, $response->getStatusCode());

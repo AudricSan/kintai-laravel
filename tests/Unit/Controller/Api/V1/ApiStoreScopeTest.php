@@ -14,7 +14,6 @@ use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\IcalTokenRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -279,8 +278,8 @@ final class ApiStoreScopeTest extends TestCase
                 && !array_key_exists('password', $d)
                 && password_verify('nouveau-mot-de-passe', $d['password_hash']);
         }))->willReturn(['id' => 31, 'password_hash' => 'secret']);
-        $remember = $this->createMock(RememberTokenRepositoryInterface::class);
-        $remember->expects($this->once())->method('deleteByUserId')->with(31);
+        $remember = $this->createMock(UserRepositoryInterface::class);
+        $remember->expects($this->once())->method('revokeRememberToken')->with(31);
         $apiTokens = $this->createMock(ApiTokenRepositoryInterface::class);
         $apiTokens->expects($this->once())->method('deleteByUserId')->with(31);
         $revoker = new CredentialRevoker($remember, $apiTokens);
@@ -463,7 +462,7 @@ final class ApiStoreScopeTest extends TestCase
             $this->users,
             new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
         );
-        $revoker = new CredentialRevoker($this->createStub(RememberTokenRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class));
+        $revoker = new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class));
         $controller = new UserController(
             $this->users, new AuditLogger(), $planLimits, $this->permissions, $this->storeUsers,
             new OwnerGuard($this->permissions, $this->users), $revoker,

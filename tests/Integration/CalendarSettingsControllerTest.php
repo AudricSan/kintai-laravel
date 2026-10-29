@@ -15,7 +15,7 @@ use App\Services\Calendar\GoogleRedirectUri;
 use App\Services\PublicUrlResolver;
 use App\Repositories\DatabaseUserRepository;
 use App\Repositories\ApiTokenRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Tests\Support\CalendarSyncFixture;
 use App\Http\Controllers\System\CalendarSettingsController;
 use App\View\ViewRenderer;
@@ -138,7 +138,7 @@ final class CalendarSettingsControllerTest extends TestCase
         $roleAssignments->method('findByUser')->willReturn([]);
         $anonymizer = new UserAnonymizer(
             new DatabaseUserRepository(), $roleAssignments,
-            new CredentialRevoker($this->createStub(RememberTokenRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+            new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
             sys_get_temp_dir(),
             $this->sync,
         );

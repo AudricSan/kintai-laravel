@@ -16,7 +16,6 @@ use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -61,7 +60,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        session()->put('auth_user_id', 1);
+        session()->put(auth()->getName(), 1);
 
         $capsule = new Capsule();
         $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
@@ -112,7 +111,7 @@ final class NotificationSettingsControllerTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->settings = new InMemoryAppSettings(['app_public_url' => 'https://kintai.exemple.fr', 'notifications_retention_days' => '45']);
@@ -170,7 +169,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget(['auth_user_id', '_token']);
+        session()->forget([auth()->getName(), '_token']);
         $_POST = [];
         $_GET  = [];
     }

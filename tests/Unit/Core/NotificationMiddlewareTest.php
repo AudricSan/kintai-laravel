@@ -9,7 +9,6 @@ use Illuminate\Container\Container;
 use App\Http\Middleware\NotificationMiddleware;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\NotificationRepositoryInterface;
-use App\Repositories\RememberTokenRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -45,7 +44,7 @@ final class NotificationMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        session()->forget('auth_user_id');
+        session()->forget(auth()->getName());
     }
 
     private function bindAuth(?array $user): void
@@ -61,12 +60,12 @@ final class NotificationMiddlewareTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
-            $this->createStub(RememberTokenRepositoryInterface::class),
+            $this->createStub(UserRepositoryInterface::class),
         );
         $this->container->instance(AuthService::class, $auth);
 
         if ($user !== null) {
-            session()->put('auth_user_id', $user['id']);
+            session()->put(auth()->getName(), $user['id']);
         }
     }
 
