@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ResignationReport\Services;
+namespace Tests\Bundles\ResignationReport\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ResignationReport\Cron\ResignationDeactivateJob;
 use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
-use kintai\Core\Database\BundleMigrationRunner;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Database\BundleMigrationRunner;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
+use App\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
 
 /**

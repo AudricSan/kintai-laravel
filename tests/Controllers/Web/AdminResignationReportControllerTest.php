@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ResignationReport\Controllers\Web;
+namespace Tests\Bundles\ResignationReport\Controllers\Web;
 
 if (!defined('BASE_PATH')) {
     define('BASE_PATH', dirname(__DIR__, 4));
@@ -11,20 +11,20 @@ if (!defined('BASE_PATH')) {
 
 use kintai\Bundles\Installed\ResignationReport\Controllers\Web\AdminResignationReportController;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\LogRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Container;
+use App\Exceptions\NotFoundException;
+use App\Repositories\LogRepositoryInterface;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -79,12 +79,12 @@ final class AdminResignationReportControllerTest extends TestCase
                 new AuditLogger(),
                 new PermissionService($this->assignments, $this->roles),
                 new ResignationDeactivation($this->resignationReports, $this->users),
-                new \kintai\Core\Auth\UserAnonymizer(
+                new \App\Auth\UserAnonymizer(
                     $this->users,
                     $this->assignments,
-                    new \kintai\Core\Auth\CredentialRevoker(
-                        $this->createStub(\kintai\Core\Repositories\RememberTokenRepositoryInterface::class),
-                        $this->createStub(\kintai\Core\Repositories\ApiTokenRepositoryInterface::class),
+                    new \App\Auth\CredentialRevoker(
+                        $this->createStub(\App\Repositories\RememberTokenRepositoryInterface::class),
+                        $this->createStub(\App\Repositories\ApiTokenRepositoryInterface::class),
                     ),
                     sys_get_temp_dir(),
                 ),
@@ -393,7 +393,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->users->expects($this->never())->method('save');
         $this->resignationReports->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeResignationReport($req);
     }
 
@@ -414,7 +414,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
         $this->users->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->storeResignationReport($req);
     }
 
@@ -433,7 +433,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->users->expects($this->never())->method('delete');
         $this->resignationReports->expects($this->never())->method('delete');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteResignationReportPermanently($req);
     }
 
@@ -486,7 +486,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->storeUsers->method('findMembership')->willReturn(null);
         $this->resignationReports->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->updateResignationReport($req);
     }
 
@@ -674,7 +674,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->resignationReports->expects($this->never())->method('save');
         $this->users->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->storeResignationReport($req);
     }
 
@@ -690,7 +690,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->roles->method('getPermissions')->willReturn(['shifts.view']);
         $this->resignationReports->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->storeResignationReport($req);
     }
 

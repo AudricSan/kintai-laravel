@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ResignationReport;
+namespace Tests\Bundles\ResignationReport;
 
 use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\NavItem;

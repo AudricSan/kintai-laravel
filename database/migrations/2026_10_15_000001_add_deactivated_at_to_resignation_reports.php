@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Désactivation différée (audit n°8 de Kintai, décision D2) : le compte d'un démissionnaire n'est plus désactivé à la
@@ -15,20 +15,21 @@ use Illuminate\Database\Schema\Blueprint;
  * Rapports existants : ils ont tous été appliqués à leur création (ancien comportement), d'où le remplissage avec
  * created_at.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if (!$this->schema()->hasTable('resignation_reports') || $this->schema()->hasColumn('resignation_reports', 'deactivated_at')) {
+        if (!Schema::hasTable('resignation_reports') || Schema::hasColumn('resignation_reports', 'deactivated_at')) {
             return;
         }
-        $this->schema()->table('resignation_reports', function (Blueprint $table) {
+        Schema::table('resignation_reports', function (Blueprint $table) {
             $table->timestamp('deactivated_at')->nullable();
         });
 
-        if (!$this->schema()->hasColumn('resignation_reports', 'user_id')) {
+        if (!Schema::hasColumn('resignation_reports', 'user_id')) {
             return;
         }
-        $connection = $this->capsule->getConnection();
+        $connection = DB::connection();
         $connection->table('resignation_reports')
             ->whereNotNull('user_id')
             ->update(['deactivated_at' => $connection->raw('COALESCE(created_at, CURRENT_TIMESTAMP)')]);

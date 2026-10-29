@@ -14,7 +14,7 @@ installer).
 
 There is no build or test suite in this repo (no `composer.json`, no
 PHPUnit). The code is not runnable or functionally testable standalone: every
-class under `src/` depends on `kintai\Core\*` (repositories, middleware,
+class under `src/` depends on `App\*` (repositories, middleware,
 `Request`/`Response`, `ViewRenderer`, PDF generation, etc.) that only exist
 inside a running Kintai instance. Verifying a behavior change means
 installing the bundle into a real Kintai instance, not running anything in
@@ -69,7 +69,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   version, `kintai_core` compatibility range, `entry_class`.
 - `src/ResignationReportBundle.php` — the entry point
   (`kintai\Bundles\Installed\ResignationReport\ResignationReportBundle`,
-  extends `kintai\Core\BundleContract\Bundle`). `register()` binds
+  extends `App\Bundles\Bundle`). `register()` binds
   `ResignationReportRepositoryInterface` to
   `DatabaseResignationReportRepository` as a singleton, then calls
   `loadViewsFrom(..., 'resignation-report')` and
@@ -85,7 +85,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   preview/download, JSON/PDF bulk export, and reactivating a resigned
   employee's account. Shares CRUD/PDF logic with the Hiring/Salary report
   controllers (in Kintai Core) via the `HasStaffReportCrud` trait
-  (`kintai\UI\Controller\Web\Staff\HasStaffReportCrud`) — a plain PHP trait,
+  (`App\Http\Controllers\Staff\HasStaffReportCrud`) — a plain PHP trait,
   not a DI-resolved service, so it works the same regardless of where this
   controller class lives.
 - `Views/reports-resignation*.php` — list, form, detail, PDF template
