@@ -51,7 +51,7 @@ final class PdfCjkFontResolverTest extends TestCase
         $this->assertNotNull($font);
         $this->assertSame('notosansjp', $font['default']);
         $this->assertArrayHasKey('notosansjp', $font['data']);
-        $this->assertSame([$this->tmpDir . '/storage/fonts'], array_map(static fn(string $d): string => str_replace('\\', '/', $d), $font['dir']));
+        $this->assertSame([str_replace('\\', '/', $this->tmpDir) . '/storage/fonts'], array_map(static fn(string $d): string => str_replace('\\', '/', $d), $font['dir']));
     }
 
     public function testApplyToLeavesConfigUnchangedWhenNoFontAvailable(): void
