@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim;
+namespace Tests\Bundles\ShiftClaim;
 
 use kintai\Bundles\Installed\ShiftClaim\Providers\PendingClaimsProvider;
 use kintai\Bundles\Installed\ShiftClaim\ShiftClaimBundle;

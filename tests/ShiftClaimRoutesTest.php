@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim;
+namespace Tests\Bundles\ShiftClaim;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Container;
-use kintai\Core\Middleware\PermissionMiddleware;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Router;
+use App\Container;
+use App\Http\Middleware\PermissionMiddleware;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Http\Middleware\AuthMiddleware;
+use App\Router;
 
 /**
  * Régression : les routes /admin/open-shifts, /employee/open-shifts et

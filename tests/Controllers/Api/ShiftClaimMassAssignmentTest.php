@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim\Controllers\Api;
+namespace Tests\Bundles\ShiftClaim\Controllers\Api;
 
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Api\ShiftClaimController;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\Log;
+use App\Services\Log;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -75,7 +75,7 @@ final class ShiftClaimMassAssignmentTest extends TestCase
                 && $d['user_id'] === self::ME
                 && $d['shift_id'] === 8
         ))->willReturn(['id' => 2]);
-        $shifts = $this->createStub(\kintai\Core\Repositories\ShiftRepositoryInterface::class);
+        $shifts = $this->createStub(\App\Repositories\ShiftRepositoryInterface::class);
         $shifts->method('findById')->willReturn(['id' => 8, 'store_id' => self::MY_STORE, 'is_open' => 1, 'user_id' => null]);
         $controller = new ShiftClaimController($repo, $this->permissions, $this->storeUsers, $shifts);
 

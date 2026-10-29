@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim\Services;
+namespace Tests\Bundles\ShiftClaim\Services;
 
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\WithdrawPendingClaimsOnClose;

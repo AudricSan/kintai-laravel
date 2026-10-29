@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim\Repositories;
+namespace Tests\Bundles\ShiftClaim\Repositories;
 
 use PHPUnit\Framework\TestCase;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\DatabaseShiftClaimRepository;

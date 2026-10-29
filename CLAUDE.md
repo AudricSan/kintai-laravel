@@ -14,7 +14,7 @@ installer).
 
 There is no build or test suite in this repo (no `composer.json`, no
 PHPUnit). The code is not runnable or functionally testable standalone: every
-class under `src/` depends on `kintai\Core\*` (repositories, middleware,
+class under `src/` depends on `App\*` (repositories, middleware,
 `Request`/`Response`, `ViewRenderer`, `PermissionService`, etc.) that only
 exist inside a running Kintai instance. Verifying a behavior change means
 installing the bundle into a real Kintai instance, not running anything in
@@ -69,7 +69,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   version, `kintai_core` compatibility range, `entry_class`.
 - `src/ShiftClaimBundle.php` — the entry point
   (`kintai\Bundles\Installed\ShiftClaim\ShiftClaimBundle`, extends
-  `kintai\Core\BundleContract\Bundle`). `register()` binds
+  `App\Bundles\Bundle`). `register()` binds
   `ShiftClaimRepositoryInterface` to `DatabaseShiftClaimRepository` as a
   singleton. **Two Kintai Core components still read this interface**
   despite it being bundle-owned: `HomeController` (the "pending requests"

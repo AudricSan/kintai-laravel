@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim;
+namespace Tests\Bundles\ShiftClaim;
 
-use kintai\Tests\Support\TranslationContractChecker;
+use Tests\Support\TranslationContractChecker;
 use PHPUnit\Framework\TestCase;
 
 /**

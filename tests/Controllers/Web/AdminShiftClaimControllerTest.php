@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftClaim\Controllers\Web;
+namespace Tests\Bundles\ShiftClaim\Controllers\Web;
 
 
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\AdminShiftClaimController;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\ShiftServiceInterface;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\NotificationService;
+use App\Services\ShiftServiceInterface;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -379,7 +379,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->assertNull($reverted['resolved_by']);
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\App\Response $response): string
     {
         $headersRef = new \ReflectionProperty($response, 'headers');
         $headersRef->setAccessible(true);
