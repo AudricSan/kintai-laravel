@@ -25,12 +25,19 @@ final class KintaiBridge
 {
     public function __invoke(Application $laravel): SymfonyResponse
     {
-        return self::toSymfony(KintaiHttp::app($laravel)->handle(new KintaiRequest()));
+        $kintai = new KintaiRequest();
+        $kintai->linkNative($laravel->make('request'));
+
+        return self::toSymfony(KintaiHttp::app($laravel)->handle($kintai));
     }
 
     /** Convertit une réponse Kintai en réponse Symfony, sans rien changer à ce que reçoit le navigateur. */
     public static function toSymfony(KintaiResponse $response): SymfonyResponse
     {
+        if ($response->nativeResponse() !== null) {
+            return $response->nativeResponse();
+        }
+
         $path = $response->filePath();
 
         $symfony = $path !== null

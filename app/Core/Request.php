@@ -21,6 +21,9 @@ final class Request
     /** @var array<string, mixed> Arbitrary attributes set by middleware */
     private array $attributes = [];
 
+    /** Requête Laravel de la même demande : attributs et paramètres de route y sont partagés avec le code natif. */
+    private ?\Illuminate\Http\Request $native = null;
+
     public function __construct()
     {
         $this->server = self::withAuthorizationHeader(
@@ -221,9 +224,35 @@ final class Request
 
     // --- Route params ---
 
+    /** Relie cette requête à celle de Laravel (attributs et paramètres de route partagés). */
+    public function linkNative(\Illuminate\Http\Request $native): void
+    {
+        $this->native = $native;
+        foreach ($this->attributes as $key => $value) {
+            $native->attributes->set($key, $value);
+        }
+        $this->syncRouteParams();
+    }
+
+    public function nativeRequest(): ?\Illuminate\Http\Request
+    {
+        return $this->native;
+    }
+
     public function setRouteParams(array $params): void
     {
         $this->routeParams = $params;
+        $this->syncRouteParams();
+    }
+
+    private function syncRouteParams(): void
+    {
+        $route = $this->native?->route();
+        if ($route instanceof \Illuminate\Routing\Route) {
+            foreach ($this->routeParams as $name => $value) {
+                $route->setParameter($name, $value);
+            }
+        }
     }
 
     public function param(string $key, mixed $default = null): mixed
@@ -241,10 +270,14 @@ final class Request
     public function setAttribute(string $key, mixed $value): void
     {
         $this->attributes[$key] = $value;
+        $this->native?->attributes->set($key, $value);
     }
 
     public function getAttribute(string $key, mixed $default = null): mixed
     {
+        if ($this->native !== null) {
+            return $this->native->attributes->get($key) ?? $default;
+        }
         return $this->attributes[$key] ?? $default;
     }
 }

@@ -6,6 +6,8 @@ namespace kintai\Core\Middleware;
 
 use Closure;
 use kintai\Core\Container;
+use kintai\Core\NativeCall;
+use kintai\Http\KintaiBridge;
 use kintai\Core\Request;
 use kintai\Core\Response;
 
@@ -28,6 +30,12 @@ final class MiddlewarePipeline
                 return function (Request $request) use ($next, $class) {
                     /** @var MiddlewareInterface $middleware */
                     $middleware = $this->container->make($class);
+                    if (NativeCall::acceptsNativeRequest($middleware, 'handle')) {
+                        return NativeCall::response($middleware->handle(
+                            NativeCall::nativeRequest($request),
+                            static fn () => KintaiBridge::toSymfony($next($request)),
+                        ));
+                    }
                     return $middleware->handle($request, $next);
                 };
             },

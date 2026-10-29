@@ -29,6 +29,7 @@ final class KintaiKernel
     {
         $app = KintaiHttp::app($this->laravel);
         $kintai = new KintaiRequest();
+        $kintai->linkNative($request);
         $request->attributes->set(self::REQUEST, $kintai);
 
         return KintaiBridge::toSymfony($app->handleWith($kintai, function (KintaiRequest $kintai) use ($request, $next): KintaiResponse {

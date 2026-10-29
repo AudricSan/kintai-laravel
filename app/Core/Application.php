@@ -303,6 +303,9 @@ final class Application
         }
         [$controllerClass, $method] = $route->handler;
         $controller = $this->container->make($controllerClass);
+        if (NativeCall::acceptsNativeRequest($controller, $method)) {
+            return NativeCall::response($controller->$method(NativeCall::nativeRequest($request)));
+        }
         return $controller->$method($request);
     }
 

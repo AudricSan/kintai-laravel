@@ -7,6 +7,7 @@ namespace kintai\Http\Middleware;
 use Closure;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request as IlluminateRequest;
+use kintai\Core\NativeCall;
 use kintai\Core\Request as KintaiRequest;
 use kintai\Core\Response as KintaiResponse;
 use kintai\Http\KintaiHttp;
@@ -26,6 +27,10 @@ final class KintaiMiddleware
     {
         try {
             $middleware = KintaiHttp::app($this->laravel)->container()->make($class);
+
+            if (NativeCall::acceptsNativeRequest($middleware, 'handle')) {
+                return $middleware->handle($request, $next);
+            }
 
             return CarriedResponse::of($middleware->handle(
                 KintaiKernel::request($request),

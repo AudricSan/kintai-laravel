@@ -6,6 +6,8 @@ namespace kintai\Core;
 
 final class Response
 {
+    /** Réponse Symfony (Laravel) enveloppée : contrôleurs et middlewares natifs. */
+    private ?\Symfony\Component\HttpFoundation\Response $native = null;
     private string $body = '';
     private int $status = 200;
     private ?string $filePath = null;
@@ -160,14 +162,35 @@ final class Response
         ]);
     }
 
+    /** Enveloppe une réponse Laravel/Symfony : le pont la renvoie telle quelle à Laravel. */
+    public static function native(\Symfony\Component\HttpFoundation\Response $response): self
+    {
+        $r = new self();
+        $r->native = $response;
+        return $r;
+    }
+
+    public function nativeResponse(): ?\Symfony\Component\HttpFoundation\Response
+    {
+        return $this->native;
+    }
+
     public function withHeader(string $name, string $value): self
     {
+        if ($this->native !== null) {
+            $this->native->headers->set($name, $value);
+            return $this;
+        }
         $this->headers[$name] = $value;
         return $this;
     }
 
     public function withStatus(int $status): self
     {
+        if ($this->native !== null) {
+            $this->native->setStatusCode($status);
+            return $this;
+        }
         $this->status = $status;
         return $this;
     }
@@ -175,17 +198,24 @@ final class Response
     /** @return array<string, string> En-têtes définis sur la réponse (lecture seule, pour les tests et les middlewares). */
     public function headers(): array
     {
+        if ($this->native !== null) {
+            $out = [];
+            foreach ($this->native->headers->allPreserveCaseWithoutCookies() as $name => $values) {
+                $out[$name] = implode(', ', $values);
+            }
+            return $out;
+        }
         return $this->headers;
     }
 
     public function status(): int
     {
-        return $this->status;
+        return $this->native?->getStatusCode() ?? $this->status;
     }
 
     public function body(): string
     {
-        return $this->body;
+        return $this->native !== null ? (string) $this->native->getContent() : $this->body;
     }
 
     /** Fichier envoyé tel quel à la place du corps (fileStream()), ou null. */

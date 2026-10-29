@@ -47,10 +47,6 @@ final class CarriedResponse extends SymfonyResponse
             return $response->kintai;
         }
 
-        $kintai = KintaiResponse::html((string) $response->getContent(), $response->getStatusCode());
-        foreach ($response->headers->allPreserveCaseWithoutCookies() as $name => $values) {
-            $kintai->withHeader($name, implode(', ', $values));
-        }
-        return $kintai;
+        return KintaiResponse::native($response);
     }
 }
