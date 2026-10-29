@@ -9,8 +9,8 @@ use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInt
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Http\Concerns\HasStaffReportCrud;
@@ -86,7 +86,7 @@ final class AdminHiringReportController
 
         $reports = $this->hiringReports->findAll($queryStoreIds, $filters);
 
-        return Response::html($this->view->render('hiring-report::reports-hiring', [
+        return response($this->view->render('hiring-report::reports-hiring', [
             'title'        => __('hiring_report_hiring_reports'),
             'stores'       => $allStores,
             'reports'      => $reports,
@@ -98,11 +98,11 @@ final class AdminHiringReportController
 
     public function createHiringReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
-        return Response::html($this->view->render('hiring-report::reports-hiring-form', [
+        return response($this->view->render('hiring-report::reports-hiring-form', [
             'title' => '新規採用報告書 — ' . ($store['name'] ?? ''),
             'store' => $store,
             'users' => $this->storeMembersForReportForm($storeId),
@@ -113,7 +113,7 @@ final class AdminHiringReportController
 
     public function storeHiringReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
@@ -126,7 +126,7 @@ final class AdminHiringReportController
             'store_id' => $storeId,
             'user_id'  => $userId > 0 ? $userId : null,
         ], $this->postData($request, self::REPORT_TYPE['fields']), [
-            'created_by' => $request->getAttribute('auth_user')['id'] ?? 0,
+            'created_by' => $request->attributes->get('auth_user')['id'] ?? 0,
         ]);
 
         $saved = $this->hiringReports->save($data);

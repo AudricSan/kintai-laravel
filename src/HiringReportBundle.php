@@ -24,10 +24,6 @@ final class HiringReportBundle extends Bundle
         return 'hiring-report';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -41,7 +37,7 @@ final class HiringReportBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->container()->singleton(HiringReportRepositoryInterface::class, fn() => new DatabaseHiringReportRepository());
+        $this->app->singleton(HiringReportRepositoryInterface::class, fn() => new DatabaseHiringReportRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'hiring-report');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');
@@ -72,7 +68,7 @@ final class HiringReportBundle extends Bundle
     public function eventListeners(): array
     {
         return [
-            EmployeeCreated::class => fn(EmployeeCreated $event) => $this->app->container()->make(HiringReportOnEmployeeCreated::class)($event),
+            EmployeeCreated::class => fn(EmployeeCreated $event) => $this->app->make(HiringReportOnEmployeeCreated::class)($event),
         ];
     }
 }

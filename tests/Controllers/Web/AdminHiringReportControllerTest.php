@@ -13,7 +13,7 @@ use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\UI\ViewRenderer;
@@ -80,9 +80,9 @@ final class AdminHiringReportControllerTest extends TestCase
     public function testAllHiringReportsListsAcrossStoresForAdmin(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->stores->method('findAll')->willReturn([
             ['id' => 1, 'name' => 'Store A'],
@@ -97,16 +97,16 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->allHiringReports($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testAllHiringReportsAppliesStoreYearMonthFilters(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
         $_GET = ['store_id' => '2', 'year' => '2026', 'month' => '08'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->stores->method('findAll')->willReturn([
             ['id' => 1, 'name' => 'Store A'],
@@ -118,16 +118,16 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->allHiringReports($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testAllHiringReportsScopesNonAdminToManagedStores(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
-        $req->setAttribute('managed_store_ids', [3]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
+        $req->attributes->set('managed_store_ids', [3]);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(3)->willReturn(['id' => 3, 'name' => 'Store C']);
         $this->hiringReports->expects($this->once())->method('findAll')
@@ -136,7 +136,7 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->allHiringReports($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowHiringReportLogsConsultation(): void
@@ -146,8 +146,8 @@ final class AdminHiringReportControllerTest extends TestCase
         $container = new Container();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'employee_name' => 'Alice']);
@@ -162,14 +162,14 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->showHiringReport($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowHiringReportOfAnotherStoreThrowsNotFound(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         // Le rapport existe mais appartient au store 2, pas au store 1 de l'URL
@@ -185,9 +185,9 @@ final class AdminHiringReportControllerTest extends TestCase
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['user_id' => '77', 'employee_name' => 'X'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
         $this->storeUsers->method('findMembership')->willReturn(null);
@@ -203,16 +203,16 @@ final class AdminHiringReportControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1']);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'A']);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([['user_id' => 5]]);
         $this->users->expects($this->never())->method('findAll');
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5]);
 
-        $this->assertSame(200, $this->controller()->createHiringReport($req)->status());
+        $this->assertSame(200, $this->controller()->createHiringReport($req)->getStatusCode());
     }
 
     public function testStoreHiringReportSavesAndRedirects(): void
@@ -242,9 +242,9 @@ final class AdminHiringReportControllerTest extends TestCase
             'hired_by'            => 'Manager X',
             'notes'               => '',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
@@ -258,7 +258,7 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->storeHiringReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testUpdateHiringReportMergesPostFieldsAndRedirects(): void
@@ -271,9 +271,9 @@ final class AdminHiringReportControllerTest extends TestCase
             'employee_name'   => 'Alice Martin',
             'notes'           => '',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 5)->willReturn(['id' => 3]);
@@ -291,14 +291,14 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->updateHiringReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testDeleteHiringReportDeletesAndLogs(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
@@ -306,7 +306,7 @@ final class AdminHiringReportControllerTest extends TestCase
 
         $response = $this->controller()->deleteHiringReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     private function ensureViewFile(string $dir, string $view): void
