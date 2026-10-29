@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
-use App\Http\Middleware\CsrfMiddleware;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -154,8 +154,9 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         $_POST = [];
         $request = Request::capture();
         session()->put('_token', 'attendu');
+        $request->setLaravelSession(app('session.store'));
 
-        return (new CsrfMiddleware())->handle($request, fn() => response()->noContent())->getStatusCode();
+        return app(ValidateCsrfToken::class)->handle($request, fn() => response()->noContent())->getStatusCode();
     }
 
     public function testTheUnsubscribeEndpointIsTheOnlyPostWithoutCsrfToken(): void
@@ -169,7 +170,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
     {
         try {
             return $this->csrfOutcome($uri);
-        } catch (\Throwable) {
+        } catch (\Illuminate\Session\TokenMismatchException) {
             return 419;
         }
     }

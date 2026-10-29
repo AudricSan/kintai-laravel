@@ -10,5 +10,8 @@ return [
     'locale' => env('APP_LOCALE', 'en'),
     'fallback_locale' => env('APP_LOCALE', 'en'),
     'url' => env('APP_URL', ''),
+    // Clé de chiffrement (jeton CSRF, cookies chiffrés) : écrite dans .env par l'installateur.
+    'key' => env('APP_KEY'),
+    'cipher' => 'AES-256-CBC',
     'version' => '0.2.0',
 ];

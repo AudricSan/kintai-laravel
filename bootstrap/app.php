@@ -13,7 +13,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
         using: function (): void {
             // Routes de Kintai (routes/web.php, routes/api.php), puis celles de ses bundles : comme chez Kintai, la
             // première route déclarée qui correspond l'emporte. Ni groupe « web » ni groupe « api » de Laravel :
-            // les middlewares de Kintai (config/middleware.php) sont dans la pile globale ci-dessous.
+            // les middlewares sont dans la pile globale ci-dessous.
             KintaiHttp::register(app());
         },
         commands: __DIR__ . '/../routes/console.php',
@@ -25,8 +25,25 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $middleware->use([
             \Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks::class,
             \App\Http\Middleware\AccessLog::class,
-            ...(require __DIR__ . '/../config/middleware.php')['global'],
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \App\Http\Middleware\RememberMeMiddleware::class,
+            \App\Http\Middleware\SecurityHeadersMiddleware::class,
+            // Limitation de débit de /api/* (toutes routes, bundles compris), avant tout le reste du traitement.
+            \App\Http\Middleware\ApiRateLimitMiddleware::class,
+            // Langue avant le contrôle CSRF : son refus (session expirée) s'affiche traduit.
+            \App\Http\Middleware\I18nMiddleware::class,
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            \App\Http\Middleware\AppSettingsMiddleware::class,
+            \App\Http\Middleware\MaintenanceModeMiddleware::class,
+            \App\Http\Middleware\PasswordReminderMiddleware::class,
+            // Variables de vue des bundles (Bundle::viewVariables()) et managed_store_ids pour la navigation.
+            \App\Http\Middleware\BundleViewDataMiddleware::class,
+            \App\Http\Middleware\NotificationMiddleware::class,
         ]);
+        // Hors jeton CSRF : l'API (jetons d'API) et le désabonnement en un clic d'un client e-mail (RFC 8058), sans
+        // session, qui se protège par une signature dans l'adresse.
+        $middleware->validateCsrfTokens(except: ['api/*', 'notifications/unsubscribe']);
         $middleware->alias([
             'kintai.bind' => \App\Http\Middleware\BindRouteParameters::class,
         ]);

@@ -71,6 +71,7 @@ final class WebInstaller
         try {
             // En premier : un fichier d'environnement non inscriptible arrête tout avant la moindre écriture en base.
             $this->writeLocale($in->locale);
+            $this->writeAppKey();
 
             $in->driver === 'mysql' ? $this->prepareMysql($in) : $this->prepareSqlite();
 
@@ -170,6 +171,7 @@ final class WebInstaller
             if (preg_match('/^' . InstanceLocale::ENV_KEY . '=\S/m', $env) !== 1) {
                 $this->writeLocale($locale);
             }
+            $this->writeAppKey();
 
             if ($database['driver'] === 'sqlite') {
                 $this->importSqlite($this->sqliteSource($source, $database));
@@ -206,6 +208,22 @@ final class WebInstaller
     }
 
     // ─── Étapes ───────────────────────────────────────────────────────────────
+
+    /** Clé de chiffrement de l'instance (`php artisan key:generate`), si le fichier d'environnement n'en a pas. */
+    private function writeAppKey(): void
+    {
+        $env = new EnvFileWriter($this->basePath);
+        $content = is_file($env->path()) ? (string) file_get_contents($env->path()) : '';
+        if (preg_match('/^APP_KEY=\S/m', $content) === 1) {
+            return;
+        }
+        $this->rememberFile($env->path());
+        try {
+            $env->set('APP_KEY', 'base64:' . base64_encode(random_bytes(32)));
+        } catch (\RuntimeException $e) {
+            throw new InstallFailure('install_error_not_writable', ['name' => basename($env->path())], $e);
+        }
+    }
 
     private function writeLocale(string $locale): void
     {

@@ -7,6 +7,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 // Les tests démarrent la vraie application (configuration chargée), sans lire le .env de l'instance et avec une
 // session en mémoire.
 putenv('SESSION_DRIVER=array');
+$_ENV['APP_KEY'] = $_SERVER['APP_KEY'] = 'base64:' . base64_encode(str_repeat('k', 32));
+putenv('APP_KEY=' . $_ENV['APP_KEY']);
 $_ENV['SESSION_DRIVER'] = $_SERVER['SESSION_DRIVER'] = 'array';
 
 $app = $GLOBALS["kintai_test_app"] = require dirname(__DIR__) . "/bootstrap/standalone.php";

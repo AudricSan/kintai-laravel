@@ -61,6 +61,10 @@ final class KintaiServiceProvider extends ServiceProvider
     {
         \App\Http\Macros::register();
 
+        if (config('session.driver') === 'file') {
+            \Illuminate\Support\Facades\File::ensureDirectoryExists((string) config('session.files'));
+        }
+
 
         // auth() et le Gate de Laravel lisent l'utilisateur et les permissions de Kintai.
         Auth::extend('kintai', static fn(): KintaiGuard => new KintaiGuard());

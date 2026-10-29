@@ -277,6 +277,9 @@ try {
     // ─── Step 7 bis : Langue de l'instance ───────────────────────────────────
 
     (new EnvFileWriter(BASE_PATH))->set(InstanceLocale::ENV_KEY, $appLocale);
+    if ((string) env('APP_KEY', '') === '') {
+        (new EnvFileWriter(BASE_PATH))->set('APP_KEY', 'base64:' . base64_encode(random_bytes(32)));
+    }
     echo "[Kintai] Langue de l'instance : {$appLocale}\n";
 
     // ─── Step 7 ter : Assistant de configuration ───────────────────────────

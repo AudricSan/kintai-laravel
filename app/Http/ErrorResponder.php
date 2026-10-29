@@ -74,8 +74,18 @@ final class ErrorResponder
             return $wantsJson ? response()->json(['error' => $e->getMessage()], 403) : self::page(403, $e->getMessage());
         }
 
-        if ($e instanceof TokenMismatchException) {
-            return $wantsJson ? response()->json(['error' => $e->getMessage()], 419) : self::page(419, $e->getMessage());
+        // Jeton CSRF absent ou différent : presque toujours une session expirée (page de connexion restée ouverte plus
+        // longtemps que la durée de session). Personne de connecté : retour à la connexion avec un message.
+        // (Laravel l'a déjà converti en HttpException 419 quand le rendu arrive ici.)
+        if ($e instanceof TokenMismatchException || $e->getPrevious() instanceof TokenMismatchException) {
+            if ($wantsJson) {
+                return response()->json(['error' => __('error_419_message'), 'code' => 'CSRF_TOKEN_MISMATCH'], 419);
+            }
+            if (\App\Auth\AuthService::sessionUserId() === null) {
+                return redirect()->away(base_url() . '/login?error=expired');
+            }
+
+            return self::page(419, '');
         }
 
         if ($e instanceof HttpException || $e instanceof HttpExceptionInterface) {
