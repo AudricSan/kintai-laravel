@@ -12,7 +12,7 @@ use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\ShiftServiceInterface;
@@ -98,12 +98,12 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 10, 'user_id' => 9, 'status' => 'pending'],
         ]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->openShifts($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testOpenShiftsMarksTheNotificationsOfTheDisplayedShiftsAsRead(): void
@@ -119,11 +119,11 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->shiftClaims->method('findByShift')->willReturn([]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(4, 'open_shift', [1, 2]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 4]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 4]);
 
-        $this->assertSame(200, $this->controller()->openShifts($req)->status());
+        $this->assertSame(200, $this->controller()->openShifts($req)->getStatusCode());
     }
 
     public function testSelectShiftToPublishListsOnlyUpcomingUnpublishedAssignedShifts(): void
@@ -142,12 +142,12 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->shiftService->method('getUsersMap')->willReturn([5 => 'Alice']);
         $this->stores->method('findAll')->willReturn([]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->selectShiftToPublish($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testPublishShiftSetsIsOpen(): void
@@ -162,13 +162,13 @@ final class AdminShiftClaimControllerTest extends TestCase
             return $d;
         });
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $response = $this->controller()->publishShift($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(1, $captured['is_open']);
     }
 
@@ -189,8 +189,8 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->notifs->expects($this->once())->method('notifyMany')
             ->with($this->callback(fn($ids) => !in_array(9, $ids, true) && in_array(20, $ids, true) && in_array(21, $ids, true)), 'open_shift_published', $this->anything(), $this->anything(), 1);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->controller()->publishShift($req);
@@ -213,13 +213,13 @@ final class AdminShiftClaimControllerTest extends TestCase
             ->with($this->callback(fn($d) => $d['id'] === 10 && $d['status'] === 'withdrawn'));
         $this->notifs->expects($this->once())->method('notify')->with(7, 'shift_claim_withdrawn', $this->anything(), $this->anything(), 1);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $response = $this->controller()->unpublishShift($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testApproveShiftClaimAssignsShiftAndRejectsOtherPendingClaims(): void
@@ -259,14 +259,14 @@ final class AdminShiftClaimControllerTest extends TestCase
             $notified[] = [$userId, $type];
         });
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '10']);
 
         $response = $this->controller()->approveShiftClaim($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(9, $closedShift['user_id']);
         $this->assertSame(0, $closedShift['is_open']);
         // Seule la candidature #11 (l'autre pending) passe par save() : #10 est
@@ -296,9 +296,9 @@ final class AdminShiftClaimControllerTest extends TestCase
             $notified[] = [$userId, $type];
         });
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '10']);
 
         $this->controller()->approveShiftClaim($req);
@@ -327,14 +327,14 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->shiftClaims->expects($this->never())->method('save');
         $this->notifs->expects($this->never())->method('notify');
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '10']);
 
         $response = $this->controller()->approveShiftClaim($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=already_resolved', $this->locationOf($response));
     }
 
@@ -365,14 +365,14 @@ final class AdminShiftClaimControllerTest extends TestCase
         });
         $this->notifs->expects($this->never())->method('notify');
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '10']);
 
         $response = $this->controller()->approveShiftClaim($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=already_resolved', $this->locationOf($response));
         $this->assertSame('pending', $reverted['status']);
         $this->assertNull($reverted['resolved_at']);
@@ -404,14 +404,14 @@ final class AdminShiftClaimControllerTest extends TestCase
         });
         $this->notifs->expects($this->once())->method('notify')->with(9, 'shift_claim_rejected', $this->anything(), $this->anything(), 1);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '10']);
 
         $response = $this->controller()->rejectShiftClaim($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('rejected', $captured['status']);
     }
 
@@ -434,11 +434,11 @@ final class AdminShiftClaimControllerTest extends TestCase
         ]);
 
         $_GET = ['type' => '10'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->openShifts($req);
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
 
         $this->assertSame([1], $data['shift_ids']);
         // Le filtre "type" du tableau des shifts ne doit pas restreindre le tableau des candidatures.
@@ -461,11 +461,11 @@ final class AdminShiftClaimControllerTest extends TestCase
         ]);
 
         $_GET = ['claim_status' => 'approved'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->openShifts($req);
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
 
         $this->assertSame([200], $data['claim_ids']);
         $this->assertSame([1, 2], $data['shift_ids']);
@@ -490,11 +490,11 @@ final class AdminShiftClaimControllerTest extends TestCase
         ]);
 
         $_GET = ['sort' => 'store_asc'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->openShifts($req);
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
 
         // "Alpha Store" (store 2 → shift 2) doit passer avant "Zoo Store" (store 1 → shift 1).
         $this->assertSame([2, 1], $data['shift_ids']);
@@ -521,11 +521,11 @@ final class AdminShiftClaimControllerTest extends TestCase
         ]);
 
         $_GET = ['claim_sort' => 'store_asc'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->openShifts($req);
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
 
         // Candidature #200 (store 2 → "Alpha Store") doit passer avant #100 (store 1 → "Zoo Store").
         $this->assertSame([200, 100], $data['claim_ids']);

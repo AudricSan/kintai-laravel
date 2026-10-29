@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\ShiftClaim\Providers\PendingClaimsProvider;
 use kintai\Bundles\Installed\ShiftClaim\Services\WithdrawPendingClaimsOnClose;
 use kintai\Contract\Bundle;
 use kintai\Contract\Event\OpenShiftClosed;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\ShiftFormSection;
 use kintai\Contract\Extension\StoreFeature;
@@ -29,10 +29,6 @@ final class ShiftClaimBundle extends Bundle
         return 'shift-claim';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -53,7 +49,7 @@ final class ShiftClaimBundle extends Bundle
 
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(
             ShiftClaimRepositoryInterface::class,

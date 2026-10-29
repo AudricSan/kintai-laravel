@@ -12,8 +12,8 @@ use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Services\ShiftServiceInterface;
@@ -116,12 +116,12 @@ final class AdminShiftClaimController
         }
 
         // Le gestionnaire voit les shifts publiés : les notifications « candidature à décider » correspondantes sont lues.
-        $viewerId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $viewerId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($viewerId > 0 && $shiftsWithClaims !== []) {
             $this->notifs->markReadFor($viewerId, 'open_shift', array_map(fn($s) => (int) $s['id'], $shiftsWithClaims));
         }
 
-        return Response::html($this->view->render('shift-claim::open-shifts', [
+        return response($this->view->render('shift-claim::open-shifts', [
             'title'              => __('shift_claim_open_shifts'),
             'highlight_id'       => (int) $request->query('highlight', 0),
             'shifts'             => $shiftsWithClaims,
@@ -155,7 +155,7 @@ final class AdminShiftClaimController
         }));
         usort($shifts, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
 
-        return Response::html($this->view->render('shift-claim::open-shifts-select', [
+        return response($this->view->render('shift-claim::open-shifts-select', [
             'title'      => __('shift_claim_select_shift_to_publish'),
             'shifts'     => $shifts,
             'users_map'  => $this->shiftService->getUsersMap(),
@@ -165,7 +165,7 @@ final class AdminShiftClaimController
 
     public function publishShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->param('id'));
+        $shift = $this->shifts->findById((int) $request->route('id'));
         if ($shift === null) {
             throw new NotFoundException(__('error_shift_not_found'));
         }
@@ -188,12 +188,12 @@ final class AdminShiftClaimController
             );
         }
 
-        return Response::redirect($this->base() . '/admin/open-shifts?success=published');
+        return redirect()->away($this->base() . '/admin/open-shifts?success=published');
     }
 
     public function unpublishShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->param('id'));
+        $shift = $this->shifts->findById((int) $request->route('id'));
         if ($shift === null) {
             throw new NotFoundException(__('error_shift_not_found'));
         }
@@ -216,19 +216,19 @@ final class AdminShiftClaimController
             }
         }
         $this->auditLogger->logUpdate($request, 'shift.unpublished', 'shift', (int) $shift['id'], $old, $saved, ['withdrawn' => $withdrawn], (int) ($shift['store_id'] ?? 0) ?: null);
-        return Response::redirect($this->base() . '/admin/open-shifts?success=unpublished');
+        return redirect()->away($this->base() . '/admin/open-shifts?success=unpublished');
     }
 
     public function approveShiftClaim(Request $request): Response
     {
-        $claim = $this->shiftClaims->findById((int) $request->param('id'));
+        $claim = $this->shiftClaims->findById((int) $request->route('id'));
         if ($claim === null) {
             throw new NotFoundException(__('shift_claim_error_claim_not_found'));
         }
         $oldClaim = $claim;
         // C-2 : guard statut pending
         if (($claim['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
         }
         $shift = $this->shifts->findById((int) ($claim['shift_id'] ?? 0));
         if ($shift === null) {
@@ -236,34 +236,34 @@ final class AdminShiftClaimController
         }
         // C-3 : le shift doit être encore ouvert
         if (!(int) ($shift['is_open'] ?? 0)) {
-            return Response::redirect($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
         }
         $this->assertStoreAccess($request, (int) ($shift['store_id'] ?? 0));
 
-        $resolver = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $resolver = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
 
         // Attribution, fermeture de la bourse, refus des autres candidats et notifications : même logique que l'API.
         [$result, $savedClaim] = (new ShiftClaimApproval($this->shiftClaims, $this->shifts, $this->stores, $this->notifs))
             ->approve($claim, $shift, $resolver);
         if ($result !== ShiftClaimApproval::APPROVED) {
-            return Response::redirect($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
         }
 
         $this->auditLogger->logUpdate($request, 'shift_claim.approved', 'shift_claim', (int) $claim['id'], $oldClaim, $savedClaim, [], (int) ($shift['store_id'] ?? 0) ?: null);
 
-        return Response::redirect($this->base() . '/admin/open-shifts?success=claim_approved');
+        return redirect()->away($this->base() . '/admin/open-shifts?success=claim_approved');
     }
 
     public function rejectShiftClaim(Request $request): Response
     {
-        $claim = $this->shiftClaims->findById((int) $request->param('id'));
+        $claim = $this->shiftClaims->findById((int) $request->route('id'));
         if ($claim === null) {
             throw new NotFoundException(__('shift_claim_error_claim_not_found'));
         }
         $oldClaim = $claim;
         // M-3 : guard statut pending
         if (($claim['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
         }
         $shift = $this->shifts->findById((int) ($claim['shift_id'] ?? 0));
         if ($shift === null) {
@@ -272,7 +272,7 @@ final class AdminShiftClaimController
         $this->assertStoreAccess($request, (int) ($shift['store_id'] ?? 0));
 
         $now      = date('Y-m-d H:i:s');
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         $resolver = (int) ($authUser['id'] ?? 0);
 
         $savedClaim = $this->shiftClaims->save(array_merge($claim, [
@@ -291,7 +291,7 @@ final class AdminShiftClaimController
             '/employee/open-shifts?highlight=' . (int) $shift['id']
         );
 
-        return Response::redirect($this->base() . '/admin/open-shifts?success=claim_rejected');
+        return redirect()->away($this->base() . '/admin/open-shifts?success=claim_rejected');
     }
 
     /** Valeurs de remplacement (:date/:start/:end/:store) pour les notifications de bourse aux shifts. */

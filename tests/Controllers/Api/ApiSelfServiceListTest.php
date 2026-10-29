@@ -10,7 +10,7 @@ use kintai\Core\Auth\PermissionService;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
 
@@ -53,10 +53,10 @@ final class ApiSelfServiceListTest extends TestCase
     private function ids(int $caller, array $query): array
     {
         $_GET = $query;
-        $request = new Request();
+        $request = Request::capture();
         $_GET = [];
-        $request->setAttribute('auth_user', ['id' => $caller]);
-        return array_map(fn($i) => (int) $i['id'], json_decode($this->controller()->index($request)->body(), true)['data']);
+        $request->attributes->set('auth_user', ['id' => $caller]);
+        return array_map(fn($i) => (int) $i['id'], json_decode($this->controller()->index($request)->getContent(), true)['data']);
     }
 
     public function testAnEmployeeReadsTheirOwnItems(): void

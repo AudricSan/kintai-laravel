@@ -11,8 +11,8 @@ use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
@@ -42,7 +42,7 @@ final class EmployeeShiftClaimController
         if (($resp = $this->assertFeature($request, 'open_shifts')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         // Stores dont l'employé est membre
@@ -87,7 +87,7 @@ final class EmployeeShiftClaimController
             $this->notifs->markReadFor($userId, 'open_shift', array_map(fn($s) => (int) $s['id'], $openShifts));
         }
 
-        return Response::html($this->view->render('shift-claim::open-shifts', [
+        return response($this->view->render('shift-claim::open-shifts', [
             'title'      => __('shift_claim_open_shifts'),
             'highlight_id' => (int) $request->query('highlight', 0),
             'shifts'     => $openShifts,
@@ -102,18 +102,18 @@ final class EmployeeShiftClaimController
         if (($resp = $this->assertFeature($request, 'open_shifts')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
-        $shiftId = (int) $request->param('id');
+        $shiftId = (int) $request->route('id');
 
         $shift = $this->shifts->findById($shiftId);
         // Shift publié requis. Il peut avoir un titulaire : publier un shift attribué, c'est le céder (son titulaire
         // le garde jusqu'à l'approbation d'un candidat). Le titulaire ne peut pas postuler à son propre shift.
         if ($shift === null || !(int) ($shift['is_open'] ?? 0)) {
-            return Response::redirect($this->base() . '/employee/open-shifts?error=not_found');
+            return redirect()->away($this->base() . '/employee/open-shifts?error=not_found');
         }
         if ((int) ($shift['user_id'] ?? 0) === $userId) {
-            return Response::redirect($this->base() . '/employee/open-shifts?error=own_shift');
+            return redirect()->away($this->base() . '/employee/open-shifts?error=own_shift');
         }
 
         // Vérifier appartenance au store
@@ -122,13 +122,13 @@ final class EmployeeShiftClaimController
             $this->storeUsers->findByUser($userId)
         );
         if (!in_array((int) ($shift['store_id'] ?? 0), $myStoreIds, true)) {
-            return Response::redirect($this->base() . '/employee/open-shifts?error=forbidden');
+            return redirect()->away($this->base() . '/employee/open-shifts?error=forbidden');
         }
 
         // Éviter doublon (UNIQUE shift_id + user_id)
         $existing = $this->shiftClaims->findByUserAndShift($userId, $shiftId);
         if ($existing !== null && in_array($existing['status'] ?? '', ['pending', 'approved'], true)) {
-            return Response::redirect($this->base() . '/employee/open-shifts?error=already_claimed');
+            return redirect()->away($this->base() . '/employee/open-shifts?error=already_claimed');
         }
 
         $note = trim($request->post('note') ?? '');
@@ -148,18 +148,18 @@ final class EmployeeShiftClaimController
 
         $this->notifyManagers((int) ($shift['store_id'] ?? 0), $shift, $userId, $shiftId);
 
-        return Response::redirect($this->base() . '/employee/open-shifts?success=claimed');
+        return redirect()->away($this->base() . '/employee/open-shifts?success=claimed');
     }
 
     public function withdrawShiftClaim(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
-        $shiftId = (int) $request->param('id');
+        $shiftId = (int) $request->route('id');
 
         $claim = $this->shiftClaims->findByUserAndShift($userId, $shiftId);
         if ($claim === null || ($claim['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/employee/open-shifts?error=not_found');
+            return redirect()->away($this->base() . '/employee/open-shifts?error=not_found');
         }
 
         $withdrawn = $this->shiftClaims->save(array_merge($claim, ['status' => 'withdrawn']));
@@ -167,7 +167,7 @@ final class EmployeeShiftClaimController
             'shift_id' => $claim['shift_id'] ?? null,
         ], (int) ($claim['store_id'] ?? 0) ?: null);
 
-        return Response::redirect($this->base() . '/employee/open-shifts?success=withdrawn');
+        return redirect()->away($this->base() . '/employee/open-shifts?success=withdrawn');
     }
 
     /** Notifie les membres du store détenant open_shifts.approve (candidature à décider). */

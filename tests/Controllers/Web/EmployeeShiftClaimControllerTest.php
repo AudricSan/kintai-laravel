@@ -15,7 +15,7 @@ use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\UI\ViewRenderer;
@@ -94,12 +94,12 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             ['id' => 5, 'shift_id' => 100, 'status' => 'pending'],
         ]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller()->openShifts($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** Ouvrir la liste marque comme lues les notifications des shifts publiés affichés. */
@@ -120,10 +120,10 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $this->shiftClaims->method('findByUser')->willReturn([]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(9, 'open_shift', [100, 200]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->assertSame(200, $this->controller()->openShifts($req)->status());
+        $this->assertSame(200, $this->controller()->openShifts($req)->getStatusCode());
     }
 
     public function testOpenShiftsRedirectsWhenFeatureDisabledForStore(): void
@@ -133,12 +133,12 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(9)->willReturn([['store_id' => 1, 'user_id' => 9]]);
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller()->openShifts($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testClaimShiftCreatesPendingClaim(): void
@@ -158,13 +158,13 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             return $d + ['id' => 77];
         });
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '50']);
 
         $response = $this->controller()->claimShift($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('pending', $captured['status']);
         $this->assertSame(9, $captured['user_id']);
     }
@@ -220,8 +220,8 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $this->notifs->expects($this->once())->method('notifyMany')
             ->with([20], 'shift_claim_submitted', $this->anything(), $this->anything(), 50);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '50']);
 
         $controller->claimShift($req);
@@ -240,8 +240,8 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $this->shiftClaims->expects($this->atLeastOnce())->method('findByUserAndShift')->with(9, 50)->willReturn(null);
         $this->shiftClaims->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 77]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '50']);
 
         $this->assertStringContainsString('success=claimed', $this->controller()->claimShift($req)->headers()['Location'] ?? '');
@@ -258,8 +258,8 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $this->shifts->expects($this->atLeastOnce())->method('findById')->with(50)->willReturn(['id' => 50, 'is_open' => 1, 'user_id' => 5, 'store_id' => 1]);
         $this->shiftClaims->expects($this->never())->method('save');
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 5]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 5]);
         $req->setRouteParams(['id' => '50']);
 
         $this->assertStringContainsString('error=own_shift', $this->controller()->claimShift($req)->headers()['Location'] ?? '');
@@ -277,13 +277,13 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $this->shiftClaims->expects($this->atLeastOnce())->method('findByUserAndShift')->with(9, 50)->willReturn(['id' => 1, 'status' => 'pending']);
         $this->shiftClaims->expects($this->never())->method('save');
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '50']);
 
         $response = $this->controller()->claimShift($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testWithdrawShiftClaimSetsWithdrawnStatus(): void
@@ -297,13 +297,13 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             return $d;
         });
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '50']);
 
         $response = $this->controller()->withdrawShiftClaim($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('withdrawn', $captured['status']);
     }
 

@@ -14,7 +14,7 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\NotificationService;
 use PHPUnit\Framework\TestCase;
 
@@ -47,8 +47,8 @@ final class ApiClaimConsistencyTest extends TestCase
 
     private function request(int $caller, array $json, array $params = []): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $caller]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $caller]);
         $req->setRouteParams($params);
         (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $json);
         return $req;
@@ -100,7 +100,7 @@ final class ApiClaimConsistencyTest extends TestCase
         $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $shifts, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertSame([[self::EMPLOYEE, 'shift_claim_approved'], [4, 'shift_claim_handed_over']], $notified);
     }
 
@@ -118,6 +118,6 @@ final class ApiClaimConsistencyTest extends TestCase
         $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $shifts, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
-        $this->assertSame(409, $response->status());
+        $this->assertSame(409, $response->getStatusCode());
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Providers;
 
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Provider\PendingRequest;
