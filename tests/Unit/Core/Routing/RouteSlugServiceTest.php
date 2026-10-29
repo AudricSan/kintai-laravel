@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Core\Routing;
 
-use kintai\Core\Router;
 use kintai\Core\Routing\RouteSlugService;
 use PHPUnit\Framework\TestCase;
 
@@ -16,13 +15,13 @@ final class RouteSlugServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/stores/create', ['C', 'create']);
         $router->get('/admin/stores/{id:store}/edit', ['C', 'edit']);
         $router->get('/admin/stores/{id:store}/profitability', ['C', 'profit']);
 
         $this->repo    = new InMemoryRouteSlugRepository();
-        $this->service = new RouteSlugService($this->repo, $router);
+        $this->service = new RouteSlugService($this->repo, app('router'));
     }
 
     private function history(int $storeId): array

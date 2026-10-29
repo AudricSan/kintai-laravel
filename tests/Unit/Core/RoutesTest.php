@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Core;
 
-use kintai\Core\Container;
 use kintai\Core\Middleware\LoginThrottleMiddleware;
 use kintai\Core\Middleware\RateLimiterMiddleware;
-use kintai\Core\Router;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,13 +19,10 @@ final class RoutesTest extends TestCase
     /** @return list<class-string> */
     private function middlewareOf(string $method, string $uri): array
     {
-        $router    = new Router();
-        $container = new Container();
-        require dirname(__DIR__, 3) . '/routes/kintai.php';
+        $router = kintai_test_load_routes();
+        $route  = $router->getRoutes()->match(\Illuminate\Http\Request::create($uri, $method));
 
-        [$route] = $router->dispatch($method, $uri);
-
-        return $route->middleware;
+        return $route->gatherMiddleware();
     }
 
     public function testApiLoginRouteIsThrottled(): void

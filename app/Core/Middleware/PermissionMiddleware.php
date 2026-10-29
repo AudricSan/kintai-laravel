@@ -71,7 +71,7 @@ final class PermissionMiddleware
         }
 
         $userId = (int) ($user['id'] ?? 0);
-        $rule   = $request->attributes->get('route_permission');
+        $rule   = $request->routePermission();
         $key    = is_array($rule) ? (string) $rule['perm'] : $rule;
 
         if ($key !== null && $key !== 'public') {

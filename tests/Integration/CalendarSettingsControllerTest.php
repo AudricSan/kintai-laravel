@@ -9,7 +9,6 @@ use kintai\Core\Auth\CredentialRevoker;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Container;
 use Illuminate\Http\Request;
-use kintai\Core\Router;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;
 use kintai\Core\Services\Calendar\GoogleRedirectUri;
@@ -34,12 +33,11 @@ final class CalendarSettingsControllerTest extends TestCase
     {
         $this->setUpCalendarFixture();
         session()->put('_token', 'x');
-        $router = new Router();
+        $router = kintai_test_registrar();
         // Routes citées par la page et par le bandeau d'onglets des réglages.
         foreach (['x', 'admin.owner_settings', 'admin.notifications_settings', 'admin.calendar_settings', 'admin.calendar_settings.save', 'admin.calendar_settings.test', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'home'] as $i => $name) {
             $router->get('/p' . $i, ['X', 'y'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
         $this->view = new ViewRenderer(BASE_PATH . '/app/UI/View');
         $this->view->share('BASE_URL', '');
         $this->controller = new CalendarSettingsController(

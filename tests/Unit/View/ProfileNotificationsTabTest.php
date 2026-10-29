@@ -6,7 +6,6 @@ namespace kintai\Tests\Unit\View;
 
 use kintai\Contract\Extension\NotificationType;
 use kintai\Core\Container;
-use kintai\Core\Router;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
@@ -19,10 +18,9 @@ final class ProfileNotificationsTabTest extends TestCase
     protected function setUp(): void
     {
         session()->put('_token', 'test-token');
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/profile', ['X', 'y'], name: 'profile');
         $router->post('/profile/notifications', ['X', 'y'], name: 'profile.notifications');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     protected function tearDown(): void

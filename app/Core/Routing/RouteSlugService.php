@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Routing;
 
 use kintai\Core\Repositories\RouteSlugRepositoryInterface;
-use kintai\Core\Router;
+use Illuminate\Routing\Router;
 
 /**
  * Attribution des alias d'URL des magasins.
@@ -96,8 +96,8 @@ final class RouteSlugService
     {
         if ($this->reserved === null) {
             $words = SlugGenerator::BASE_RESERVED;
-            foreach ($this->router->routes() as $route) {
-                foreach (explode('/', $route->pattern) as $segment) {
+            foreach ($this->router->getRoutes()->getRoutes() as $route) {
+                foreach (explode('/', $route->uri()) as $segment) {
                     if ($segment !== '' && !str_contains($segment, '{')) {
                         $words[] = mb_strtolower($segment, 'UTF-8');
                     }

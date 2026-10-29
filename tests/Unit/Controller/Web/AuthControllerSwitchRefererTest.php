@@ -92,7 +92,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
         $_GET = $_COOKIE = $_FILES = [];
         $request = Request::capture();
         // back_url() lit la requête courante dans le conteneur.
-        Container::getInstance()->instance(Request::class, $request);
+        app()->instance('request', $request);
 
         return $request;
     }

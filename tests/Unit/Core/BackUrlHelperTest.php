@@ -39,7 +39,7 @@ final class BackUrlHelperTest extends TestCase
         }
 
         $request = Request::capture();
-        Container::getInstance()->instance(Request::class, $request);
+        app()->instance('request', $request);
         return $request;
     }
 
@@ -102,7 +102,7 @@ final class BackUrlHelperTest extends TestCase
         $_SERVER['HTTP_REFERER'] = 'http://kintai.example/Kintai/public/admin/stores/1/reports/salary?page=3';
 
         $request = Request::capture();
-        Container::getInstance()->instance(Request::class, $request);
+        app()->instance('request', $request);
 
         $this->assertSame(
             'http://kintai.example/Kintai/public/admin/stores/1/reports/salary?page=3',

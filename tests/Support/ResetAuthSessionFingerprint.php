@@ -29,6 +29,9 @@ final class ResetAuthSessionFingerprint implements Extension
                 \Illuminate\Container\Container::setInstance($app);
                 \Illuminate\Support\Facades\Facade::setFacadeApplication($app);
                 $app->make("session")->flush();
+                // Les tests de routes installent un routeur vierge (kintai_test_router()) : on remet celui de l'application.
+                $app->instance('router', $GLOBALS['kintai_test_router']);
+                \Illuminate\Support\Facades\Route::clearResolvedInstance('router');
                 // Même raison pour les lectures de comptes et de droits gardées le temps d'une requête.
                 \kintai\Core\Database\RequestMemo::flush();
             }

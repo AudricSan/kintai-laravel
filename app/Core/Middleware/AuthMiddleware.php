@@ -14,7 +14,7 @@ use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Router;
+use kintai\Http\Routing\Routes;
 use kintai\Core\Services\EmployeeStatsService;
 use kintai\Core\Services\TranslationService;
 use kintai\UI\ViewRenderer;
@@ -77,10 +77,8 @@ final class AuthMiddleware
         // bloquerait ensuite (ex. bottom-nav "Messages"/"Rapports journaliers" n'avait
         // jusqu'ici aucun contrôle de permission alors que leurs routes en exigent une).
         // Route absente/sans permission déclarée/'public' : toujours visible.
-        $router = $this->container->make(Router::class);
-        $view->share('route_visible', function (string $routeName) use ($router, $isOwner, $permissions, $user): bool {
-            $route = $router->routeByName($routeName);
-            $rule  = $route?->permission;
+        $view->share('route_visible', function (string $routeName) use ($isOwner, $permissions, $user): bool {
+            $rule = Routes::permission(Routes::byName($routeName));
             if ($rule === null || $rule === 'public') {
                 return true;
             }

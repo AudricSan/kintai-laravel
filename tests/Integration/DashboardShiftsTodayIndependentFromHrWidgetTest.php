@@ -7,7 +7,6 @@ namespace kintai\Tests\Integration;
 use DOMDocument;
 use DOMXPath;
 use kintai\Core\Container;
-use kintai\Core\Router;
 use kintai\UI\Controller\Web\HomeController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -30,11 +29,10 @@ final class DashboardShiftsTodayIndependentFromHrWidgetTest extends TestCase
     {
         $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/dashboard/widgets', [\stdClass::class, 'x'], name: 'admin.dashboard.widgets');
         $router->post('/admin/dashboard/layout', [\stdClass::class, 'x'], name: 'admin.dashboard.layout');
         $router->get('/admin/shifts', [\stdClass::class, 'x'], name: 'admin.shifts');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     public function testShiftsTodayCardIsNotNestedInsideHrAbsenteeismCard(): void

@@ -7,7 +7,6 @@ namespace kintai\Tests\Unit\Controller\Web;
 use kintai\Core\Container;
 use kintai\Core\Exceptions\NotFoundException;
 use Illuminate\Http\Request;
-use kintai\Core\Router;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\BundleDiscoveryService;
@@ -84,11 +83,10 @@ final class SetupWizardControllerTest extends TestCase
         $steps = (new \ReflectionClass(SetupSteps::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty(SetupSteps::class, 'steps'))->setValue($steps, ['organisation' => $fake]);
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach (['admin.setup', 'admin.setup.license', 'admin.setup.bundles', 'admin.setup.step', 'admin.setup.finish'] as $i => $name) {
             $router->post('/r' . $i . ($name === 'admin.setup.step' ? '/{step}' : ''), [\stdClass::class, 'x'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
 
         // Vues réelles de l'assistant, avec une mise en page réduite au contenu (la vraie demande tout le contexte d'une page).
         $this->views = sys_get_temp_dir() . '/kintai-setup-views-' . bin2hex(random_bytes(4));

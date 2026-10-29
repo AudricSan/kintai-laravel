@@ -28,7 +28,7 @@ final class RateLimiterMiddleware
     {
         // Nom de la route plutôt que l'URI : sur /reset-password/{token}, l'URI change avec chaque
         // jeton essayé et permettrait de contourner la limite en variant le jeton.
-        $target = (string) ($request->attributes->get('route_name') ?? $request->slashPath());
+        $target = (string) ($request->routeName() ?? $request->slashPath());
         $key = 'route:' . $request->ip() . ':' . $request->method() . ':' . $target;
 
         $retryAfter = $this->counter->retryAfter($key, self::MAX_ATTEMPTS, self::WINDOW);

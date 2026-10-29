@@ -173,13 +173,13 @@ if (!function_exists('back_url')) {
     function back_url(string $fallback): string
     {
         try {
-            $request = \kintai\Core\Container::getInstance()->make(\kintai\Core\Request::class);
+            $request = app(\Illuminate\Http\Request::class);
         } catch (\Throwable) {
             return $fallback;
         }
 
         $referer = $request->header('Referer');
-        $host = $request->server('HTTP_HOST');
+        $host = $request->server->get('HTTP_HOST');
         if (!$referer || !$host) {
             return $fallback;
         }
@@ -195,7 +195,7 @@ if (!function_exists('back_url')) {
             $refererPath = substr($refererPath, strlen($scriptBase));
         }
         $refererPath = '/' . trim($refererPath, '/');
-        if ($refererPath === $request->uri()) {
+        if ($refererPath === $request->slashPath()) {
             return $fallback;
         }
 
@@ -388,8 +388,7 @@ if (!function_exists('base_url')) {
      */
     function route_url(string $name, array $params = []): string
     {
-        $router = \kintai\Core\Container::getInstance()->make(\kintai\Core\Router::class);
-        return base_url() . $router->url($name, $params);
+        return base_url() . \kintai\Http\Routing\Routes::url($name, $params);
     }
 }
 
@@ -431,7 +430,7 @@ if (!function_exists('route_segment')) {
     function route_segment(string $type, int|string $id): string
     {
         try {
-            $binder = \kintai\Core\Container::getInstance()->make(\kintai\Core\Router::class)->binderFor($type);
+            $binder = \kintai\Http\Routing\Routes::binder($type);
             $segment = $binder !== null ? $binder->segmentFor((int) $id) : (string) $id;
         } catch (\Throwable) {
             $segment = (string) $id;

@@ -30,7 +30,7 @@ final class ApiPermissionMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $rule = $request->attributes->get('route_permission');
+        $rule = $request->routePermission();
         if ($rule === null || $rule === 'public') {
             return $next($request);
         }

@@ -4,34 +4,27 @@ declare(strict_types=1);
 
 namespace kintai\Core;
 
-use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Exceptions\MethodNotAllowedException;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Routing\EmployeeRouteBinder;
 use kintai\Core\Routing\RouteBinderRegistry;
-use kintai\Core\Routing\RouteParamBinder;
 use kintai\Core\Routing\StoreRouteBinder;
-use kintai\Core\Middleware\MiddlewarePipeline;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
+use kintai\Http\ErrorResponder;
+use kintai\Http\Routing\RouteRegistrar;
 use kintai\UI\ViewRenderer;
-use kintai\Core\Services\AppSettingsService;
-use kintai\Core\Services\Log;
 use kintai\Core\Services\TranslationService;
-use Throwable;
 
+/**
+ * Démarrage des services de Kintai (fournisseurs, bundles, configuration) au-dessus de l'application Laravel. Les
+ * requêtes HTTP, elles, passent par le noyau de Laravel (routes/web.php, routes/api.php, bootstrap/app.php).
+ */
 final class Application
 {
     private readonly Container $container;
-    private readonly Router $router;
-    private readonly MiddlewarePipeline $pipeline;
     private readonly BundleManager $bundleManager;
     private readonly string $basePath;
 
-    /** @var string[] Global middleware applied to every request */
-    private array $globalMiddleware = [];
+    private ?RouteRegistrar $routeRegistrar = null;
 
     private bool $debug = false;
 
@@ -55,15 +48,11 @@ final class Application
         }
         $this->basePath = BASE_PATH;
         $this->container = Container::getInstance();
-        $this->router = new Router();
-        $this->pipeline = new MiddlewarePipeline($this->container);
         $this->bundleManager = new BundleManager($this);
 
         // Register core instances
         $this->container->instance(self::class, $this);
         $this->container->instance(Container::class, $this->container);
-        $this->container->instance(Router::class, $this->router);
-        $this->container->instance(MiddlewarePipeline::class, $this->pipeline);
         $this->container->instance(BundleManager::class, $this->bundleManager);
 
         // Paramètres de route typés ({id:store}, {uid:employee}) : segments lisibles ↔ identifiants (voir Routing\)
@@ -72,10 +61,6 @@ final class Application
             $registry->register('store', fn() => $this->container->make(StoreRouteBinder::class));
             $registry->register('employee', fn() => $this->container->make(EmployeeRouteBinder::class));
             return $registry;
-        });
-        $this->router->setBinderResolver(function (string $type): ?RouteParamBinder {
-            $registry = $this->container->make(RouteBinderRegistry::class);
-            return $registry->has($type) ? $registry->get($type) : null;
         });
 
         // Register ViewRenderer
@@ -102,20 +87,10 @@ final class Application
         return $this->container;
     }
 
-    public function router(): Router
+    /** Déclaration des routes des bundles ($router de leurs fichiers de routes), au-dessus du routeur de Laravel. */
+    public function router(): RouteRegistrar
     {
-        return $this->router;
-    }
-
-    public function setGlobalMiddleware(array $middleware): void
-    {
-        $this->globalMiddleware = $middleware;
-    }
-
-    /** @return list<string> middlewares appliqués à toute requête (config/middleware.php), dans l'ordre */
-    public function globalMiddleware(): array
-    {
-        return array_values($this->globalMiddleware);
+        return $this->routeRegistrar ??= new RouteRegistrar($this->container->laravel()->make('router'));
     }
 
     public function isDebug(): bool
@@ -124,14 +99,18 @@ final class Application
     }
 
     /**
-     * Load configuration, routes, then boot providers.
+     * Charge la configuration puis démarre les fournisseurs et les bundles.
+     *
+     * @param bool $bundles false : les bundles sont démarrés plus tard par bootBundles() — le service HTTP déclare
+     *        d'abord les routes du cœur, pour qu'elles l'emportent sur celles d'un bundle au même chemin.
      */
-    public function boot(): void
+    public function boot(bool $bundles = true): void
     {
         $this->loadConfig();
-        $this->loadRoutes();
         $this->bootProviders();
-        $this->bundleManager->boot();
+        if ($bundles) {
+            $this->bootBundles();
+        }
 
         // Handler PHP : convertir les erreurs PHP en exceptions (uniquement en debug)
         if ($this->isDebug()) {
@@ -147,310 +126,14 @@ final class Application
         register_shutdown_function(function (): void {
             $error = error_get_last();
             if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
-                $this->logError(new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']));
+                ErrorResponder::log(new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']));
             }
         });
     }
 
-    public function handleRequest(): void
+    public function bootBundles(): void
     {
-        $this->handle(new Request())->send();
-    }
-
-    /**
-     * Traite une requête jusqu'à sa réponse, sans l'envoyer : routage, middlewares, contrôleur, rendu des erreurs et
-     * journal d'accès. Appelé depuis les routes Laravel (kintai\Http\KintaiRouteAction, kintai\Http\KintaiBridge), qui
-     * convertissent ensuite la réponse.
-     *
-     * @param array{0: Route, 1: array<string, string>}|null $match route déjà trouvée par le routeur de Laravel, avec
-     *        ses paramètres ; null : le routeur Kintai la cherche (et lève 404 ou 405 s'il n'y en a pas).
-     */
-    public function handle(Request $request, ?array $match = null): Response
-    {
-        return $this->handleWith($request, fn (Request $request): Response => $this->dispatch($request, $match));
-    }
-
-    /**
-     * Enveloppe commune de toute requête : $inner produit la réponse (middlewares, route, contrôleur) ; une exception
-     * qui en sort est rendue par handleException(), puis la requête entre au journal d'accès. Quand les middlewares
-     * passent par la pile de Laravel, $inner est le reste de cette pile (kintai\Http\Middleware\KintaiKernel).
-     *
-     * @param \Closure(Request): Response $inner
-     */
-    public function handleWith(Request $request, \Closure $inner): Response
-    {
-        $this->container->instance(Request::class, $request);
-        $startedAt = microtime(true);
-
-        try {
-            $response = $inner($request);
-        } catch (Throwable $e) {
-            $response = $this->handleException($e, $request);
-        }
-
-        $this->logAccess($request, $response, $startedAt);
-
-        return $response;
-    }
-
-    /**
-     * Chemins exclus du journal d'accès automatique : polling/streaming haute
-     * fréquence (notifications, SSE) qui saturerait activity_log sans valeur
-     * d'audit ajoutée, et le health-check API destiné aux moniteurs externes.
-     */
-    private const ACCESS_LOG_EXCLUDED_URIS = [
-        '/notifications/poll',
-        '/api/v1/ping',
-    ];
-
-    private function logAccess(Request $request, Response $response, float $startedAt): void
-    {
-        $uri = $request->uri();
-        if (str_ends_with($uri, '/stream') || in_array($uri, self::ACCESS_LOG_EXCLUDED_URIS, true)) {
-            return;
-        }
-
-        try {
-            $settings = $this->container->make(AppSettingsService::class);
-            if (!$settings->accessLogEnabled()) {
-                return;
-            }
-
-            $status = $response->status();
-            $level = match (true) {
-                $status >= 500 => LogRepositoryInterface::LEVEL_ERROR,
-                $status >= 400 => LogRepositoryInterface::LEVEL_WARNING,
-                default        => LogRepositoryInterface::LEVEL_INFO,
-            };
-            $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
-
-            Log::write(
-                $level,
-                LogRepositoryInterface::CHANNEL_ACCESS,
-                sprintf('%s %s', $request->method(), $uri),
-                [],
-                null,
-                null,
-                $status,
-                $durationMs,
-            );
-        } catch (Throwable) {
-            // Le logging ne doit jamais faire planter l'application
-        }
-    }
-
-    /**
-     * Le routage se fait DANS le "core" du pipeline global (et non avant), pour que les
-     * middlewares globaux (session, i18n...) s'exécutent même quand aucune route ne
-     * correspond — sinon Router::dispatch() lève NotFoundException/MethodNotAllowedException
-     * avant que I18nMiddleware n'ait jamais tourné, et la page 404/405 affiche les clés de
-     * traduction brutes (__() retombe sur la clé faute de locale définie). Voir CHANGELOG.
-     */
-    /** @param array{0: Route, 1: array<string, string>}|null $match */
-    private function dispatch(Request $request, ?array $match = null): Response
-    {
-        $resolveAndRun = function (Request $request) use ($match): Response {
-            [$route, $deferred] = $this->resolveRoute($request, $match);
-
-            return $this->runRoute($request, $route, $deferred);
-        };
-
-        return $this->pipeline->run($request, $this->globalMiddleware, $resolveAndRun);
-    }
-
-    /**
-     * Trouve la route de la requête (ou lève 404 / 405) et prépare la requête pour ses middlewares et son contrôleur.
-     *
-     * Paramètres typés traduits en identifiants AVANT les middlewares de route (les contrôles d'accès les lisent), mais
-     * la 301 ou la 404 qui en découle n'est rendue qu'APRÈS eux : un visiteur non connecté ou sans droit ne doit
-     * apprendre ni le nom d'un magasin ni l'existence d'un numéro d'employé.
-     *
-     * @param array{0: Route, 1: array<string, string>}|null $match
-     * @return array{0: Route, 1: Response|Throwable|null} la route et ce qu'il faudra rendre à la place du contrôleur
-     */
-    public function resolveRoute(Request $request, ?array $match = null): array
-    {
-        [$route, $params] = $match ?? $this->router->dispatch($request->method(), $request->uri());
-
-        $deferred = null;
-        if ($route->bindings !== []) {
-            [$params, $deferred] = $this->bindRouteParams($route, $params, $request);
-        }
-
-        $request->setRouteParams($params);
-        $request->setAttribute('route_name', $route->name);
-        // Règle RBAC déclarée sur la route elle-même (voir Route::$permission),
-        // exploitée par PermissionMiddleware/ApiPermissionMiddleware.
-        $request->setAttribute('route_permission', $route->permission);
-
-        return [$route, $deferred];
-    }
-
-    /** Middlewares de la route puis son contrôleur (ou la réponse différée de resolveRoute()). */
-    public function runRoute(Request $request, Route $route, Response|Throwable|null $deferred): Response
-    {
-        return $this->pipeline->run($request, $route->middleware, fn (Request $request): Response => $this->runController($request, $route, $deferred));
-    }
-
-    /** Le contrôleur de la route, ou la réponse différée de resolveRoute() (301 vers l'URL canonique, 404). */
-    public function runController(Request $request, Route $route, Response|Throwable|null $deferred): Response
-    {
-        if ($deferred instanceof Throwable) {
-            throw $deferred;
-        }
-        if ($deferred instanceof Response) {
-            return $deferred;
-        }
-        [$controllerClass, $method] = $route->handler;
-        $controller = $this->container->make($controllerClass);
-        if (NativeCall::acceptsNativeRequest($controller, $method)) {
-            return NativeCall::response($controller->$method(NativeCall::nativeRequest($request)));
-        }
-        return $controller->$method($request);
-    }
-
-    /**
-     * Traduit les paramètres typés ({id:store}, {uid:employee}) en identifiants numériques, AVANT les middlewares
-     * de route : contrôleurs et contrôles d'accès (PermissionMiddleware) continuent de lire un identifiant via
-     * $request->param(). Un ancien lien (identifiant nu, alias historique) est redirigé en 301 vers l'URL
-     * canonique en GET/HEAD ; les autres méthodes (formulaires POST) sont servies sans redirection.
-     *
-     * Renvoie les paramètres résolus et, le cas échéant, ce qu'il faudra rendre à la place du contrôleur une fois
-     * les middlewares passés : la redirection 301, ou la 404 d'un segment inconnu (son paramètre vaut alors « 0 »).
-     *
-     * @param array<string, string> $params
-     * @return array{0: array<string, string>, 1: Response|NotFoundException|null}
-     */
-    private function bindRouteParams(Route $route, array $params, Request $request): array
-    {
-        $segments = $params;
-        $redirect = false;
-
-        foreach ($route->bindings as $name => $type) {
-            $binder = $this->router->binderFor($type);
-            if ($binder === null || !isset($params[$name])) {
-                continue;
-            }
-            $bound = $binder->resolve($params[$name]);
-            if ($bound === null) {
-                $missing       = new NotFoundException("No [{$type}] matches [{$params[$name]}].");
-                $params[$name] = '0';
-                return [$params, $missing];
-            }
-            $redirect        = $redirect || !$bound->canonical;
-            $segments[$name] = $binder->segmentFor($bound->id);
-            $params[$name]   = (string) $bound->id;
-        }
-
-        if ($redirect && in_array($request->method(), ['GET', 'HEAD'], true)) {
-            $query = (string) ($_SERVER['QUERY_STRING'] ?? '');
-            return [$params, Response::redirect(
-                base_url() . $this->router->pathFor($route, $segments) . ($query !== '' ? '?' . $query : ''),
-                301,
-            )];
-        }
-
-        return [$params, null];
-    }
-
-    private function handleException(Throwable $e, Request $request): Response
-    {
-        $wantsJson = $request->wantsJson() || $request->getAttribute('wantsJson', false);
-
-        // Validateur de Laravel (validator(...)->validate(), Validator::make) : même réponse qu'une validation Kintai.
-        if ($e instanceof \Illuminate\Validation\ValidationException) {
-            $errors = array_map(static fn(array $messages): string => (string) reset($messages), $e->errors());
-            $e      = new ValidationException($errors, $errors !== [] ? reset($errors) : null);
-        }
-
-        if ($e instanceof ValidationException) {
-            if ($wantsJson) {
-                return Response::json(['error' => $e->getMessage(), 'errors' => $e->errors], 422);
-            }
-            // Formulaire web : retour au formulaire avec les messages précis et la saisie conservée.
-            $feedback = ValidationFeedback::redirectBack($e, NativeCall::nativeRequest($request));
-
-            return $feedback !== null
-                ? Response::native($feedback)
-                : $this->renderError(422, implode(' ', ValidationFeedback::messages($e)), $request);
-        }
-
-        if ($e instanceof MethodNotAllowedException) {
-            $response = $wantsJson
-                ? Response::json(['error' => $e->getMessage()], 405)
-                : $this->renderError(405, $e->getMessage(), $request);
-            return $response->withHeader('Allow', implode(', ', $e->allowedMethods));
-        }
-
-        if ($e instanceof HttpException) {
-            $response = $wantsJson
-                ? Response::json(['error' => $e->getMessage()], $e->statusCode)
-                : $this->renderError($e->statusCode, $e->getMessage(), $request);
-            // En-têtes portés par l'exception (ex. Retry-After d'un 429).
-            foreach ($e->headers as $name => $value) {
-                $response = $response->withHeader((string) $name, (string) $value);
-            }
-            return $response;
-        }
-
-        // Unexpected error
-        $this->logError($e);
-
-        $message = __('error_500_message');
-
-        return $wantsJson
-            ? Response::json(['error' => $message], 500)
-            : $this->renderError(500, $message, $request);
-    }
-
-    private function renderError(int $status, string $message, Request $request): Response
-    {
-        try {
-            $view = $this->container->make(ViewRenderer::class);
-            $html = $view->render("errors.{$status}", [
-                'status' => $status,
-                'message' => $message,
-            ]);
-            return Response::html($html, $status);
-        } catch (Throwable) {
-            // Fallback if view doesn't exist
-            return Response::html(
-                "<h1>{$status}</h1><p>" . htmlspecialchars($message) . "</p>",
-                $status,
-            );
-        }
-    }
-
-    private function logError(Throwable $e): void
-    {
-        $logDir = $this->basePath . '/storage/logs';
-        if (!is_dir($logDir)) {
-            @mkdir($logDir, 0775, true);
-        }
-
-        $entry = sprintf(
-            "[%s] %s: %s in %s:%d\n%s\n\n",
-            date('Y-m-d H:i:s'),
-            get_class($e),
-            $e->getMessage(),
-            $e->getFile(),
-            $e->getLine(),
-            $e->getTraceAsString(),
-        );
-
-        @file_put_contents($logDir . '/error.log', $entry, FILE_APPEND | LOCK_EX);
-
-        // Également logger en base via le système unifié
-        try {
-            Log::error($e->getMessage(), [
-                'exception' => get_class($e),
-                'file'      => $e->getFile(),
-                'line'      => $e->getLine(),
-                'trace'     => $e->getTraceAsString(),
-            ]);
-        } catch (\Throwable) {
-            // Le logging ne doit jamais faire planter l'application
-        }
+        $this->bundleManager->boot();
     }
 
     private function loadConfig(): void
@@ -471,23 +154,6 @@ final class Application
             if (isset($config['timezone'])) {
                 date_default_timezone_set($config['timezone']);
             }
-        }
-
-        // Load middleware config
-        $middlewareFile = $this->basePath . '/config/middleware.php';
-        if (file_exists($middlewareFile)) {
-            $middleware = require $middlewareFile;
-            $this->globalMiddleware = $middleware['global'] ?? [];
-        }
-    }
-
-    private function loadRoutes(): void
-    {
-        $routesFile = $this->basePath . '/routes/kintai.php';
-        if (file_exists($routesFile)) {
-            $router = $this->router;
-            $container = $this->container;
-            require $routesFile;
         }
     }
 

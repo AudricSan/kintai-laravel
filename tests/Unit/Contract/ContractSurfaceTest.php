@@ -49,7 +49,7 @@ final class ContractSurfaceTest extends TestCase
     {
         $accept = static fn(\kintai\Contract\Http\Response $r): \kintai\Contract\Http\Response => $r;
 
-        $this->assertInstanceOf(\kintai\Core\Response::class, $accept(\kintai\Core\Response::empty()));
+        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\Response::class, $accept(response()->noContent()));
     }
 
     public function testTheContainerResolvesAnAliasToTheSameBinding(): void
@@ -76,13 +76,12 @@ final class ContractSurfaceTest extends TestCase
     /** Les routes d'un bundle nomment leurs middlewares par le contrat : le routeur garde le nom réel de la classe. */
     public function testTheRouterStoresTheRealMiddlewareClass(): void
     {
-        $router = new \kintai\Core\Router();
+        $router = kintai_test_registrar();
         $router->get('/demo', [self::class, 'x'], [\kintai\Contract\Http\Middleware\AuthMiddleware::class]);
 
-        $routes = $router->routes();
-        $route = end($routes);
+        $route = app('router')->getRoutes()->match(\Illuminate\Http\Request::create('/demo', 'GET'));
 
-        $this->assertSame([\kintai\Core\Middleware\AuthMiddleware::class], $route->middleware);
+        $this->assertSame([\kintai\Core\Middleware\AuthMiddleware::class], $route->gatherMiddleware());
     }
 
     public function testTheScannerFlagsCoreClassesOutsideThePendingList(): void

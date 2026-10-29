@@ -6,7 +6,6 @@ namespace kintai\Tests\Unit\Services;
 
 use kintai\Core\Container;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Router;
 use kintai\Core\Services\WikiContentService;
 use kintai\UI\Controller\Web\DocsController;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -30,9 +29,8 @@ final class WikiContentServiceTest extends TestCase
         $this->tmpWiki = sys_get_temp_dir() . '/kintai_wiki_test_' . uniqid();
         mkdir($this->tmpWiki, 0755, true);
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/docs/{lang}/{page}', [DocsController::class, 'show'], name: 'docs.show');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     protected function tearDown(): void

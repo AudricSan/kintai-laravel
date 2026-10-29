@@ -115,15 +115,15 @@
         },
         "kintai\\Contract\\Http\\Request": {
             "status": "stable",
-            "target": "kintai\\Core\\Request"
+            "target": "Illuminate\\Http\\Request"
         },
         "kintai\\Contract\\Http\\Response": {
             "status": "stable",
-            "target": "kintai\\Core\\Response"
+            "target": "Symfony\\Component\\HttpFoundation\\Response"
         },
         "kintai\\Contract\\Http\\Router": {
             "status": "stable",
-            "target": "kintai\\Core\\Router"
+            "target": "kintai\\Http\\Routing\\RouteRegistrar"
         },
         "kintai\\Contract\\Services\\AuditLogger": {
             "status": "stable",

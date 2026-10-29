@@ -9,14 +9,18 @@ use kintai\Core\Application as KintaiApplication;
 use kintai\Core\Container as KintaiContainer;
 
 /**
- * Démarrage de l'application Kintai pour une requête HTTP servie par Laravel.
+ * Démarrage des services de Kintai pour une requête HTTP (ou une tâche) servie par Laravel.
  *
- * Une seule application Kintai par requête : démarrée au chargement des routes (routes/web.php), pour que ses routes
- * et celles des bundles soient déclarées au routeur de Laravel, puis reprise par l'action de la route trouvée.
+ * Une seule application Kintai par processus : démarrée au chargement des routes (bootstrap/app.php), pour que les
+ * routes des bundles soient déclarées au routeur de Laravel, puis reprise par qui en a besoin.
  */
 final class KintaiHttp
 {
-    public static function app(Application $laravel): KintaiApplication
+    /**
+     * @param bool $deferBundles true : les bundles ne sont pas démarrés (leurs routes viennent après celles du cœur,
+     *        voir KintaiApplication::bootBundles()). Sans effet si l'application est déjà démarrée.
+     */
+    public static function app(Application $laravel, bool $deferBundles = false): KintaiApplication
     {
         if ($laravel->bound(KintaiApplication::class)) {
             return $laravel->make(KintaiApplication::class);
@@ -35,7 +39,7 @@ final class KintaiHttp
         KintaiContainer::setInstance(new KintaiContainer($laravel));
 
         $app = new KintaiApplication(BASE_PATH);
-        $app->boot();
+        $app->boot(bundles: !$deferBundles);
 
         return $app;
     }

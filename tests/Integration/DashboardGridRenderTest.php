@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use kintai\Core\Container;
-use kintai\Core\Router;
 use kintai\UI\Controller\Web\HomeController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -19,12 +18,11 @@ final class DashboardGridRenderTest extends TestCase
     {
         $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach (['admin.dashboard.widgets', 'admin.dashboard.layout', 'admin.requests', 'admin.users', 'admin.stores', 'admin.shifts', 'admin.shift_types',
                   'employee.dashboard.widgets', 'employee.dashboard.layout', 'employee.shifts.day'] as $i => $name) {
             $router->post('/r' . $i, [\stdClass::class, 'x'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     /** @return list<array{string, string}> [clé, largeur] des widgets, dans l'ordre du document (6 colonnes = « half », 12 = « full ») */

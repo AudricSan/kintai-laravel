@@ -8,7 +8,6 @@ use kintai\Contract\Extension\Action;
 use kintai\Core\BundleManager;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Container;
-use kintai\Core\Router;
 use kintai\Tests\Support\FakeBundleManagerFactory;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -29,14 +28,13 @@ final class StaffViewPermissionGatesTest extends TestCase
     {
         $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/users', [\stdClass::class, 'x'], name: 'admin.users');
         $router->get('/admin/users/create', [\stdClass::class, 'x'], name: 'admin.users.create');
         $router->get('/admin/users/export/pdf', [\stdClass::class, 'x'], name: 'admin.users.export_pdf');
         $router->get('/admin/users/export/json', [\stdClass::class, 'x'], name: 'admin.users.export_json');
         $router->get('/admin/stores', [\stdClass::class, 'x'], name: 'admin.stores');
         $router->get('/admin/stores/create', [\stdClass::class, 'x'], name: 'admin.stores.create');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     private function canFn(array $granted): \Closure

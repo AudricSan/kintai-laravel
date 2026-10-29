@@ -16,7 +16,6 @@ use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Container;
 use Illuminate\Http\Request;
 use kintai\Core\Services\WebPushEndpointValidator;
-use kintai\Core\Router;
 use kintai\UI\Controller\Web\NotificationController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -342,12 +341,11 @@ x", 'https://evil.example.com'] as $bad) {
 
     private function bindRouter(): void
     {
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach (['notifications.open' => '/notifications/{id}/open', 'notifications.read_all' => '/notifications/read-all',
                   'notifications.delete_all' => '/notifications/delete-all', 'notifications.index' => '/notifications'] as $name => $path) {
             $router->get($path, [\stdClass::class, 'x'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     private function makePollRequest(array $query): Request

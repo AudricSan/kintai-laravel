@@ -24,7 +24,6 @@ use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Router;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationChannelStatus;
@@ -92,12 +91,11 @@ final class NotificationSettingsControllerTest extends TestCase
         });
 
         session()->put('_token', 'x');
-        $router = new Router();
+        $router = kintai_test_registrar();
         // Routes citées par la page et ses onglets.
         foreach (['x', 'admin.owner_settings', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'admin.calendar_settings', 'admin.notifications_settings', 'admin.notifications_settings.save', 'admin.notifications_settings.test', 'admin.notifications_settings.vapid', 'home', 'auth.login'] as $i => $name) {
             $router->get('/p' . $i, ['X', 'y'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
 
         $this->usersById = [1 => ['id' => 1, 'email' => 'owner@exemple.fr', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null, 'quiet_hours_start' => null, 'quiet_hours_end' => null]];
         $users = $this->createStub(UserRepositoryInterface::class);

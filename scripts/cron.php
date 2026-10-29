@@ -42,7 +42,7 @@ require BASE_PATH . '/app/Core/helpers.php';
 use kintai\Core\Application;
 use kintai\Core\Cron\CronRunner;
 use kintai\Core\InstalledBundleAutoloader;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 
 // Même démarrage que le front controller (public/index.php) : fichier .env, puis classes des bundles installés,
 // sans lesquelles les tâches des bundles ne seraient pas disponibles.
@@ -105,11 +105,11 @@ $_SERVER['REMOTE_ADDR'] ??= '127.0.0.1';
 
 $started = date('Y-m-d H:i:s');
 try {
-    $response = $runner->runLocal($jobName, new Request());
+    $response = $runner->runLocal($jobName, Request::capture());
 } catch (\Throwable $e) {
     fwrite(STDERR, sprintf('[%s] %s : échec — %s', $started, $jobName, $e->getMessage()) . PHP_EOL);
     exit(1);
 }
 
-echo sprintf('[%s] %s : %s', $started, $jobName, $response->body()) . PHP_EOL;
-exit($response->status() < 400 ? 0 : 1);
+echo sprintf('[%s] %s : %s', $started, $jobName, $response->getContent()) . PHP_EOL;
+exit($response->getStatusCode() < 400 ? 0 : 1);

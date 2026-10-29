@@ -13,7 +13,6 @@ use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Router;
 use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\NotificationTypeRegistry;
 use kintai\Core\Services\UnsubscribeTokens;
@@ -50,14 +49,13 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         });
 
         session()->put('_token', 'test-token');
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->post('/notifications/unsubscribe', ['X', 'y'], name: 'notifications.unsubscribe.confirm');
         $router->get('/login', ['X', 'y'], name: 'auth.login');
         // Pied de page de la mise en page invité.
         foreach (['admin.update', 'docs.index', 'employee.dashboard', 'home', 'legal.license', 'legal.mentions', 'legal.terms', 'privacy'] as $i => $name) {
             $router->get('/page-' . $i, ['X', 'y'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
 
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);

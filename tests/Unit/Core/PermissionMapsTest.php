@@ -9,8 +9,9 @@ use kintai\Core\Container;
 use kintai\Core\Middleware\ApiPermissionMiddleware;
 use kintai\Core\Middleware\OwnerOnlyMiddleware;
 use kintai\Core\Middleware\PermissionMiddleware;
-use kintai\Core\Route;
-use kintai\Core\Router;
+use Illuminate\Routing\Router;
+use kintai\Http\Routing\RouteRegistrar;
+use kintai\Http\Routing\Routes;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -39,15 +40,15 @@ final class PermissionMapsTest extends TestCase
      * tests/Fixtures/bundles/*\/routes.php, versionnées dans ce dépôt, sont la copie que la CI peut
      * lire ; le glob historique est conservé pour un bundle tiers déposé à la main.
      *
-     * @return Route[]
+     * @return list<object>
      */
     private function allRoutes(): array
     {
         $root = dirname(__DIR__, 3);
-        $router = new Router();
+        $laravel = kintai_test_load_routes();
+        $router = new RouteRegistrar($laravel);
         $container = new Container();
 
-        require $root . '/routes/kintai.php';
         foreach (array_merge(
             glob($root . '/app/Bundles/*/routes.php') ?: [],
             glob($root . '/tests/Fixtures/bundles/*/routes.php') ?: [],
@@ -55,17 +56,39 @@ final class PermissionMapsTest extends TestCase
             require $bundleRoutes;
         }
 
-        return $router->routes();
+        return $this->describe($laravel);
+    }
+
+    /**
+     * Les routes de Laravel sous une forme simple, une entrée par méthode HTTP (HEAD exclu).
+     *
+     * @return list<object{method: string, pattern: string, middleware: list<string>, name: ?string, permission: string|array|null}>
+     */
+    private function describe(Router $router): array
+    {
+        $described = [];
+        foreach ($router->getRoutes()->getRoutes() as $route) {
+            foreach ($route->methods() as $method) {
+                if ($method === 'HEAD') {
+                    continue;
+                }
+                $described[] = (object) [
+                    'method'     => $method,
+                    'pattern'    => '/' . $route->uri(),
+                    'middleware' => array_values(array_filter($route->gatherMiddleware(), static fn($m) => $m !== 'kintai.bind')),
+                    'name'       => $route->getName(),
+                    'permission' => Routes::permission($route),
+                ];
+            }
+        }
+
+        return $described;
     }
 
     /** Routes du Core seul, pour mesurer ce qu'apportent les bundles. */
     private function coreRouteCount(): int
     {
-        $router = new Router();
-        $container = new Container();
-        require dirname(__DIR__, 3) . '/routes/kintai.php';
-
-        return count($router->routes());
+        return count($this->describe(kintai_test_load_routes()));
     }
 
     /**
@@ -73,7 +96,7 @@ final class PermissionMapsTest extends TestCase
      * PermissionMiddleware (ou OwnerOnlyMiddleware, pour les pages réservées à l'Owner), toute route
      * /api/v1 par ApiPermissionMiddleware, sauf exemptions documentées.
      *
-     * @param Route[] $routes
+     * @param list<object> $routes
      * @return string[]
      */
     private function routesOutsideRbac(array $routes): array
@@ -208,13 +231,13 @@ final class PermissionMapsTest extends TestCase
     public function testTheRbacGateCheckDetectsAnUnprotectedBundleRoute(): void
     {
         // Témoin positif : sans lui, un test qui ne trouve jamais rien ne prouverait rien.
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/some-bundle/list', ['Foo', 'bar'], middleware: [], name: 'admin.some_bundle.list');
         $router->post('/admin/some-bundle/save', ['Foo', 'bar'], middleware: [PermissionMiddleware::class], name: 'admin.some_bundle.save', permission: 'employees.view');
         $router->get('/api/v1/some-bundle', ['Foo', 'bar'], middleware: [], name: 'api.v1.some_bundle');
         $router->get('/api/v1/messages/threads', ['Foo', 'bar'], middleware: [], name: 'api.v1.messages.threads');
 
-        $outside = $this->routesOutsideRbac($router->routes());
+        $outside = $this->routesOutsideRbac($this->describe(app('router')));
 
         $this->assertSame(['GET /admin/some-bundle/list', 'GET /api/v1/some-bundle'], $outside);
     }

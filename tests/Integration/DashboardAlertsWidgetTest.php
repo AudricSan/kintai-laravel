@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use kintai\Core\Container;
-use kintai\Core\Router;
 use kintai\UI\Controller\Web\HomeController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -22,13 +21,12 @@ final class DashboardAlertsWidgetTest extends TestCase
     {
         $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/app/UI/View');
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/dashboard/widgets', [\stdClass::class, 'x'], name: 'admin.dashboard.widgets');
         $router->post('/admin/dashboard/layout', [\stdClass::class, 'x'], name: 'admin.dashboard.layout');
         $router->get('/admin/shifts/{id}/edit', [\stdClass::class, 'x'], name: 'admin.shifts.edit');
         $router->get('/admin/users/{id}/edit', [\stdClass::class, 'x'], name: 'admin.users.edit');
         $router->get('/admin/requests', [\stdClass::class, 'x'], name: 'admin.requests');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     private function render(?array $alerts, array $widgets = ['dashboard_alerts']): string

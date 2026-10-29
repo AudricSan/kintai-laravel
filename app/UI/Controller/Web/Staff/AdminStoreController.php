@@ -602,7 +602,7 @@ final class AdminStoreController
             'to'       => $to,
             'preset'   => $preset,
             // Lien vers les rapports journaliers du magasin, si le bundle qui les fournit est là.
-            'daily_reports_url' => \kintai\Core\Container::getInstance()->make(\kintai\Core\Router::class)->routeByName('admin.daily_reports.index') !== null
+            'daily_reports_url' => \kintai\Http\Routing\Routes::byName('admin.daily_reports.index') !== null
                 ? $this->base() . '/admin/stores/' . $storeId . '/daily-reports' : null,
         ]), 'layout.app'));
     }

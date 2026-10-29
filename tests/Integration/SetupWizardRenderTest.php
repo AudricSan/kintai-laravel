@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use kintai\Core\Container;
-use kintai\Core\Router;
 use kintai\Core\Services\SetupWizard;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -22,14 +21,13 @@ final class SetupWizardRenderTest extends TestCase
     protected function setUp(): void
     {
         $this->view = new ViewRenderer(BASE_PATH . '/app/UI/View');
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach ([
             'admin.setup', 'admin.setup.license', 'admin.setup.bundles', 'admin.setup.questions', 'admin.setup.step', 'admin.setup.finish', 'admin.owner_settings',
             'admin.stores', 'admin.mail_test', 'admin.notifications_settings', 'admin.backup', 'admin.bundles.market', 'admin.license',
         ] as $i => $name) {
             $router->post('/r' . $i . ($name === 'admin.setup.step' ? '/{step}' : ''), [\stdClass::class, 'x'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     /** @param array<string, mixed> $extra */

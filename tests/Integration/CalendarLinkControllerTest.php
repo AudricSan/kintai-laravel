@@ -14,7 +14,6 @@ use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Container;
 use Illuminate\Http\Request;
-use kintai\Core\Router;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;
 use kintai\Core\Services\Calendar\GoogleRedirectUri;
@@ -282,11 +281,10 @@ final class CalendarLinkControllerTest extends TestCase
     private function panel(array $calendar): string
     {
         session()->put('_token', 'x');
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach (['profile.calendar.connect', 'profile.calendar.options', 'profile.calendar.resync', 'profile.calendar.disconnect'] as $i => $name) {
             $router->post('/p' . $i, ['X', 'y'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
         $view = new ViewRenderer(BASE_PATH . '/app/UI/View');
         $view->share('BASE_URL', '');
 

@@ -24,7 +24,6 @@ use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Router;
 use kintai\Core\Services\EmployeeStatsService;
 use kintai\Core\Services\TranslationService;
 use kintai\UI\ViewRenderer;
@@ -195,10 +194,9 @@ final class AuthMiddlewareTest extends TestCase
      */
     public function testRouteVisibleReflectsThePermissionDeclaredOnTheRoute(): void
     {
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/photos', [\kintai\UI\Controller\Web\HomeController::class, 'index'], name: 'admin.photos.index', permission: 'photos.view');
         $router->get('/admin/owner-settings', [\kintai\UI\Controller\Web\HomeController::class, 'index'], name: 'admin.owner_settings', permission: 'public');
-        $this->container->instance(Router::class, $router);
 
         $this->bindAuthenticatedUser(['shifts.view']);
         $this->handle();
@@ -212,9 +210,8 @@ final class AuthMiddlewareTest extends TestCase
 
     public function testRouteVisibleTrueWhenPermissionGranted(): void
     {
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/photos', [\kintai\UI\Controller\Web\HomeController::class, 'index'], name: 'admin.photos.index', permission: 'photos.view');
-        $this->container->instance(Router::class, $router);
 
         $this->bindAuthenticatedUser(['photos.view']);
         $this->handle();

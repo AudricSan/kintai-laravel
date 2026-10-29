@@ -11,7 +11,6 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Router;
 use kintai\Core\Services\RoleAssignmentSyncService;
 use kintai\Core\Services\StoreStatsService;
 use kintai\UI\ViewRenderer;
@@ -33,9 +32,8 @@ final class EmptyStorePagesTest extends TestCase
     {
         $this->view = new ViewRenderer(self::VIEWS);
         session()->put('_token', 'test-token');
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/admin/stores', ['X', 'y'], name: 'admin.stores');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     protected function tearDown(): void

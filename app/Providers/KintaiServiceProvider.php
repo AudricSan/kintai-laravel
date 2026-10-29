@@ -25,6 +25,12 @@ final class KintaiServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->instance('translator', new KintaiTranslator());
+
+        // Contrôleurs : la redirection ou la 404 d'un paramètre typé est rendue juste avant l'action.
+        $this->app->bind(
+            \Illuminate\Routing\Contracts\ControllerDispatcher::class,
+            static fn($app): \kintai\Http\KintaiControllerDispatcher => new \kintai\Http\KintaiControllerDispatcher($app),
+        );
     }
 
     public function boot(): void

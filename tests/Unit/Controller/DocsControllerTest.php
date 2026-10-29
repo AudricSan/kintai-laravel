@@ -8,7 +8,6 @@ use kintai\Core\Container;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Router;
 use kintai\Core\Services\TranslationService;
 use kintai\Core\Services\WikiContentService;
 use kintai\Core\Services\WikiSyncService;
@@ -51,11 +50,10 @@ final class DocsControllerTest extends TestCase
         );
         file_put_contents($this->tmpViews . '/layout/app.php', '<?= $content ?>');
 
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->get('/docs', [DocsController::class, 'index'], name: 'docs.index');
         $router->get('/docs/{lang}/{page}', [DocsController::class, 'show'], name: 'docs.show');
         $router->post('/docs/sync', [DocsController::class, 'sync'], name: 'docs.sync');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     protected function tearDown(): void

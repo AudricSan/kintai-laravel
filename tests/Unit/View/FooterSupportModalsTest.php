@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\View;
 
 use kintai\Core\Container;
-use kintai\Core\Router;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,7 +22,7 @@ final class FooterSupportModalsTest extends TestCase
 
     protected function setUp(): void
     {
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach ([
             'home' => '/', 'employee.dashboard' => '/employee', 'auth.login' => '/login',
             'docs.index' => '/docs', 'legal.mentions' => '/legal', 'privacy' => '/privacy',
@@ -32,7 +31,6 @@ final class FooterSupportModalsTest extends TestCase
             $router->get($path, ['X', 'y'], name: $name);
         }
         $router->post('/support/report-issue', ['X', 'y'], name: 'support.report_issue');
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     protected function tearDown(): void
