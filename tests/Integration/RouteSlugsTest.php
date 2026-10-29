@@ -20,8 +20,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class RouteSlugsTest extends TestCase
 {
-    private const MIGRATION = '/database/migrations/php/2026_10_01_000000_create_route_slugs_table.php';
-
     private Capsule $capsule;
 
     protected function setUp(): void
@@ -40,19 +38,6 @@ final class RouteSlugsTest extends TestCase
         $runner->run();
     }
 
-    /** Rejoue la migration (idempotente) après avoir inséré des magasins, comme sur une instance existante. */
-    private function rerunMigration(): void
-    {
-        $loader = new class($this->capsule) {
-            public function __construct(public Capsule $capsule) {}
-
-            public function load(string $file): object
-            {
-                return require $file;
-            }
-        };
-        $loader->load(dirname(__DIR__, 2) . self::MIGRATION)->up();
-    }
 
     private function insertUser(int $id, ?string $code): void
     {
@@ -62,28 +47,11 @@ final class RouteSlugsTest extends TestCase
         ]);
     }
 
-    public function testMigrationGivesExistingStoresTheirNameAsAlias(): void
-    {
-        $this->capsule->getConnection()->table('stores')->insert([
-            ['id' => 1, 'name' => '所沢東町店', 'code' => 'A'],
-            ['id' => 2, 'name' => 'Shibuya Nord', 'code' => 'B'],
-            ['id' => 3, 'name' => 'Shibuya Nord', 'code' => 'C'],
-            ['id' => 4, 'name' => 'Create', 'code' => 'D'],
-        ]);
-
-        $this->rerunMigration();
-        $this->rerunMigration(); // idempotente
-
-        $this->assertSame(
-            [1 => '所沢東町店', 2 => 'shibuya-nord', 3 => 'shibuya-nord-2', 4 => 'create-2'],
-            (new DatabaseRouteSlugRepository())->currentSlugs('store'),
-        );
-    }
 
     public function testStoreBinderResolvesTheJapaneseAliasFromTheDatabase(): void
     {
         $this->capsule->getConnection()->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
-        $this->rerunMigration();
+        (new DatabaseRouteSlugRepository())->setCurrent('store', 1, '所沢東町店', false);
 
         $binder = new StoreRouteBinder(new DatabaseRouteSlugRepository(), new DatabaseStoreRepository());
 
@@ -123,7 +91,7 @@ final class RouteSlugsTest extends TestCase
     {
         $db = $this->capsule->getConnection();
         $db->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
-        $this->rerunMigration();
+        (new DatabaseRouteSlugRepository())->setCurrent('store', 1, '所沢東町店', false);
         $this->insertUser(18, '015');
         (new DatabaseUserRepository())->save(['id' => 18, 'employee_code' => '016']);
 

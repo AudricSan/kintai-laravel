@@ -25,7 +25,8 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 | 8. Bundles = service providers Laravel, contrat 1.0.0, 13 bundles convertis | Fait (voir ci-dessous) |
 | 9. Scripts en commandes Artisan | Les scripts de `scripts/` sont exposés par `php artisan kintai:*` ; `public/install.php` reste l'installateur web |
 | 6. Namespace `kintai\` → `App\` et réorganisation (`Http/Controllers`, `resources/views`, `Models`) | À faire (renommage global) |
-| 7. Migrations reconstruites (peu de fichiers, installation neuve) et repositories réduits | À faire |
+| 7. Migrations reconstruites : 107 fichiers → 8 (5 créations, 3 données de départ), schéma vérifié identique | Fait |
+| 7. Repositories réduits au profit d'Eloquent | À faire |
 
 ## Ce qui est natif
 
@@ -54,9 +55,8 @@ ils s'appuient sur le Cœur installé dans leur `vendor/` et demandent un `compo
 
 ## Reste à faire
 
-1. **Migrations** : reconstruire `database/migrations/php` (107 fichiers) en quelques migrations de création, pour une
-   installation neuve, avec les deux migrations de données (rôles par défaut, registre officiel de bundles). Prévoir un
-   petit script de migration de l'ancienne base vers la nouvelle.
+1. **Migrations** : faites (voir ci-dessous). Reste le passage au migrateur de Laravel (`php artisan migrate`) : les
+   fichiers gardent le format Kintai (`Migration`, `PortableBlueprint`, exécuteur maison).
 2. **Repositories** : 67 dépôts à réduire (Eloquent porte les requêtes ; garder les interfaces seulement là où un service
    en a besoin pour les tests).
 3. **Namespace et structure** : `kintai\` → `App\`, `UI/Controller` → `Http/Controllers`, `UI/View` → `resources/views`,
@@ -67,3 +67,16 @@ ils s'appuient sur le Cœur installé dans leur `vendor/` et demandent un `compo
 5. **Authentification** : remplacer `AuthService` + `KintaiGuard` par un guard `session` sur le modèle `User`.
 6. **Bundles** : commiter les 13 dépôts, mettre à jour leurs tests et `composer.json`, publier les releases et mettre à jour
    le registre `KintaiBundle/registry.json`.
+
+## Migrations
+
+`database/migrations/php` ne contient plus que 8 fichiers, pour une installation neuve :
+
+- `2026_11_01_000001` à `000005` : création de toutes les tables (cœur, accès, application, bundles, tables des
+  fonctionnalités de bundles). Générées en rejouant les 107 anciennes migrations sur SQLite et en repliant les `Blueprint` :
+  le schéma final (colonnes, défauts, index, clés étrangères des 52 tables) a été comparé à l'ancien et est identique.
+- `000006` rôles par défaut, `000007` registre officiel de bundles, `000008` clés VAPID du web push (données de départ,
+  rejouées après une remise à zéro).
+
+Une base ancienne qui exécute ces fichiers les considère comme déjà appliqués (tables existantes) : l'ancienne base reste
+utilisable, mais seules les installations neuves sont garanties.

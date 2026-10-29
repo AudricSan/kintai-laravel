@@ -31,7 +31,7 @@ final class DashboardLayoutRepositoriesTest extends TestCase
                 return require $file;
             }
         };
-        $loader->load(dirname(__DIR__, 3) . '/database/migrations/php/2026_10_23_000000_create_dashboard_layout_tables.php')->up();
+        $loader->load(dirname(__DIR__, 3) . '/database/migrations/php/2026_11_01_000003_create_application_tables.php')->up();
 
         $this->named = new DatabaseUserDashboardLayoutRepository();
         $this->roles = new DatabaseRoleDashboardLayoutRepository();

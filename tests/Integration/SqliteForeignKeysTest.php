@@ -16,8 +16,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class SqliteForeignKeysTest extends TestCase
 {
-    private const MIGRATION = '/database/migrations/php/2026_10_16_000001_repair_orphans_for_sqlite_foreign_keys.php';
-
     private Capsule $capsule;
 
     protected function setUp(): void
@@ -35,67 +33,9 @@ final class SqliteForeignKeysTest extends TestCase
         $runner->run();
     }
 
-    private function runRepair(): void
-    {
-        $loader = new class($this->capsule) {
-            public function __construct(public Capsule $capsule) {}
 
-            public function load(string $file): object
-            {
-                return require $file;
-            }
-        };
-        $loader->load(dirname(__DIR__, 2) . self::MIGRATION)->up();
-    }
 
-    private function seedOrphans(): void
-    {
-        $db = $this->capsule->getConnection();
-        $db->table('users')->insert(['id' => 1, 'email' => 'a@kintai.test', 'first_name' => 'A', 'last_name' => 'B', 'display_name' => 'A B', 'password_hash' => 'x']);
-        $db->table('stores')->insert(['id' => 1, 'name' => 'Tokyo', 'code' => 'TKY']);
 
-        // Shift d'un compte (50) et d'un magasin (60) effacés avant le correctif : historique à garder.
-        $db->table('shifts')->insert([
-            'id' => 10, 'store_id' => 60, 'user_id' => 50, 'shift_date' => '2026-05-01', 'start_time' => '09:00', 'end_time' => '17:00',
-            'starts_at' => '2026-05-01 09:00:00', 'ends_at' => '2026-05-01 17:00:00', 'duration_minutes' => 480,
-        ]);
-        // Candidature liée à un shift disparu (999) : ON DELETE CASCADE → supprimée.
-        $db->table('shift_claims')->insert(['id' => 5, 'shift_id' => 999, 'user_id' => 1, 'store_id' => 1]);
-        // Congé traité par un compte disparu (70) : le compte est recréé, la trace de qui a traité est gardée.
-        $db->table('timeoff_requests')->insert(['id' => 3, 'user_id' => 1, 'store_id' => 1, 'start_date' => '2026-05-02', 'end_date' => '2026-05-03', 'processed_by' => 70]);
-    }
-
-    public function testMissingAccountsAndStoresAreRestoredAsDeletedGhostsAndHistoryIsKept(): void
-    {
-        $this->seedOrphans();
-        $this->runRepair();
-        $db = $this->capsule->getConnection();
-
-        $this->assertSame(1, $db->table('shifts')->where('id', 10)->count());
-
-        $ghost = $db->table('users')->where('id', 50)->first();
-        $this->assertSame('deleted-50@kintai.local', $ghost->email);
-        $this->assertSame(0, (int) $ghost->is_active);
-        $this->assertNotNull($ghost->deleted_at);
-        $this->assertNotNull($db->table('users')->where('id', 70)->value('deleted_at'));
-
-        $store = $db->table('stores')->where('id', 60)->first();
-        $this->assertSame('DEL-60', $store->code);
-        $this->assertNotNull($store->deleted_at);
-
-        $this->assertSame(0, $db->table('shift_claims')->where('id', 5)->count());
-        $this->assertSame(70, (int) $db->table('timeoff_requests')->where('id', 3)->value('processed_by'));
-    }
-
-    public function testNoForeignKeyViolationRemainsOnceConstraintsAreEnabled(): void
-    {
-        $this->seedOrphans();
-        $this->runRepair();
-        $db = $this->capsule->getConnection();
-
-        $db->statement('PRAGMA foreign_keys = ON');
-        $this->assertSame([], $db->select('PRAGMA foreign_key_check'));
-    }
 
     /** Une fois actives, les règles onDelete s'appliquent comme sous MySQL. */
     public function testEnabledConstraintsCascadeLikeMysql(): void
