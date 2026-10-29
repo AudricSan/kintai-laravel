@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Aligne la table shift_swap_requests des instances créées avec l'ancien schéma SQL sur celui qu'utilise le code.
@@ -16,21 +16,21 @@ use Illuminate\Database\Schema\Blueprint;
  * reviewed_by / reviewed_at → approved_by_id / approved_at). Une table déjà au bon schéma (installation neuve ou
  * migration du Core) n'est pas touchée.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     private const LEGACY = 'shift_swap_requests_legacy_schema';
 
     public function up(): void
     {
-        $schema = $this->schema();
-        if (!$schema->hasTable('shift_swap_requests') || $schema->hasColumn('shift_swap_requests', 'target_user_id')
-            || !$schema->hasColumn('shift_swap_requests', 'target_id')) {
+        if (!Schema::hasTable('shift_swap_requests') || Schema::hasColumn('shift_swap_requests', 'target_user_id')
+            || !Schema::hasColumn('shift_swap_requests', 'target_id')) {
             return;
         }
 
-        $db = $this->capsule->getConnection();
-        $schema->rename('shift_swap_requests', self::LEGACY);
-        $schema->create('shift_swap_requests', function (Blueprint $table) {
-            $table->increments('id');
+        $db = DB::connection();
+        Schema::rename('shift_swap_requests', self::LEGACY);
+        Schema::create('shift_swap_requests', function (Blueprint $table) {
+            $table->integer('id', true);
             $table->integer('store_id');
             $table->integer('requester_id');
             $table->integer('target_user_id')->nullable();
@@ -50,7 +50,7 @@ return new class($this->capsule) extends Migration {
             $table->index('target_user_id');
         });
 
-        $hasPeer = $schema->hasColumn(self::LEGACY, 'peer_accepted_at');
+        $hasPeer = Schema::hasColumn(self::LEGACY, 'peer_accepted_at');
         foreach ($db->table(self::LEGACY)->orderBy('id')->get() as $row) {
             $row = (array) $row;
             $db->table('shift_swap_requests')->insert([
@@ -69,7 +69,7 @@ return new class($this->capsule) extends Migration {
                 'updated_at'         => $row['updated_at'] ?? null,
             ]);
         }
-        $schema->drop(self::LEGACY);
+        Schema::drop(self::LEGACY);
     }
 
     public function down(): void

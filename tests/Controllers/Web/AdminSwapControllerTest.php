@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftSwap\Controllers\Web;
+namespace Tests\Bundles\ShiftSwap\Controllers\Web;
 
 
 use kintai\Bundles\Installed\ShiftSwap\Controllers\Web\AdminSwapController;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\ShiftRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\NotificationService;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\NotificationService;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -273,9 +273,9 @@ final class AdminSwapControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    private function location(\kintai\Core\Response $response): string
+    private function location(\App\Response $response): string
     {
-        $ref = new \ReflectionProperty(\kintai\Core\Response::class, 'headers');
+        $ref = new \ReflectionProperty(\App\Response::class, 'headers');
         $ref->setAccessible(true);
         return $ref->getValue($response)['Location'] ?? '';
     }

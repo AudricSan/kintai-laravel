@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftSwap\Controllers\Api;
+namespace Tests\Bundles\ShiftSwap\Controllers\Api;
 
 use kintai\Bundles\Installed\ShiftSwap\Controllers\Api\ShiftSwapRequestController;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
+use App\Services\AuditLogger;
+use App\Services\Log;
 use PHPUnit\Framework\TestCase;
 
 /**

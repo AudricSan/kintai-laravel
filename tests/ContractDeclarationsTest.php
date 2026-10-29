@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftSwap;
+namespace Tests\Bundles\ShiftSwap;
 
 use kintai\Bundles\Installed\ShiftSwap\Providers\PendingSwapsProvider;
 use kintai\Bundles\Installed\ShiftSwap\Providers\SwapRequestsProvider;

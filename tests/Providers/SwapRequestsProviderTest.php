@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftSwap\Providers;
+namespace Tests\Bundles\ShiftSwap\Providers;
 
 use kintai\Bundles\Installed\ShiftSwap\Providers\SwapRequestsProvider;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Provider\Swap;
-use kintai\Core\Container;
+use App\Container;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Table du bundle, créée si absente (installation neuve), avec le schéma qu'utilise son code (target_user_id,
@@ -13,14 +12,15 @@ use Illuminate\Database\Schema\Blueprint;
  * (étape 4 du plan du contrat). Une table existante n'est pas touchée ici : la migration suivante (2026_10_14_000002)
  * aligne celles créées par l'ancien schéma SQL.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if ($this->schema()->hasTable('shift_swap_requests')) {
+        if (Schema::hasTable('shift_swap_requests')) {
             return;
         }
-        $this->schema()->create('shift_swap_requests', function (Blueprint $table) {
-            $table->increments('id');
+        Schema::create('shift_swap_requests', function (Blueprint $table) {
+            $table->integer('id', true);
             $table->integer('store_id');
             $table->integer('requester_id');
             $table->integer('target_user_id')->nullable();

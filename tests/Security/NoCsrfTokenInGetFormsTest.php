@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftSwap\Security;
+namespace Tests\Bundles\ShiftSwap\Security;
 
 use PHPUnit\Framework\TestCase;
 

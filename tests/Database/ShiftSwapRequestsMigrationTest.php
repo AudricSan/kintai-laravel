@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\ShiftSwap\Database;
+namespace Tests\Bundles\ShiftSwap\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\DatabaseShiftSwapRequestRepository;
-use kintai\Core\Database\BundleMigrationRunner;
+use App\Database\BundleMigrationRunner;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

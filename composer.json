@@ -12,9 +12,9 @@
     "autoload-dev": {
         "psr-4": {
             "kintai\\": "../../Kintai/src/",
-            "kintai\\Tests\\Support\\": "../../Kintai/tests/Support/",
+            "Tests\\Support\\": "../../Kintai/tests/Support/",
             "kintai\\Bundles\\Installed\\ShiftSwap\\": "src/",
-            "kintai\\Tests\\Bundles\\ShiftSwap\\": "tests/"
+            "Tests\\Bundles\\ShiftSwap\\": "tests/"
         },
         "files": [
             "../../Kintai/src/Core/helpers.php",
