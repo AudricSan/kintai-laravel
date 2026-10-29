@@ -37,7 +37,7 @@ if (!function_exists('__')) {
     function __(string $key, array $replace = []): string
     {
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if ($container->has(\kintai\Core\Services\TranslationService::class)) {
                 $translationService = $container->make(\kintai\Core\Services\TranslationService::class);
                 return $translationService->translate($key, $replace);

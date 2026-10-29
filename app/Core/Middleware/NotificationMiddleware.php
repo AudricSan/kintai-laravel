@@ -6,7 +6,7 @@ namespace kintai\Core\Middleware;
 
 use Closure;
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\VapidKeyStore;

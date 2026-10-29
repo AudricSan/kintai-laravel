@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Contract\Extension\PageOverlay;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Services\WidgetGuard;
 use kintai\UI\ViewRenderer;
 

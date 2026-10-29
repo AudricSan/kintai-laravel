@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\OwnerGuard;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\DailyReportRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
@@ -69,7 +69,7 @@ final class AdminUserControllerTest extends TestCase
     /** Branche $this->logRepo derrière Log::record() ; à rappeler quand un test le remplace par un mock. */
     private function registerLogRepository(): void
     {
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }

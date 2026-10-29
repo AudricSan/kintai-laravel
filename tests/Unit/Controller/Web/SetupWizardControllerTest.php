@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Controller\Web;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\NotFoundException;
 use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;

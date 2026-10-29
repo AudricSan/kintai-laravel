@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Auth\PasswordPolicy;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Middleware\PasswordReminderMiddleware;
 use kintai\Core\Repositories\RememberTokenRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
@@ -59,7 +59,7 @@ final class PasswordReminderTest extends TestCase
             $this->createStub(RememberTokenRepositoryInterface::class),
         );
 
-        $this->container = new Container();
+        $this->container = new \kintai\Tests\Support\TestContainer();
         $this->container->instance(AuthService::class, $this->auth);
     }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Middleware;
 
 use Closure;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\ApiTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;

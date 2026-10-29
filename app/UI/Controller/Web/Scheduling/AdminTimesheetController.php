@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web\Scheduling;
 
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\StoreRepositoryInterface;

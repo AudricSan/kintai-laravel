@@ -6,7 +6,7 @@ namespace kintai\Core\Services;
 
 use kintai\Contract\Event\ShiftDeleted;
 use kintai\Contract\Event\ShiftSaved;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\Events;
 
 /**

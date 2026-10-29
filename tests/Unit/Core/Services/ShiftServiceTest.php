@@ -8,7 +8,7 @@ use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Services\ShiftService;
 use kintai\Tests\Support\FakeAbsenceProvider;
@@ -21,8 +21,8 @@ final class ShiftServiceTest extends TestCase
     protected function tearDown(): void
     {
         // Congés déclarés par les tests (FakeAbsenceProvider) : ne pas les laisser au conteneur partagé.
-        Container::getInstance()->forget(BundleManager::class);
-        Container::getInstance()->forget(ExtensionRegistry::class);
+        Container::getInstance()->offsetUnset(BundleManager::class);
+        Container::getInstance()->offsetUnset(ExtensionRegistry::class);
     }
 
     protected function setUp(): void

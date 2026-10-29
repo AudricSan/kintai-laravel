@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace kintai\Core;
 
+use Illuminate\Foundation\Application;
+
 final class BundleManager
 {
     private Application $app;
     /** @var Bundle[] */
     private array $bundles = [];
+    private bool $booted = false;
 
     public function __construct(Application $app)
     {
@@ -28,6 +31,10 @@ final class BundleManager
 
     public function boot(): void
     {
+        if ($this->booted) {
+            return;
+        }
+        $this->booted = true;
         foreach ($this->bundles as $bundle) {
             $bundle->boot();
         }

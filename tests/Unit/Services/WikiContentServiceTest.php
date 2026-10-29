@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Services;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Services\WikiContentService;
 use kintai\UI\Controller\Web\DocsController;

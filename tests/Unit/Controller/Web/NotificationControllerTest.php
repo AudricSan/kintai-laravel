@@ -13,7 +13,7 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use kintai\Core\Services\WebPushEndpointValidator;
 use kintai\UI\Controller\Web\NotificationController;

@@ -14,14 +14,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             // Routes de Kintai (routes/web.php, routes/api.php), puis celles de ses bundles : comme chez Kintai, la
             // première route déclarée qui correspond l'emporte. Ni groupe « web » ni groupe « api » de Laravel :
             // les middlewares de Kintai (config/middleware.php) sont dans la pile globale ci-dessous.
-            $laravel = app();
-            if (!KintaiHttp::shouldRegisterRoutes($laravel)) {
-                return;
-            }
-            $kintai = KintaiHttp::app($laravel, deferBundles: true);
-            require __DIR__ . '/../routes/web.php';
-            require __DIR__ . '/../routes/api.php';
-            $kintai->bootBundles();
+            KintaiHttp::register(app());
         },
         commands: __DIR__ . '/../routes/console.php',
     )

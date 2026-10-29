@@ -7,7 +7,7 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;

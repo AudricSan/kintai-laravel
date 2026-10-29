@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Contract\Extension\ExportDataset;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Export\AvailabilitiesExport;
 use kintai\Core\Export\EmployeesExport;
 use kintai\Core\Export\PayrollExport;

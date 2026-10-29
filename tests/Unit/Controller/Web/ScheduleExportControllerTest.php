@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
@@ -84,7 +84,7 @@ final class ScheduleExportControllerTest extends TestCase
     {
         session()->forget(['auth_user_id', 'auth_pw_fp']);
         Log::reset();
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 
     /** @param array<string, string> $query */

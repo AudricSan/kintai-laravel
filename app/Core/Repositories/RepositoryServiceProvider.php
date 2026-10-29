@@ -5,43 +5,43 @@ declare(strict_types=1);
 namespace kintai\Core\Repositories;
 
 use kintai\Core\InstalledBundleManifestStore;
-use kintai\Core\ServiceProvider;
+use Illuminate\Support\ServiceProvider;
 
 final class RepositoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->container->singleton(UserRepositoryInterface::class, fn() => new DatabaseUserRepository());
-        $this->container->singleton(StoreRepositoryInterface::class, fn() => new DatabaseStoreRepository());
-        $this->container->singleton(StoreUserRepositoryInterface::class, fn() => new DatabaseStoreUserRepository());
-        $this->container->singleton(RouteSlugRepositoryInterface::class, fn() => new DatabaseRouteSlugRepository());
-        $this->container->singleton(ShiftTypeRepositoryInterface::class, fn() => new DatabaseShiftTypeRepository());
-        $this->container->singleton(ShiftRepositoryInterface::class, fn() => new DatabaseShiftRepository());
-        $this->container->singleton(ShiftWeekTemplateRepositoryInterface::class, fn() => new DatabaseShiftWeekTemplateRepository());
-        $this->container->singleton(TimesheetApprovalRepositoryInterface::class, fn() => new DatabaseTimesheetApprovalRepository());
-        $this->container->singleton(AvailabilityRepositoryInterface::class, fn() => new DatabaseAvailabilityRepository());
-        $this->container->singleton(UserShiftTypeRateRepositoryInterface::class, fn() => new DatabaseUserShiftTypeRateRepository());
-        $this->container->singleton(IcalTokenRepositoryInterface::class, fn() => new DatabaseIcalTokenRepository());
-        $this->container->singleton(UserDashboardPrefsRepositoryInterface::class, fn() => new DatabaseUserDashboardPrefsRepository());
-        $this->container->singleton(UserDashboardLayoutRepositoryInterface::class, fn() => new DatabaseUserDashboardLayoutRepository());
-        $this->container->singleton(RoleDashboardLayoutRepositoryInterface::class, fn() => new DatabaseRoleDashboardLayoutRepository());
-        $this->container->singleton(UserNavPrefsRepositoryInterface::class, fn() => new DatabaseUserNavPrefsRepository());
-        $this->container->singleton(NotificationRepositoryInterface::class, fn() => new DatabaseNotificationRepository());
-        $this->container->singleton(NotificationPreferenceRepositoryInterface::class, fn() => new DatabaseNotificationPreferenceRepository());
-        $this->container->singleton(WebPushSubscriptionRepositoryInterface::class, fn() => new DatabaseWebPushSubscriptionRepository());
-        $this->container->singleton(CalendarSyncRepositoryInterface::class, fn() => new DatabaseCalendarSyncRepository());
-        $this->container->singleton(ApiTokenRepositoryInterface::class, fn() => new DatabaseApiTokenRepository());
-        $this->container->singleton(ImportAliasRepositoryInterface::class, fn() => new DatabaseImportAliasRepository());
-        $this->container->singleton(PasswordResetRepositoryInterface::class, fn() => new DatabasePasswordResetRepository());
-        $this->container->singleton(RememberTokenRepositoryInterface::class, fn() => new DatabaseRememberTokenRepository());
-        $this->container->singleton(AppSettingsRepositoryInterface::class, fn() => new DatabaseAppSettingsRepository());
-        $this->container->singleton(CronTokenRepositoryInterface::class, fn() => new DatabaseCronTokenRepository());
-        $this->container->singleton(LogRepositoryInterface::class, fn() => new DatabaseLogRepository());
-        $this->container->singleton(RoleRepositoryInterface::class, fn() => new DatabaseRoleRepository());
-        $this->container->singleton(RoleAssignmentRepositoryInterface::class, fn() => new DatabaseRoleAssignmentRepository());
-        $this->container->singleton(DevicePushTokenRepositoryInterface::class, fn() => new DatabaseDevicePushTokenRepository());
-        $this->container->singleton(BundleRegistryRepositoryInterface::class, fn() => new DatabaseBundleRegistryRepository());
-        $this->container->singleton(InstalledBundleRepositoryInterface::class, fn() => new DatabaseInstalledBundleRepository());
+        $this->app->singleton(UserRepositoryInterface::class, fn() => new DatabaseUserRepository());
+        $this->app->singleton(StoreRepositoryInterface::class, fn() => new DatabaseStoreRepository());
+        $this->app->singleton(StoreUserRepositoryInterface::class, fn() => new DatabaseStoreUserRepository());
+        $this->app->singleton(RouteSlugRepositoryInterface::class, fn() => new DatabaseRouteSlugRepository());
+        $this->app->singleton(ShiftTypeRepositoryInterface::class, fn() => new DatabaseShiftTypeRepository());
+        $this->app->singleton(ShiftRepositoryInterface::class, fn() => new DatabaseShiftRepository());
+        $this->app->singleton(ShiftWeekTemplateRepositoryInterface::class, fn() => new DatabaseShiftWeekTemplateRepository());
+        $this->app->singleton(TimesheetApprovalRepositoryInterface::class, fn() => new DatabaseTimesheetApprovalRepository());
+        $this->app->singleton(AvailabilityRepositoryInterface::class, fn() => new DatabaseAvailabilityRepository());
+        $this->app->singleton(UserShiftTypeRateRepositoryInterface::class, fn() => new DatabaseUserShiftTypeRateRepository());
+        $this->app->singleton(IcalTokenRepositoryInterface::class, fn() => new DatabaseIcalTokenRepository());
+        $this->app->singleton(UserDashboardPrefsRepositoryInterface::class, fn() => new DatabaseUserDashboardPrefsRepository());
+        $this->app->singleton(UserDashboardLayoutRepositoryInterface::class, fn() => new DatabaseUserDashboardLayoutRepository());
+        $this->app->singleton(RoleDashboardLayoutRepositoryInterface::class, fn() => new DatabaseRoleDashboardLayoutRepository());
+        $this->app->singleton(UserNavPrefsRepositoryInterface::class, fn() => new DatabaseUserNavPrefsRepository());
+        $this->app->singleton(NotificationRepositoryInterface::class, fn() => new DatabaseNotificationRepository());
+        $this->app->singleton(NotificationPreferenceRepositoryInterface::class, fn() => new DatabaseNotificationPreferenceRepository());
+        $this->app->singleton(WebPushSubscriptionRepositoryInterface::class, fn() => new DatabaseWebPushSubscriptionRepository());
+        $this->app->singleton(CalendarSyncRepositoryInterface::class, fn() => new DatabaseCalendarSyncRepository());
+        $this->app->singleton(ApiTokenRepositoryInterface::class, fn() => new DatabaseApiTokenRepository());
+        $this->app->singleton(ImportAliasRepositoryInterface::class, fn() => new DatabaseImportAliasRepository());
+        $this->app->singleton(PasswordResetRepositoryInterface::class, fn() => new DatabasePasswordResetRepository());
+        $this->app->singleton(RememberTokenRepositoryInterface::class, fn() => new DatabaseRememberTokenRepository());
+        $this->app->singleton(AppSettingsRepositoryInterface::class, fn() => new DatabaseAppSettingsRepository());
+        $this->app->singleton(CronTokenRepositoryInterface::class, fn() => new DatabaseCronTokenRepository());
+        $this->app->singleton(LogRepositoryInterface::class, fn() => new DatabaseLogRepository());
+        $this->app->singleton(RoleRepositoryInterface::class, fn() => new DatabaseRoleRepository());
+        $this->app->singleton(RoleAssignmentRepositoryInterface::class, fn() => new DatabaseRoleAssignmentRepository());
+        $this->app->singleton(DevicePushTokenRepositoryInterface::class, fn() => new DatabaseDevicePushTokenRepository());
+        $this->app->singleton(BundleRegistryRepositoryInterface::class, fn() => new DatabaseBundleRegistryRepository());
+        $this->app->singleton(InstalledBundleRepositoryInterface::class, fn() => new DatabaseInstalledBundleRepository());
 
 
 
@@ -49,8 +49,8 @@ final class RepositoryServiceProvider extends ServiceProvider
         // bundle legacy peut définir ses propres app/Bundles/<Name>/lang/{code}.json, et
         // chaque bundle installé dynamiquement son storage/bundles/<slug>/<version>/lang/{code}.json,
         // tous fusionnés par-dessus ceux du Core (fallback Core si un bundle ne redéfinit pas une clé).
-        $this->container->singleton(LanguageRepositoryInterface::class, fn() => new JsonLanguageRepository(BASE_PATH . '/lang'));
-        $this->container->singleton(TranslationRepositoryInterface::class, fn() => new JsonTranslationRepository(
+        $this->app->singleton(LanguageRepositoryInterface::class, fn() => new JsonLanguageRepository(BASE_PATH . '/lang'));
+        $this->app->singleton(TranslationRepositoryInterface::class, fn() => new JsonTranslationRepository(
             BASE_PATH . '/lang',
             BASE_PATH . '/app/Bundles',
             self::installedBundleRoots(),

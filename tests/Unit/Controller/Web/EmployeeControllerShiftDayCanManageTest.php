@@ -52,6 +52,8 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->writeViewFile($viewDir, 'scheduling.shifts-timeline', '<?= $can_manage ? "CAN_MANAGE_TRUE" : "CAN_MANAGE_FALSE" ?>');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
 
+        // Pas de publication de planning dans ce test : tous les shifts sont visibles.
+        \Illuminate\Container\Container::getInstance()->bind(\kintai\Core\Services\SchedulePublication::class, static fn() => throw new \RuntimeException('indisponible'));
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);

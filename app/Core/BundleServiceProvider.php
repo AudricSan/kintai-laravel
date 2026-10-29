@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace kintai\Core;
 
+use Illuminate\Support\ServiceProvider;
+
 use kintai\Core\Services\Log;
 
 final class BundleServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $bundleManager = $this->container->make(BundleManager::class);
-        $featureManager = $this->container->make(FeatureManager::class);
+        $bundleManager = $this->app->make(BundleManager::class);
+        $featureManager = $this->app->make(FeatureManager::class);
         $discovery = new BundleDiscoveryService();
 
         foreach ($discovery->discover() as $slug => $meta) {

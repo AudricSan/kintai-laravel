@@ -24,6 +24,7 @@ final class DatabaseRoleRepositoryTest extends TestCase
         ]);
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
+        \Illuminate\Database\Eloquent\Model::unsetEventDispatcher();
 
         $schema = $capsule->getConnection()->getSchemaBuilder();
         $schema->create('roles', function ($table) {

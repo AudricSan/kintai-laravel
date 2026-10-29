@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Auth;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Mail\MailerService;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\PasswordResetRepositoryInterface;
@@ -51,7 +51,7 @@ final class PasswordResetMailLocaleTest extends TestCase
     protected function tearDown(): void
     {
         // Les autres tests supposent qu'aucun traducteur n'est enregistré (__() renvoie alors la clé).
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 
     private function call(string $method, mixed ...$args): mixed

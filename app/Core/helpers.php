@@ -76,7 +76,7 @@ if (!function_exists('bundle_enabled')) {
     function bundle_enabled(string $slug): bool
     {
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if ($container->has(\kintai\Core\BundleManager::class)) {
                 return $container->make(\kintai\Core\BundleManager::class)->isActive($slug);
             }
@@ -99,7 +99,7 @@ if (!function_exists('bundle_asset')) {
     function bundle_asset(string $slug, string $path): ?string
     {
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if (!$container->has(\kintai\Core\BundleManager::class)) {
                 return null;
             }
@@ -126,7 +126,7 @@ if (!function_exists('bundle_asset_path')) {
     function bundle_asset_path(string $slug, string $path): ?string
     {
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if (!$container->has(\kintai\Core\BundleManager::class)) {
                 return null;
             }
@@ -173,7 +173,7 @@ if (!function_exists('back_url')) {
     function back_url(string $fallback): string
     {
         try {
-            $request = app(\Illuminate\Http\Request::class);
+            $request = app('request');
         } catch (\Throwable) {
             return $fallback;
         }
@@ -270,7 +270,7 @@ if (!function_exists('mascot_path')) {
     function mascot_path(string $context): string
     {
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if ($container->has(\kintai\Core\Services\MascotResolver::class)) {
                 return $container->make(\kintai\Core\Services\MascotResolver::class)->path($context);
             }
@@ -286,7 +286,7 @@ if (!function_exists('mascot_active')) {
     function mascot_active(): string
     {
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if ($container->has(\kintai\Core\Services\MascotResolver::class)) {
                 return $container->make(\kintai\Core\Services\MascotResolver::class)->active();
             }
@@ -465,7 +465,7 @@ if (!function_exists('notification_type_catalog')) {
     {
         $types = [];
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if ($container->has(\kintai\Core\Extension\ExtensionRegistry::class)) {
                 $types = $container->make(\kintai\Core\Services\NotificationTypeRegistry::class)->all();
             }
@@ -553,7 +553,7 @@ if (!function_exists('instance_locale')) {
     function instance_locale(): string
     {
         try {
-            return \kintai\Core\Container::getInstance()->make(\kintai\Core\Services\InstanceLocale::class)->code();
+            return \Illuminate\Container\Container::getInstance()->make(\kintai\Core\Services\InstanceLocale::class)->code();
         } catch (\Throwable) {
             $configured = (string) env(\kintai\Core\Services\InstanceLocale::ENV_KEY, '');
             return $configured !== '' ? $configured : 'en';
@@ -569,7 +569,7 @@ if (!function_exists('user_locale')) {
     function user_locale(?array $user): string
     {
         try {
-            return \kintai\Core\Container::getInstance()->make(\kintai\Core\Services\InstanceLocale::class)->forUser($user);
+            return \Illuminate\Container\Container::getInstance()->make(\kintai\Core\Services\InstanceLocale::class)->forUser($user);
         } catch (\Throwable) {
             $language = (string) ($user['language'] ?? '');
             return $language !== '' ? $language : instance_locale();

@@ -22,7 +22,6 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 require BASE_PATH . '/app/Core/helpers.php';
 
-use kintai\Core\Application;
 use kintai\Core\Repositories\CronTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 
@@ -38,10 +37,9 @@ $jobName  = $opts['job'] ?? '';
 $name     = $opts['name'] ?? null;
 $expiresIn = isset($opts['expires-in']) ? (int) $opts['expires-in'] : null;
 
-$app = new Application(BASE_PATH);
-$app->boot();
+$app = require BASE_PATH . '/bootstrap/boot.php';
 
-$users = $app->container()->make(UserRepositoryInterface::class);
+$users = $app->make(UserRepositoryInterface::class);
 if ($users->findById($userId) === null) {
     fwrite(STDERR, "Error: no user with id {$userId}.\n");
     exit(1);
@@ -49,7 +47,7 @@ if ($users->findById($userId) === null) {
 
 $rawToken = bin2hex(random_bytes(32));
 
-$cronTokens = $app->container()->make(CronTokenRepositoryInterface::class);
+$cronTokens = $app->make(CronTokenRepositoryInterface::class);
 $cronTokens->save([
     'user_id'    => $userId,
     'job_name'   => $jobName,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core;
 
+use Illuminate\Support\ServiceProvider;
+
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 
 final class LicenseServiceProvider extends ServiceProvider
@@ -16,7 +18,7 @@ final class LicenseServiceProvider extends ServiceProvider
     public function register(): void
     {
         $enabledFeatures = $this->loadEnabledFeatures();
-        $this->container->instance(FeatureManager::class, new FeatureManager($enabledFeatures));
+        $this->app->instance(FeatureManager::class, new FeatureManager($enabledFeatures));
     }
 
     /**
@@ -59,7 +61,7 @@ final class LicenseServiceProvider extends ServiceProvider
     private function storedSetting(): ?string
     {
         try {
-            return $this->container->make(AppSettingsRepositoryInterface::class)->get(self::SETTINGS_KEY);
+            return $this->app->make(AppSettingsRepositoryInterface::class)->get(self::SETTINGS_KEY);
         } catch (\Illuminate\Database\QueryException|\PDOException) {
             return null;
         }

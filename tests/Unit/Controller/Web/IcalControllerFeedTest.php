@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\IcalTokenRepositoryInterface;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
@@ -81,7 +81,7 @@ final class IcalControllerFeedTest extends TestCase
     {
         Log::reset();
         // Retire le TranslationService lié dans setUp() : il fausserait les tests qui attendent des clés brutes.
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 
     private function request(): Request

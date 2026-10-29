@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Foundation\Bridge;
 
 use Illuminate\Contracts\Translation\Translator;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Services\TranslationService;
 
 /**

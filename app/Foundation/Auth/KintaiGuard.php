@@ -7,7 +7,7 @@ namespace kintai\Foundation\Auth;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\UserRepositoryInterface;
 
 /**

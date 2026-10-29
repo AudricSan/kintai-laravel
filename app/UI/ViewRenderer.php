@@ -157,7 +157,7 @@ final class ViewRenderer
         if (self::$current !== null) {
             return self::$current;
         }
-        $container = \kintai\Core\Container::getInstance();
+        $container = \Illuminate\Container\Container::getInstance();
 
         return $container->has(self::class) || self::$lastUsed === null
             ? $container->make(self::class)->factory()

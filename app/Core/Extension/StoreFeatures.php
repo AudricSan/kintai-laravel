@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Contract\Extension\StoreFeature;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 
 /**
  * Fonctionnalités activables par magasin (fiche magasin, table store_features), construites à partir de données :

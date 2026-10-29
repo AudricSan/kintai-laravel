@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Core\Cron;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Cron\CronJobInterface;
 use kintai\Core\Cron\CronRunner;
 use kintai\Core\Exceptions\ForbiddenException;

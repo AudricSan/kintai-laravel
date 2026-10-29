@@ -5,25 +5,19 @@ declare(strict_types=1);
 namespace kintai\Http;
 
 use Illuminate\Foundation\Application;
-use kintai\Core\Application as KintaiApplication;
-use kintai\Core\Container as KintaiContainer;
+use kintai\Core\BundleManager;
 
 /**
- * Démarrage des services de Kintai pour une requête HTTP (ou une tâche) servie par Laravel.
- *
- * Une seule application Kintai par processus : démarrée au chargement des routes (bootstrap/app.php), pour que les
- * routes des bundles soient déclarées au routeur de Laravel, puis reprise par qui en a besoin.
+ * Mise en route HTTP de Kintai, appelée au chargement des routes (bootstrap/app.php) : filet d'erreurs PHP, routes du
+ * cœur (routes/web.php, routes/api.php) puis celles des bundles — comme chez Kintai, la première route déclarée qui
+ * correspond l'emporte.
  */
 final class KintaiHttp
 {
-    /**
-     * @param bool $deferBundles true : les bundles ne sont pas démarrés (leurs routes viennent après celles du cœur,
-     *        voir KintaiApplication::bootBundles()). Sans effet si l'application est déjà démarrée.
-     */
-    public static function app(Application $laravel, bool $deferBundles = false): KintaiApplication
+    public static function register(Application $laravel): void
     {
-        if ($laravel->bound(KintaiApplication::class)) {
-            return $laravel->make(KintaiApplication::class);
+        if (!self::shouldRegisterRoutes($laravel)) {
+            return;
         }
 
         // Comme l'ancien public/index.php : toute erreur PHP signalée devient une exception, rendue en page 500.
@@ -34,14 +28,18 @@ final class KintaiHttp
             throw new \ErrorException($message, 0, $severity, $file, $line);
         });
 
-        // Les services Kintai s'enregistrent dans le conteneur de l'application Laravel : un seul conteneur. Kintai
-        // s'y enregistre lui-même (KintaiApplication::class), ce qui le rend disponible au reste de la requête.
-        KintaiContainer::setInstance(new KintaiContainer($laravel));
+        // Erreur fatale non attrapée : au moins une trace dans storage/logs/error.log.
+        register_shutdown_function(static function (): void {
+            $error = error_get_last();
+            if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+                ErrorResponder::log(new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']));
+            }
+        });
 
-        $app = new KintaiApplication(BASE_PATH);
-        $app->boot(bundles: !$deferBundles);
+        require $laravel->basePath('routes/web.php');
+        require $laravel->basePath('routes/api.php');
 
-        return $app;
+        $laravel->make(BundleManager::class)->boot();
     }
 
     /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Integration;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Services\Calendar\CalendarEventBuilder;
 use kintai\Core\Services\TranslationService;
 use kintai\Tests\Support\CalendarSyncFixture;

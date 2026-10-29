@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Database;
 
-use kintai\Core\ServiceProvider;
+use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 final class DatabaseServiceProvider extends ServiceProvider
@@ -30,7 +30,7 @@ final class DatabaseServiceProvider extends ServiceProvider
                 $timestamps->listenOn($events);
                 $laravel->instance(InstanceTimestamps::class, $timestamps);
             }
-            $this->container->instance(Capsule::class, $capsule);
+            $this->app->instance(Capsule::class, $capsule);
             return;
         }
 
@@ -42,6 +42,6 @@ final class DatabaseServiceProvider extends ServiceProvider
         $capsule->bootEloquent();
         // created_at dans le fuseau de l'instance plutôt que l'UTC de CURRENT_TIMESTAMP (voir InstanceTimestamps).
         \Illuminate\Database\Eloquent\Model::setEventDispatcher(new InstanceTimestamps());
-        $this->container->instance(Capsule::class, $capsule);
+        $this->app->instance(Capsule::class, $capsule);
     }
 }

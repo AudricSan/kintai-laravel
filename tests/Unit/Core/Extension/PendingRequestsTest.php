@@ -8,7 +8,7 @@ use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
 use kintai\Core\BundleContract\Bundle;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Extension\PendingRequests;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +23,7 @@ final class PendingRequestsTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new Container();
+        $this->container = new \kintai\Tests\Support\TestContainer();
     }
 
     private static function provider(string $key, array $requests, string $permission = 'acme.view', ?string $feature = null, int $order = 100, ?\Throwable $fail = null): PendingRequestsProvider

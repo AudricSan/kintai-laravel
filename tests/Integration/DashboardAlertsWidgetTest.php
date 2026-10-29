@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Integration;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\UI\Controller\Web\HomeController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;

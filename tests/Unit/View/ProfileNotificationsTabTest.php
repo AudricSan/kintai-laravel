@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\View;
 
 use kintai\Contract\Extension\NotificationType;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 

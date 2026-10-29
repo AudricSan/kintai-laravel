@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\LogRepositoryInterface;
 
 final class Log

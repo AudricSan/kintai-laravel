@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Application;
+use Illuminate\Foundation\Application;
 
 /**
  * Variante de MigrationRunner pour les migrations fournies par un bundle
@@ -24,7 +24,7 @@ final class BundleMigrationRunner
 
     public function __construct(Application $app)
     {
-        $this->capsule = $app->container()->make(Capsule::class);
+        $this->capsule = $app->make(Capsule::class);
     }
 
     /** @return string[] Noms des migrations appliquées lors de cet appel. */

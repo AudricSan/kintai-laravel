@@ -20,6 +20,11 @@ trait ResolvesClassAliases
     /** @var array<string, string> */
     private array $classAliasCache = [];
 
+    public function bound($abstract)
+    {
+        return parent::bound($abstract) || (is_string($abstract) && parent::bound($this->getAlias($abstract)));
+    }
+
     public function getAlias($abstract)
     {
         $resolved = parent::getAlias($abstract);

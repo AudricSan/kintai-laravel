@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Tests\Support\FakeBundleManagerFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -35,7 +35,7 @@ final class HelpersFeatBundleTest extends TestCase
         // Réinitialise le singleton Container pour ne pas propager le
         // BundleManager injecté ici vers d'autres tests.
         $instance = new \ReflectionProperty(Container::class, 'instance');
-        $instance->setValue(null, null);
+        $instance->setValue(null, new \kintai\Tests\Support\TestContainer());
     }
 
     public function testBundleEnabledReflectsBundleManagerState(): void

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Controllers;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
@@ -36,7 +36,7 @@ final class OwnerSettingsControllerTest extends TestCase
         touch($viewDir . '/owner-settings.php');
         touch($layoutDir . '/app.php');
 
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
     }

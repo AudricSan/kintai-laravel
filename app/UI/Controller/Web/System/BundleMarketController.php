@@ -9,7 +9,7 @@ use kintai\Core\LicenseServiceProvider;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\BundleRegistryRepositoryInterface;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Services\BundleActivationService;
 use kintai\Core\Services\Log;
 use Illuminate\Http\Request;

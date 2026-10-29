@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Middleware\NotificationMiddleware;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
@@ -37,7 +37,7 @@ final class NotificationMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new Container();
+        $this->container = new \kintai\Tests\Support\TestContainer();
         $this->view       = new ViewRenderer(sys_get_temp_dir());
         $this->container->instance(ViewRenderer::class, $this->view);
 

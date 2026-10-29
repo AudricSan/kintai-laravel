@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Controller\Web;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
@@ -22,7 +22,7 @@ final class SupportControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
 
@@ -95,7 +95,7 @@ final class SupportControllerTest extends TestCase
 
         $logRepo = $this->createMock(LogRepositoryInterface::class);
         $logRepo->expects($this->once())->method('record');
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $logRepo);
         Log::setContainer($container);
 

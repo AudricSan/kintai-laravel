@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\UI;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
@@ -19,7 +19,7 @@ final class LegacySrcPartialsTest extends TestCase
     protected function setUp(): void
     {
         $this->previous = (new \ReflectionProperty(Container::class, 'instance'))->getValue();
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(ViewRenderer::class, new ViewRenderer(dirname(__DIR__, 3) . '/app/UI/View'));
         Container::setInstance($container);
     }

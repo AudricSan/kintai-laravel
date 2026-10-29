@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\BundleContract;
 
-use kintai\Core\Application;
+use Illuminate\Foundation\Application;
 
 /**
  * Point de contact stable pour tout auteur de bundle, interne ou tiers.
@@ -332,8 +332,8 @@ abstract class Bundle
      */
     protected function loadRoutesFrom(string $path): void
     {
-        $router = $this->app->router();
-        $container = $this->app->container();
+        $router = new \kintai\Http\Routing\RouteRegistrar($this->app->make('router'));
+        $container = $this->app;
         require $path;
     }
 
@@ -342,7 +342,7 @@ abstract class Bundle
      */
     protected function loadViewsFrom(string $path, string $namespace): void
     {
-        $viewRenderer = $this->app->container()->make(\kintai\UI\ViewRenderer::class);
+        $viewRenderer = $this->app->make(\kintai\UI\ViewRenderer::class);
         $viewRenderer->addNamespace($namespace, $path);
     }
 

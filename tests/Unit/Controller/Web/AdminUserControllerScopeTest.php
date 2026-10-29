@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\OwnerGuard;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
@@ -68,7 +68,7 @@ final class AdminUserControllerScopeTest extends TestCase
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $stores           = $this->createStub(StoreRepositoryInterface::class);
 
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
 

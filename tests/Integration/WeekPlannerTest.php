@@ -6,7 +6,7 @@ namespace kintai\Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Extension\Events;
 use kintai\Core\Extension\ExtensionRegistry;

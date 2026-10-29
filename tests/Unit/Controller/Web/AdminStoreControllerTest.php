@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Tests\Support\FakeBundleManagerFactory;
 use kintai\Core\Extension\StoreFeatures;
 use kintai\Core\Repositories\LogRepositoryInterface;
@@ -60,7 +60,7 @@ final class AdminStoreControllerTest extends TestCase
     /** Branche $this->logRepo derrière Log::record() ; à rappeler quand un test le remplace par un mock. */
     private function registerLogRepository(): void
     {
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }

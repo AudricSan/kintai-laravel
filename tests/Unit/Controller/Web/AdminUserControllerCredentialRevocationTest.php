@@ -8,7 +8,7 @@ use kintai\Core\Auth\CredentialRevoker;
 use kintai\Core\Auth\UserAnonymizer;
 use kintai\Core\Auth\OwnerGuard;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\ApiTokenRepositoryInterface;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
@@ -72,7 +72,7 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
         $roleAssignments->method('findByUser')->willReturn([['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
         $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
 
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
 

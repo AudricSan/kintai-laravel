@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Contract;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Tests\Support\ContractUsageScanner;
 use PHPUnit\Framework\TestCase;
@@ -54,7 +54,7 @@ final class ContractSurfaceTest extends TestCase
 
     public function testTheContainerResolvesAnAliasToTheSameBinding(): void
     {
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $users = $this->createStub(UserRepositoryInterface::class);
         $container->instance(UserRepositoryInterface::class, $users);
 
@@ -64,7 +64,7 @@ final class ContractSurfaceTest extends TestCase
 
     public function testTheContainerAutowiresAConstructorTypedWithAnAlias(): void
     {
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $users = $this->createStub(UserRepositoryInterface::class);
         $container->instance(UserRepositoryInterface::class, $users);
 

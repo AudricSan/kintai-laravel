@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Http\Routing;
 
 use Illuminate\Routing\Router;
-use kintai\Core\Container;
 
 /**
  * Enregistrement de routes à la manière du contrat de bundle ($router->get('/chemin/{id:store}', [Contrôleur::class, 'm'],
@@ -97,7 +96,7 @@ final class RouteRegistrar
         // Un bundle désigne ses middlewares par les noms du contrat (kintai\Contract\Http\Middleware\…) : on garde le
         // nom réel de la classe.
         $stack = array_map(
-            static fn(mixed $m): mixed => is_string($m) ? Container::canonicalName($m) : $m,
+            static fn(mixed $m): mixed => is_string($m) && (class_exists($m) || interface_exists($m)) ? (new \ReflectionClass($m))->getName() : $m,
             array_merge($this->groupMiddleware, $middleware),
         );
 

@@ -9,7 +9,7 @@ require BASE_PATH . '/bootstrap/standalone.php';
 require BASE_PATH . '/app/Core/helpers.php';
 kintai_normalize_script_name();
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Install\InstallFailure;
 use kintai\Core\Install\InstallInput;
 use kintai\Core\Install\InstallRequirements;

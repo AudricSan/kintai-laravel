@@ -34,7 +34,6 @@ require BASE_PATH . '/bootstrap/standalone.php';
 require_once BASE_PATH . '/app/Core/helpers.php';
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Application;
 use kintai\Core\Auth\PasswordHasher;
 use kintai\Core\Auth\PasswordPolicy;
 use kintai\Core\Database\DemoDataSeeder;
@@ -216,8 +215,7 @@ try {
 
     // ─── Step 4 : Boot framework, run migrations ────────────────────────────
 
-    $app = new Application(BASE_PATH);
-    $app->boot();
+    $app = require BASE_PATH . '/bootstrap/boot.php';
 
     $runner = new MigrationRunner($app);
     $runner->run();
@@ -234,7 +232,7 @@ try {
 
     // ─── Step 6 : Create admin user (rôle Owner) ─────────────────────────────
 
-    $container = $app->container();
+    $container = $app;
     $userRepo  = $container->make(UserRepositoryInterface::class);
 
     // --force réinstalle par-dessus une base existante : un compte avec cet e-mail y existe peut-être déjà.

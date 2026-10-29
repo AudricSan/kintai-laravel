@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Auth\PermissionCatalog;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Middleware\ApiPermissionMiddleware;
 use kintai\Core\Middleware\OwnerOnlyMiddleware;
 use kintai\Core\Middleware\PermissionMiddleware;
@@ -47,7 +47,7 @@ final class PermissionMapsTest extends TestCase
         $root = dirname(__DIR__, 3);
         $laravel = kintai_test_load_routes();
         $router = new RouteRegistrar($laravel);
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
 
         foreach (array_merge(
             glob($root . '/app/Bundles/*/routes.php') ?: [],

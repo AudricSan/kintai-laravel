@@ -8,7 +8,7 @@ use Illuminate\Auth\Access\Gate;
 use Illuminate\Container\Container as IlluminateContainer;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\RememberTokenRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
@@ -44,7 +44,7 @@ final class KintaiAuthBridgeTest extends TestCase
         $roles->method('findById')->willReturn(['id' => 2, 'is_system' => 0]);
         $roles->method('getPermissions')->willReturn(['shifts.update']);
 
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(UserRepositoryInterface::class, $users);
         $container->instance(AuthService::class, new AuthService(
             $users,

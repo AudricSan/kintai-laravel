@@ -35,14 +35,12 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Application;
 
 $apply = in_array('--apply', $argv, true);
 $anonymize = in_array('--anonymize', $argv, true);
 
-$app = new Application(BASE_PATH);
-$app->boot();
-$container = $app->container();
+$app = require BASE_PATH . '/bootstrap/boot.php';
+$container = $app;
 
 /** @var \Illuminate\Database\Connection $connection */
 $connection = $container->make(Capsule::class)->getConnection();

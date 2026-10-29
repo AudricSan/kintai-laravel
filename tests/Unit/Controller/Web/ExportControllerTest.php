@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Export\AvailabilitiesExport;
 use kintai\Core\Export\EmployeesExport;
 use kintai\Core\Export\ExportAccess;
@@ -111,7 +111,7 @@ final class ExportControllerTest extends TestCase
         session()->forget(['auth_user_id', 'auth_pw_fp']);
         Log::reset();
         foreach ($this->bound as $class) {
-            Container::getInstance()->forget($class);
+            Container::getInstance()->offsetUnset($class);
         }
     }
 

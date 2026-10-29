@@ -10,7 +10,7 @@ use kintai\Contract\Extension\ShiftFormSection;
 use kintai\Core\BundleContract\Bundle;
 use kintai\Core\BundleManager;
 use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\AvailabilityRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
@@ -991,8 +991,8 @@ final class AdminShiftControllerTest extends TestCase
         $_POST = [];
         $_SERVER = [];
         // Bundles actifs simulés par certains tests : ne pas les laisser au conteneur partagé.
-        Container::getInstance()->forget(BundleManager::class);
-        Container::getInstance()->forget(ExtensionRegistry::class);
+        Container::getInstance()->offsetUnset(BundleManager::class);
+        Container::getInstance()->offsetUnset(ExtensionRegistry::class);
     }
 
     /** shift-claim actif, qui déclare les champs « shift ouvert » du formulaire (contrat 1.17). */

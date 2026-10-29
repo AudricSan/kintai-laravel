@@ -198,7 +198,7 @@ final class PageOverlaysTest extends TestCase
     public function testABarIsANonModalRegionAndAnUnknownPlacementIsRefused(): void
     {
         $overlays = $this->overlays(['acme' => [new PageOverlay('reminder', 'acme::ok', placement: PageOverlay::BAR)]]);
-        $container = \kintai\Core\Container::getInstance();
+        $container = \Illuminate\Container\Container::getInstance();
         $container->instance(ViewRenderer::class, $this->view());
         $container->instance(\kintai\Core\Auth\PermissionService::class, (new \ReflectionClass(\kintai\Core\Auth\PermissionService::class))->newInstanceWithoutConstructor());
         $users = $this->createStub(\kintai\Core\Repositories\StoreUserRepositoryInterface::class);
@@ -225,7 +225,7 @@ final class PageOverlaysTest extends TestCase
     public function testTheHostWrapsTheOverlayInAnAccessibleDialog(): void
     {
         $overlays = $this->overlays(['acme' => [new PageOverlay('ask', 'acme::ok', null, null, null, null, 100, false, true)]]);
-        $container = \kintai\Core\Container::getInstance();
+        $container = \Illuminate\Container\Container::getInstance();
         $container->instance(ViewRenderer::class, $this->view());
         $container->instance(\kintai\Core\Auth\PermissionService::class, (new \ReflectionClass(\kintai\Core\Auth\PermissionService::class))->newInstanceWithoutConstructor());
         $users = $this->createStub(\kintai\Core\Repositories\StoreUserRepositoryInterface::class);

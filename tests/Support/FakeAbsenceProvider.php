@@ -7,7 +7,7 @@ namespace kintai\Tests\Support;
 use kintai\Contract\Provider\Absence;
 use kintai\Contract\Provider\AbsenceProvider;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 
 /**

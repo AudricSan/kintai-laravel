@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Support;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\DatabaseCalendarSyncRepository;
 use kintai\Core\Repositories\DatabaseShiftRepository;
@@ -129,6 +129,6 @@ trait CalendarSyncFixture
 
     private function tearDownCalendarFixture(): void
     {
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 }

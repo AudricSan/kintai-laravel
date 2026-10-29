@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Core;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 

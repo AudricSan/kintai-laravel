@@ -6,7 +6,7 @@ namespace kintai\Core\Install;
 
 use Closure;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Application;
+use Illuminate\Foundation\Application;
 use kintai\Core\Auth\PasswordHasher;
 use kintai\Core\Database\BundleMigrationRunner;
 use kintai\Core\InstalledBundleManifestStore;
@@ -75,8 +75,7 @@ final class WebInstaller
 
             $this->writeFile('config/database.local.php', '<?php return ' . var_export($this->databaseConfig($in), true) . ';' . PHP_EOL);
 
-            $app = new Application($this->basePath);
-            $app->boot();
+            $app = require $this->basePath . '/bootstrap/boot.php';
             (new MigrationRunner($app))->run();
 
             if ($in->demoData) {
@@ -86,13 +85,13 @@ final class WebInstaller
 
             $ownerId = $this->createOwner($app, $in);
 
-            $settings = $app->container()->make(AppSettingsRepositoryInterface::class);
+            $settings = $app->make(AppSettingsRepositoryInterface::class);
             // Sert aux liens absolus des e-mails ; modifiable dans /admin/owner-settings, APP_URL prime (PublicUrlResolver).
             if ($publicUrl !== null) {
                 $settings->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
             }
             // Aucun bundle actif au départ ; l'Owner choisit sa licence puis ses bundles dans /admin/setup.
-            SetupWizard::start($settings, $app->container()->make(AppSettingsService::class)->updateChannel());
+            SetupWizard::start($settings, $app->make(AppSettingsService::class)->updateChannel());
 
             $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
 
@@ -143,13 +142,12 @@ final class WebInstaller
             $this->copyTree($source . '/storage', $this->basePath . '/storage', '');
             $this->writeFile('config/database.local.php', '<?php return ' . var_export($database, true) . ';' . PHP_EOL);
 
-            $app = new Application($this->basePath);
-            $app->boot();
+            $app = require $this->basePath . '/bootstrap/boot.php';
             $migrations = (new MigrationRunner($app))->run();
 
             // Comme scripts/db-migrate.php : migrations en attente des bundles installés dynamiquement.
             $bundleRunner = new BundleMigrationRunner($app);
-            foreach ($app->container()->make(InstalledBundleRepositoryInterface::class)->all() as $bundle) {
+            foreach ($app->make(InstalledBundleRepositoryInterface::class)->all() as $bundle) {
                 $path = $this->basePath . "/storage/bundles/{$bundle['slug']}/{$bundle['active_version']}/database/migrations";
                 $migrations += count($bundleRunner->runPendingFor((string) $bundle['slug'], $path));
             }
@@ -158,13 +156,13 @@ final class WebInstaller
                 $bundles[] = ['slug' => (string) $slug, 'version' => (string) ($entry['active_version'] ?? '')];
             }
 
-            $users = $app->container()->make(UserRepositoryInterface::class)->countActive();
+            $users = $app->make(UserRepositoryInterface::class)->countActive();
             if ($users === 0) {
                 throw new InstallFailure('install_import_error_empty', ['name' => $source]);
             }
 
             if ($publicUrl !== null) {
-                $app->container()->make(AppSettingsRepositoryInterface::class)->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
+                $app->make(AppSettingsRepositoryInterface::class)->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
             }
 
             $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
@@ -246,7 +244,7 @@ final class WebInstaller
     private function createOwner(Application $app, InstallInput $in): int
     {
         $now = date('Y-m-d H:i:s');
-        $owner = $app->container()->make(UserRepositoryInterface::class)->save([
+        $owner = $app->make(UserRepositoryInterface::class)->save([
             'first_name'    => $in->firstName,
             'last_name'     => $in->lastName,
             'display_name'  => $in->firstName . ' ' . $in->lastName,
@@ -259,11 +257,11 @@ final class WebInstaller
 
         // AuthService::isAdmin() lit role_assignments (RBAC dynamique) — sans cette affectation, le compte créé par
         // l'installateur ne serait pas reconnu comme Owner.
-        $ownerRole = $app->container()->make(RoleRepositoryInterface::class)->findBySlug('owner');
+        $ownerRole = $app->make(RoleRepositoryInterface::class)->findBySlug('owner');
         if ($ownerRole === null) {
             throw new \RuntimeException('Rôle « owner » introuvable après les migrations.');
         }
-        $app->container()->make(RoleAssignmentRepositoryInterface::class)
+        $app->make(RoleAssignmentRepositoryInterface::class)
             ->assign((int) $owner['id'], (int) $ownerRole['id'], 'global', null);
 
         return (int) $owner['id'];

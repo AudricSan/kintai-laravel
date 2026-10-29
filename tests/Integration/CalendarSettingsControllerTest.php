@@ -7,7 +7,7 @@ namespace kintai\Tests\Integration;
 use kintai\Core\Auth\UserAnonymizer;
 use kintai\Core\Auth\CredentialRevoker;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;

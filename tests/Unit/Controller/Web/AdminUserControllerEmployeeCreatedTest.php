@@ -9,7 +9,7 @@ use kintai\Core\Auth\OwnerGuard;
 use kintai\Core\Auth\PermissionService;
 use kintai\Core\BundleContract\Bundle;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\Events;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
@@ -47,7 +47,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
 
     protected function setUp(): void
     {
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
         Log::setContainer($container);
         $this->received = [];

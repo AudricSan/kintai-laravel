@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Mail\MailerService;
 use kintai\Core\Mail\MailTransportInterface;

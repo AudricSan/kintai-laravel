@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Core\Services;
 
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Extension\PendingRequests;
 use kintai\Core\Repositories\ShiftRepositoryInterface;

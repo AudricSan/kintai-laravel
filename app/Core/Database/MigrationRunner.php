@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Application;
+use Illuminate\Foundation\Application;
 
 final class MigrationRunner
 {
@@ -16,7 +16,7 @@ final class MigrationRunner
 
     public function __construct(Application $app)
     {
-        $this->capsule = $app->container()->make(Capsule::class);
+        $this->capsule = $app->make(Capsule::class);
         $this->migrationsPath = $app->basePath('database/migrations/php');
         
         if (!is_dir($this->migrationsPath)) {

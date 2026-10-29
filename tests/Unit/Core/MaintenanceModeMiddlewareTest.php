@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\ServiceUnavailableException;
 use kintai\Core\Middleware\MaintenanceModeMiddleware;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
@@ -26,7 +26,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new Container();
+        $this->container = new \kintai\Tests\Support\TestContainer();
     }
 
     protected function tearDown(): void

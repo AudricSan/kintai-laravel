@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\BundleContract\Bundle;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Tests\Support\FakeBundleManagerFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -43,7 +43,7 @@ final class HelpersBundleAssetTest extends TestCase
     protected function tearDown(): void
     {
         $instance = new \ReflectionProperty(Container::class, 'instance');
-        $instance->setValue(null, null);
+        $instance->setValue(null, new \kintai\Tests\Support\TestContainer());
     }
 
     public function testReturnsNullWhenBundleInactive(): void
@@ -78,6 +78,7 @@ final class HelpersBundleAssetTest extends TestCase
 
     public function testReturnsNullWhenContainerHasNoBundleManagerYet(): void
     {
+        \Illuminate\Container\Container::getInstance()->offsetUnset(\kintai\Core\BundleManager::class);
         // N'appelle jamais Container::getInstance()->instance(BundleManager::class, ...) :
         // simule le tout début du boot, avant que BundleServiceProvider n'ait tourné.
         $this->assertNull(bundle_asset('notebook', 'css/notebook.css'));

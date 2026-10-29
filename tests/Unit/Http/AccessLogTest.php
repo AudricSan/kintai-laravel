@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Http;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Services\Log;
@@ -26,6 +26,7 @@ final class AccessLogTest extends TestCase
     {
         Log::reset();
         app()->forgetInstance(AppSettingsRepositoryInterface::class);
+        app()->forgetInstance(\kintai\Core\Services\AppSettingsService::class);
     }
 
     private function terminate(LogRepositoryInterface $logs, string $uri, int $status): void
@@ -33,8 +34,9 @@ final class AccessLogTest extends TestCase
         $settings = $this->createStub(AppSettingsRepositoryInterface::class);
         $settings->method('all')->willReturnCallback(fn() => $this->storedSettings);
         app()->instance(AppSettingsRepositoryInterface::class, $settings);
+        app()->forgetInstance(\kintai\Core\Services\AppSettingsService::class);
 
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $logs);
         Log::setContainer($container);
 

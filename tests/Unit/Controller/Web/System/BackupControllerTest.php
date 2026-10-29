@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\JsonLanguageRepository;
@@ -87,7 +87,7 @@ final class BackupControllerTest extends TestCase
         $_GET = [];
         \kintai\Core\Services\Log::reset();
 
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 
     private function setPrivate(object $obj, string $prop, mixed $value): void
@@ -459,7 +459,7 @@ final class BackupControllerTest extends TestCase
     public function testRestoreLogsBackupRestoredAction(): void
     {
         $logs = $this->createMock(\kintai\Core\Repositories\LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(\kintai\Core\Repositories\LogRepositoryInterface::class, $logs);
         \kintai\Core\Services\Log::setContainer($container);
 
@@ -486,7 +486,7 @@ final class BackupControllerTest extends TestCase
     public function testDeleteLogsBackupDeletedAction(): void
     {
         $logs = $this->createMock(\kintai\Core\Repositories\LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(\kintai\Core\Repositories\LogRepositoryInterface::class, $logs);
         \kintai\Core\Services\Log::setContainer($container);
 

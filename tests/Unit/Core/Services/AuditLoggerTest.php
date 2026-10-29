@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Core\Services;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
@@ -26,7 +26,7 @@ final class AuditLoggerTest extends TestCase
         $repo->method('record')->willReturnCallback(function (...$args): void {
             $this->contexts[] = $args[6];
         });
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(LogRepositoryInterface::class, $repo);
         Log::setContainer($container);
     }

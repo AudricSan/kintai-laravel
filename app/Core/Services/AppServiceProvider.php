@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
-use kintai\Core\ServiceProvider;
-use kintai\Core\Container;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Container\Container;
 use kintai\Core\Cron\BackupJob;
 use kintai\Core\Cron\CronRunner;
 use kintai\Core\Cron\LicenseCheckJob;
@@ -51,7 +51,7 @@ final class AppServiceProvider extends ServiceProvider
 
     private function registerMail(): void
     {
-        $this->container->singleton(MailerService::class, function (Container $c) {
+        $this->app->singleton(MailerService::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/mail.php';
             $config = file_exists($path) ? require $path : [];
             // L'expéditeur réglé par l'Owner l'emporte sur config/mail.php. Base pas encore prête (installation) :
@@ -66,7 +66,7 @@ final class AppServiceProvider extends ServiceProvider
 
     private function registerPush(): void
     {
-        $this->container->singleton(PushNotificationService::class, function (Container $c) {
+        $this->app->singleton(PushNotificationService::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/push.php';
             $config = file_exists($path) ? require $path : [];
             return new PushNotificationService($config, $c->make(DevicePushTokenRepositoryInterface::class));
@@ -75,9 +75,9 @@ final class AppServiceProvider extends ServiceProvider
 
     private function registerLogging(): void
     {
-        $this->container->singleton(AuditLogger::class, fn() => new AuditLogger());
+        $this->app->singleton(AuditLogger::class, fn() => new AuditLogger());
 
-        Log::setContainer($this->container);
+        Log::setContainer($this->app);
     }
 
     /**
@@ -101,7 +101,7 @@ final class AppServiceProvider extends ServiceProvider
 
     private function registerBusinessServices(): void
     {
-        $this->container->singleton(NotificationService::class, fn(Container $c) => new NotificationService(
+        $this->app->singleton(NotificationService::class, fn(Container $c) => new NotificationService(
             $c->make(NotificationRepositoryInterface::class),
             $c->make(PushNotificationService::class),
             $c->make(TranslationService::class),
@@ -112,7 +112,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(NotificationMailer::class),
             self::notificationQueue($c),
         ));
-        $this->container->singleton(NotificationChannelStatus::class, function (Container $c) {
+        $this->app->singleton(NotificationChannelStatus::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/push.php';
 
             return new NotificationChannelStatus(
@@ -125,32 +125,32 @@ final class AppServiceProvider extends ServiceProvider
                 file_exists($path) ? require $path : [],
             );
         });
-        $this->container->singleton(HttpTransportInterface::class, fn() => new CurlHttpTransport());
-        $this->container->singleton(UnsubscribeTokens::class,fn(Container $c) => new UnsubscribeTokens($c->make(AppSettingsRepositoryInterface::class)));
-        $this->container->singleton(NotificationMailer::class, fn(Container $c) => new NotificationMailer(
+        $this->app->singleton(HttpTransportInterface::class, fn() => new CurlHttpTransport());
+        $this->app->singleton(UnsubscribeTokens::class,fn(Container $c) => new UnsubscribeTokens($c->make(AppSettingsRepositoryInterface::class)));
+        $this->app->singleton(NotificationMailer::class, fn(Container $c) => new NotificationMailer(
             $c->make(MailerService::class),
             $c->make(PublicUrlResolver::class),
             $c->make(UnsubscribeTokens::class),
             $c->make(TranslationService::class),
         ));
-        $this->container->singleton(VapidKeyStore::class, fn(Container $c) => new VapidKeyStore($c->make(AppSettingsRepositoryInterface::class)));
-        $this->container->singleton(WebPushService::class, fn(Container $c) => new WebPushService(
+        $this->app->singleton(VapidKeyStore::class, fn(Container $c) => new VapidKeyStore($c->make(AppSettingsRepositoryInterface::class)));
+        $this->app->singleton(WebPushService::class, fn(Container $c) => new WebPushService(
             $c->make(WebPushSubscriptionRepositoryInterface::class),
             $c->make(VapidKeyStore::class),
             null,
             $c->make(WebPushEndpointValidator::class),
         ));
-        $this->container->singleton(NotificationPreferenceService::class, fn(Container $c) => new NotificationPreferenceService(
+        $this->app->singleton(NotificationPreferenceService::class, fn(Container $c) => new NotificationPreferenceService(
             $c->make(NotificationPreferenceRepositoryInterface::class),
             $c->make(NotificationTypeRegistry::class),
             $c->make(UserRepositoryInterface::class),
         ));
         
-        $this->container->singleton(IcalService::class, fn(Container $c) => new IcalService(
+        $this->app->singleton(IcalService::class, fn(Container $c) => new IcalService(
             $c->make(TranslationService::class),
         ));
         
-        $this->container->singleton(PasswordResetService::class, fn(Container $c) => new PasswordResetService(
+        $this->app->singleton(PasswordResetService::class, fn(Container $c) => new PasswordResetService(
             $c->make(PasswordResetRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(MailerService::class),
@@ -158,37 +158,37 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(TranslationService::class),
         ));
 
-        $this->container->singleton(AppSettingsService::class, fn(Container $c) => new AppSettingsService($c->make(AppSettingsRepositoryInterface::class)));
+        $this->app->singleton(AppSettingsService::class, fn(Container $c) => new AppSettingsService($c->make(AppSettingsRepositoryInterface::class)));
 
-        $this->container->singleton(PublicUrlResolver::class, fn(Container $c) => new PublicUrlResolver($c->make(AppSettingsService::class)));
+        $this->app->singleton(PublicUrlResolver::class, fn(Container $c) => new PublicUrlResolver($c->make(AppSettingsService::class)));
 
-        $this->container->singleton(MascotResolver::class, fn(Container $c) => new MascotResolver($c->make(AppSettingsService::class)));
+        $this->app->singleton(MascotResolver::class, fn(Container $c) => new MascotResolver($c->make(AppSettingsService::class)));
 
-        $this->container->singleton(ShiftServiceInterface::class, fn(Container $c) => new ShiftService(
+        $this->app->singleton(ShiftServiceInterface::class, fn(Container $c) => new ShiftService(
             $c->make(ShiftRepositoryInterface::class),
             $c->make(ShiftTypeRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
         ));
 
         // Partagé : les réglages de publication lus une fois servent à tous les filtres de la requête.
-        $this->container->singleton(SchedulePublication::class, fn(Container $c) => new SchedulePublication(
+        $this->app->singleton(SchedulePublication::class, fn(Container $c) => new SchedulePublication(
             $c->make(StoreRepositoryInterface::class),
             $c->make(ShiftRepositoryInterface::class),
             $c->make(NotificationService::class),
         ));
 
         // Pointages lus à chaque appel (Attendances::current()) : les bundles actifs de la requête font foi.
-        $this->container->bind(TimesheetService::class, fn(Container $c) => new TimesheetService(
+        $this->app->bind(TimesheetService::class, fn(Container $c) => new TimesheetService(
             $c->make(ShiftRepositoryInterface::class),
         ));
 
-        $this->container->singleton(LicenseTokenVerifier::class, function (Container $c) {
+        $this->app->singleton(LicenseTokenVerifier::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/license_server.php';
             $config = file_exists($path) ? require $path : [];
             return new LicenseTokenVerifier($config['public_key_pem'] ?? null);
         });
 
-        $this->container->singleton(LicenseClientService::class, function (Container $c) {
+        $this->app->singleton(LicenseClientService::class, function (Container $c) {
             $path = dirname(dirname(dirname(__DIR__))) . '/config/license_server.php';
             $config = file_exists($path) ? require $path : [];
             return new LicenseClientService(
@@ -198,20 +198,20 @@ final class AppServiceProvider extends ServiceProvider
             );
         });
 
-        $this->container->singleton(PlanLimitService::class, fn(Container $c) => new PlanLimitService(
+        $this->app->singleton(PlanLimitService::class, fn(Container $c) => new PlanLimitService(
             $c->make(StoreRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(LicenseClientService::class),
         ));
 
         // Points d'extension des bundles (navigation…) : une instance par requête, qui garde ses résultats en cache.
-        $this->container->singleton(\kintai\Core\Extension\ExtensionRegistry::class, fn(Container $c) => new \kintai\Core\Extension\ExtensionRegistry(
+        $this->app->singleton(\kintai\Core\Extension\ExtensionRegistry::class, fn(Container $c) => new \kintai\Core\Extension\ExtensionRegistry(
             $c->make(\kintai\Core\BundleManager::class),
         ));
         // Ventes journalières (contrat 1.14), aussi exposées aux bundles (kintai\Contract\Services\Sales).
-        $this->container->bind(\kintai\Core\Extension\Sales::class, fn() => \kintai\Core\Extension\Sales::current());
+        $this->app->bind(\kintai\Core\Extension\Sales::class, fn() => \kintai\Core\Extension\Sales::current());
 
-        $this->container->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
+        $this->app->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
             $c->make(StoreRepositoryInterface::class),
             $c->make(StoreUserRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
@@ -221,7 +221,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(\kintai\Core\Repositories\RoleAssignmentRepositoryInterface::class),
         ));
 
-        $this->container->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
+        $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
             $c->make(StoreRepositoryInterface::class),
             $c->make(ShiftRepositoryInterface::class),
             $c->make(ShiftTypeRepositoryInterface::class),
@@ -232,18 +232,18 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(\kintai\Core\Extension\Sales::class),
         ));
 
-        $this->container->singleton(BackupService::class, fn(Container $c) => new BackupService(
+        $this->app->singleton(BackupService::class, fn(Container $c) => new BackupService(
             $c->make(Capsule::class),
         ));
 
-        $this->container->singleton(AppResetService::class, fn(Container $c) => new AppResetService(
+        $this->app->singleton(AppResetService::class, fn(Container $c) => new AppResetService(
             $c->make(Capsule::class),
             $c->make(MigrationRunner::class),
         ));
 
-        $this->container->singleton(UpdateService::class, fn() => new UpdateService());
+        $this->app->singleton(UpdateService::class, fn() => new UpdateService());
 
-        $this->container->singleton(GithubUpdateService::class, fn(Container $c) => new GithubUpdateService(
+        $this->app->singleton(GithubUpdateService::class, fn(Container $c) => new GithubUpdateService(
             $c->make(UpdateService::class),
             $c->make(BackupService::class),
             $c->make(MigrationRunner::class),
@@ -252,16 +252,16 @@ final class AppServiceProvider extends ServiceProvider
 
         // Binding explicite requis (même raison que GithubUpdateService juste au-dessus) :
         // le constructeur a un paramètre ?\Closure.
-        $this->container->singleton(GithubIssueService::class, fn() => new GithubIssueService());
+        $this->app->singleton(GithubIssueService::class, fn() => new GithubIssueService());
 
         // Même raison (paramètre ?\Closure) : BundleRegistryClient et BundleInstallerService.
-        $this->container->singleton(BundleRegistryClient::class, fn() => new BundleRegistryClient());
+        $this->app->singleton(BundleRegistryClient::class, fn() => new BundleRegistryClient());
 
         // Questions de l'assistant qui recommandent des bundles (config/setup-questions.php).
-        $this->container->singleton(\kintai\Core\Setup\SetupQuestionnaire::class, fn() => \kintai\Core\Setup\SetupQuestionnaire::fromConfig(BASE_PATH . '/config/setup-questions.php'));
+        $this->app->singleton(\kintai\Core\Setup\SetupQuestionnaire::class, fn() => \kintai\Core\Setup\SetupQuestionnaire::fromConfig(BASE_PATH . '/config/setup-questions.php'));
 
         // Assistant de configuration : bundles du catalogue pour un canal, installés comme depuis /admin/bundles/market.
-        $this->container->singleton(SetupWizard::class, fn(Container $c) => new SetupWizard(
+        $this->app->singleton(SetupWizard::class, fn(Container $c) => new SetupWizard(
             $c->make(\kintai\Core\Repositories\AppSettingsRepositoryInterface::class),
             static function (string $channel) use ($c): array {
                 $entries = [];
@@ -291,7 +291,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(PlanLimitService::class),
         ));
 
-        $this->container->singleton(BundleInstallerService::class, fn(Container $c) => new BundleInstallerService(
+        $this->app->singleton(BundleInstallerService::class, fn(Container $c) => new BundleInstallerService(
             $c->make(UpdateService::class),
             $c->make(InstalledBundleRepositoryInterface::class),
             migrationRunner: $c->make(BundleMigrationRunner::class),
@@ -301,18 +301,18 @@ final class AppServiceProvider extends ServiceProvider
         // Binding explicite requis : le constructeur a un paramètre ?\Closure
         // (non "builtin" pour Container::resolveParameter), donc la résolution
         // par réflexion échouerait sinon en essayant d'instancier \Closure.
-        $this->container->singleton(WikiSyncService::class, fn() => new WikiSyncService());
+        $this->app->singleton(WikiSyncService::class, fn() => new WikiSyncService());
 
-        $this->container->singleton(TranslationManagementService::class, fn(Container $c) => new TranslationManagementService(
+        $this->app->singleton(TranslationManagementService::class, fn(Container $c) => new TranslationManagementService(
             $c->make(TranslationRepositoryInterface::class),
         ));
 
         // Détecteurs des notifications système (Owners) ; le service lui-même s'auto-résout.
-        $this->container->singleton(SystemAlertSourceInterface::class, fn(Container $c) => $c->make(SystemAlertDetectors::class));
+        $this->app->singleton(SystemAlertSourceInterface::class, fn(Container $c) => $c->make(SystemAlertDetectors::class));
 
         // Tâches du Core, puis celles des bundles actifs (Bundle::cronJobs(), contrat 1.8 : auto-validate de
         // daily-report, photo-retention de store-photos…).
-        $this->container->singleton(CronRunner::class, function (Container $c) {
+        $this->app->singleton(CronRunner::class, function (Container $c) {
             $runner = new CronRunner($c->make(CronTokenRepositoryInterface::class));
             $runner->register($c->make(BackupJob::class));
             $runner->register($c->make(LogPurgeJob::class));

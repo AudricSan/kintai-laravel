@@ -41,7 +41,6 @@ require BASE_PATH . '/app/Core/helpers.php';
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\StorePhoto\Services\ImageCompressionService;
-use kintai\Core\Application;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
@@ -54,9 +53,8 @@ const MARKER_KEY = 'demo_data_seeded_at';
 
 $force = in_array('--force', $argv, true);
 
-$app = new Application(BASE_PATH);
-$app->boot();
-$c = $app->container();
+$app = require BASE_PATH . '/bootstrap/boot.php';
+$c = $app;
 
 /** @var AppSettingsRepositoryInterface $appSettings */
 $appSettings = $c->make(AppSettingsRepositoryInterface::class);

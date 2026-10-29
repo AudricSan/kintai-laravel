@@ -6,7 +6,7 @@ namespace kintai\Core\Extension;
 
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Services\WidgetGuard;
 
 /**

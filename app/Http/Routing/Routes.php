@@ -69,10 +69,14 @@ final class Routes
             if ($type !== null) {
                 // Paramètre typé : un identifiant devient le segment lisible (slug, numéro d'employé), encodé pour
                 // l'URL (所沢東町店 → %E6%89%80…). Une valeur non numérique est prise comme segment déjà prêt.
-                $binder  = self::binder($type);
-                $segment = $binder !== null && (is_int($value) || (is_string($value) && ctype_digit($value)))
-                    ? $binder->segmentFor((int) $value)
-                    : (string) $value;
+                $segment = (string) $value;
+                if (is_int($value) || (is_string($value) && ctype_digit($value))) {
+                    try {
+                        $segment = self::binder($type)?->segmentFor((int) $value) ?? $segment;
+                    } catch (\Throwable) {
+                        // Base pas encore migrée : l'identifiant nu reste valable (redirigé en 301 ensuite).
+                    }
+                }
                 $path = str_replace("{{$key}}", rawurlencode($segment), $path);
                 continue;
             }

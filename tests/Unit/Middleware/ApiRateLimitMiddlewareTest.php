@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Middleware;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Exceptions\HttpException;
 use kintai\Core\Middleware\ApiRateLimitMiddleware;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
@@ -41,7 +41,7 @@ final class ApiRateLimitMiddlewareTest extends TestCase
         $repo = $this->createStub(AppSettingsRepositoryInterface::class);
         $repo->method('all')->willReturn($setting === null ? [] : [ApiRateLimitMiddleware::SETTING_KEY => $setting]);
 
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(AppSettingsService::class, new AppSettingsService($repo));
 
         return new ApiRateLimitMiddleware($container, new AttemptCounter($this->dir));

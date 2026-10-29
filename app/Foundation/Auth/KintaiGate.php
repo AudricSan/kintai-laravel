@@ -6,7 +6,7 @@ namespace kintai\Foundation\Auth;
 
 use kintai\Core\Auth\PermissionCatalog;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 
 /**
  * Les permissions RBAC de Kintai dans le Gate de Laravel : Gate::allows('shifts.update', $storeId),

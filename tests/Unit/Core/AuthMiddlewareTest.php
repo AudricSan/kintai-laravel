@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Core;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Auth\PermissionService;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\FeatureManager;
 use kintai\Core\Middleware\AuthMiddleware;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
@@ -42,7 +42,7 @@ final class AuthMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->container = new Container();
+        $this->container = new \kintai\Tests\Support\TestContainer();
         $this->view      = new ViewRenderer(sys_get_temp_dir());
         $this->container->instance(ViewRenderer::class, $this->view);
         $this->container->instance(FeatureManager::class, new FeatureManager([]));

@@ -21,7 +21,6 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 require BASE_PATH . '/app/Core/helpers.php';
 
-use kintai\Core\Application;
 use kintai\Core\Database\BundleMigrationRunner;
 use kintai\Core\InstalledBundleAutoloader;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
@@ -31,9 +30,8 @@ use kintai\Core\Services\UpdateService;
 
 kintai_load_env_file(BASE_PATH);
 (new InstalledBundleAutoloader())->register();
-$app = new Application(BASE_PATH);
-$app->boot();
-$c = $app->container();
+$app = require BASE_PATH . '/bootstrap/boot.php';
+$c = $app;
 
 $z = new ZipArchive();
 if ($z->open($zip) !== true) {

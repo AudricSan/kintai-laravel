@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core\Auth;
 
-use kintai\Core\ServiceProvider;
-use kintai\Core\Container;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
@@ -17,7 +17,7 @@ final class AuthServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->container->singleton(
+        $this->app->singleton(
             AuthService::class,
             fn(Container $c) => new AuthService(
                 $c->make(UserRepositoryInterface::class),
@@ -29,7 +29,7 @@ final class AuthServiceProvider extends ServiceProvider
             )
         );
 
-        $this->container->singleton(
+        $this->app->singleton(
             PermissionService::class,
             fn(Container $c) => new PermissionService(
                 $c->make(RoleAssignmentRepositoryInterface::class),

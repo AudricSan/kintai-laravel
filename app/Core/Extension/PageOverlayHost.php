@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\UI\ViewRenderer;
 

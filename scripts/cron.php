@@ -39,7 +39,6 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 require BASE_PATH . '/app/Core/helpers.php';
 
-use kintai\Core\Application;
 use kintai\Core\Cron\CronRunner;
 use kintai\Core\InstalledBundleAutoloader;
 use Illuminate\Http\Request;
@@ -71,16 +70,15 @@ foreach (array_slice($argv, 2) as $arg) {
     }
 }
 
-$app = new Application(BASE_PATH);
-$app->boot();
+$app = require BASE_PATH . '/bootstrap/boot.php';
 
 // Hors requête HTTP, aucun middleware ne choisit la langue : celle par défaut de l'instance (libellés des tâches,
 // textes produits par les tâches).
-$defaultLanguage = $app->container()->make(\kintai\Core\Repositories\LanguageRepositoryInterface::class)->findDefault();
-$app->container()->make(\kintai\Core\Services\TranslationService::class)->setLocale((string) ($defaultLanguage['code'] ?? 'en'));
+$defaultLanguage = $app->make(\kintai\Core\Repositories\LanguageRepositoryInterface::class)->findDefault();
+$app->make(\kintai\Core\Services\TranslationService::class)->setLocale((string) ($defaultLanguage['code'] ?? 'en'));
 
 /** @var CronRunner $runner */
-$runner = $app->container()->make(CronRunner::class);
+$runner = $app->make(CronRunner::class);
 
 if ($ifAvailable && $jobName !== '' && $runner->getJob($jobName) === null) {
     exit(0);

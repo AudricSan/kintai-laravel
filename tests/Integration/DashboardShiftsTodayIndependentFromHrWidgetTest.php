@@ -6,7 +6,7 @@ namespace kintai\Tests\Integration;
 
 use DOMDocument;
 use DOMXPath;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\UI\Controller\Web\HomeController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;

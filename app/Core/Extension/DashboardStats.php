@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Contract\Extension\DashboardStat;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Services\Log;
 
 /**

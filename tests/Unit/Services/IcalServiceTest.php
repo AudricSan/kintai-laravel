@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
 use kintai\Core\Services\IcalService;
@@ -44,7 +44,7 @@ final class IcalServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 
     private function store(): array

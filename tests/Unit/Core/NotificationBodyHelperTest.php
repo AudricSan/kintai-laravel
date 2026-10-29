@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Core;
 
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
 use kintai\Core\Services\TranslationService;
@@ -43,7 +43,7 @@ final class NotificationBodyHelperTest extends TestCase
             return;
         }
         // Aucun service auparavant : le retirer, sinon __() traduirait dans les tests suivants qui attendent la clé.
-        Container::getInstance()->forget(TranslationService::class);
+        Container::getInstance()->offsetUnset(TranslationService::class);
     }
 
     private function lang(string $locale): array

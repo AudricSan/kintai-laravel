@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\AvailabilityRepositoryInterface;
 use kintai\Core\Repositories\IcalTokenRepositoryInterface;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
@@ -36,7 +36,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->previous = self::swapContainer(new Container());
+        $this->previous = self::swapContainer(new \kintai\Tests\Support\TestContainer());
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'en'], ['code' => 'ja']]);

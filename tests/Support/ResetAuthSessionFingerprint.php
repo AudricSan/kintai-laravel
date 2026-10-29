@@ -31,6 +31,9 @@ final class ResetAuthSessionFingerprint implements Extension
                 $app->make("session")->flush();
                 // Les tests de routes installent un routeur vierge (kintai_test_router()) : on remet celui de l'application.
                 $app->instance('router', $GLOBALS['kintai_test_router']);
+                // Sans résolveur de segments (store, employee), les URL gardent les identifiants nus ; un test de routes
+                // typées installe le sien.
+                $app->instance(\kintai\Core\Routing\RouteBinderRegistry::class, new \kintai\Core\Routing\RouteBinderRegistry());
                 \Illuminate\Support\Facades\Route::clearResolvedInstance('router');
                 // Même raison pour les lectures de comptes et de droits gardées le temps d'une requête.
                 \kintai\Core\Database\RequestMemo::flush();

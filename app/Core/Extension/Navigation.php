@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Contract\Extension\NavItem;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 
 /**
  * Navigation de la barre du haut et des préférences de navigation, construite à partir de données :

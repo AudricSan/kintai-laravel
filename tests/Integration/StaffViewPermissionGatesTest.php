@@ -7,7 +7,7 @@ namespace kintai\Tests\Integration;
 use kintai\Contract\Extension\Action;
 use kintai\Core\BundleManager;
 use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Tests\Support\FakeBundleManagerFactory;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -80,8 +80,8 @@ final class StaffViewPermissionGatesTest extends TestCase
         try {
             $html = $this->renderUsersWithAllPermissions();
         } finally {
-            $container->forget(BundleManager::class);
-            $container->forget(ExtensionRegistry::class);
+            $container->offsetUnset(BundleManager::class);
+            $container->offsetUnset(ExtensionRegistry::class);
         }
 
         $this->assertStringContainsString('/admin/users/create', $html);
@@ -261,8 +261,8 @@ final class StaffViewPermissionGatesTest extends TestCase
         try {
             $html = $this->renderEmployeeStats();
         } finally {
-            $container->forget(BundleManager::class);
-            $container->forget(ExtensionRegistry::class);
+            $container->offsetUnset(BundleManager::class);
+            $container->offsetUnset(ExtensionRegistry::class);
         }
 
         $this->assertMatchesRegularExpression('#class="btn btn--primary btn--sm" href="/admin/stores/4/reports/salary/create\?user_id=9">💰 #', $html);

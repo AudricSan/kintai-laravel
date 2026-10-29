@@ -8,7 +8,7 @@ use kintai\Contract\Extension\ProfileSection;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\BundleContract\Bundle;
 use kintai\Core\BundleManager;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\AvailabilityRepositoryInterface;
 use kintai\Core\Repositories\IcalTokenRepositoryInterface;
@@ -73,7 +73,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, $bundles);
 
-        (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, null);
+        (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, new \kintai\Tests\Support\TestContainer());
         Container::getInstance()->instance(BundleManager::class, $manager);
         Container::getInstance()->instance(ExtensionRegistry::class, new ExtensionRegistry($manager));
     }

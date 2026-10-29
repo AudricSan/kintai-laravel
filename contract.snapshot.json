@@ -23,7 +23,7 @@
         },
         "kintai\\Contract\\Container": {
             "status": "stable",
-            "target": "kintai\\Core\\Container"
+            "target": "Illuminate\\Container\\Container"
         },
         "kintai\\Contract\\Cron\\CronJob": {
             "status": "stable",

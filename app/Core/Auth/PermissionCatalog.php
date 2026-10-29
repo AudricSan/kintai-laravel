@@ -47,7 +47,7 @@ final class PermissionCatalog
     {
         $registry = null;
         try {
-            $container = \kintai\Core\Container::getInstance();
+            $container = \Illuminate\Container\Container::getInstance();
             if ($container->has(\kintai\Core\Extension\ExtensionRegistry::class)) {
                 $registry = $container->make(\kintai\Core\Extension\ExtensionRegistry::class);
             }

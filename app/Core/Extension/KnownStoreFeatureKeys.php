@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Extension;
 
 use kintai\Core\BundleDiscoveryService;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\InstalledBundleAutoloader;
 
 /**

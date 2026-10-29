@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Core\Jobs;
 
-use Illuminate\Container\Container;
-use Illuminate\Foundation\Application;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use kintai\Core\Services\NotificationService;
-use kintai\Http\KintaiHttp;
 
 /**
  * Envoi d'une notification déjà enregistrée vers ses canaux externes (push mobile, web push, e-mail), hors de la
@@ -45,11 +42,6 @@ final class DeliverNotification implements ShouldQueue
     {
         // Après une requête web (file « deferred »), Kintai est démarré. Dans `php artisan queue:work` (file
         // « database »), ses services n'existent qu'une fois démarré, comme pour une requête.
-        $laravel = Container::getInstance();
-        if (!$laravel instanceof Application) {
-            throw new \RuntimeException('DeliverNotification : application Laravel introuvable.');
-        }
-
-        KintaiHttp::app($laravel)->container()->make(NotificationService::class)->deliver($this);
+        app(NotificationService::class)->deliver($this);
     }
 }

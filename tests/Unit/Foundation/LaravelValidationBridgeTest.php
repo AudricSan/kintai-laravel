@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Foundation;
 
 use Illuminate\Container\Container as IlluminateContainer;
 use Illuminate\Validation\Factory;
-use kintai\Core\Container;
+use Illuminate\Container\Container;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Services\TranslationService;
@@ -30,7 +30,7 @@ final class LaravelValidationBridgeTest extends TestCase
 
         $service = new TranslationService($translations, $languages);
         $service->setLocale('fr');
-        $container = new Container();
+        $container = new \kintai\Tests\Support\TestContainer();
         $container->instance(TranslationService::class, $service);
         Container::setInstance($container);
     }

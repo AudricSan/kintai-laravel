@@ -8,7 +8,6 @@
 
 declare(strict_types=1);
 
-use kintai\Core\Application;
 use kintai\Core\Database\BundleMigrationRunner;
 use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
@@ -18,12 +17,11 @@ require __DIR__ . '/../bootstrap/standalone.php';
 
 $dryRun = in_array('--dry-run', $argv, true);
 
-$app = new Application(dirname(__DIR__));
-$app->boot();
+$app = require BASE_PATH . '/bootstrap/boot.php';
 
 $runner = new MigrationRunner($app);
 $bundleRunner = new BundleMigrationRunner($app);
-$installedBundles = $app->container()->make(InstalledBundleRepositoryInterface::class);
+$installedBundles = $app->make(InstalledBundleRepositoryInterface::class);
 
 if ($dryRun) {
     $pending = $runner->getPendingMigrations();
