@@ -7,8 +7,8 @@ namespace kintai\Bundles\Installed\Notebook\Controllers\Api;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class NotebookController
 {
@@ -29,21 +29,21 @@ final class NotebookController
 
         $items = $this->permissions->restrictToScope($this->authUser($request), 'notebook.view', $items);
 
-        return Response::json(Paginator::paginate($items, $page, $limit));
+        return response()->json(Paginator::paginate($items, $page, $limit));
     }
 
     /** GET /api/v1/notebook-entries/{id} */
     public function show(Request $request): Response
     {
         $item = $this->requireEntry($request, 'notebook.view');
-        return Response::json($item);
+        return response()->json($item);
     }
 
     /** POST /api/v1/notebook-entries */
     public function store(Request $request): Response
     {
         $authUser = $this->authUser($request);
-        $body     = $request->json() ?? [];
+        $body     = $request->json()->all() ?? [];
 
         // Liste blanche : ni id (upsert d'une note existante), ni author_id, ni pinned, ni created_at venus du client.
         $content = trim((string) ($body['content'] ?? ''));
@@ -63,7 +63,7 @@ final class NotebookController
             throw new \kintai\Contract\Exceptions\ForbiddenException(__('notebook_error_forbidden'));
         }
 
-        return Response::json($this->notes->save([
+        return response()->json($this->notes->save([
             'author_id'  => (int) ($authUser['id'] ?? 0),
             'store_id'   => $storeId,
             'content'    => $content,
@@ -78,7 +78,7 @@ final class NotebookController
     {
         $item = $this->requireEntry($request, 'notebook.create');
         $id   = (int) $item['id'];
-        $body = $request->json() ?? [];
+        $body = $request->json()->all() ?? [];
 
         // Seuls le texte et l'expiration sont modifiables : store_id, pinned (réservé à notebook.manage), created_at et author_id restent ceux de la note.
         $data = ['id' => $id];
@@ -92,7 +92,7 @@ final class NotebookController
         if (array_key_exists('expires_at', $body)) {
             $data['expires_at'] = $body['expires_at'];
         }
-        return Response::json($this->notes->save($data));
+        return response()->json($this->notes->save($data));
     }
 
     /** DELETE /api/v1/notebook-entries/{id} */
@@ -100,19 +100,19 @@ final class NotebookController
     {
         $item = $this->requireEntry($request, 'notebook.create');
         $this->notes->delete((int) $item['id']);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     /** Charge la note par id et vérifie $permissionKey OU l'auteur sur son store réel. */
     private function requireEntry(Request $request, string $permissionKey): array
     {
         $authUser = $this->authUser($request);
-        $id       = (int) $request->param('id');
+        $id       = (int) $request->route('id');
         $item     = $this->notes->findById($id);
 
         if ($item === null) {

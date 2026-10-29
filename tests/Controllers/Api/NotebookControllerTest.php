@@ -11,7 +11,7 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -74,8 +74,8 @@ final class NotebookControllerTest extends TestCase
 
     private function requestFor(int $userId): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;
     }
 
@@ -96,7 +96,7 @@ final class NotebookControllerTest extends TestCase
         ]);
 
         $response = $this->controller()->index($this->requestFor(9));
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertSame([1], array_column($data['data'], 'id'));
     }
@@ -122,7 +122,7 @@ final class NotebookControllerTest extends TestCase
         $req->setRouteParams(['id' => '5']);
 
         $response = $this->controller()->show($req);
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertSame(5, $data['id']);
     }
@@ -152,7 +152,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->store($req);
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     public function testUpdateStripsAuthorIdFromThePayloadSoItCanNeverChangeOwnership(): void
@@ -196,7 +196,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->destroy($req);
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     // --- Audit du 03/10/2026 : liste blanche à la création et à la modification ---
@@ -214,7 +214,7 @@ final class NotebookControllerTest extends TestCase
 
         $req = $this->withJsonBody($this->requestFor(9), ['id' => 5, 'content' => 'x', 'store_id' => 1, 'pinned' => 1, 'author_id' => 1]);
 
-        $this->assertSame(201, $this->controller()->store($req)->status());
+        $this->assertSame(201, $this->controller()->store($req)->getStatusCode());
     }
 
     public function testStoreForbidsAnOrganisationWideNoteWithoutGlobalScope(): void

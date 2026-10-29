@@ -9,8 +9,8 @@ use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterf
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
@@ -57,7 +57,7 @@ final class NotebookController
             return $pinCmp !== 0 ? $pinCmp : strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
         });
 
-        $user   = $request->getAttribute('auth_user') ?? [];
+        $user   = $request->attributes->get('auth_user') ?? [];
         $userId = (int) ($user['id'] ?? 0);
 
         $usersMap  = $this->buildUsersMap();
@@ -76,7 +76,7 @@ final class NotebookController
             $this->notifs->markReadFor($userId, 'notebook_entry', array_map(fn(array $n) => (int) $n['id'], $entries));
         }
 
-        return Response::html($this->view->render('notebook::notebook', [
+        return response($this->view->render('notebook::notebook', [
             'title'         => __('bundle_notebook'),
             'highlight_id'  => (int) $request->query('highlight', 0),
             'entries'       => $entries,
@@ -95,12 +95,12 @@ final class NotebookController
      */
     public function store(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user') ?? [];
+        $user   = $request->attributes->get('auth_user') ?? [];
         $userId = (int) ($user['id'] ?? 0);
 
         $content = trim((string) $request->post('content', ''));
         if ($content === '') {
-            return Response::redirect($this->base() . '/notebook?error=empty_content');
+            return redirect()->away($this->base() . '/notebook?error=empty_content');
         }
 
         $storeIdRaw = trim((string) $request->post('store_id', ''));
@@ -108,7 +108,7 @@ final class NotebookController
 
         if ($storeId === null) {
             if ($this->managedIds($request) !== null) {
-                return Response::redirect($this->base() . '/notebook?error=forbidden');
+                return redirect()->away($this->base() . '/notebook?error=forbidden');
             }
         } else {
             $this->assertStoreAccess($request, $storeId);
@@ -137,7 +137,7 @@ final class NotebookController
 
         $this->notifyMembers($storeId, (int) ($saved['id'] ?? 0), $userId, $content);
 
-        return Response::redirect($this->base() . '/notebook?success=created');
+        return redirect()->away($this->base() . '/notebook?success=created');
     }
 
     /** POST /notebook/{id}/update — auteur ou notebook.manage. */
@@ -148,7 +148,7 @@ final class NotebookController
 
         $content = trim((string) $request->post('content', ''));
         if ($content === '') {
-            return Response::redirect($this->base() . '/notebook?error=empty_content');
+            return redirect()->away($this->base() . '/notebook?error=empty_content');
         }
 
         $old = $entry;
@@ -167,7 +167,7 @@ final class NotebookController
             $entry['store_id'] !== null ? (int) $entry['store_id'] : null
         );
 
-        return Response::redirect($this->base() . '/notebook?success=updated');
+        return redirect()->away($this->base() . '/notebook?success=updated');
     }
 
     /** POST /notebook/{id}/delete — auteur ou notebook.manage. */
@@ -187,7 +187,7 @@ final class NotebookController
             $entry['store_id'] !== null ? (int) $entry['store_id'] : null
         );
 
-        return Response::redirect($this->base() . '/notebook?success=deleted');
+        return redirect()->away($this->base() . '/notebook?success=deleted');
     }
 
     /** POST /notebook/{id}/pin — notebook.manage uniquement (déjà gardé par la route). */
@@ -196,18 +196,18 @@ final class NotebookController
         $entry = $this->requireEntry($request);
         // La route n'exige notebook.manage que « quelque part » : sans ce contrôle, le gérant d'un seul
         // magasin épinglait aussi les notes d'un autre magasin ou celles de toute l'organisation.
-        if (!$this->canManageEntry($request->getAttribute('auth_user') ?? [], $entry['store_id'] !== null ? (int) $entry['store_id'] : null)) {
+        if (!$this->canManageEntry($request->attributes->get('auth_user') ?? [], $entry['store_id'] !== null ? (int) $entry['store_id'] : null)) {
             throw new \kintai\Contract\Exceptions\ForbiddenException(__('notebook_error_forbidden'));
         }
         $entry['pinned'] = empty($entry['pinned']) ? 1 : 0;
         $this->notes->save($entry);
 
-        return Response::redirect($this->base() . '/notebook?success=updated');
+        return redirect()->away($this->base() . '/notebook?success=updated');
     }
 
     private function requireEntry(Request $request): array
     {
-        $entry = $this->notes->findById((int) $request->param('id'));
+        $entry = $this->notes->findById((int) $request->route('id'));
         if ($entry === null) {
             throw new \kintai\Contract\Exceptions\NotFoundException(__('notebook_error_entry_not_found'));
         }
@@ -219,7 +219,7 @@ final class NotebookController
 
     private function assertCanEdit(Request $request, array $entry): void
     {
-        $user   = $request->getAttribute('auth_user') ?? [];
+        $user   = $request->attributes->get('auth_user') ?? [];
         $userId = (int) ($user['id'] ?? 0);
         $storeId = $entry['store_id'] !== null ? (int) $entry['store_id'] : null;
 

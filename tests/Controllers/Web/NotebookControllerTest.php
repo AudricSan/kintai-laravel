@@ -13,8 +13,8 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\UI\ViewRenderer;
@@ -99,9 +99,9 @@ final class NotebookControllerTest extends TestCase
 
     private function request(int $userId, ?array $managedStoreIds): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
-        $req->setAttribute('managed_store_ids', $managedStoreIds);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
+        $req->attributes->set('managed_store_ids', $managedStoreIds);
         return $req;
     }
 
@@ -431,7 +431,7 @@ final class NotebookControllerTest extends TestCase
         ]);
 
         $response = $controller->index($this->request(1, null));
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         $this->assertSame([2, 1], $ids);
     }
@@ -463,7 +463,7 @@ final class NotebookControllerTest extends TestCase
         $_GET = ['show_expired' => '1'];
         $response = $controller->index($this->request(1, null));
         $_GET = [];
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         $this->assertSame([3], $ids);
     }

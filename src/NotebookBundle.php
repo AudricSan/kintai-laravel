@@ -18,10 +18,6 @@ final class NotebookBundle extends Bundle
         return 'notebook';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -43,7 +39,7 @@ final class NotebookBundle extends Bundle
 
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(
             NotebookEntryRepositoryInterface::class,
@@ -74,7 +70,7 @@ final class NotebookBundle extends Bundle
     public function dashboardWidgets(): array
     {
         $entries = fn(array $ctx): array => [
-            'notebook_entries' => $this->app->container()->make(TeamNotesWidget::class)
+            'notebook_entries' => $this->app->make(TeamNotesWidget::class)
                 ->entries($ctx['store_ids'] ?? [], $ctx['stores_map'] ?? []),
         ];
 
