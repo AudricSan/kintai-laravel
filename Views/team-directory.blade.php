@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\EmptyState;
 
@@ -42,3 +44,5 @@ use kintai\Contract\View\Components\EmptyState;
     <?php endforeach; ?>
 </div>
 <?php endif; ?>
+
+@endsection

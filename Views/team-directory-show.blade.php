@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Card;
 
@@ -95,3 +97,5 @@ if (!empty($colleague['share_mobile_phone']) && !empty($colleague['mobile_phone'
 <?php
 echo Card::make()->body(ob_get_clean())->render();
 ?>
+
+@endsection

@@ -11,7 +11,7 @@ use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 /**
  * Annuaire des collègues : chaque employé peut consulter le profil enrichi
@@ -25,7 +25,7 @@ use kintai\Contract\View\ViewRenderer;
 final class TeamDirectoryController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
@@ -65,11 +65,11 @@ final class TeamDirectoryController
         }
         usort($colleagues, fn($a, $b) => strcmp($this->displayName($a['user']), $this->displayName($b['user'])));
 
-        return response($this->view->render('team-directory::team-directory', [
+        return response($this->view->make('team-directory::team-directory', [
             'title'      => __('team_directory'),
             'colleagues' => $colleagues,
             'stores_map' => $this->storesMap(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function show(Request $request): Response
@@ -95,12 +95,12 @@ final class TeamDirectoryController
             throw new NotFoundException(__('error_user_not_found'));
         }
 
-        return response($this->view->render('team-directory::team-directory-show', [
+        return response($this->view->make('team-directory::team-directory-show', [
             'title'      => $this->displayName($target),
             'colleague'  => $target,
             'store_ids'  => $this->storeIdsFor($targetId),
             'stores_map' => $this->storesMap(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** @return int[] */

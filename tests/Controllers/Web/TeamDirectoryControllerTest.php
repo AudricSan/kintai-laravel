@@ -12,7 +12,7 @@ use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 final class TeamDirectoryControllerTest extends TestCase
@@ -35,7 +35,7 @@ final class TeamDirectoryControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'team-directory-show');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $view = new ViewRenderer(sys_get_temp_dir());
+        $view = kintai_test_views(sys_get_temp_dir());
         $view->addNamespace('team-directory', $viewDir);
 
         $this->users = $this->createStub(UserRepositoryInterface::class);
