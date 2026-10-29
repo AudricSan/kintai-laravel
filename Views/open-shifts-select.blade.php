@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Table;
@@ -39,3 +41,5 @@ echo Flash::fromQuery('error', ['default' => __('error_generic')])->render();
     })
     ->render()
 ?></div>
+
+@endsection

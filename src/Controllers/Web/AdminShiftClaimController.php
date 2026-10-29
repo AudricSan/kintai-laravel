@@ -18,14 +18,14 @@ use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Services\ShiftServiceInterface;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class AdminShiftClaimController
 {
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -121,7 +121,7 @@ final class AdminShiftClaimController
             $this->notifs->markReadFor($viewerId, 'open_shift', array_map(fn($s) => (int) $s['id'], $shiftsWithClaims));
         }
 
-        return response($this->view->render('shift-claim::open-shifts', [
+        return response($this->view->make('shift-claim::open-shifts', [
             'title'              => __('shift_claim_open_shifts'),
             'highlight_id'       => (int) $request->query('highlight', 0),
             'shifts'             => $shiftsWithClaims,
@@ -133,7 +133,7 @@ final class AdminShiftClaimController
             'claim_status_filter'=> $claimStatusFilter,
             'sort'               => $sort,
             'claim_sort'         => $claimSort,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -155,12 +155,12 @@ final class AdminShiftClaimController
         }));
         usort($shifts, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
 
-        return response($this->view->render('shift-claim::open-shifts-select', [
+        return response($this->view->make('shift-claim::open-shifts-select', [
             'title'      => __('shift_claim_select_shift_to_publish'),
             'shifts'     => $shifts,
             'users_map'  => $this->shiftService->getUsersMap(),
             'stores_map' => $this->buildStoresMap($managedIds),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function publishShift(Request $request): Response

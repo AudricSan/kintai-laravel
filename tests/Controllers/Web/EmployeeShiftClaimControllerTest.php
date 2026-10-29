@@ -18,7 +18,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -50,7 +50,7 @@ final class EmployeeShiftClaimControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $viewDir = sys_get_temp_dir() . '/kintai-shift-claim-views';
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $view->addNamespace('shift-claim', $viewDir);
             $this->controller = new EmployeeShiftClaimController(
                 $view,
@@ -201,7 +201,7 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
         $roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['open_shifts.approve']);
 
-        $view = new ViewRenderer(sys_get_temp_dir());
+        $view = kintai_test_views(sys_get_temp_dir());
         $view->addNamespace('shift-claim', sys_get_temp_dir() . '/kintai-shift-claim-views');
 
         $controller = new EmployeeShiftClaimController(

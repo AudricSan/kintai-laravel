@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Badge;
 use kintai\Contract\View\Components\Button;
@@ -187,3 +189,5 @@ echo $shiftsTable
 <?php endif; ?>
 
 <script src="<?= $BASE_URL ?>/assets/js/modules/type-badges.js"></script>
+
+@endsection

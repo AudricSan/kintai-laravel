@@ -17,7 +17,7 @@ use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
 use kintai\Contract\Http\Concerns\HasStoreFeatureCheck;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class EmployeeShiftClaimController
 {
@@ -25,7 +25,7 @@ final class EmployeeShiftClaimController
     use HasStoreFeatureCheck;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface $stores,
@@ -87,14 +87,14 @@ final class EmployeeShiftClaimController
             $this->notifs->markReadFor($userId, 'open_shift', array_map(fn($s) => (int) $s['id'], $openShifts));
         }
 
-        return response($this->view->render('shift-claim::open-shifts', [
+        return response($this->view->make('shift-claim::open-shifts', [
             'title'      => __('shift_claim_open_shifts'),
             'highlight_id' => (int) $request->query('highlight', 0),
             'shifts'     => $openShifts,
             'types_map'  => $typesMap,
             'stores_map' => $storesMap,
             'can_manage' => false,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function claimShift(Request $request): Response
