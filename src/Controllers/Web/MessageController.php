@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 /**
  * Messagerie interne — partagée entre les routes admin/manager (/admin/messages)
@@ -26,7 +26,7 @@ use kintai\Contract\View\ViewRenderer;
 final class MessageController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -94,14 +94,14 @@ final class MessageController
         $usersMap = $this->buildUsersMap();
         $storesMap = $this->buildStoresMap();
 
-        return response($this->view->render('messaging::messages', [
+        return response($this->view->make('messaging::messages', [
             'threads'    => $threads,
             'users_map'  => $usersMap,
             'stores_map' => $storesMap,
             'tab'        => $tab,
             'user_id'    => $userId,
             'base_path'  => $urlPrefix,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function messagesCompose(Request $request): Response
@@ -124,11 +124,11 @@ final class MessageController
             ));
         }
 
-        return response($this->view->render('messaging::messages-compose', [
+        return response($this->view->make('messaging::messages-compose', [
             'all_stores' => $stores,
             'all_users'  => $users,
             'base_path'  => $urlPrefix,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function messagesSend(Request $request): Response
@@ -222,7 +222,7 @@ final class MessageController
         $usersMap = $this->buildUsersMap();
         $storesMap = $this->buildStoresMap();
 
-        return response($this->view->render('messaging::messages-thread', [
+        return response($this->view->make('messaging::messages-thread', [
             'thread'       => $thread,
             'messages'     => $msgs,
             'participants' => $this->msgRepo->findParticipantsByThread($threadId),
@@ -231,7 +231,7 @@ final class MessageController
             'user_id'      => $userId,
             'base_path'    => $urlPrefix,
             'can_manage'   => $this->isAdminContext($request),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function messagesReply(Request $request): Response

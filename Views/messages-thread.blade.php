@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /** @var array    $thread        Le fil de discussion */
 /** @var array[]  $messages      Messages triés chronologiquement */
@@ -89,3 +91,5 @@ $_canManage = $can_manage ?? true;
 <?php if ($messageStreamJs = bundle_asset('messaging', 'js/message-stream.js')): ?>
 <script src="<?= $messageStreamJs ?>"></script>
 <?php endif; ?>
+
+@endsection

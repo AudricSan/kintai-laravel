@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /** @var array[]  $threads     Fils de discussion enrichis */
 /** @var array    $users_map   id → nom */
@@ -80,3 +82,5 @@
         </div>
     <?php endif; ?>
 </div>
+
+@endsection

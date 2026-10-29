@@ -12,7 +12,7 @@ use kintai\Contract\Data\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /** Ouvrir un fil marque comme lues les notifications « nouveau message » de ce fil, et seulement les siennes. */
@@ -30,7 +30,7 @@ final class MessageThreadNotificationsTest extends TestCase
         }
         touch(sys_get_temp_dir() . '/layout/app.php');
 
-        $view = new ViewRenderer(sys_get_temp_dir());
+        $view = kintai_test_views(sys_get_temp_dir());
         $view->addNamespace('messaging', $dir);
 
         $users = $this->createStub(UserRepositoryInterface::class);

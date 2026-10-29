@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /** @var array[] $all_stores  Stores accessibles */
 /** @var array[] $all_users   Utilisateurs accessibles */
@@ -71,3 +73,5 @@
         </form>
     </div>
 </div>
+
+@endsection
