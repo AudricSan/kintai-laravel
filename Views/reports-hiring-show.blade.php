@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Card;
@@ -81,3 +83,5 @@ ob_start();
 <?php
 echo Card::make()->body(ob_get_clean())->render();
 ?>
+
+@endsection

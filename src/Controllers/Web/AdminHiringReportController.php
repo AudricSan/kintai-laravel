@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Http\Concerns\HasStaffReportCrud;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class AdminHiringReportController
 {
@@ -50,7 +50,7 @@ final class AdminHiringReportController
     ];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly HiringReportRepositoryInterface $hiringReports,
@@ -86,14 +86,14 @@ final class AdminHiringReportController
 
         $reports = $this->hiringReports->findAll($queryStoreIds, $filters);
 
-        return response($this->view->render('hiring-report::reports-hiring', [
+        return response($this->view->make('hiring-report::reports-hiring', [
             'title'        => __('hiring_report_hiring_reports'),
             'stores'       => $allStores,
             'reports'      => $reports,
             'filter_store_id' => $filterStoreId,
             'filter_year'  => $filterYear,
             'filter_month' => $filterMonth,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function createHiringReport(Request $request): Response
@@ -102,13 +102,13 @@ final class AdminHiringReportController
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
-        return response($this->view->render('hiring-report::reports-hiring-form', [
+        return response($this->view->make('hiring-report::reports-hiring-form', [
             'title' => '新規採用報告書 — ' . ($store['name'] ?? ''),
             'store' => $store,
             'users' => $this->storeMembersForReportForm($storeId),
             'mode'  => 'create',
             'report' => [],
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeHiringReport(Request $request): Response

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Card;
@@ -179,3 +181,5 @@ echo Flash::fromQuery('error', ['already_exists' => __('hiring_report_report_alr
         <a href="<?= htmlspecialchars(back_url($base)) ?>" class="btn btn--ghost"><?= __('cancel') ?></a>
     </div>
 </form>
+
+@endsection
