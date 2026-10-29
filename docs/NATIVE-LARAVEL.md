@@ -25,20 +25,23 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 | Vues : `resources/views`, `view()->make()`, `@extends`/`@section`, `view()` partagé | Natif |
 | Namespaces `App\` / `Tests\`, `app/Http/Controllers`, `app/Http/Middleware`, `app/Models`, `app/Services`, `app/Repositories` | Fait |
 | Bundles = service providers Laravel, contrat `kintai\Contract` 1.0.0 (alias de classes vers Laravel) | Natif |
+| Base de données : `config/database.php` standard, variables `DB_*` du `.env` (écrites par l'installateur) | Natif |
+| Conteneur : `Illuminate\Foundation\Application`, alias du contrat par `Container::alias()`, liaisons explicites | Natif |
 | Scripts = commandes Artisan (`php artisan kintai:*`) ; `public/install.php` reste l'installateur web | Natif |
 
 ## Reste à faire
 
-1. **Repositories** : 67 dépôts à réduire au profit d'Eloquent (interfaces gardées seulement là où un test en a besoin).
-2. **Configuration de la base** : `DatabaseConfig` + `config/database.local.php` à remplacer par `config/database.php`
-   standard lu depuis `.env` (`DB_CONNECTION`, `DB_*`), écrit par l'installateur.
-3. **Application** : `App\Foundation\Application` (résolution des alias de classes du contrat, injection des
-   dépendances optionnelles) à supprimer au profit de liaisons explicites ; `RouteBinderRegistry`/`kintai.bind` à remplacer
-   par `Route::bind` et la liaison de modèles.
-4. **Helpers maison** : `base_url()`, `route_url()`, `kintai_load_env_file()`, `kintai_normalize_script_name()` à
-   remplacer par `url()`, `route()` et la configuration standard de Laravel.
-5. **Bundles** : publier les releases, mettre à jour leurs tests et leur `composer.json`, puis le registre
+1. **Repositories** : 67 dépôts au-dessus d'Eloquent (modèles dans `app/Models`) ; à réduire aux seuls cas utiles.
+2. **Routage** : `RouteBinderRegistry`, `kintai.bind` et `KintaiControllerDispatcher` (segments lisibles ↔ identifiants,
+   301 vers l'URL canonique) à remplacer par `Route::bind` / liaison de modèles.
+3. **Flash, anciennes valeurs, erreurs de validation** : `SessionFlash`, `OldInput`, `ValidationFeedback` à remplacer par
+   `session()->flash()`, `old()` et `$errors`.
+4. **Services maison à remplacer** : `MailerService` (→ `Mail`), `Log` (→ canaux de journalisation), limiteurs de débit
+   (`AttemptCounter`, middlewares de limitation → `RateLimiter`), `CronRunner` (→ planificateur), `HttpException` (→ `abort()`).
+5. **Environnement** : `kintai_load_env_file()` (.env.local, .env.ovh) → `APP_ENV` ; `base_url()`, `route_url()`,
+   `kintai_normalize_script_name()` → `url()` / `route()` et document root `public/`.
+6. **Bundles** : publier les releases, mettre à jour leurs tests et leur `composer.json`, puis le registre
    `KintaiBundle/registry.json`.
-6. **Anciennes bases** : une base d'avant ces migrations a un journal `migrations` sans colonne `batch` ; l'importation
+7. **Anciennes bases** : une base d'avant ces migrations a un journal `migrations` sans colonne `batch` ; l'importation
    (`WebInstaller::import()`) le remplace. Une base de développement existante doit être importée ou réinstallée, et
-   son `.env` doit recevoir `APP_KEY` (`php artisan key:generate`).
+   son `.env` doit recevoir `APP_KEY=` puis `php artisan key:generate`.
