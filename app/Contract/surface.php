@@ -22,7 +22,6 @@ return [
     'kintai\\Contract\\Cron\\CronJob' => ['target' => 'kintai\\Core\\Cron\\CronJobInterface', 'status' => 'stable', 'role' => 'Tâche planifiée déclarée par Bundle::cronJobs() (contrat 1.8).'],
     'kintai\\Contract\\Http\\Request' => ['target' => 'Illuminate\\Http\\Request', 'status' => 'stable', 'role' => 'Requête HTTP.'],
     'kintai\\Contract\\Http\\Response' => ['target' => 'Symfony\\Component\\HttpFoundation\\Response', 'status' => 'stable', 'role' => 'Réponse HTTP.'],
-    'kintai\\Contract\\Http\\Router' => ['target' => 'kintai\\Http\\Routing\\RouteRegistrar', 'status' => 'stable', 'role' => 'Déclaration des routes (routes.php).'],
     'kintai\\Contract\\Http\\Paginator' => ['target' => 'kintai\\Core\\Api\\Paginator', 'status' => 'stable', 'role' => 'Pagination des listes d\'API.'],
     'kintai\\Contract\\Http\\Middleware\\AuthMiddleware' => ['target' => 'kintai\\Core\\Middleware\\AuthMiddleware', 'status' => 'stable', 'role' => 'Session web requise.'],
     'kintai\\Contract\\Http\\Middleware\\PermissionMiddleware' => ['target' => 'kintai\\Core\\Middleware\\PermissionMiddleware', 'status' => 'stable', 'role' => 'Permission web requise.'],

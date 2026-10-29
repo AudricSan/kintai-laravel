@@ -28,9 +28,9 @@ function kintai_test_router(): Illuminate\Routing\Router
 }
 
 /** Enregistreur de routes à la manière des bundles ($router->get('/chemin', [Classe::class, 'm'], name: '…')). */
-function kintai_test_registrar(): kintai\Http\Routing\RouteRegistrar
+function kintai_test_registrar(): kintai\Tests\Support\RouteRegistrar
 {
-    return new kintai\Http\Routing\RouteRegistrar(kintai_test_router());
+    return new kintai\Tests\Support\RouteRegistrar(kintai_test_router());
 }
 
 /** Les vraies routes du cœur (routes/web.php et routes/api.php) dans un routeur vierge. */

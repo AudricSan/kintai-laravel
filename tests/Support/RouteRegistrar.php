@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Http\Routing;
+namespace kintai\Tests\Support;
 
 use Illuminate\Routing\Router;
 
 /**
- * Enregistrement de routes à la manière du contrat de bundle ($router->get('/chemin/{id:store}', [Contrôleur::class, 'm'],
- * middleware: [...], name: '...', permission: '...')), au-dessus du routeur de Laravel. Transitoire : les bundles
- * passeront à Route:: avec leur service provider.
+ * Déclare des routes de test en une ligne ($router->get('/chemin', [Contrôleur::class, 'm'], middleware: [...], name: '...',
+ * permission: '...')), au-dessus d'un routeur de Laravel. Les routes de l'application et des bundles s'écrivent en Route::.
  *
  * Une route au même chemin (ou qui ne diffère que par le nom d'un paramètre) qu'une route déjà déclarée est ignorée :
  * la première l'emporte, comme chez Kintai, alors que Laravel garderait la dernière.

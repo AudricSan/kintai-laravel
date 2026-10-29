@@ -10,7 +10,7 @@ use kintai\Core\Middleware\ApiPermissionMiddleware;
 use kintai\Core\Middleware\OwnerOnlyMiddleware;
 use kintai\Core\Middleware\PermissionMiddleware;
 use Illuminate\Routing\Router;
-use kintai\Http\Routing\RouteRegistrar;
+use kintai\Tests\Support\RouteRegistrar;
 use kintai\Http\Routing\Routes;
 use PHPUnit\Framework\TestCase;
 

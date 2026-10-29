@@ -305,7 +305,8 @@ abstract class Bundle extends ServiceProvider
      */
     public function getPath(): string
     {
-        return $this->path;
+        // Sans constructeur (la découverte instancie les bundles pour lire leurs métadonnées), le chemin se résout ici.
+        return $this->path ??= $this->resolvePath();
     }
 
     /**
