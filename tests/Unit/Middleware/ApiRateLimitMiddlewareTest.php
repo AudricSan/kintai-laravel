@@ -8,8 +8,8 @@ use kintai\Core\Container;
 use kintai\Core\Exceptions\HttpException;
 use kintai\Core\Middleware\ApiRateLimitMiddleware;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\AttemptCounter;
 use kintai\Core\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
@@ -57,12 +57,12 @@ final class ApiRateLimitMiddlewareTest extends TestCase
         $_POST = [];
         $_COOKIE = [];
         $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     private function pass(ApiRateLimitMiddleware $mw, Request $req): Response
     {
-        return $mw->handle($req, static fn(Request $r): Response => Response::json(['ok' => true]));
+        return $mw->handle($req, static fn(Request $r): Response => response()->json(['ok' => true]));
     }
 
     public function testBlocksATokenAboveTheConfiguredLimitWithRetryAfter(): void
@@ -70,9 +70,9 @@ final class ApiRateLimitMiddlewareTest extends TestCase
         $mw = $this->middleware('3');
         for ($i = 0; $i < 3; $i++) {
             $response = $this->pass($mw, $this->request('/api/v1/shifts', 'token-a'));
-            $this->assertSame(200, $response->status());
+            $this->assertSame(200, $response->getStatusCode());
         }
-        $this->assertSame('0', $response->headers()['X-RateLimit-Remaining']);
+        $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
 
         try {
             $this->pass($mw, $this->request('/api/v1/shifts', 'token-a'));
@@ -91,16 +91,16 @@ final class ApiRateLimitMiddlewareTest extends TestCase
 
         $response = $this->pass($mw, $this->request('/api/v1/shifts', 'token-b'));
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame('2', $response->headers()['X-RateLimit-Limit']);
-        $this->assertSame('1', $response->headers()['X-RateLimit-Remaining']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('2', $response->headers->get('X-RateLimit-Limit'));
+        $this->assertSame('1', $response->headers->get('X-RateLimit-Remaining'));
     }
 
     public function testWithoutTokenTheLimitAppliesPerIp(): void
     {
         $mw = $this->middleware('1');
         $this->pass($mw, $this->request('/api/v1/auth/ping', null, '10.0.0.1'));
-        $this->assertSame(200, $this->pass($mw, $this->request('/api/v1/auth/ping', null, '10.0.0.2'))->status());
+        $this->assertSame(200, $this->pass($mw, $this->request('/api/v1/auth/ping', null, '10.0.0.2'))->getStatusCode());
 
         $this->expectException(HttpException::class);
         $this->pass($mw, $this->request('/api/v1/auth/ping', null, '10.0.0.1'));
@@ -125,15 +125,15 @@ final class ApiRateLimitMiddlewareTest extends TestCase
             $response = $this->pass($mw, $this->request('/api/v1/shifts', 'token-a'));
         }
 
-        $this->assertSame(200, $response->status());
-        $this->assertArrayNotHasKey('X-RateLimit-Limit', $response->headers());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse($response->headers->has('X-RateLimit-Limit'));
     }
 
     public function testDefaultLimitAppliesWhenNotConfigured(): void
     {
         $response = $this->pass($this->middleware(null), $this->request('/api/v1/shifts', 'token-a'));
 
-        $this->assertSame((string) ApiRateLimitMiddleware::DEFAULT_PER_MINUTE, $response->headers()['X-RateLimit-Limit']);
+        $this->assertSame((string) ApiRateLimitMiddleware::DEFAULT_PER_MINUTE, $response->headers->get('X-RateLimit-Limit'));
     }
 
     public function testWebRoutesAreNotLimited(): void
@@ -143,8 +143,8 @@ final class ApiRateLimitMiddlewareTest extends TestCase
             $response = $this->pass($mw, $this->request('/admin/shifts'));
         }
 
-        $this->assertSame(200, $response->status());
-        $this->assertArrayNotHasKey('X-RateLimit-Limit', $response->headers());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse($response->headers->has('X-RateLimit-Limit'));
     }
 
     public function testTheRawTokenNeverEndsUpInTheCounterFiles(): void

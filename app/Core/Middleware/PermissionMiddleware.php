@@ -8,8 +8,8 @@ use Closure;
 use kintai\Core\Auth\PermissionService;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\UI\ViewRenderer;
 
 /**
@@ -52,7 +52,7 @@ use kintai\UI\ViewRenderer;
  * tests/Unit/Core/PermissionMapsTest fait échouer la suite si une route sous
  * ce middleware n'a ni permission précise ni marqueur 'public' explicite.
  */
-final class PermissionMiddleware implements MiddlewareInterface
+final class PermissionMiddleware
 {
     public function __construct(
         private readonly PermissionService $permissions,
@@ -62,7 +62,7 @@ final class PermissionMiddleware implements MiddlewareInterface
 
     public function handle(Request $request, Closure $next): Response
     {
-        $user    = $request->getAttribute('auth_user') ?? [];
+        $user    = $request->attributes->get('auth_user') ?? [];
         $isOwner = !empty($user['is_admin']); // Owner (rôle système, ponté sur is_admin par AuthService)
 
         if ($isOwner) {
@@ -71,7 +71,7 @@ final class PermissionMiddleware implements MiddlewareInterface
         }
 
         $userId = (int) ($user['id'] ?? 0);
-        $rule   = $request->getAttribute('route_permission');
+        $rule   = $request->attributes->get('route_permission');
         $key    = is_array($rule) ? (string) $rule['perm'] : $rule;
 
         if ($key !== null && $key !== 'public') {
@@ -94,7 +94,7 @@ final class PermissionMiddleware implements MiddlewareInterface
             // portée fine par ressource reste vérifiée par le contrôleur.
             if (is_array($rule) && !empty($rule['membership'])) {
                 $storeParam = $rule['store_param'] ?? 'id';
-                $storeId    = (int) ($request->param($storeParam) ?? 0);
+                $storeId    = (int) ($request->route($storeParam) ?? 0);
                 if ($storeId > 0 && $this->storeUsers->findMembership($storeId, $userId) !== null) {
                     $this->setManagedStoreIds($request, [$storeId]);
                     return $next($request);
@@ -118,7 +118,7 @@ final class PermissionMiddleware implements MiddlewareInterface
         } else {
             $managedIds = $this->permissions->anyGrantedStoreIds($user);
             if ($managedIds === []) {
-                return Response::redirect(base_url() . '/employee');
+                return redirect()->away(base_url() . '/employee');
             }
             $this->setManagedStoreIds($request, $managedIds);
         }
@@ -133,7 +133,7 @@ final class PermissionMiddleware implements MiddlewareInterface
     /** @param int[]|null $storeIds */
     private function setManagedStoreIds(Request $request, ?array $storeIds): void
     {
-        $request->setAttribute('managed_store_ids', $storeIds);
+        $request->attributes->set('managed_store_ids', $storeIds);
         $this->view->share('managed_store_ids', $storeIds);
     }
 }

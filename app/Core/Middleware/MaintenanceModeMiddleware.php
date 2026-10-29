@@ -8,8 +8,8 @@ use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Container;
 use kintai\Core\Exceptions\ServiceUnavailableException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 
 /**
@@ -20,7 +20,7 @@ use kintai\Core\Services\AppSettingsService;
  * L'Owner garde toujours un accès complet (y compris pour se connecter via
  * /login), afin de pouvoir désactiver la maintenance ou vérifier le site.
  */
-final class MaintenanceModeMiddleware implements MiddlewareInterface
+final class MaintenanceModeMiddleware
 {
     private const BYPASS_PREFIXES = ['/api/', '/cron/'];
 
@@ -28,7 +28,7 @@ final class MaintenanceModeMiddleware implements MiddlewareInterface
 
     public function handle(Request $request, Closure $next): Response
     {
-        $uri = $request->uri();
+        $uri = $request->slashPath();
 
         foreach (self::BYPASS_PREFIXES as $prefix) {
             if (str_starts_with($uri, $prefix)) {

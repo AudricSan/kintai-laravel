@@ -8,8 +8,8 @@ use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\InstanceLocale;
 use kintai\Core\Services\LocaleCookie;
 use kintai\Core\Services\TranslationService;
@@ -19,7 +19,7 @@ use kintai\Core\Services\TranslationService;
  * - connecté : langue du profil, sinon langue de l'instance ;
  * - non connecté : sélecteur (session), dernier compte connecté sur ce navigateur (cookie), navigateur, instance.
  */
-final class I18nMiddleware implements MiddlewareInterface
+final class I18nMiddleware
 {
     public function __construct(
         private readonly TranslationService $translationService,

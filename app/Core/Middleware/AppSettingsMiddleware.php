@@ -7,8 +7,8 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\BundleManager;
 use kintai\Core\Container;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\PlanLimitService;
 use kintai\Core\Services\PublicUrlResolver;
@@ -16,7 +16,7 @@ use kintai\Core\Services\StorageUsageService;
 use kintai\Core\Services\UpdateService;
 use kintai\UI\ViewRenderer;
 
-final class AppSettingsMiddleware implements MiddlewareInterface
+final class AppSettingsMiddleware
 {
     public function __construct(private readonly Container $container) {}
 

@@ -8,8 +8,8 @@ use kintai\Core\Middleware\I18nMiddleware;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\TranslationService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -62,12 +62,12 @@ final class I18nMiddlewareTest extends TestCase
         $_COOKIE = [];
         $_FILES = [];
 
-        return new Request();
+        return Request::capture();
     }
 
     private function noop(): \Closure
     {
-        return fn(Request $req) => Response::json(['ok' => true]);
+        return fn(Request $req) => response()->json(['ok' => true]);
     }
 
     public function testNoActiveLanguagesFallsBackToEnglish(): void

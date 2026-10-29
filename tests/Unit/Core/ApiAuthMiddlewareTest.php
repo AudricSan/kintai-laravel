@@ -8,8 +8,8 @@ use kintai\Core\Container;
 use kintai\Core\Middleware\ApiAuthMiddleware;
 use kintai\Core\Repositories\ApiTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -53,7 +53,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $_COOKIE = [];
         $_FILES  = [];
 
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void
@@ -65,7 +65,7 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     private function noop(): \Closure
     {
-        return fn(Request $req) => Response::json(['ok' => true]);
+        return fn(Request $req) => response()->json(['ok' => true]);
     }
 
     // -------------------------------------------------------------------------
@@ -77,8 +77,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest();
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('MISSING_TOKEN', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('MISSING_TOKEN', $response->getContent());
     }
 
     public function testNonBearerSchemeReturns401(): void
@@ -86,8 +86,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Basic abc123');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('MISSING_TOKEN', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('MISSING_TOKEN', $response->getContent());
     }
 
     public function testEmptyTokenAfterBearerReturns401(): void
@@ -95,8 +95,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer ');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('MISSING_TOKEN', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('MISSING_TOKEN', $response->getContent());
     }
 
     // -------------------------------------------------------------------------
@@ -110,8 +110,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer unknowntoken');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('INVALID_TOKEN', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('INVALID_TOKEN', $response->getContent());
     }
 
     public function testExpiredTokenReturns401(): void
@@ -126,8 +126,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('EXPIRED_TOKEN', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('EXPIRED_TOKEN', $response->getContent());
     }
 
     public function testTokenWithNoExpiryIsNotExpired(): void
@@ -148,7 +148,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testTokenWithEmptyExpiryIsNotExpired(): void
@@ -169,7 +169,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -186,8 +186,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('INACTIVE_USER', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('INACTIVE_USER', $response->getContent());
     }
 
     public function testInactiveUserReturns401(): void
@@ -202,8 +202,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('INACTIVE_USER', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('INACTIVE_USER', $response->getContent());
     }
 
     public function testSoftDeletedUserReturns401(): void
@@ -218,8 +218,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(401, $response->status());
-        $this->assertStringContainsString('INACTIVE_USER', $response->body());
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('INACTIVE_USER', $response->getContent());
     }
 
     // -------------------------------------------------------------------------
@@ -238,15 +238,15 @@ final class ApiAuthMiddlewareTest extends TestCase
         $capturedReq = null;
         $next        = function (Request $req) use (&$capturedReq): Response {
             $capturedReq = $req;
-            return Response::json(['ok' => true]);
+            return response()->json(['ok' => true]);
         };
 
         $req      = $this->makeRequest('Bearer validtoken');
         $response = $this->middleware->handle($req, $next);
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame($userRecord, $capturedReq->getAttribute('auth_user'));
-        $this->assertSame($tokenRecord, $capturedReq->getAttribute('api_token'));
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame($userRecord, $capturedReq->attributes->get('auth_user'));
+        $this->assertSame($tokenRecord, $capturedReq->attributes->get('api_token'));
     }
 
     public function testValidTokenUpdatesLastUsedAt(): void
@@ -279,6 +279,6 @@ final class ApiAuthMiddlewareTest extends TestCase
         $req      = $this->makeRequest('Bearer validtoken');
         $response = $this->middleware->handle($req, $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 }

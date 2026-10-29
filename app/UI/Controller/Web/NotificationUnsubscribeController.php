@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\UI\Controller\Web;
 
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\UnsubscribeTokens;
 use kintai\UI\ViewRenderer;
@@ -69,13 +69,13 @@ final class NotificationUnsubscribeController
     /** @param array{user: int, type: string, channel: string, query: string}|null $link */
     private function page(string $state, ?array $link, Request $request, int $status = 200): Response
     {
-        $response = Response::html($this->view->render('auth.notification-unsubscribe', [
+        $response = response($this->view->render('auth.notification-unsubscribe', [
             'title'      => __('notif_unsub_title'),
             'state'      => $state,
             'type_label' => $link !== null ? __('notif_' . $link['type']) : '',
             'action'     => $link !== null ? route_url('notifications.unsubscribe.confirm') . '?' . $link['query'] : '',
         ], 'layout.guest'));
 
-        return $status === 200 ? $response : $response->withStatus($status);
+        return $status === 200 ? $response : $response->setStatusCode($status);
     }
 }

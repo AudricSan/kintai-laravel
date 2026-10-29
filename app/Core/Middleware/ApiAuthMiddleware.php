@@ -8,15 +8,15 @@ use Closure;
 use kintai\Core\Container;
 use kintai\Core\Repositories\ApiTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware d'authentification API Bearer token.
  * Lit le header Authorization: Bearer <token>, valide le token,
  * charge l'utilisateur et l'attache à la requête.
  */
-final class ApiAuthMiddleware implements MiddlewareInterface
+final class ApiAuthMiddleware
 {
     public function __construct(private readonly Container $container) {}
 
@@ -25,7 +25,7 @@ final class ApiAuthMiddleware implements MiddlewareInterface
         $token = $this->extractToken($request);
 
         if ($token === null) {
-            return Response::json(['error' => __('error_token_missing'), 'code' => 'MISSING_TOKEN'], 401);
+            return response()->json(['error' => __('error_token_missing'), 'code' => 'MISSING_TOKEN'], 401);
         }
 
         /** @var ApiTokenRepositoryInterface $tokens */
@@ -33,11 +33,11 @@ final class ApiAuthMiddleware implements MiddlewareInterface
         $record = $tokens->findByToken(hash_token($token));
 
         if ($record === null) {
-            return Response::json(['error' => __('error_token_invalid'), 'code' => 'INVALID_TOKEN'], 401);
+            return response()->json(['error' => __('error_token_invalid'), 'code' => 'INVALID_TOKEN'], 401);
         }
 
         if (!empty($record['expires_at']) && strtotime($record['expires_at']) < time()) {
-            return Response::json(['error' => __('error_token_expired'), 'code' => 'EXPIRED_TOKEN'], 401);
+            return response()->json(['error' => __('error_token_expired'), 'code' => 'EXPIRED_TOKEN'], 401);
         }
 
         /** @var UserRepositoryInterface $users */
@@ -45,7 +45,7 @@ final class ApiAuthMiddleware implements MiddlewareInterface
         $user  = $users->findById((int) $record['user_id']);
 
         if ($user === null || empty($user['is_active']) || !empty($user['deleted_at'])) {
-            return Response::json(['error' => __('error_user_inactive'), 'code' => 'INACTIVE_USER'], 401);
+            return response()->json(['error' => __('error_user_inactive'), 'code' => 'INACTIVE_USER'], 401);
         }
 
         // Mettre à jour last_used_at sans bloquer la requête en cas d'échec
@@ -54,8 +54,8 @@ final class ApiAuthMiddleware implements MiddlewareInterface
         } catch (\Throwable) {
         }
 
-        $request->setAttribute('auth_user', $user);
-        $request->setAttribute('api_token', $record);
+        $request->attributes->set('auth_user', $user);
+        $request->attributes->set('api_token', $record);
 
         return $next($request);
     }

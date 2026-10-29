@@ -6,8 +6,8 @@ namespace kintai\Core\Middleware;
 
 use Closure;
 use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\AttemptCounter;
 
 /**
@@ -27,7 +27,7 @@ use kintai\Core\Security\AttemptCounter;
  * Contrepartie assumée : quiconque connaît un identifiant peut verrouiller ce compte pendant la
  * fenêtre en enchaînant les échecs. C'est le prix d'une limite par compte ; elle expire seule.
  */
-final class LoginThrottleMiddleware implements MiddlewareInterface
+final class LoginThrottleMiddleware
 {
     public const IP_MAX_FAILURES = 20;
     public const ACCOUNT_MAX_FAILURES = 10;
@@ -51,7 +51,7 @@ final class LoginThrottleMiddleware implements MiddlewareInterface
 
         $response = $next($request);
 
-        if ($request->getAttribute('auth_failed') === true) {
+        if ($request->attributes->get('auth_failed') === true) {
             $this->counter->hit($ipKey, self::WINDOW);
             if ($accountKey !== null) {
                 $this->counter->hit($accountKey, self::WINDOW);
@@ -70,7 +70,7 @@ final class LoginThrottleMiddleware implements MiddlewareInterface
      */
     private function identifier(Request $request): ?string
     {
-        $json = $request->json();
+        $json = $request->json()->all();
         $json = is_array($json) ? $json : [];
         $field = static fn(string $name): string => trim((string) ($request->post($name) ?? $json[$name] ?? ''));
 

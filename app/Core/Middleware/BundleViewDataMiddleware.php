@@ -8,8 +8,8 @@ use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Container;
 use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\Log;
 use kintai\UI\ViewRenderer;
 
@@ -21,7 +21,7 @@ use kintai\UI\ViewRenderer;
  *
  * Remplace DailyReportNavMiddleware et MessageCountMiddleware.
  */
-final class BundleViewDataMiddleware implements MiddlewareInterface
+final class BundleViewDataMiddleware
 {
     /** Variables que seul le Core partage : un bundle ne peut pas les déclarer. */
     public const RESERVED = [

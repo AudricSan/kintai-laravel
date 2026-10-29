@@ -15,8 +15,8 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\VapidKeyStore;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -81,7 +81,7 @@ final class NotificationMiddlewareTest extends TestCase
 
     private function noop(): \Closure
     {
-        return fn(Request $req) => Response::json(['ok' => true]);
+        return fn(Request $req) => response()->json(['ok' => true]);
     }
 
     /** Réglages en mémoire ; clés VAPID présentes ou non. */
@@ -110,7 +110,7 @@ final class NotificationMiddlewareTest extends TestCase
         $this->bindNotifications();
         $middleware = new NotificationMiddleware($this->container);
 
-        $middleware->handle(new Request(), $this->noop());
+        $middleware->handle(Request::capture(), $this->noop());
 
         $this->assertSame([], $this->view->get('push_web_config'));
     }
@@ -122,7 +122,7 @@ final class NotificationMiddlewareTest extends TestCase
         $this->bindNotifications();
         $middleware = new NotificationMiddleware($this->container);
 
-        $middleware->handle(new Request(), $this->noop());
+        $middleware->handle(Request::capture(), $this->noop());
 
         $this->assertSame([], $this->view->get('push_web_config'));
     }
@@ -134,7 +134,7 @@ final class NotificationMiddlewareTest extends TestCase
         $this->bindNotifications();
         $middleware = new NotificationMiddleware($this->container);
 
-        $middleware->handle(new Request(), $this->noop());
+        $middleware->handle(Request::capture(), $this->noop());
 
         $this->assertSame(['vapid_key' => 'public-key-789'], $this->view->get('push_web_config'));
     }
@@ -146,7 +146,7 @@ final class NotificationMiddlewareTest extends TestCase
         $this->bindNotifications();
         $middleware = new NotificationMiddleware($this->container);
 
-        $middleware->handle(new Request(), $this->noop());
+        $middleware->handle(Request::capture(), $this->noop());
 
         $this->assertSame([], $this->view->get('push_web_config'));
     }
@@ -170,9 +170,9 @@ final class NotificationMiddlewareTest extends TestCase
         });
         $middleware = new NotificationMiddleware($this->container);
 
-        $response = $middleware->handle(new Request(), $this->noop());
+        $response = $middleware->handle(Request::capture(), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(0, $this->view->get('unread_notifications_count'));
     }
 
@@ -189,7 +189,7 @@ final class NotificationMiddlewareTest extends TestCase
         $repo->method('findUnreadByUser')->willReturn([['id' => 40, 'type' => 't'], ['id' => 38, 'type' => 't']]);
         $this->container->instance(NotificationRepositoryInterface::class, $repo);
 
-        (new NotificationMiddleware($this->container))->handle(new Request(), $this->noop());
+        (new NotificationMiddleware($this->container))->handle(Request::capture(), $this->noop());
 
         $this->assertSame(42, $this->view->get('notifications_last_id'));
         $this->assertSame([40, 38], array_column($this->view->get('notifications_dropdown'), 'id'));
@@ -211,11 +211,11 @@ final class NotificationMiddlewareTest extends TestCase
 
         $_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
         try {
-            $response = (new NotificationMiddleware($this->container))->handle(new Request(), $this->noop());
+            $response = (new NotificationMiddleware($this->container))->handle(Request::capture(), $this->noop());
         } finally {
             unset($_SERVER['HTTP_X_REQUESTED_WITH']);
         }
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 }

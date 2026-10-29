@@ -6,8 +6,8 @@ namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Middleware\OwnerOnlyMiddleware;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,23 +28,23 @@ final class OwnerOnlyMiddlewareTest extends TestCase
 
     private function next(): \Closure
     {
-        return fn(Request $r) => Response::html('ok');
+        return fn(Request $r) => response('ok');
     }
 
     public function testAllowsOwner(): void
     {
-        $request = new Request();
-        $request->setAttribute('auth_user', ['id' => 1, 'is_admin' => 1]);
+        $request = Request::capture();
+        $request->attributes->set('auth_user', ['id' => 1, 'is_admin' => 1]);
 
         $response = $this->middleware->handle($request, $this->next());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testRejectsNonOwner(): void
     {
-        $request = new Request();
-        $request->setAttribute('auth_user', ['id' => 10, 'is_admin' => 0]);
+        $request = Request::capture();
+        $request->attributes->set('auth_user', ['id' => 10, 'is_admin' => 0]);
 
         $this->expectException(ForbiddenException::class);
         $this->middleware->handle($request, $this->next());
@@ -52,7 +52,7 @@ final class OwnerOnlyMiddlewareTest extends TestCase
 
     public function testRejectsMissingAuthUser(): void
     {
-        $request = new Request();
+        $request = Request::capture();
 
         $this->expectException(ForbiddenException::class);
         $this->middleware->handle($request, $this->next());

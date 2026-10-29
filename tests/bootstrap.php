@@ -12,3 +12,14 @@ $_ENV['SESSION_DRIVER'] = $_SERVER['SESSION_DRIVER'] = 'array';
 $app = $GLOBALS["kintai_test_app"] = require dirname(__DIR__) . "/bootstrap/standalone.php";
 $app->loadEnvironmentFrom('.env.testing');
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+// Aide des tests : donne à une requête construite à la main les paramètres qu'une route Laravel lui aurait donnés.
+Illuminate\Http\Request::macro('setRouteParams', function (array $params): void {
+    /** @var Illuminate\Http\Request $this */
+    $route = new Illuminate\Routing\Route(['GET'], '/', []);
+    $route->bind($this);
+    foreach ($params as $name => $value) {
+        $route->setParameter($name, $value);
+    }
+    $this->setRouteResolver(static fn () => $route);
+});

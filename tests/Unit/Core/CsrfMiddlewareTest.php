@@ -6,8 +6,8 @@ namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Exceptions\HttpException;
 use kintai\Core\Middleware\CsrfMiddleware;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -39,33 +39,33 @@ final class CsrfMiddlewareTest extends TestCase
             $_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
         }
         $_POST = $fields;
-        return new Request();
+        return Request::capture();
     }
 
     private function handle(Request $request): Response
     {
-        return (new CsrfMiddleware())->handle($request, fn() => Response::html('suite'));
+        return (new CsrfMiddleware())->handle($request, fn() => response('suite'));
     }
 
     public function testAValidTokenLetsTheRequestThrough(): void
     {
-        $this->assertSame('suite', $this->handle($this->post('/Kintai/profile', ['_token' => 'bon-jeton']))->body());
+        $this->assertSame('suite', $this->handle($this->post('/Kintai/profile', ['_token' => 'bon-jeton']))->getContent());
     }
 
     public function testAjaxGetsAJson419(): void
     {
         $response = $this->handle($this->post('/Kintai/notifications/read-all', ['_token' => 'périmé'], true));
 
-        $this->assertSame(419, $response->status());
-        $this->assertSame('CSRF_TOKEN_MISMATCH', json_decode($response->body(), true)['code']);
+        $this->assertSame(419, $response->getStatusCode());
+        $this->assertSame('CSRF_TOKEN_MISMATCH', json_decode($response->getContent(), true)['code']);
     }
 
     public function testAnExpiredSessionGoesBackToTheLoginPageWithAMessage(): void
     {
         $response = $this->handle($this->post('/Kintai/login', ['_token' => 'périmé']));
 
-        $this->assertSame(302, $response->status());
-        $this->assertSame('/Kintai/login?error=expired', $response->headers()['Location'] ?? null, 'sous-dossier conservé');
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame('/Kintai/login?error=expired', $response->headers->get('Location'), 'sous-dossier conservé');
     }
 
     public function testAConnectedUserGetsTheTranslated419Page(): void

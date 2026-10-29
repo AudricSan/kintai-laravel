@@ -7,8 +7,8 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Container;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\UI\ViewRenderer;
 
 /**
@@ -22,7 +22,7 @@ use kintai\UI\ViewRenderer;
  * L'API (/api/*) n'est pas concernée : elle refuse de délivrer un jeton tant que le mot de passe est trop faible
  * (Api\V1\AuthController::login()).
  */
-final class PasswordReminderMiddleware implements MiddlewareInterface
+final class PasswordReminderMiddleware
 {
     /** Pas de page HTML derrière ces chemins : rien à rappeler, et la fenêtre ne doit pas y être consommée. */
     private const SKIP_PREFIXES = ['/api/', '/cron/', '/assets/', '/bundle-assets/', '/avatar/', '/storage/'];
@@ -31,7 +31,7 @@ final class PasswordReminderMiddleware implements MiddlewareInterface
 
     public function handle(Request $request, Closure $next): Response
     {
-        $uri = $request->uri();
+        $uri = $request->slashPath();
         foreach (self::SKIP_PREFIXES as $prefix) {
             if (str_starts_with($uri, $prefix)) {
                 return $next($request);
@@ -46,7 +46,7 @@ final class PasswordReminderMiddleware implements MiddlewareInterface
             }
             $recommended = $auth->mustChangePassword();
             // La fenêtre est réservée à une vraie page : un appel AJAX (notifications…) ne doit pas la consommer.
-            $popup = $request->method() === 'GET' && !$request->wantsJson() && $auth->consumePasswordReminder();
+            $popup = $request->method() === 'GET' && !$request->wantsJsonResponse() && $auth->consumePasswordReminder();
 
             $view = $this->container->make(ViewRenderer::class);
             $view->share('password_change_recommended', $recommended);

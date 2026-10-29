@@ -7,8 +7,8 @@ namespace kintai\Tests\Unit\Middleware;
 use Closure;
 use kintai\Core\Exceptions\HttpException;
 use kintai\Core\Middleware\LoginThrottleMiddleware;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
@@ -39,16 +39,13 @@ final class LoginThrottleMiddlewareTest extends TestCase
     /** @param array<string,string> $post @param array<string,mixed> $json */
     private function request(string $ip, array $post = [], array $json = []): Request
     {
-        $_SERVER = ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/login', 'SCRIPT_NAME' => '/index.php', 'REMOTE_ADDR' => $ip];
-        $_GET = [];
-        $_POST = $post;
-        $_COOKIE = [];
-        $_FILES = [];
-        $req = new Request();
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $json);
-        return $req;
+        $server = ['REMOTE_ADDR' => $ip];
+        if ($json !== []) {
+            $server['CONTENT_TYPE'] = 'application/json';
+            return Request::create('/login', 'POST', [], [], [], $server, json_encode($json));
+        }
+
+        return Request::create('/login', 'POST', $post, [], [], $server);
     }
 
     /** Le contrôleur simulé : signale un échec (ou non) comme le fait le vrai contrôleur de connexion. */
@@ -56,10 +53,10 @@ final class LoginThrottleMiddlewareTest extends TestCase
     {
         return static function (Request $r) use ($fails): Response {
             if ($fails) {
-                $r->setAttribute('auth_failed', true);
-                return Response::redirect('/login?error=1');
+                $r->attributes->set('auth_failed', true);
+                return redirect('/login?error=1');
             }
-            return Response::redirect('/employee');
+            return redirect('/employee');
         };
     }
 
@@ -84,7 +81,7 @@ final class LoginThrottleMiddlewareTest extends TestCase
         // 50 employés d'un même magasin (même IP) se connectent à la suite : aucun blocage.
         for ($i = 0; $i < 50; $i++) {
             $res = $this->attempt($this->request('10.0.0.1', ['email' => "emp{$i}@shop.test"]), false);
-            $this->assertSame(302, $res->status());
+            $this->assertSame(302, $res->getStatusCode());
         }
     }
 
@@ -105,7 +102,7 @@ final class LoginThrottleMiddlewareTest extends TestCase
         }
 
         $res = $this->attempt($this->request('198.51.100.7', ['email' => 'someone.else@shop.test']), false);
-        $this->assertSame(302, $res->status());
+        $this->assertSame(302, $res->getStatusCode());
     }
 
     public function testIpIsBlockedAfterTooManyFailuresAcrossDifferentAccounts(): void
@@ -128,7 +125,7 @@ final class LoginThrottleMiddlewareTest extends TestCase
         // Le compteur est reparti de zéro : un nouvel échec ne bloque pas.
         $this->attempt($this->request('10.0.0.1', ['email' => 'emp@shop.test']), true);
         $res = $this->attempt($this->request('10.0.0.1', ['email' => 'emp@shop.test']), false);
-        $this->assertSame(302, $res->status());
+        $this->assertSame(302, $res->getStatusCode());
     }
 
     public function testBlockedResponseCarriesRetryAfter(): void
@@ -164,7 +161,7 @@ final class LoginThrottleMiddlewareTest extends TestCase
         $this->assertBlocked($this->request('198.51.100.7', ['login_mode' => 'code', 'employee_code' => 'E042', 'store_code' => 'TOKYO']));
         // Même code employé dans un autre magasin : c'est un autre compte.
         $res = $this->attempt($this->request('198.51.100.7', ['login_mode' => 'code', 'employee_code' => 'E042', 'store_code' => 'OSAKA']), false);
-        $this->assertSame(302, $res->status());
+        $this->assertSame(302, $res->getStatusCode());
     }
 
     public function testApiJsonBodyIdentifiesTheAccount(): void
@@ -185,7 +182,7 @@ final class LoginThrottleMiddlewareTest extends TestCase
         $this->assertBlocked($this->request('203.0.113.9'));
         // Une autre IP n'est pas concernée.
         $res = $this->attempt($this->request('203.0.113.10'), false);
-        $this->assertSame(302, $res->status());
+        $this->assertSame(302, $res->getStatusCode());
     }
 
     public function testFailuresBelowTheThresholdAreNotBlocked(): void
@@ -195,6 +192,6 @@ final class LoginThrottleMiddlewareTest extends TestCase
         }
 
         $res = $this->attempt($this->request('10.0.0.1', ['email' => 'clumsy@shop.test']), false);
-        $this->assertSame(302, $res->status());
+        $this->assertSame(302, $res->getStatusCode());
     }
 }

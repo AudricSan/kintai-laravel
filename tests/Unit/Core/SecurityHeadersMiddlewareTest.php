@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Middleware\SecurityHeadersMiddleware;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;
 
 final class SecurityHeadersMiddlewareTest extends TestCase
@@ -23,17 +23,16 @@ final class SecurityHeadersMiddlewareTest extends TestCase
         $_COOKIE = [];
         $_FILES = [];
 
-        return new Request();
+        return Request::capture();
     }
 
     public function testCspAllowsBlobImagesForClientSidePreviews(): void
     {
         $middleware = new SecurityHeadersMiddleware();
 
-        $response = $middleware->handle($this->makeRequest(), fn(Request $req) => Response::json(['ok' => true]));
+        $response = $middleware->handle($this->makeRequest(), fn(Request $req) => response()->json(['ok' => true]));
 
-        $headers = (fn() => $this->headers)->call($response);
-        $csp = $headers['Content-Security-Policy'] ?? '';
+        $csp = (string) $response->headers->get("Content-Security-Policy");
         $this->assertMatchesRegularExpression("/img-src[^;]*\bblob:/", $csp);
     }
 }

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace kintai\Core\Middleware;
 
 use Closure;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\CspNonce;
 
-final class SecurityHeadersMiddleware implements MiddlewareInterface
+final class SecurityHeadersMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
@@ -18,9 +18,9 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
 
         $response = $next($request);
 
-        $response->withHeader('X-Content-Type-Options', 'nosniff');
-        $response->withHeader('X-Frame-Options', 'SAMEORIGIN');
-        $response->withHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         // form-action autorise aussi https://github.com : le formulaire "Signaler un problème" du footer
         // (SupportController::reportIssue) redirige vers GithubIssueService::fallbackUrl() quand aucun jeton
         // GITHUB_ISSUES_TOKEN n'est configuré sur l'instance — sans cette exception, Chrome bloque
@@ -31,10 +31,10 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
         // Pas de 'unsafe-inline' pour les styles non plus : un attribut style="…" est ignoré, un <style> doit porter le
         // nonce. Les valeurs dynamiques passent par style_class() (kintai\UI\InlineStyles), émises dans un <style nonce>.
         // Modifier element.style en JavaScript (CSSOM) n'est pas concerné.
-        $response->withHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'nonce-{$nonce}'; img-src 'self' data: blob:; font-src 'self'; form-action 'self' https://github.com; frame-ancestors 'self'; object-src 'none'");
+        $response->headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'nonce-{$nonce}'; img-src 'self' data: blob:; font-src 'self'; form-action 'self' https://github.com; frame-ancestors 'self'; object-src 'none'");
 
         if ($request->isSecure()) {
-            $response->withHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
         return $response;

@@ -6,8 +6,8 @@ namespace kintai\Tests\Unit\Middleware;
 
 use kintai\Core\Exceptions\HttpException;
 use kintai\Core\Middleware\RateLimiterMiddleware;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
@@ -38,22 +38,22 @@ final class RateLimiterMiddlewareTest extends TestCase
         $_POST = [];
         $_COOKIE = [];
         $_FILES = [];
-        $req = new Request();
+        $req = Request::capture();
         if ($routeName !== null) {
-            $req->setAttribute('route_name', $routeName);
+            $req->attributes->set('route_name', $routeName);
         }
         return $req;
     }
 
     private function pass(Request $req): Response
     {
-        return $this->middleware->handle($req, static fn(Request $r): Response => Response::redirect('/ok'));
+        return $this->middleware->handle($req, static fn(Request $r): Response => redirect('/ok'));
     }
 
     public function testAllowsTheFirstFiveRequestsThenBlocks(): void
     {
         for ($i = 0; $i < 5; $i++) {
-            $this->assertSame(302, $this->pass($this->request('10.0.0.1', '/forgot-password'))->status());
+            $this->assertSame(302, $this->pass($this->request('10.0.0.1', '/forgot-password'))->getStatusCode());
         }
 
         $this->expectException(HttpException::class);
@@ -82,7 +82,7 @@ final class RateLimiterMiddlewareTest extends TestCase
             $this->pass($this->request('10.0.0.1', '/forgot-password'));
         }
 
-        $this->assertSame(302, $this->pass($this->request('10.0.0.2', '/forgot-password'))->status());
+        $this->assertSame(302, $this->pass($this->request('10.0.0.2', '/forgot-password'))->getStatusCode());
     }
 
     public function testDifferentRoutesAreCountedSeparately(): void
@@ -91,7 +91,7 @@ final class RateLimiterMiddlewareTest extends TestCase
             $this->pass($this->request('10.0.0.1', '/forgot-password', 'password.forgot.post'));
         }
 
-        $this->assertSame(302, $this->pass($this->request('10.0.0.1', '/support/report-issue', 'support.report_issue'))->status());
+        $this->assertSame(302, $this->pass($this->request('10.0.0.1', '/support/report-issue', 'support.report_issue'))->getStatusCode());
     }
 
     public function testChangingTheResetTokenDoesNotDodgeTheLimit(): void

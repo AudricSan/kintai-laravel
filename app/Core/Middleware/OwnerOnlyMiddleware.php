@@ -6,8 +6,8 @@ namespace kintai\Core\Middleware;
 
 use Closure;
 use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Réserve une route à l'Owner (rôle système, ponté sur is_admin par AuthService).
@@ -21,11 +21,11 @@ use kintai\Core\Response;
  * selon Request::wantsJson() par Application::handleException(), comme le
  * reste de l'application.
  */
-final class OwnerOnlyMiddleware implements MiddlewareInterface
+final class OwnerOnlyMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->getAttribute('auth_user') ?? [];
+        $user = $request->attributes->get('auth_user') ?? [];
         if (empty($user['is_admin'])) {
             throw new ForbiddenException(__('error_owner_only'));
         }

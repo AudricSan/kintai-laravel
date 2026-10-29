@@ -12,8 +12,8 @@ use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Router;
 use kintai\Core\Services\EmployeeStatsService;
 use kintai\Core\Services\TranslationService;
@@ -24,7 +24,7 @@ use kintai\UI\ViewRenderer;
  * Redirige vers /login si l'utilisateur n'est pas connecté.
  * Attache l'utilisateur courant à la requête ET le partage avec les vues.
  */
-final class AuthMiddleware implements MiddlewareInterface
+final class AuthMiddleware
 {
     public function __construct(
         private readonly Container $container,
@@ -36,13 +36,13 @@ final class AuthMiddleware implements MiddlewareInterface
         $auth = $this->container->make(AuthService::class);
 
         if (!$auth->check()) {
-            return Response::redirect(base_url() . '/login');
+            return redirect()->away(base_url() . '/login');
         }
 
         $user = $auth->user();
 
         // Rend l'utilisateur disponible dans la requête (pour les contrôleurs)
-        $request->setAttribute('auth_user', $user);
+        $request->attributes->set('auth_user', $user);
 
         // Partage avec toutes les vues (pour le layout)
         $view = $this->container->make(ViewRenderer::class);

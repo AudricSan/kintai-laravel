@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Middleware;
 
 use kintai\Core\Middleware\SecurityHeadersMiddleware;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,15 +23,12 @@ final class SecurityHeadersMiddlewareTest extends TestCase
         $_GET = $_POST = $_COOKIE = $_FILES = [];
 
         $nonceSeenByView = '';
-        $response = (new SecurityHeadersMiddleware())->handle(new Request(), function () use (&$nonceSeenByView): Response {
+        $response = (new SecurityHeadersMiddleware())->handle(Request::capture(), function () use (&$nonceSeenByView): Response {
             $nonceSeenByView = csp_nonce();
-            return Response::html('ok');
+            return response('ok');
         });
 
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-
-        return [$ref->getValue($response)['Content-Security-Policy'] ?? '', $nonceSeenByView];
+        return [(string) $response->headers->get('Content-Security-Policy'), $nonceSeenByView];
     }
 
     private function scriptSrc(string $csp): string

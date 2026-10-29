@@ -7,8 +7,8 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Container;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\VapidKeyStore;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
 use kintai\UI\ViewRenderer;
@@ -26,13 +26,13 @@ use kintai\UI\ViewRenderer;
  * Sans effet sur les requêtes AJAX/JSON (dont le poll de la cloche) : elles ne rendent pas la topbar, inutile d'y
  * refaire ces requêtes à chaque appel.
  */
-final class NotificationMiddleware implements MiddlewareInterface
+final class NotificationMiddleware
 {
     public function __construct(private readonly Container $container) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->wantsJson()) {
+        if ($request->wantsJsonResponse()) {
             return $next($request);
         }
 

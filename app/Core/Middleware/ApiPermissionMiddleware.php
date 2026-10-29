@@ -7,8 +7,8 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Auth\PermissionService;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Autorisation RBAC de l'API v1. Doit être placé après ApiAuthMiddleware
@@ -21,7 +21,7 @@ use kintai\Core\Response;
  * consulté — un Owner passe parce que son affectation au rôle système
  * accorde toutes les clés via PermissionService.
  */
-final class ApiPermissionMiddleware implements MiddlewareInterface
+final class ApiPermissionMiddleware
 {
     public function __construct(
         private readonly PermissionService $permissions,
@@ -30,12 +30,12 @@ final class ApiPermissionMiddleware implements MiddlewareInterface
 
     public function handle(Request $request, Closure $next): Response
     {
-        $rule = $request->getAttribute('route_permission');
+        $rule = $request->attributes->get('route_permission');
         if ($rule === null || $rule === 'public') {
             return $next($request);
         }
 
-        $user   = $request->getAttribute('auth_user') ?? [];
+        $user   = $request->attributes->get('auth_user') ?? [];
         $userId = (int) ($user['id'] ?? 0);
 
         $permissionKey     = is_array($rule) ? (string) $rule['perm'] : $rule;
@@ -63,7 +63,7 @@ final class ApiPermissionMiddleware implements MiddlewareInterface
             return $next($request);
         }
 
-        return Response::json([
+        return response()->json([
             'error' => __('error_api_permission_insufficient', ['key' => $permissionKey]),
             'code'  => 'FORBIDDEN',
         ], 403);
@@ -76,7 +76,7 @@ final class ApiPermissionMiddleware implements MiddlewareInterface
      */
     private function targetedUserId(Request $request, string $param): ?int
     {
-        $value = $request->param($param)
+        $value = $request->route($param)
             ?? $request->query($param)
             ?? $request->post($param)
             ?? $request->json($param);
@@ -90,7 +90,7 @@ final class ApiPermissionMiddleware implements MiddlewareInterface
      */
     private function targetedStoreId(Request $request): ?int
     {
-        $value = $request->param('store_id')
+        $value = $request->route('store_id')
             ?? $request->query('store_id')
             ?? $request->post('store_id')
             ?? $request->json('store_id');

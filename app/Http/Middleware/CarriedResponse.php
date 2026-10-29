@@ -44,6 +44,12 @@ final class CarriedResponse extends SymfonyResponse
             if ($response->thrown !== null) {
                 throw $response->thrown;
             }
+            // En-têtes posés par un middleware natif sur le transporteur : repris sur la réponse Kintai.
+            foreach ($response->headers->allPreserveCaseWithoutCookies() as $name => $values) {
+                if (!in_array(strtolower($name), ['cache-control', 'date'], true)) {
+                    $response->kintai->withHeader($name, implode(', ', $values));
+                }
+            }
             return $response->kintai;
         }
 

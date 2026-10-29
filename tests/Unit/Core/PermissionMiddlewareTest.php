@@ -10,8 +10,8 @@ use kintai\Core\Middleware\PermissionMiddleware;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -48,17 +48,17 @@ final class PermissionMiddlewareTest extends TestCase
     /** @param string|array|null $permission Règle telle que déclarée par Route::$permission. */
     private function makeRequest(string|array|null $permission, array $authUser, ?array $managedIds, array $routeParams = []): Request
     {
-        $request = new Request();
-        $request->setAttribute('route_permission', $permission);
-        $request->setAttribute('auth_user', $authUser);
-        $request->setAttribute('managed_store_ids', $managedIds);
+        $request = Request::capture();
+        $request->attributes->set('route_permission', $permission);
+        $request->attributes->set('auth_user', $authUser);
+        $request->attributes->set('managed_store_ids', $managedIds);
         $request->setRouteParams($routeParams);
         return $request;
     }
 
     private function next(): \Closure
     {
-        return fn(Request $r) => Response::html('ok');
+        return fn(Request $r) => response('ok');
     }
 
     /**
@@ -80,7 +80,7 @@ final class PermissionMiddlewareTest extends TestCase
         $request  = $this->makeRequest(null, ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, $this->next());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testPublicRoutePassesThroughWhenAnyPermissionIsGranted(): void
@@ -96,13 +96,13 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request = $this->makeRequest('public', ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
         // Non-régression : sans permission globale, managed_store_ids reste borné au
         // store réel — le fix ci-dessous ne doit pas sur-octroyer un accès illimité.
-        $this->assertSame(200, $response->status());
-        $this->assertSame([1], json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([1], json_decode($response->getContent(), true)['managed']);
     }
 
     /**
@@ -127,11 +127,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request  = $this->makeRequest('public', ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertNull(json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull(json_decode($response->getContent(), true)['managed']);
     }
 
     /** Même scénario que ci-dessus mais pour une route sans permission déclarée du tout ($key = null). */
@@ -148,11 +148,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request  = $this->makeRequest(null, ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertNull(json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull(json_decode($response->getContent(), true)['managed']);
     }
 
     /**
@@ -185,7 +185,7 @@ final class PermissionMiddlewareTest extends TestCase
         $request  = $this->makeRequest('public', ['id' => 10], null);
         $response = $this->middleware()->handle($request, $this->next());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testScopedByStoresView(): void
@@ -202,11 +202,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request = $this->makeRequest('stores.view', ['id' => 10], [1, 3]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame([3], json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([3], json_decode($response->getContent(), true)['managed']);
     }
 
     public function testForbiddenWithoutTheDeclaredPermission(): void
@@ -229,7 +229,7 @@ final class PermissionMiddlewareTest extends TestCase
         $request = $this->makeRequest('employees.view', ['id' => 1, 'is_admin' => 1], null);
         $this->assignments->expects($this->never())->method('findByUser');
 
-        $this->assertSame(200, $this->middleware()->handle($request, $this->next())->status());
+        $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());
     }
 
     public function testManagerWithScopedPermissionPassesAndNarrowsManagedStores(): void
@@ -252,11 +252,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request = $this->makeRequest('employees.view', ['id' => 10], [1, 2]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame([1], json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([1], json_decode($response->getContent(), true)['managed']);
     }
 
     public function testManagerWithoutPermissionIsForbidden(): void
@@ -287,11 +287,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request = $this->makeRequest('employees.view', ['id' => 10], null);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertNull(json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull(json_decode($response->getContent(), true)['managed']);
     }
 
     /**
@@ -313,11 +313,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request  = $this->makeRequest('shifts.view', ['id' => 10], [3]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertNull(json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull(json_decode($response->getContent(), true)['managed']);
     }
 
     /** La même affectation reste restreinte à son store pour une permission non global-flaggée. */
@@ -334,11 +334,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request  = $this->makeRequest('shifts.update', ['id' => 10], [3]);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame([3], json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([3], json_decode($response->getContent(), true)['managed']);
     }
 
     // -------------------------------------------------------------------------
@@ -356,7 +356,7 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
 
-        $this->assertSame(200, $this->middleware()->handle($request, $this->next())->status());
+        $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());
     }
 
     /**
@@ -375,7 +375,7 @@ final class PermissionMiddlewareTest extends TestCase
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
         $response = $this->middleware()->handle($request, $this->next());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testMembershipRuleStillGrantsViaScopedPermissionAndNarrows(): void
@@ -394,11 +394,11 @@ final class PermissionMiddlewareTest extends TestCase
 
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
         $response = $this->middleware()->handle($request, function (Request $r) {
-            return Response::json(['managed' => $r->getAttribute('managed_store_ids')]);
+            return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
         });
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame([1], json_decode($response->body(), true)['managed']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([1], json_decode($response->getContent(), true)['managed']);
     }
 
     public function testNonMembershipRuleNeverConsultsMembershipAndRedirectsWithoutAnyPermission(): void
@@ -413,7 +413,7 @@ final class PermissionMiddlewareTest extends TestCase
         $request  = $this->makeRequest('daily_reports.delete', ['id' => 10], null, ['id' => '1']);
         $response = $this->middleware()->handle($request, $this->next());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Une permission RBAC existe ailleurs (porte grossière franchie) mais pas la clé exacte requise : 403. */

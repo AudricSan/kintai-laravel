@@ -7,8 +7,8 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Container;
 use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\AttemptCounter;
 use kintai\Core\Services\AppSettingsService;
 
@@ -24,7 +24,7 @@ use kintai\Core\Services\AppSettingsService;
  * invalide (refusées ensuite en 401). La connexion garde en plus sa propre limitation des échecs
  * (LoginThrottleMiddleware).
  */
-final class ApiRateLimitMiddleware implements MiddlewareInterface
+final class ApiRateLimitMiddleware
 {
     public const SETTING_KEY = 'api_rate_limit_per_minute';
     public const DEFAULT_PER_MINUTE = 300;
@@ -43,7 +43,7 @@ final class ApiRateLimitMiddleware implements MiddlewareInterface
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (!str_starts_with($request->uri(), '/api/')) {
+        if (!str_starts_with($request->slashPath(), '/api/')) {
             return $next($request);
         }
 
@@ -70,9 +70,11 @@ final class ApiRateLimitMiddleware implements MiddlewareInterface
         $used = $this->counter->hit($key, self::WINDOW);
         $this->counter->hit($ipKey, self::WINDOW);
 
-        return $next($request)
-            ->withHeader('X-RateLimit-Limit', (string) $limit)
-            ->withHeader('X-RateLimit-Remaining', (string) max(0, $limit - $used));
+        $response = $next($request);
+        $response->headers->set('X-RateLimit-Limit', (string) $limit);
+        $response->headers->set('X-RateLimit-Remaining', (string) max(0, $limit - $used));
+
+        return $response;
     }
 
     /** Requêtes autorisées par minute ; 0 = pas de limite. Valeur par défaut si les réglages sont illisibles. */

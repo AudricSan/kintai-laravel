@@ -11,8 +11,8 @@ use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Middleware\CsrfMiddleware;
 use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Router;
 use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\NotificationTypeRegistry;
@@ -81,7 +81,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
     private function request(array $query): Request
     {
         $_GET = $query;
-        return new Request();
+        return Request::capture();
     }
 
     /** @return array<string, string> paramètres d'un lien valide */
@@ -94,9 +94,9 @@ final class NotificationUnsubscribeControllerTest extends TestCase
     {
         $response = $this->controller->show($this->request($this->link()));
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('<form method="POST"', $response->body());
-        $this->assertStringContainsString('notif_unsub_button', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('<form method="POST"', $response->getContent());
+        $this->assertStringContainsString('notif_unsub_button', $response->getContent());
         $this->assertSame(0, NotificationPreference::count(), 'un affichage (aperçu de messagerie, antivirus) ne désabonne personne');
     }
 
@@ -104,8 +104,8 @@ final class NotificationUnsubscribeControllerTest extends TestCase
     {
         $response = $this->controller->confirm($this->request($this->link()));
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('notif_unsub_done_hint', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('notif_unsub_done_hint', $response->getContent());
         $this->assertFalse($this->prefs->isEnabled(7, 'shift_assigned', 'email'));
         $this->assertTrue($this->prefs->isEnabled(7, 'shift_deleted', 'email'), 'les autres types ne changent pas');
         $this->assertTrue($this->prefs->isEnabled(7, 'shift_assigned', 'push'), 'le push ne change pas');
@@ -117,7 +117,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         $this->controller->confirm($this->request($this->link()));
         $response = $this->controller->confirm($this->request($this->link()));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(1, NotificationPreference::count());
     }
 
@@ -142,8 +142,8 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         $shown     = $this->controller->show($this->request($query));
         $confirmed = $this->controller->confirm($this->request($query));
 
-        $this->assertStringContainsString('notif_unsub_invalid', $shown->body());
-        $this->assertSame(400, $confirmed->status());
+        $this->assertStringContainsString('notif_unsub_invalid', $shown->getContent());
+        $this->assertSame(400, $confirmed->getStatusCode());
         $this->assertSame(0, NotificationPreference::count());
     }
 
@@ -154,10 +154,10 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REQUEST_URI']    = $uri;
         $_POST = [];
-        $request = new Request();
+        $request = Request::capture();
         session()->put('_token', 'attendu');
 
-        return (new CsrfMiddleware())->handle($request, fn() => Response::empty())->status();
+        return (new CsrfMiddleware())->handle($request, fn() => response()->noContent())->getStatusCode();
     }
 
     public function testTheUnsubscribeEndpointIsTheOnlyPostWithoutCsrfToken(): void

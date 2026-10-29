@@ -7,15 +7,15 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Génère et valide le token CSRF pour toutes les requêtes mutantes hors /api/.
  * Le token est stocké en session et transmis via le champ caché `_token`
  * ou l'en-tête `X-CSRF-Token` pour les requêtes AJAX.
  */
-final class CsrfMiddleware implements MiddlewareInterface
+final class CsrfMiddleware
 {
     private const FIELD_NAME  = '_token';
 
@@ -34,7 +34,7 @@ final class CsrfMiddleware implements MiddlewareInterface
         }
 
         $realMethod = strtoupper($request->server('REQUEST_METHOD', 'GET'));
-        $isApi      = str_starts_with($request->uri(), '/api/') || in_array($request->uri(), self::EXEMPT_PATHS, true);
+        $isApi      = str_starts_with($request->slashPath(), '/api/') || in_array($request->slashPath(), self::EXEMPT_PATHS, true);
 
         if (!$isApi && in_array($realMethod, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             $token = $request->post(self::FIELD_NAME)
@@ -58,11 +58,11 @@ final class CsrfMiddleware implements MiddlewareInterface
      */
     private function rejected(Request $request): Response
     {
-        if ($request->wantsJson()) {
-            return Response::json(['error' => __('error_419_message'), 'code' => 'CSRF_TOKEN_MISMATCH'], 419);
+        if ($request->wantsJsonResponse()) {
+            return response()->json(['error' => __('error_419_message'), 'code' => 'CSRF_TOKEN_MISMATCH'], 419);
         }
         if (AuthService::sessionUserId() === null) {
-            return Response::redirect(base_url() . '/login?error=expired');
+            return redirect()->away(base_url() . '/login?error=expired');
         }
         throw new HttpException(419, '');
     }

@@ -15,8 +15,8 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
@@ -46,7 +46,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
         $_COOKIE = [];
         $_FILES = [];
 
-        return new Request();
+        return Request::capture();
     }
 
     private function bindSettings(array $stored): void
@@ -86,7 +86,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     private function noop(): \Closure
     {
-        return fn(Request $req) => Response::json(['ok' => true]);
+        return fn(Request $req) => response()->json(['ok' => true]);
     }
 
     public function testPassesThroughWhenMaintenanceDisabled(): void
@@ -97,7 +97,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
         $response = $middleware->handle($this->makeRequest('/'), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testAdminAlwaysPassesThrough(): void
@@ -108,7 +108,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
         $response = $middleware->handle($this->makeRequest('/admin/stores'), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testAnonymousCanReachLoginPage(): void
@@ -119,7 +119,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
         $response = $middleware->handle($this->makeRequest('/login'), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testAnonymousBlockedOnOtherPagesWithCustomMessage(): void
@@ -144,7 +144,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
         $response = $middleware->handle($this->makeRequest('/api/v1/ping'), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testCronRequestsBypassMaintenance(): void
@@ -155,7 +155,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
         $response = $middleware->handle($this->makeRequest('/cron/run/backup'), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testFailsOpenWhenSettingsResolutionThrows(): void
@@ -168,6 +168,6 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
         $response = $middleware->handle($this->makeRequest('/'), $this->noop());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 }

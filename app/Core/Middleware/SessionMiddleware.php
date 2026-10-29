@@ -7,14 +7,14 @@ namespace kintai\Core\Middleware;
 use Closure;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Facades\File;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Démarre la session de Laravel (pilote de config/session.php) pour la requête, la sauvegarde ensuite et pose son
  * cookie. Remplacé par StartSession de Laravel quand les routes seront natives.
  */
-final class SessionMiddleware implements MiddlewareInterface
+final class SessionMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {

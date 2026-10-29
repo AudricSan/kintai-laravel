@@ -29,6 +29,8 @@ final class KintaiServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \kintai\Http\Macros::register();
+
         // auth() et le Gate de Laravel lisent l'utilisateur et les permissions de Kintai.
         Auth::extend('kintai', static fn(): KintaiGuard => new KintaiGuard());
         Gate::before(KintaiGate::before(...));

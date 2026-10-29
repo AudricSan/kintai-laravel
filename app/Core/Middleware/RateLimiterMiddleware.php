@@ -6,8 +6,8 @@ namespace kintai\Core\Middleware;
 
 use Closure;
 use kintai\Core\Exceptions\HttpException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Security\AttemptCounter;
 
 /**
@@ -17,7 +17,7 @@ use kintai\Core\Security\AttemptCounter;
  * compte que les échecs et vise aussi le compte : compter les succès y bloquerait les employés d'un
  * même magasin, qui partagent une IP.
  */
-final class RateLimiterMiddleware implements MiddlewareInterface
+final class RateLimiterMiddleware
 {
     private const MAX_ATTEMPTS = 5;
     private const WINDOW = 300;
@@ -28,7 +28,7 @@ final class RateLimiterMiddleware implements MiddlewareInterface
     {
         // Nom de la route plutôt que l'URI : sur /reset-password/{token}, l'URI change avec chaque
         // jeton essayé et permettrait de contourner la limite en variant le jeton.
-        $target = (string) ($request->getAttribute('route_name') ?? $request->uri());
+        $target = (string) ($request->attributes->get('route_name') ?? $request->slashPath());
         $key = 'route:' . $request->ip() . ':' . $request->method() . ':' . $target;
 
         $retryAfter = $this->counter->retryAfter($key, self::MAX_ATTEMPTS, self::WINDOW);

@@ -7,8 +7,8 @@ namespace kintai\Core\Middleware;
 use Closure;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Container;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Reconnecte automatiquement l'utilisateur via le cookie "rester connecté" (30 jours,
@@ -17,7 +17,7 @@ use kintai\Core\Response;
  * middleware qui exige d'être connecté (ex. AuthMiddleware) — placé dans le pipeline
  * global juste après SessionMiddleware pour cette raison.
  */
-final class RememberMeMiddleware implements MiddlewareInterface
+final class RememberMeMiddleware
 {
     public function __construct(
         private readonly Container $container,

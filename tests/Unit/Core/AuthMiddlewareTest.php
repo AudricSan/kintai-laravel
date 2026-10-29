@@ -22,8 +22,8 @@ use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Router;
 use kintai\Core\Services\EmployeeStatsService;
 use kintai\Core\Services\TranslationService;
@@ -119,7 +119,7 @@ final class AuthMiddlewareTest extends TestCase
     private function handle(): Response
     {
         $middleware = new AuthMiddleware($this->container);
-        return $middleware->handle(new Request(), fn(Request $r) => Response::html('ok'));
+        return $middleware->handle(Request::capture(), fn(Request $r) => response('ok'));
     }
 
     public function testSharesUserCanReflectingRolePermissions(): void
@@ -237,7 +237,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $response = $this->handle();
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertNull($this->view->get('user_can'));
     }
 }

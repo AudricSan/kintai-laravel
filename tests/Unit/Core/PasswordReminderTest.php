@@ -14,8 +14,8 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -78,14 +78,14 @@ final class PasswordReminderTest extends TestCase
         $_SERVER = ['REQUEST_METHOD' => $method, 'REQUEST_URI' => $uri, 'SCRIPT_NAME' => '/index.php'] + $server;
         $_GET = $_POST = $_COOKIE = $_FILES = [];
 
-        return new Request();
+        return Request::capture();
     }
 
     private function through(string $uri, string $method = 'GET', array $server = []): Response
     {
         $middleware = new PasswordReminderMiddleware($this->container);
 
-        return $middleware->handle($this->request($uri, $method, $server), fn() => Response::json(['ok' => true]));
+        return $middleware->handle($this->request($uri, $method, $server), fn() => response()->json(['ok' => true]));
     }
 
     public function testDefaultPasswordMustBeChangedAfterLogin(): void
@@ -181,7 +181,7 @@ final class PasswordReminderTest extends TestCase
 
         [$response] = $this->page($uri, $method);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testBannerIsShownOnEveryPageWhilePasswordIsWeak(): void
@@ -241,7 +241,7 @@ final class PasswordReminderTest extends TestCase
         $this->auth->attempt('emp@example.test', $strong);
 
         [$response, $banner, $popup] = $this->page('/employee');
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertFalse($banner);
         $this->assertFalse($popup);
     }
@@ -249,7 +249,7 @@ final class PasswordReminderTest extends TestCase
     public function testAnonymousVisitorsAreLeftAlone(): void
     {
         [$response, $banner, $popup] = $this->page('/login');
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertFalse($banner);
         $this->assertFalse($popup);
     }
