@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Badge;
@@ -138,3 +140,5 @@ endif; ?>
 <?php if ($timeclockAdminJs = bundle_asset('timeclock', 'js/timeclock-admin.js')): ?>
 <script src="<?= $timeclockAdminJs ?>"></script>
 <?php endif; ?>
+
+@endsection

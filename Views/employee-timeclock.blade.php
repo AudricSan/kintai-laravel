@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Card;
@@ -124,3 +126,5 @@ echo Card::make()->header(__('timeclock_this_week'))->body(ob_get_clean())->rend
 <?php if ($timeclockJs = bundle_asset('timeclock', 'js/timeclock.js')): ?>
 <script src="<?= $timeclockJs ?>"></script>
 <?php endif; ?>
+
+@endsection

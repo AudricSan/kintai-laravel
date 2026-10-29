@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 /**
  * Régression (audit RBAC du 11/09/2026) : timeclocksEdit()/timeclocksDelete()
@@ -28,7 +28,7 @@ final class AdminTimeclockController
     private const PER_PAGE = 20;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly TimeclockRepositoryInterface $timeclocks,
         private readonly AuditLogger $auditLogger,
         private readonly StoreRepositoryInterface $stores,
@@ -65,7 +65,7 @@ final class AdminTimeclockController
         $page       = min($totalPages, max(1, (int) ($request->query('page') ?? 1)));
         $entries    = array_slice($entries, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
 
-        return response($this->view->render('timeclock::timeclocks', [
+        return response($this->view->make('timeclock::timeclocks', [
             'title'           => __('timeclock_timeclocks'),
             'entries'         => $entries,
             'users_map'       => $usersMap,
@@ -75,7 +75,7 @@ final class AdminTimeclockController
             'total'           => $total,
             'page'            => $page,
             'total_pages'     => $totalPages,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function timeclocksEdit(Request $request): Response

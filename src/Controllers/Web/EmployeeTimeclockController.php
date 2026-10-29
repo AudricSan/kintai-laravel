@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
 use kintai\Contract\Http\Concerns\HasStoreFeatureCheck;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class EmployeeTimeclockController
 {
@@ -23,7 +23,7 @@ final class EmployeeTimeclockController
     use HasStoreFeatureCheck;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly TimeclockRepositoryInterface $timeclocks,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
@@ -61,7 +61,7 @@ final class EmployeeTimeclockController
             }
         }
 
-        return response($this->view->render('timeclock::employee-timeclock', [
+        return response($this->view->make('timeclock::employee-timeclock', [
             'title'         => __('timeclock'),
             'active_clock'  => $activeClock,
             'today'         => $today,
@@ -69,7 +69,7 @@ final class EmployeeTimeclockController
             'week_entries'  => array_values($weekEntries),
             'store_id'      => $storeId,
             'stores'        => $stores,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**

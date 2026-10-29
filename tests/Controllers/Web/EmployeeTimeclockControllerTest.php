@@ -16,7 +16,7 @@ use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\Log;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -50,7 +50,7 @@ final class EmployeeTimeclockControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $viewDir = sys_get_temp_dir() . '/kintai-timeclock-views';
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $view->addNamespace('timeclock', $viewDir);
             $this->controller = new EmployeeTimeclockController(
                 $view,
