@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -39,8 +39,8 @@ final class MessageMassAssignmentTest extends TestCase
 
     private function request(array $json, array $params = []): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => self::ME]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => self::ME]);
         $req->setRouteParams($params);
         (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $json);
         return $req;

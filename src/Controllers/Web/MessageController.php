@@ -11,8 +11,8 @@ use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\View\ViewRenderer;
@@ -42,7 +42,7 @@ final class MessageController
             $this->assertFeature($request, 'messages');
         }
 
-        $authUser   = $request->getAttribute('auth_user');
+        $authUser   = $request->attributes->get('auth_user');
         $userId     = (int) $authUser['id'];
         $tab        = $request->query('tab', 'inbox');
         $managedIds = $this->managedIds($request);
@@ -94,7 +94,7 @@ final class MessageController
         $usersMap = $this->buildUsersMap();
         $storesMap = $this->buildStoresMap();
 
-        return Response::html($this->view->render('messaging::messages', [
+        return response($this->view->render('messaging::messages', [
             'threads'    => $threads,
             'users_map'  => $usersMap,
             'stores_map' => $storesMap,
@@ -107,7 +107,7 @@ final class MessageController
     public function messagesCompose(Request $request): Response
     {
         $urlPrefix  = $this->urlPrefix($request);
-        $authUser   = $request->getAttribute('auth_user');
+        $authUser   = $request->attributes->get('auth_user');
         $managedIds = $this->managedIds($request);
         $stores     = $this->availableStores($managedIds);
 
@@ -124,7 +124,7 @@ final class MessageController
             ));
         }
 
-        return Response::html($this->view->render('messaging::messages-compose', [
+        return response($this->view->render('messaging::messages-compose', [
             'all_stores' => $stores,
             'all_users'  => $users,
             'base_path'  => $urlPrefix,
@@ -138,7 +138,7 @@ final class MessageController
             $this->assertFeature($request, 'messages');
         }
 
-        $authUser   = $request->getAttribute('auth_user');
+        $authUser   = $request->attributes->get('auth_user');
         $userId     = (int) $authUser['id'];
         $storeId    = (int) $request->post('store_id', 0);
         $subject    = trim((string) $request->post('subject', ''));
@@ -149,7 +149,7 @@ final class MessageController
         )));
 
         if ($storeId === 0 || $subject === '' || $body === '' || empty($recipients)) {
-            return Response::redirect($this->base() . $urlPrefix . '/compose?error=missing_fields');
+            return redirect()->away($this->base() . $urlPrefix . '/compose?error=missing_fields');
         }
         $this->assertStoreAccess($request, $storeId);
 
@@ -190,15 +190,15 @@ final class MessageController
             'recipients'  => $recipients,
         ], $storeId);
 
-        return Response::redirect($this->base() . $urlPrefix . '/' . $threadId . '?success=sent');
+        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId . '?success=sent');
     }
 
     public function messagesThread(Request $request): Response
     {
         $urlPrefix = $this->urlPrefix($request);
-        $authUser  = $request->getAttribute('auth_user');
+        $authUser  = $request->attributes->get('auth_user');
         $userId    = (int) $authUser['id'];
-        $threadId  = (int) $request->param('id');
+        $threadId  = (int) $request->route('id');
 
         $thread = $this->msgRepo->findThreadById($threadId);
         if ($thread === null) {
@@ -222,7 +222,7 @@ final class MessageController
         $usersMap = $this->buildUsersMap();
         $storesMap = $this->buildStoresMap();
 
-        return Response::html($this->view->render('messaging::messages-thread', [
+        return response($this->view->render('messaging::messages-thread', [
             'thread'       => $thread,
             'messages'     => $msgs,
             'participants' => $this->msgRepo->findParticipantsByThread($threadId),
@@ -237,13 +237,13 @@ final class MessageController
     public function messagesReply(Request $request): Response
     {
         $urlPrefix = $this->urlPrefix($request);
-        $authUser  = $request->getAttribute('auth_user');
+        $authUser  = $request->attributes->get('auth_user');
         $userId    = (int) $authUser['id'];
-        $threadId  = (int) $request->param('id');
+        $threadId  = (int) $request->route('id');
         $body      = trim((string) $request->post('body', ''));
 
         if ($body === '') {
-            return Response::redirect($this->base() . $urlPrefix . '/' . $threadId);
+            return redirect()->away($this->base() . $urlPrefix . '/' . $threadId);
         }
 
         $thread = $this->msgRepo->findThreadById($threadId);
@@ -289,18 +289,18 @@ final class MessageController
             'store_id' => $thread['store_id'] ?? null,
         ], (int) ($thread['store_id'] ?? 0) ?: null);
 
-        if ($request->isAjax()) {
-            return Response::json(['ok' => true]);
+        if ($request->ajax()) {
+            return response()->json(['ok' => true]);
         }
-        return Response::redirect($this->base() . $urlPrefix . '/' . $threadId . '?success=replied');
+        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId . '?success=replied');
     }
 
     public function messagesDeleteThread(Request $request): Response
     {
         $urlPrefix = $this->urlPrefix($request);
-        $authUser  = $request->getAttribute('auth_user');
+        $authUser  = $request->attributes->get('auth_user');
         $userId    = (int) $authUser['id'];
-        $threadId  = (int) $request->param('id');
+        $threadId  = (int) $request->route('id');
 
         $thread = $this->msgRepo->findThreadById($threadId);
         if ($thread === null) {
@@ -322,16 +322,16 @@ final class MessageController
             'subject'  => $thread['subject'] ?? '',
         ], $storeId ?: null);
 
-        return Response::redirect($this->base() . $urlPrefix . '?success=deleted');
+        return redirect()->away($this->base() . $urlPrefix . '?success=deleted');
     }
 
     public function messagesDeleteMessage(Request $request): Response
     {
         $urlPrefix = $this->urlPrefix($request);
-        $authUser  = $request->getAttribute('auth_user');
+        $authUser  = $request->attributes->get('auth_user');
         $userId    = (int) $authUser['id'];
-        $threadId  = (int) $request->param('id');
-        $mid       = (int) $request->param('mid');
+        $threadId  = (int) $request->route('id');
+        $mid       = (int) $request->route('mid');
 
         $thread = $this->msgRepo->findThreadById($threadId);
         if ($thread === null) {
@@ -353,10 +353,10 @@ final class MessageController
             'store_id'  => $thread['store_id'] ?? null,
         ], (int) ($thread['store_id'] ?? 0) ?: null);
 
-        if ($request->isAjax()) {
-            return Response::json(['ok' => true]);
+        if ($request->ajax()) {
+            return response()->json(['ok' => true]);
         }
-        return Response::redirect($this->base() . $urlPrefix . '/' . $threadId);
+        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId);
     }
 
     // --- Private helpers ---
@@ -366,7 +366,7 @@ final class MessageController
      */
     private function isAdminContext(Request $request): bool
     {
-        return str_starts_with($request->uri(), '/admin/');
+        return str_starts_with($request->slashPath(), '/admin/');
     }
 
     private function urlPrefix(Request $request): string
@@ -381,12 +381,12 @@ final class MessageController
      */
     private function managedIds(Request $request): ?array
     {
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
         if (!empty($user['is_admin'])) {
             return null;
         }
 
-        $managed = $request->getAttribute('managed_store_ids');
+        $managed = $request->attributes->get('managed_store_ids');
         if ($managed !== null) {
             return $managed;
         }
@@ -440,7 +440,7 @@ final class MessageController
      */
     private function assertFeature(Request $request, string $feature): void
     {
-        $user        = $request->getAttribute('auth_user');
+        $user        = $request->attributes->get('auth_user');
         $memberships = $this->storeUsers->findByUser((int) ($user['id'] ?? 0));
         if (empty($memberships)) {
             return;

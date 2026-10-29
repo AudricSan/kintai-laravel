@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
+use Illuminate\Http\Request;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\View\ViewRenderer;
@@ -51,8 +51,8 @@ final class MessageThreadNotificationsTest extends TestCase
 
     private function request(int $threadId): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9, 'is_admin' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9, 'is_admin' => 1]);
         $req->setRouteParams(['id' => (string) $threadId]);
 
         return $req;
@@ -69,7 +69,7 @@ final class MessageThreadNotificationsTest extends TestCase
         $notifs = $this->createMock(NotificationService::class);
         $notifs->expects($this->once())->method('markReadFor')->with(9, 'message_thread', 12);
 
-        $this->assertSame(200, $this->controller($repo, $notifs)->messagesThread($this->request(12))->status());
+        $this->assertSame(200, $this->controller($repo, $notifs)->messagesThread($this->request(12))->getStatusCode());
     }
 
     public function testAThreadTheUserDoesNotBelongToMarksNothing(): void

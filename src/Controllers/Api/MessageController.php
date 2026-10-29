@@ -9,8 +9,8 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Messagerie API — strictement limitée aux conversations dont le porteur du
@@ -60,14 +60,14 @@ final class MessageController
             }
         }
 
-        return Response::json($threads);
+        return response()->json($threads);
     }
 
     /** POST /api/v1/messages/threads */
     public function createThread(Request $request): Response
     {
         $userId = $this->authUserId($request);
-        $data   = $request->json() ?? [];
+        $data   = $request->json()->all() ?? [];
 
         $storeId = (int) ($data['store_id'] ?? 0);
         if ($storeId <= 0 || $this->storeUsers->findMembership($storeId, $userId) === null) {
@@ -103,27 +103,27 @@ final class MessageController
             ]);
         }
 
-        return Response::json($thread, 201);
+        return response()->json($thread, 201);
     }
 
     /** GET /api/v1/messages/threads/{id} */
     public function getThread(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $thread   = $this->requireThreadParticipant($request, $threadId);
-        return Response::json($thread);
+        return response()->json($thread);
     }
 
     /** DELETE /api/v1/messages/threads/{id} */
     public function deleteThread(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $userId = $this->requireThreadParticipantId($request, $threadId);
 
         // Masquée pour l'appelant seulement ; effacée quand plus personne ne la voit (même règle que le web).
         (new ThreadVisibility($this->messages))->hideFor($threadId, $userId);
 
-        return Response::empty();
+        return response()->noContent();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -133,15 +133,15 @@ final class MessageController
     /** GET /api/v1/messages/threads/{id}/messages */
     public function listMessages(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $this->requireThreadParticipant($request, $threadId);
-        return Response::json($this->messages->findMessagesByThread($threadId));
+        return response()->json($this->messages->findMessagesByThread($threadId));
     }
 
     /** POST /api/v1/messages/threads/{id}/messages */
     public function addMessage(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $userId   = $this->requireThreadParticipantId($request, $threadId);
 
         // Seul le texte vient du client : un `id` ici écraserait le message d'un autre fil.
@@ -160,14 +160,14 @@ final class MessageController
             }
         }
 
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** DELETE /api/v1/messages/{id} */
     public function deleteMessage(Request $request): Response
     {
         $userId = $this->authUserId($request);
-        $id     = (int) $request->param('id');
+        $id     = (int) $request->route('id');
 
         $message = $this->messages->findMessageById($id);
         if ($message === null) {
@@ -178,7 +178,7 @@ final class MessageController
         }
 
         $this->messages->deleteMessage($id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -188,15 +188,15 @@ final class MessageController
     /** GET /api/v1/messages/threads/{id}/participants */
     public function listParticipants(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $this->requireThreadParticipant($request, $threadId);
-        return Response::json($this->messages->findParticipantsByThread($threadId));
+        return response()->json($this->messages->findParticipantsByThread($threadId));
     }
 
     /** POST /api/v1/messages/threads/{id}/participants */
     public function addParticipant(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $actingUserId = $this->requireThreadParticipantId($request, $threadId);
 
         // Seul user_id vient du client : un `id` ici réécrirait la ligne de participation d'un autre fil.
@@ -209,22 +209,22 @@ final class MessageController
 
         $this->assertCanAddParticipant($actingUserId, (int) ($data['user_id'] ?? 0));
 
-        return Response::json($this->messages->saveParticipant($data), 201);
+        return response()->json($this->messages->saveParticipant($data), 201);
     }
 
     /** GET /api/v1/messages/threads/{id}/participants/{user_id} */
     public function getParticipant(Request $request): Response
     {
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
         $this->requireThreadParticipant($request, $threadId);
 
-        $userId      = (int) $request->param('user_id');
+        $userId      = (int) $request->route('user_id');
         $participant = $this->messages->findParticipant($threadId, $userId);
         if ($participant === null) {
             throw new NotFoundException(__('error_participant_not_found'));
         }
 
-        return Response::json($participant);
+        return response()->json($participant);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ final class MessageController
 
     private function authUserId(Request $request): int
     {
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         return (int) ($authUser['id'] ?? 0);
     }
 

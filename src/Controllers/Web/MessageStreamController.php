@@ -9,8 +9,8 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Endpoint SSE : pousse les nouveaux messages d'un thread au client en temps réel.
@@ -28,7 +28,7 @@ final class MessageStreamController
     {
         $user     = $this->auth->user();
         $userId   = (int) $user['id'];
-        $threadId = (int) $request->param('id');
+        $threadId = (int) $request->route('id');
 
         $thread = $this->msgRepo->findThreadById($threadId);
         if ($thread === null) {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\Messaging;
 
 use kintai\Contract\Bundle;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
 use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;
@@ -18,10 +18,6 @@ final class MessagingBundle extends Bundle
         return 'messaging';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -43,7 +39,7 @@ final class MessagingBundle extends Bundle
 
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(
             MessageRepositoryInterface::class,

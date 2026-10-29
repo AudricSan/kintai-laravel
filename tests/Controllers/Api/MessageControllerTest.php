@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -52,8 +52,8 @@ final class MessageControllerTest extends TestCase
 
     private function requestAs(int $userId, array $json = []): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
         if ($json !== []) {
             $ref = new \ReflectionProperty(Request::class, 'jsonBody');
             $ref->setAccessible(true);
@@ -76,7 +76,7 @@ final class MessageControllerTest extends TestCase
             ->willReturn([]);
 
         $response = $this->controller()->listThreads($req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // ── createThread ─────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ final class MessageControllerTest extends TestCase
 
         $response = $this->controller()->createThread($req);
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
         $this->assertSame([42, 7], $participantCalls);
     }
 
@@ -152,7 +152,7 @@ final class MessageControllerTest extends TestCase
         $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(['thread_id' => 10, 'user_id' => 42]);
 
         $response = $this->controller()->getThread($req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // ── deleteThread ─────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ final class MessageControllerTest extends TestCase
             ->willReturn(['id' => 1]);
 
         $response = $this->controller()->addMessage($req);
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     // ── deleteMessage ────────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ final class MessageControllerTest extends TestCase
         $this->messages->expects($this->once())->method('deleteMessage')->with(7);
 
         $response = $this->controller()->deleteMessage($req);
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     // ── participants ─────────────────────────────────────────────────────────

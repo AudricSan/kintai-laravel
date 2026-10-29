@@ -1,13 +1,13 @@
 {
     "slug": "messaging",
     "name": "Messagerie",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "description": "Messagerie interne entre membres des magasins.",
     "author": {
         "name": "AudricSan",
         "url": "https://github.com/AudricSan"
     },
-    "kintai_contract": "^1.23",
+    "kintai_contract": "^1.0",
     "kintai_core": {
         "min": "0.3.6",
         "max": "999.999.999"
