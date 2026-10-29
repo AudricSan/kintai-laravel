@@ -11,7 +11,7 @@ use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use PHPUnit\Framework\TestCase;
@@ -63,8 +63,8 @@ final class TimeclockMassAssignmentTest extends TestCase
 
     private function request(array $json, array $params = []): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => self::ME]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => self::ME]);
         $req->setRouteParams($params);
         (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $json);
         return $req;

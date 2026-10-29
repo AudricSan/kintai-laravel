@@ -14,7 +14,7 @@ use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -70,8 +70,8 @@ final class TimeclockControllerTest extends TestCase
         ] : []);
         $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 10 ? ['id' => 10, 'is_system' => 1] : null);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
         return $req;
     }
 
@@ -84,8 +84,8 @@ final class TimeclockControllerTest extends TestCase
         $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 20 ? ['id' => 20, 'is_system' => 0] : null);
         $this->roles->method('getPermissions')->willReturnCallback(fn($a0) => $a0 === 20 ? ['timeclock.view', 'timeclock.update', 'timeclock.delete'] : []);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;
     }
 
@@ -93,7 +93,7 @@ final class TimeclockControllerTest extends TestCase
     {
         $response = $this->controller()->index($this->requestAsOwner());
 
-        $body = json_decode($response->body(), true);
+        $body = json_decode($response->getContent(), true);
         $this->assertSame([], $body['data']);
     }
 
@@ -105,7 +105,7 @@ final class TimeclockControllerTest extends TestCase
         $this->timeclocks->expects($this->atLeastOnce())->method('findByStoreAndDate')->with(5, '2026-08-01')->willReturn([['id' => 1, 'store_id' => 5]]);
 
         $response = $this->controller()->index($this->requestAsOwner());
-        $body = json_decode($response->body(), true);
+        $body = json_decode($response->getContent(), true);
 
         $this->assertCount(1, $body['data']);
     }
@@ -121,7 +121,7 @@ final class TimeclockControllerTest extends TestCase
         ]);
 
         $response = $this->controller()->index($this->requestAsStoreManager(2, 5));
-        $body = json_decode($response->body(), true);
+        $body = json_decode($response->getContent(), true);
 
         $this->assertCount(1, $body['data']);
         $this->assertSame(5, $body['data'][0]['store_id']);
@@ -156,7 +156,7 @@ final class TimeclockControllerTest extends TestCase
      */
     private function requestWithJson(array $json): Request
     {
-        $req = new Request();
+        $req = Request::capture();
         $ref = new \ReflectionProperty(Request::class, 'jsonBody');
         $ref->setAccessible(true);
         $ref->setValue($req, $json);
@@ -174,7 +174,7 @@ final class TimeclockControllerTest extends TestCase
 
         $response = $this->controller()->destroy($req);
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testDestroyRejectsEntryFromAnotherStore(): void

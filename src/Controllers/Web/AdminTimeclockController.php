@@ -8,8 +8,8 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\View\ViewRenderer;
@@ -65,7 +65,7 @@ final class AdminTimeclockController
         $page       = min($totalPages, max(1, (int) ($request->query('page') ?? 1)));
         $entries    = array_slice($entries, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
 
-        return Response::html($this->view->render('timeclock::timeclocks', [
+        return response($this->view->render('timeclock::timeclocks', [
             'title'           => __('timeclock_timeclocks'),
             'entries'         => $entries,
             'users_map'       => $usersMap,
@@ -80,7 +80,7 @@ final class AdminTimeclockController
 
     public function timeclocksEdit(Request $request): Response
     {
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
 
         $entry = $this->timeclocks->findById($id);
         if ($entry === null) {
@@ -110,12 +110,12 @@ final class AdminTimeclockController
         $this->auditLogger->logUpdate($request, 'timeclock.edited', 'timeclock', (int) $entry['id'], $entry, $updated, [], (int) ($entry['store_id'] ?? 0) ?: null);
 
         $date = $request->post('redirect_date', date('Y-m-d'));
-        return Response::redirect($this->base() . '/admin/timeclocks?date=' . urlencode($date) . '&success=edited');
+        return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date) . '&success=edited');
     }
 
     public function timeclocksDelete(Request $request): Response
     {
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
 
         $entry = $this->timeclocks->findById($id);
         if ($entry === null) {
@@ -132,6 +132,6 @@ final class AdminTimeclockController
         $this->timeclocks->delete($id);
 
         $date = $request->query('date', date('Y-m-d'));
-        return Response::redirect($this->base() . '/admin/timeclocks?date=' . urlencode($date) . '&success=deleted');
+        return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date) . '&success=deleted');
     }
 }

@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Services\TimeclockWidget;
 use kintai\Contract\Bundle;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Extension\DashboardWidget;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
@@ -28,10 +28,6 @@ final class TimeclockBundle extends Bundle
         return 'timeclock';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -45,7 +41,7 @@ final class TimeclockBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->container()->singleton(TimeclockRepositoryInterface::class, fn() => new DatabaseTimeclockRepository());
+        $this->app->singleton(TimeclockRepositoryInterface::class, fn() => new DatabaseTimeclockRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'timeclock');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

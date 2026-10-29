@@ -10,8 +10,8 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
 use kintai\Contract\Http\Concerns\HasStoreFeatureCheck;
@@ -35,7 +35,7 @@ final class EmployeeTimeclockController
         if (($resp = $this->assertFeature($request, 'timeclock')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $today        = date('Y-m-d');
@@ -61,7 +61,7 @@ final class EmployeeTimeclockController
             }
         }
 
-        return Response::html($this->view->render('timeclock::employee-timeclock', [
+        return response($this->view->render('timeclock::employee-timeclock', [
             'title'         => __('timeclock'),
             'active_clock'  => $activeClock,
             'today'         => $today,
@@ -81,7 +81,7 @@ final class EmployeeTimeclockController
         if (($resp = $this->assertFeature($request, 'timeclock')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         if ($this->timeclocks->findActiveByUser($userId) !== null) {
@@ -109,7 +109,7 @@ final class EmployeeTimeclockController
             $context['synced_at']    = $now;
         }
         $this->auditLogger->log($request, 'timeclock.clock_in', 'timeclock', (int) ($record['id'] ?? 0) ?: null, $context, $storeId ?: null);
-        return Response::json($record, 201);
+        return response()->json($record, 201);
     }
 
     /** POST /employee/timeclock/clock-out */
@@ -118,7 +118,7 @@ final class EmployeeTimeclockController
         if (($resp = $this->assertFeature($request, 'timeclock')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $active = $this->timeclocks->findActiveByUser($userId);
@@ -153,7 +153,7 @@ final class EmployeeTimeclockController
         }
         $storeId = isset($active['store_id']) ? (int) $active['store_id'] : null;
         $this->auditLogger->logUpdate($request, 'timeclock.clock_out', 'timeclock', (int) ($record['id'] ?? 0) ?: null, $active, $record, $context, $storeId);
-        return Response::json($record);
+        return response()->json($record);
     }
 
     /** @return int[] Magasins dont l'employé est membre (le premier sert de défaut). */

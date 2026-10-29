@@ -10,8 +10,8 @@ use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**
@@ -57,20 +57,20 @@ final class TimeclockController
             fn(array $i): bool => in_array($i['id'] ?? null, $scopedIds, true) || (int) ($i['user_id'] ?? 0) === $authId,
         ));
 
-        return Response::json(Paginator::paginate($items, $page, $limit));
+        return response()->json(Paginator::paginate($items, $page, $limit));
     }
 
     /** GET /api/v1/timeclocks/{id} */
     public function show(Request $request): Response
     {
         $record = $this->requireTimeclock($request, 'timeclock.view');
-        return Response::json($record);
+        return response()->json($record);
     }
 
     /** POST /api/v1/timeclocks/clock-in */
     public function clockIn(Request $request): Response
     {
-        $data   = $request->json() ?? [];
+        $data   = $request->json()->all() ?? [];
         $userId = (int) ($data['user_id'] ?? 0);
 
         if ($this->timeclocks->findActiveByUser($userId) !== null) {
@@ -99,13 +99,13 @@ final class TimeclockController
         ]);
 
         $this->auditLogger->log($request, 'timeclock.clock_in', 'timeclock', resourceId: (int) ($record['id'] ?? 0) ?: null, details: ['user_id' => $userId], storeId: $storeId);
-        return Response::json($record, 201);
+        return response()->json($record, 201);
     }
 
     /** POST /api/v1/timeclocks/clock-out */
     public function clockOut(Request $request): Response
     {
-        $data   = $request->json() ?? [];
+        $data   = $request->json()->all() ?? [];
         $userId = (int) ($data['user_id'] ?? 0);
 
         $active = $this->timeclocks->findActiveByUser($userId);
@@ -124,7 +124,7 @@ final class TimeclockController
             'updated_at'       => $now,
         ]));
         $this->auditLogger->logUpdate($request, 'timeclock.clock_out', 'timeclock', resourceId: (int) ($record['id'] ?? 0) ?: null, oldData: $active, newData: $record, extraContext: ['user_id' => $userId], storeId: isset($active['store_id']) ? (int) $active['store_id'] : null);
-        return Response::json($record);
+        return response()->json($record);
     }
 
     /** PUT /api/v1/timeclocks/{id} */
@@ -134,7 +134,7 @@ final class TimeclockController
         $id  = (int) $old['id'];
 
         // Audit du 03/10/2026 : l'employé et le magasin du pointage ne changent pas (déplacer l'entrée vers un magasin tiers contournait requireTimeclock()).
-        $body = $request->json() ?? [];
+        $body = $request->json()->all() ?? [];
         unset($body['user_id'], $body['store_id'], $body['created_at']);
         $data   = array_merge($body, ['id' => $id, 'updated_at' => date('Y-m-d H:i:s')]);
         $record = $this->timeclocks->save($data);
@@ -147,7 +147,7 @@ final class TimeclockController
         }
 
         $this->auditLogger->logUpdate($request, 'timeclock.updated', 'timeclock', resourceId: $id, oldData: $old, newData: $record, extraContext: $body, storeId: (int) ($old['store_id'] ?? 0) ?: null);
-        return Response::json($record);
+        return response()->json($record);
     }
 
     /** DELETE /api/v1/timeclocks/{id} */
@@ -157,12 +157,12 @@ final class TimeclockController
         $id     = (int) $record['id'];
         $this->timeclocks->delete($id);
         $this->auditLogger->log($request, 'timeclock.deleted', 'timeclock', resourceId: $id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     /** Charge l'entrée par id et vérifie $permissionKey sur son store réel. */
@@ -171,7 +171,7 @@ final class TimeclockController
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
             fn(int $id) => $this->timeclocks->findById($id),
-            (int) $request->param('id'),
+            (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: __('timeclock_error_entry_not_found'),
         );

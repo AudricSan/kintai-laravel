@@ -12,7 +12,7 @@ use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\UI\ViewRenderer;
@@ -73,8 +73,8 @@ final class AdminTimeclockControllerTest extends TestCase
 
     public function testTimeclocksListsEntriesForFilterDate(): void
     {
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $_GET = ['date' => '2026-08-01'];
 
         $this->users->method('findAll')->willReturn([]);
@@ -86,7 +86,7 @@ final class AdminTimeclockControllerTest extends TestCase
 
         $response = $this->controller()->timeclocks($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /**
@@ -101,8 +101,8 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
         $_GET = [];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
@@ -112,9 +112,9 @@ final class AdminTimeclockControllerTest extends TestCase
         ]);
 
         $response = $this->controller()->timeclocks($req);
-        $result   = json_decode($response->body(), true);
+        $result   = json_decode($response->getContent(), true);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(2, $result['total']);
         $this->assertSame([2, 1], $result['ids']);
     }
@@ -126,8 +126,8 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
         $_GET = [];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
@@ -139,9 +139,9 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->timeclocks->method('findAll')->willReturn($all);
 
         $response = $this->controller()->timeclocks($req);
-        $result   = json_decode($response->body(), true);
+        $result   = json_decode($response->getContent(), true);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(25, $result['total']);
         $this->assertSame(2, $result['total_pages']);
         $this->assertSame(20, $result['count']);
@@ -159,8 +159,8 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
         $_GET = ['store_id' => '9'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [5]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [5]);
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([
@@ -173,9 +173,9 @@ final class AdminTimeclockControllerTest extends TestCase
         ]);
 
         $response = $this->controller()->timeclocks($req);
-        $result   = json_decode($response->body(), true);
+        $result   = json_decode($response->getContent(), true);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(0, $result['total']);
     }
 
@@ -193,7 +193,7 @@ final class AdminTimeclockControllerTest extends TestCase
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
         $_POST = ['clock_in_time' => '2026-08-01 09:00:00', 'clock_out_time' => '2026-08-01 17:00:00'];
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
 
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
@@ -205,13 +205,13 @@ final class AdminTimeclockControllerTest extends TestCase
 
         $response = $this->controller()->timeclocksEdit($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testTimeclocksEditThrowsNotFoundForMissingEntry(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '99']);
 
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(99)->willReturn(null);
@@ -223,7 +223,7 @@ final class AdminTimeclockControllerTest extends TestCase
     public function testTimeclocksDeleteDeletesAndLogs(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
 
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 5]);
@@ -231,7 +231,7 @@ final class AdminTimeclockControllerTest extends TestCase
 
         $response = $this->controller()->timeclocksDelete($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /**
@@ -243,9 +243,9 @@ final class AdminTimeclockControllerTest extends TestCase
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
         $_POST = ['clock_in_time' => '2026-08-01 09:00:00'];
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [5]);
+        $req->attributes->set('managed_store_ids', [5]);
 
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 9]);
         $this->timeclocks->expects($this->never())->method('save');
@@ -257,9 +257,9 @@ final class AdminTimeclockControllerTest extends TestCase
     public function testTimeclocksDeleteRejectsEntryFromUnmanagedStore(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [5]);
+        $req->attributes->set('managed_store_ids', [5]);
 
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 9]);
         $this->timeclocks->expects($this->never())->method('delete');
