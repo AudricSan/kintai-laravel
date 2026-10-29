@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Notebook\Services;
+namespace Tests\Bundles\Notebook\Services;
 
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Bundles\Installed\Notebook\Services\TeamNotesWidget;

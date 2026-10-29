@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Notebook;
+namespace Tests\Bundles\Notebook;
 
 use kintai\Contract\Extension\DashboardWidget;
 use kintai\Contract\Extension\StoreFeature;

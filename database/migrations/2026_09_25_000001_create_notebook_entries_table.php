@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * store_id nullable : null = note visible par toute l'organisation, sinon
  * rattachée à un store précis (voir NotebookEntryRepositoryInterface::findVisibleForStores()).
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if ($this->schema()->hasTable('notebook_entries')) {
+        if (Schema::hasTable('notebook_entries')) {
             return;
         }
-        $this->schema()->create('notebook_entries', function (Blueprint $table) {
-            $table->increments('id');
+        Schema::create('notebook_entries', function (Blueprint $table) {
+            $table->integer('id', true);
             $table->integer('author_id');
             $table->integer('store_id')->nullable();
             $table->text('content');
@@ -36,6 +36,6 @@ return new class($this->capsule) extends Migration {
 
     public function down(): void
     {
-        $this->schema()->dropIfExists('notebook_entries');
+        Schema::dropIfExists('notebook_entries');
     }
 };

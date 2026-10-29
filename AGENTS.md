@@ -60,7 +60,7 @@ nothing about how RBAC actually resolves), use `ReflectionProperty` to set
 `Request`'s private `jsonBody` for API tests and to read `Response`'s private
 `headers['Location']` for redirect assertions — see any existing test file
 for the exact pattern. The migration test instantiates the real
-`kintai\Core\Database\BundleMigrationRunner` against an in-memory SQLite
+`App\Database\BundleMigrationRunner` against an in-memory SQLite
 `Capsule` (same reflection-based construction technique as Kintai's own
 `BundleMigrationRunnerTest`) rather than asserting anything about the
 migration file's contents directly — it proves the file actually produces
@@ -119,7 +119,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   migrations (`BundleMigrationRunner`, see below) — an older Core silently
   ignores `database/migrations/`, leaving the bundle installed with no table.
 - `src/NotebookBundle.php` — the entry point (`kintai\Bundles\Installed\Notebook\NotebookBundle`,
-  extends `kintai\Core\BundleContract\Bundle`). Its `register()` binds
+  extends `App\Bundles\Bundle`). Its `register()` binds
   `NotebookEntryRepositoryInterface` to `DatabaseNotebookEntryRepository` as a
   singleton in the app container, then calls `loadViewsFrom(..., 'notebook')`
   and `loadRoutesFrom(routes.php)`. Like Feedback's `FeedbackRepositoryInterface`,

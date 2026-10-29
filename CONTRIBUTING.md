@@ -35,7 +35,7 @@ same terms.
   [CLAUDE.md](CLAUDE.md#architecture)
 - Schema changes go in a new file under `database/migrations/`, same format
   as Kintai's own Core migrations (`return new class($this->capsule) extends
-  \kintai\Core\Database\Migration {...}`), named `YYYY_MM_DD_NNNNNN_description.php`.
+  \App\Database\Migration {...}`), named `YYYY_MM_DD_NNNNNN_description.php`.
   Always guard `up()` with `hasTable()`/`hasColumn()` — migrations must be
   idempotent, they can be replayed by a manual re-sync
 - Comments in code are written in French; everything else (commit messages,

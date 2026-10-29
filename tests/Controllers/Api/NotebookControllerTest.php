@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Notebook\Controllers\Api;
+namespace Tests\Bundles\Notebook\Controllers\Api;
 
 use kintai\Bundles\Installed\Notebook\Controllers\Api\NotebookController;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\NotFoundException;
+use App\Auth\PermissionService;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
