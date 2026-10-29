@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 
 declare(strict_types=1);
@@ -300,3 +302,5 @@ function srOpenCreateModal() {
 }
 </script>
 <?php endif; ?>
+
+@endsection

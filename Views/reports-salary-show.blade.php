@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 
 declare(strict_types=1);
@@ -212,3 +214,5 @@ foreach ($sections as $title => $body):
     echo Card::make()->header('<span>' . htmlspecialchars($title) . '</span>')->body($body)->render();
 endforeach;
 ?>
+
+@endsection

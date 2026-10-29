@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\SalaryReport\Views;
 
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -19,16 +19,16 @@ final class SalaryReportFormViewTest extends TestCase
     private function renderForm(array $store, array $report = []): string
     {
         $viewsDir = dirname(__DIR__, 2) . '/Views';
-        $view = new ViewRenderer(dirname($viewsDir));
+        $view = kintai_test_views(dirname($viewsDir));
         $view->addNamespace('salary-report', $viewsDir);
 
-        return $view->renderPartial('salary-report::reports-salary-form', [
+        return $view->make('salary-report::reports-salary-form', [
             'store'    => $store,
             'mode'     => 'edit',
             'report'   => $report,
             'BASE_URL' => '',
             'managers' => [],
-        ]);
+        ])->render();
     }
 
     public function testMoneyFieldsRenderAsFormattableTextInputs(): void

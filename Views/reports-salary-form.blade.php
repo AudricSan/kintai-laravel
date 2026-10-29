@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 
 declare(strict_types=1);
@@ -292,3 +294,5 @@ $hoursLabel = fn(string $key) => __($key) . ' (h)';
 <?php if ($salaryReportFormJs = bundle_asset('salary-report', 'js/salary-report-form.js')): ?>
 <script src="<?= $salaryReportFormJs ?>"></script>
 <?php endif; ?>
+
+@endsection

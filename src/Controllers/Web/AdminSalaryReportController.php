@@ -21,7 +21,7 @@ use kintai\Contract\Services\ShiftWageCalculator;
 use kintai\Contract\Services\StoreStatsServiceInterface;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Http\Concerns\HasStaffReportCrud;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class AdminSalaryReportController
 {
@@ -60,7 +60,7 @@ final class AdminSalaryReportController
     ];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly SalaryReportRepositoryInterface $salaryReports,
@@ -106,7 +106,7 @@ final class AdminSalaryReportController
             }
         }
 
-        return response($this->view->render('salary-report::reports-salary', [
+        return response($this->view->make('salary-report::reports-salary', [
             'title'       => __('salary_report_sr_title'),
             'stores'      => $allStores,
             'store_members_by_store' => $membersByStore,
@@ -115,7 +115,7 @@ final class AdminSalaryReportController
             'filter_month' => $filterMonth,
             'filter_person' => $filterPerson,
             'reports'     => $reports,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function salaryReports(Request $request): Response
@@ -168,12 +168,12 @@ final class AdminSalaryReportController
         $reports = $this->salaryReports->findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
-        $html = $this->view->render('salary-report::reports-salary-export-pdf', [
+        $html = $this->view->make('salary-report::reports-salary-export-pdf', [
             'reports'      => $reports,
             'store_names'  => $storeNames,
             'generated_at' => date('Y-m-d H:i'),
             'downloadUrl'  => $this->base() . '/admin/reports/salary/export/pdf/download' . $this->exportQueryString($request),
-        ]);
+        ])->render();
 
         return response($html);
     }
@@ -184,11 +184,11 @@ final class AdminSalaryReportController
         $reports = $this->salaryReports->findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
-        $html = $this->view->render('salary-report::reports-salary-export-pdf', [
+        $html = $this->view->make('salary-report::reports-salary-export-pdf', [
             'reports'      => $reports,
             'store_names'  => $storeNames,
             'generated_at' => date('Y-m-d H:i'),
-        ]);
+        ])->render();
 
         $this->auditLogger->log($request, 'export.salary_reports_pdf', 'salary_report', 0, [
             'count' => count($reports),
@@ -240,13 +240,13 @@ final class AdminSalaryReportController
             $preset['person_in_charge'] = $authName;
         }
 
-        return response($this->view->render('salary-report::reports-salary-form', [
+        return response($this->view->make('salary-report::reports-salary-form', [
             'title'   => __('salary_report_sr_new') . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
             'mode'    => 'create',
             'report'  => $preset,
             'managers' => $managers,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
