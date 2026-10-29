@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 
@@ -94,3 +96,5 @@ $base = $BASE_URL . '/admin/stores/' . $storeId . '/reports/resignation';
         </table>
     </div>
 </div>
+
+@endsection

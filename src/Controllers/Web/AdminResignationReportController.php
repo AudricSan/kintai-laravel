@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Http\Concerns\HasStaffReportCrud;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class AdminResignationReportController
 {
@@ -42,7 +42,7 @@ final class AdminResignationReportController
     ];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly ResignationReportRepositoryInterface $resignationReports,
@@ -78,7 +78,7 @@ final class AdminResignationReportController
 
         $reports = $this->resignationReports->findAll($queryStoreIds, $filters);
 
-        return response($this->view->render('resignation-report::reports-resignation', [
+        return response($this->view->make('resignation-report::reports-resignation', [
             'title'          => __('resignation_report_resignation_reports'),
             'stores'         => $allStores,
             'filter_store_id' => $filterStoreId,
@@ -86,7 +86,7 @@ final class AdminResignationReportController
             'filter_month'   => $filterMonth,
             'filter_person'  => $filterPerson,
             'reports'        => $reports,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function resignationReports(Request $request): Response
@@ -139,12 +139,12 @@ final class AdminResignationReportController
         $reports = $this->resignationReports->findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
-        $html = $this->view->render('resignation-report::reports-resignation-export-pdf', [
+        $html = $this->view->make('resignation-report::reports-resignation-export-pdf', [
             'reports'      => $reports,
             'store_names'  => $storeNames,
             'generated_at' => date('Y-m-d H:i'),
             'downloadUrl'  => $this->base() . '/admin/reports/resignation/export/pdf/download' . $this->exportQueryString($request),
-        ]);
+        ])->render();
 
         return response($html);
     }
@@ -155,11 +155,11 @@ final class AdminResignationReportController
         $reports = $this->resignationReports->findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
-        $html = $this->view->render('resignation-report::reports-resignation-export-pdf', [
+        $html = $this->view->make('resignation-report::reports-resignation-export-pdf', [
             'reports'      => $reports,
             'store_names'  => $storeNames,
             'generated_at' => date('Y-m-d H:i'),
-        ]);
+        ])->render();
 
         $this->auditLogger->log($request, 'export.resignation_reports_pdf', 'resignation_report', 0, [
             'count' => count($reports),
@@ -209,14 +209,14 @@ final class AdminResignationReportController
 
         $managers = $this->getManagersForReportForm($storeId, $userId);
 
-        return response($this->view->render('resignation-report::reports-resignation-form', [
+        return response($this->view->make('resignation-report::reports-resignation-form', [
             'title'   => __('resignation_report_new_resignation_report') . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
             'users'   => $users,
             'mode'    => 'create',
             'report'  => $preset,
             'managers' => $managers,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeResignationReport(Request $request): Response

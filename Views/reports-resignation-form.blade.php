@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Card;
@@ -108,3 +110,5 @@ function rrFillFromUser(select) {
     document.getElementById('f-employee_name').value = opt.dataset.name || '';
 }
 </script>
+
+@endsection

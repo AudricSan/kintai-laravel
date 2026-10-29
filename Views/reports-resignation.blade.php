@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Button;
 use kintai\Contract\View\Components\Flash;
@@ -215,3 +217,5 @@ echo $tbl
 <?php if ($resignationDeleteJs = bundle_asset('resignation-report', 'js/resignation-report-delete-modal.js')): ?>
 <script src="<?= $resignationDeleteJs ?>"></script>
 <?php endif; ?>
+
+@endsection
