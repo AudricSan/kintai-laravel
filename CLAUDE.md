@@ -14,7 +14,7 @@ installer).
 
 There is no build or test suite in this repo (no `composer.json`, no
 PHPUnit). The code is not runnable or functionally testable standalone: every
-class under `src/` depends on `kintai\Core\*` (repositories, middleware,
+class under `src/` depends on `App\*` (repositories, middleware,
 `Request`/`Response`, `ViewRenderer`, PDF generation, etc.) that only exist
 inside a running Kintai instance. Verifying a behavior change means
 installing the bundle into a real Kintai instance, not running anything in
@@ -69,7 +69,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   version, `kintai_core` compatibility range, `entry_class`.
 - `src/HiringReportBundle.php` — the entry point
   (`kintai\Bundles\Installed\HiringReport\HiringReportBundle`, extends
-  `kintai\Core\BundleContract\Bundle`). Unlike most bundles, `register()`
+  `App\Bundles\Bundle`). Unlike most bundles, `register()`
   only calls `loadViewsFrom(..., 'hiring-report')` and
   `loadRoutesFrom(routes.php)` — it doesn't bind any repository. That's
   deliberate: `HiringReportRepositoryInterface` is bound by Kintai Core
@@ -87,7 +87,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
 - `src/Controllers/Web/AdminHiringReportController.php` — CRUD + PDF
   preview/download, sharing logic with the Resignation/Salary report
   controllers (in Kintai Core) via the `HasStaffReportCrud` trait
-  (`kintai\UI\Controller\Web\Staff\HasStaffReportCrud`) — a plain PHP trait,
+  (`App\Http\Controllers\Staff\HasStaffReportCrud`) — a plain PHP trait,
   not a DI-resolved service, so it works the same regardless of where this
   controller class lives.
 - `Views/reports-hiring*.php` — list (all-stores and per-store), form,

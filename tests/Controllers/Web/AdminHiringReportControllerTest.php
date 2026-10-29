@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\HiringReport\Controllers\Web;
+namespace Tests\Bundles\HiringReport\Controllers\Web;
 
 
 use kintai\Bundles\Installed\HiringReport\Controllers\Web\AdminHiringReportController;
-use kintai\Core\Container;
-use kintai\Core\Exceptions\NotFoundException;
+use App\Container;
+use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -193,7 +193,7 @@ final class AdminHiringReportControllerTest extends TestCase
         $this->storeUsers->method('findMembership')->willReturn(null);
         $this->hiringReports->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeHiringReport($req);
     }
 

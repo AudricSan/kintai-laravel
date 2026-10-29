@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\HiringReport\Services;
+namespace Tests\Bundles\HiringReport\Services;
 
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use kintai\Bundles\Installed\HiringReport\Services\HiringReportOnEmployeeCreated;

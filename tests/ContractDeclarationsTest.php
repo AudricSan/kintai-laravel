@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\HiringReport;
+namespace Tests\Bundles\HiringReport;
 
 use kintai\Contract\Event\EmployeeCreated;
 use kintai\Contract\Extension\NavItem;
