@@ -11,11 +11,41 @@ final class BundleManager
     private Application $app;
     /** @var Bundle[] */
     private array $bundles = [];
-    private bool $booted = false;
 
     public function __construct(Application $app)
     {
         $this->app = $app;
+    }
+
+    /** @var list<string> fichiers de routes de bundles en attente des routes du Core */
+    private array $queuedRoutes = [];
+    private bool $routesReady = false;
+
+    /** Un bundle demande le chargement de son fichier de routes (Bundle::loadRoutesFrom()). */
+    public function queueRoutes(string $path): void
+    {
+        if ($this->routesReady) {
+            $this->requireRoutes($path);
+            return;
+        }
+        $this->queuedRoutes[] = $path;
+    }
+
+    /** Les routes du Core sont déclarées : celles des bundles viennent ensuite, et toute demande suivante est immédiate. */
+    public function loadQueuedRoutes(): void
+    {
+        $this->routesReady = true;
+        foreach ($this->queuedRoutes as $path) {
+            $this->requireRoutes($path);
+        }
+        $this->queuedRoutes = [];
+    }
+
+    private function requireRoutes(string $path): void
+    {
+        if (!($this->app instanceof \Illuminate\Contracts\Foundation\CachesRoutes && $this->app->routesAreCached())) {
+            require $path;
+        }
     }
 
     public function registerBundle(string $bundleClass): void
@@ -24,20 +54,9 @@ final class BundleManager
             return;
         }
 
-        $bundle = new $bundleClass($this->app);
-        $bundle->register();
+        // Un bundle est un service provider Laravel : l'application l'enregistre, puis le démarre (routes, vues…).
+        $bundle = $this->app->register(new $bundleClass($this->app));
         $this->bundles[$bundleClass] = $bundle;
-    }
-
-    public function boot(): void
-    {
-        if ($this->booted) {
-            return;
-        }
-        $this->booted = true;
-        foreach ($this->bundles as $bundle) {
-            $bundle->boot();
-        }
     }
 
     /**

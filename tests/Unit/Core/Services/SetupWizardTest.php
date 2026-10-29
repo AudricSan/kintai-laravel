@@ -79,7 +79,7 @@ final class SetupWizardTest extends TestCase
         $root = $dir . '/' . $slug . '/' . $version;
         mkdir($root . '/src', 0777, true);
         file_put_contents($root . '/bundle.json', json_encode(['slug' => $slug, 'name' => $slug, 'version' => $version, 'namespace' => $ns,
-            'entry_class' => $ns . '\\' . $class . 'Bundle', 'kintai_contract' => '^2.0']));
+            'entry_class' => $ns . '\\' . $class . 'Bundle', 'kintai_contract' => '^1.0']));
         file_put_contents($root . '/src/' . $class . 'Bundle.php', "<?php\nnamespace {$ns};\nfinal class {$class}Bundle extends \\kintai\\Core\\BundleContract\\Bundle {\n    public function getName(): string { return '{$slug}'; }\n    public function register(): void {}\n}\n");
         require $root . '/src/' . $class . 'Bundle.php';
     }

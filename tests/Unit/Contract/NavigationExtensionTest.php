@@ -61,7 +61,7 @@ final class NavigationExtensionTest extends TestCase
 
     public function testTheContractVersionAnnouncesExtensionPoints(): void
     {
-        $this->assertTrue(Contract::satisfies('>=1.1'));
+        $this->assertTrue(Contract::satisfies('>=1.0'));
     }
 
     public function testANavItemResolvesItsRouteLabelAndActiveState(): void

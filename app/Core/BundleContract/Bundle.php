@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\BundleContract;
 
-use Illuminate\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
 
 /**
  * Point de contact stable pour tout auteur de bundle, interne ou tiers.
@@ -18,15 +18,14 @@ use Illuminate\Foundation\Application;
  * src/Core/Repositories/*Interface.php, déjà un contrat stable par
  * construction).
  */
-abstract class Bundle
+abstract class Bundle extends ServiceProvider
 {
-    protected Application $app;
     protected string $path;
     private ?string $assetsPath = null;
 
-    public function __construct(Application $app)
+    public function __construct($app)
     {
-        $this->app = $app;
+        parent::__construct($app);
         $this->path = $this->resolvePath();
     }
 
@@ -37,9 +36,11 @@ abstract class Bundle
     abstract public function getName(): string;
 
     /**
-     * Enregistre services, routes ou vues.
+     * Enregistre services, routes ou vues (register() d'un service provider Laravel).
      */
-    abstract public function register(): void;
+    public function register(): void
+    {
+    }
 
     /**
      * Version du bundle. Un bundle legacy (monorepo, sans bundle.json) peut
@@ -48,7 +49,10 @@ abstract class Bundle
      */
     public function getVersion(): string
     {
-        return '0.0.0';
+        $manifest = $this->getPath() . '/bundle.json';
+        $data = is_file($manifest) ? json_decode((string) file_get_contents($manifest), true) : null;
+
+        return is_array($data) && is_string($data['version'] ?? null) ? $data['version'] : '0.0.0';
     }
 
     /**
@@ -328,22 +332,12 @@ abstract class Bundle
     }
 
     /**
-     * Aide à l'enregistrement des routes depuis un fichier.
+     * Routes du bundle (fichier en Route:: de Laravel), chargées une fois toutes celles du Core déclarées : la route du
+     * Core l'emporte sur celle d'un bundle au même chemin.
      */
-    protected function loadRoutesFrom(string $path): void
+    protected function loadRoutesFrom($path): void
     {
-        $router = new \kintai\Http\Routing\RouteRegistrar($this->app->make('router'));
-        $container = $this->app;
-        require $path;
-    }
-
-    /**
-     * Aide à l'enregistrement des vues sous un namespace.
-     */
-    protected function loadViewsFrom(string $path, string $namespace): void
-    {
-        $viewRenderer = $this->app->make(\kintai\UI\ViewRenderer::class);
-        $viewRenderer->addNamespace($namespace, $path);
+        $this->app->make(\kintai\Core\BundleManager::class)->queueRoutes($path);
     }
 
     /**

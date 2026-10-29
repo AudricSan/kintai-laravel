@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Http;
 
 use Illuminate\Foundation\Application;
-use kintai\Core\BundleManager;
 
 /**
  * Mise en route HTTP de Kintai, appelée au chargement des routes (bootstrap/app.php) : filet d'erreurs PHP, routes du
@@ -39,7 +38,8 @@ final class KintaiHttp
         require $laravel->basePath('routes/web.php');
         require $laravel->basePath('routes/api.php');
 
-        $laravel->make(BundleManager::class)->boot();
+        // Puis les routes des bundles actifs.
+        $laravel->make(\kintai\Core\BundleManager::class)->loadQueuedRoutes();
     }
 
     /**

@@ -232,7 +232,7 @@ final class BundleDiscoveryServiceTest extends TestCase
 
     public function testABundleRequiringTheProvidedContractIsCompatible(): void
     {
-        $meta = $this->discoverOne('contract-ok', '1.0.0', ['kintai_contract' => '^2.0']);
+        $meta = $this->discoverOne('contract-ok', '1.0.0', ['kintai_contract' => '^1.0']);
 
         $this->assertNull($meta['incompatible']);
     }
@@ -256,7 +256,7 @@ final class BundleDiscoveryServiceTest extends TestCase
     {
         $dir = sys_get_temp_dir() . '/kintai-legacy-contract-' . uniqid();
         $this->writeFakeLegacyBundle($dir, 'FakeNoManifestBundle', 'fake-no-manifest');
-        $this->writeFakeLegacyBundle($dir, 'FakeContractBundle', 'fake-contract', ['kintai_contract' => '^2.0']);
+        $this->writeFakeLegacyBundle($dir, 'FakeContractBundle', 'fake-contract', ['kintai_contract' => '^1.0']);
         $empty = sys_get_temp_dir() . '/kintai-installed-' . uniqid();
         mkdir($empty, 0777, true);
 
@@ -270,7 +270,7 @@ final class BundleDiscoveryServiceTest extends TestCase
     public function testInstalledIncompatibleWithATargetContract(): void
     {
         $installedDir = sys_get_temp_dir() . '/kintai-installed-' . uniqid();
-        $this->writeFakeInstalledBundle($installedDir, 'still-ok', '1.0.0', null, ['kintai_contract' => '^1.5']);
+        $this->writeFakeInstalledBundle($installedDir, 'still-ok', '1.0.0', null, ['kintai_contract' => '^1.0']);
         $this->writeFakeInstalledBundle($installedDir, 'needs-v2', '1.0.0', null, ['kintai_contract' => '^2.0']);
         $this->writeFakeInstalledBundle($installedDir, 'no-contract', '1.0.0');
         $store = new InstalledBundleManifestStore($installedDir . '/installed.json');

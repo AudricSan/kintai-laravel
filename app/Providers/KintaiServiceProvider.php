@@ -46,6 +46,10 @@ final class KintaiServiceProvider extends ServiceProvider
 
         $this->app->singleton(BundleManager::class);
 
+        // Le moteur de vues de l'application est celui de Kintai (Blade, directive @includeInScope, vues .php) : les
+        // vues des bundles (loadViewsFrom) et view() passent par lui.
+        $this->app->extend('view', fn($view, $app) => $app->make(ViewRenderer::class)->factory());
+
         $this->app->singleton(ViewRenderer::class, function (): ViewRenderer {
             $views = new ViewRenderer(BASE_PATH . '/app/UI/View');
             $views->share('BASE_URL', base_url());
@@ -68,11 +72,6 @@ final class KintaiServiceProvider extends ServiceProvider
     {
         \kintai\Http\Macros::register();
 
-        // Scripts, tâches et files d'attente : les bundles sont démarrés avec l'application. En HTTP, ils le sont après
-        // les routes du cœur (bootstrap/app.php) ; les tests, eux, n'en chargent aucun.
-        if ($this->app->runningInConsole() && !$this->app->runningUnitTests() && !$this->app->runningConsoleCommand('route:list')) {
-            $this->app->make(BundleManager::class)->boot();
-        }
 
         // auth() et le Gate de Laravel lisent l'utilisateur et les permissions de Kintai.
         Auth::extend('kintai', static fn(): KintaiGuard => new KintaiGuard());
