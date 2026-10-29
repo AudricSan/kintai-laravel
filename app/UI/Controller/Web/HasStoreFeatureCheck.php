@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\UI\Controller\Web;
 
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Vérifie qu'une fonctionnalité est activée pour le store de l'employé courant
@@ -27,7 +27,7 @@ trait HasStoreFeatureCheck
      */
     protected function assertFeature(Request $request, string $feature): ?Response
     {
-        $user        = $request->getAttribute('auth_user');
+        $user        = $request->attributes->get('auth_user');
         $memberships = $this->storeUsers->findByUser((int) ($user['id'] ?? 0));
         if (empty($memberships)) {
             return null;
@@ -36,6 +36,6 @@ trait HasStoreFeatureCheck
         if ($features === [] || in_array($feature, $features, true)) {
             return null;
         }
-        return Response::redirect($this->base() . '/employee?error=feature_disabled');
+        return redirect()->away($this->base() . '/employee?error=feature_disabled');
     }
 }

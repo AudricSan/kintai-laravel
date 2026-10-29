@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Core\Services;
 
 use kintai\Core\Container;
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use PHPUnit\Framework\TestCase;
@@ -38,7 +38,7 @@ final class AuditLoggerTest extends TestCase
 
     public function testNullOldStateIsLoggedAsCreation(): void
     {
-        (new AuditLogger())->logUpdate(new Request(), 'dashboard_prefs.updated', 'user_dashboard_prefs', 3, null, ['kpi'], []);
+        (new AuditLogger())->logUpdate(Request::capture(), 'dashboard_prefs.updated', 'user_dashboard_prefs', 3, null, ['kpi'], []);
 
         $this->assertCount(1, $this->contexts);
         $this->assertArrayHasKey('changes', $this->contexts[0]);
@@ -46,7 +46,7 @@ final class AuditLoggerTest extends TestCase
 
     public function testNullNewStateIsAccepted(): void
     {
-        (new AuditLogger())->logUpdate(new Request(), 'shift.conflict_resolved', 'shift', 6, null, null, ['deleted_id' => 9]);
+        (new AuditLogger())->logUpdate(Request::capture(), 'shift.conflict_resolved', 'shift', 6, null, null, ['deleted_id' => 9]);
 
         $this->assertSame([['deleted_id' => 9]], $this->contexts);
     }

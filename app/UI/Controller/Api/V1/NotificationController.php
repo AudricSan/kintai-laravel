@@ -7,8 +7,8 @@ namespace kintai\UI\Controller\Api\V1;
 use kintai\Core\Api\Paginator;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Notifications du porteur du token — ressource strictement personnelle :
@@ -23,18 +23,18 @@ final class NotificationController
     /** GET /api/v1/notifications?limit=20 */
     public function index(Request $request): Response
     {
-        $userId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
 
         [$page, $limit] = Paginator::params($request);
         $items = $userId > 0 ? $this->notifications->findByUser($userId, 1000) : [];
 
-        return Response::json(Paginator::paginate(array_map([$this, 'present'], $items), $page, $limit));
+        return response()->json(Paginator::paginate(array_map([$this, 'present'], $items), $page, $limit));
     }
 
     /** GET /api/v1/notifications/{id} */
     public function show(Request $request): Response
     {
-        return Response::json($this->present($this->findOwn($request)));
+        return response()->json($this->present($this->findOwn($request)));
     }
 
     /** Ajoute le titre et le texte traduits dans la langue courante (body_key + params, sinon l'instantané body). */
@@ -51,17 +51,17 @@ final class NotificationController
     {
         $item = $this->findOwn($request);
         $this->notifications->markRead((int) $item['id'], (int) $item['user_id']);
-        return Response::empty();
+        return response()->noContent();
     }
 
     /** POST /api/v1/notifications/read-all */
     public function markAllRead(Request $request): Response
     {
-        $userId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($userId > 0) {
             $this->notifications->markAllRead($userId);
         }
-        return Response::empty();
+        return response()->noContent();
     }
 
     /** DELETE /api/v1/notifications/{id} */
@@ -69,7 +69,7 @@ final class NotificationController
     {
         $item = $this->findOwn($request);
         $this->notifications->delete((int) $item['id']);
-        return Response::empty();
+        return response()->noContent();
     }
 
     /**
@@ -79,8 +79,8 @@ final class NotificationController
      */
     private function findOwn(Request $request): array
     {
-        $item   = $this->notifications->findById((int) $request->param('id'));
-        $userId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $item   = $this->notifications->findById((int) $request->route('id'));
+        $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($item === null || (int) ($item['user_id'] ?? 0) !== $userId) {
             throw new NotFoundException(__('error_notification_not_found'));
         }

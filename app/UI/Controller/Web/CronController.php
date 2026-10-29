@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web;
 
 use kintai\Core\Cron\CronRunner;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Point d'entrée HTTP des tâches planifiées : `/cron/run/{tâche}`, via CronRunner, pour toutes les tâches du Core
@@ -36,7 +36,7 @@ final class CronController
      */
     public function run(Request $request): Response
     {
-        $jobName = (string) $request->param('job');
+        $jobName = (string) $request->route('job');
         return $this->cronRunner->run($jobName, $request);
     }
 }

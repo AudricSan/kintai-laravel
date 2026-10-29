@@ -15,7 +15,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -96,11 +96,11 @@ final class AuthControllerLoginTest extends TestCase
             'email'      => 'employee@example.test',
             'password'   => 'secret',
         ];
-        $request = new Request();
+        $request = Request::capture();
 
         $response = $this->controller()->login($request);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testFailedLoginFlagsTheRequestForTheThrottle(): void
@@ -108,11 +108,11 @@ final class AuthControllerLoginTest extends TestCase
         $this->users->method('findByEmail')->willReturn(null);
 
         $_POST = ['login_mode' => 'email', 'email' => 'employee@example.test', 'password' => bin2hex(random_bytes(6))];
-        $request = new Request();
+        $request = Request::capture();
         $this->controller()->login($request);
 
         // Lu par LoginThrottleMiddleware : seuls les échecs comptent.
-        $this->assertTrue($request->getAttribute('auth_failed'));
+        $this->assertTrue($request->attributes->get('auth_failed'));
     }
 
     public function testSuccessfulLoginDoesNotFlagTheRequest(): void
@@ -130,10 +130,10 @@ final class AuthControllerLoginTest extends TestCase
         $this->users->method('save')->willReturn($user);
 
         $_POST = ['login_mode' => 'email', 'email' => 'employee@example.test', 'password' => $password];
-        $request = new Request();
+        $request = Request::capture();
         $this->controller()->login($request);
 
-        $this->assertNull($request->getAttribute('auth_failed'));
+        $this->assertNull($request->attributes->get('auth_failed'));
     }
 
     public function testFailedLoginDoesNotTouchLastLoginAt(): void
@@ -147,10 +147,10 @@ final class AuthControllerLoginTest extends TestCase
             'email'      => 'employee@example.test',
             'password'   => 'wrong',
         ];
-        $request = new Request();
+        $request = Request::capture();
 
         $response = $this->controller()->login($request);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 }

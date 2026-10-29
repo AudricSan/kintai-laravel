@@ -13,7 +13,7 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Api\V1\AuthController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -58,8 +58,8 @@ final class AuthControllerTest extends TestCase
         $req      = $this->makeRequest('GET', '/api/v1/ping');
         $response = $this->controller()->ping($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertSame('ok', $data['status']);
         $this->assertSame('v1', $data['version']);
     }
@@ -73,8 +73,8 @@ final class AuthControllerTest extends TestCase
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: ['password' => 'x']);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(422, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(422, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertSame('MISSING_CREDENTIALS', $data['code']);
     }
 
@@ -88,8 +88,8 @@ final class AuthControllerTest extends TestCase
         ]);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(401, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(401, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertSame('INVALID_CREDENTIALS', $data['code']);
     }
 
@@ -101,7 +101,7 @@ final class AuthControllerTest extends TestCase
         $this->controller()->login($req);
 
         // Lu par LoginThrottleMiddleware : seuls les échecs comptent.
-        $this->assertTrue($req->getAttribute('auth_failed'));
+        $this->assertTrue($req->attributes->get('auth_failed'));
     }
 
     public function testMissingCredentialsDoNotCountAsAFailedLogin(): void
@@ -109,8 +109,8 @@ final class AuthControllerTest extends TestCase
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: ['password' => bin2hex(random_bytes(6))]);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(422, $response->status());
-        $this->assertNull($req->getAttribute('auth_failed'));
+        $this->assertSame(422, $response->getStatusCode());
+        $this->assertNull($req->attributes->get('auth_failed'));
     }
 
     public function testLoginInvalidEmployeeCodeReturns401(): void
@@ -124,7 +124,7 @@ final class AuthControllerTest extends TestCase
         ]);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(401, $response->status());
+        $this->assertSame(401, $response->getStatusCode());
     }
 
     public function testLoginSuccessReturnsToken(): void
@@ -159,8 +159,8 @@ final class AuthControllerTest extends TestCase
         ]);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(201, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(201, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('token', $data);
         $this->assertArrayHasKey('user', $data);
         $this->assertArrayNotHasKey('password_hash', $data['user']);
@@ -192,10 +192,10 @@ final class AuthControllerTest extends TestCase
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'weak@example.com', 'password' => $password]);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(403, $response->status());
-        $this->assertSame('PASSWORD_CHANGE_REQUIRED', json_decode($response->body(), true)['code']);
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('PASSWORD_CHANGE_REQUIRED', json_decode($response->getContent(), true)['code']);
         // Identifiants corrects : pas un échec pour la limitation des tentatives.
-        $this->assertNull($req->getAttribute('auth_failed'));
+        $this->assertNull($req->attributes->get('auth_failed'));
         // Aucune session ne doit rester ouverte.
         $this->assertNull($this->auth->user());
     }
@@ -225,7 +225,7 @@ final class AuthControllerTest extends TestCase
             'employee_code' => '057', 'store_code' => '21836', 'password' => '0000',
         ]));
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     public function testLoginTokenLengthIs64Hex(): void
@@ -266,10 +266,10 @@ final class AuthControllerTest extends TestCase
         $this->tokens->expects($this->once())->method('delete')->with(42);
 
         $req = $this->makeRequest('POST', '/api/v1/auth/logout');
-        $req->setAttribute('api_token', ['id' => 42]);
+        $req->attributes->set('api_token', ['id' => 42]);
 
         $response = $this->controller()->logout($req);
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testLogoutWithoutTokenAttributeIsGraceful(): void
@@ -280,7 +280,7 @@ final class AuthControllerTest extends TestCase
         $req      = $this->makeRequest('POST', '/api/v1/auth/logout');
         $response = $this->controller()->logout($req);
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -292,12 +292,12 @@ final class AuthControllerTest extends TestCase
         $user = ['id' => 1, 'email' => 'a@b.com', 'password_hash' => 'secret'];
 
         $req = $this->makeRequest('GET', '/api/v1/auth/me');
-        $req->setAttribute('auth_user', $user);
+        $req->attributes->set('auth_user', $user);
 
         $response = $this->controller()->me($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertArrayNotHasKey('password_hash', $data);
         $this->assertSame('a@b.com', $data['email']);
     }
@@ -314,12 +314,12 @@ final class AuthControllerTest extends TestCase
         ]);
 
         $req = $this->makeRequest('GET', '/api/v1/auth/tokens');
-        $req->setAttribute('auth_user', ['id' => 3]);
+        $req->attributes->set('auth_user', ['id' => 3]);
 
         $response = $this->controller()->listTokens($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertCount(2, $data);
         foreach ($data as $row) {
             $this->assertArrayNotHasKey('token', $row);
@@ -338,10 +338,10 @@ final class AuthControllerTest extends TestCase
 
         $req = $this->makeRequest('DELETE', '/api/v1/auth/tokens/5');
         $req->setRouteParams(['id' => '5']);
-        $req->setAttribute('auth_user', ['id' => 3]);
+        $req->attributes->set('auth_user', ['id' => 3]);
 
         $response = $this->controller()->revokeToken($req);
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testRevokeTokenThrowsWhenOwnerMismatch(): void
@@ -350,7 +350,7 @@ final class AuthControllerTest extends TestCase
 
         $req = $this->makeRequest('DELETE', '/api/v1/auth/tokens/5');
         $req->setRouteParams(['id' => '5']);
-        $req->setAttribute('auth_user', ['id' => 3]);
+        $req->attributes->set('auth_user', ['id' => 3]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->revokeToken($req);
@@ -362,7 +362,7 @@ final class AuthControllerTest extends TestCase
 
         $req = $this->makeRequest('DELETE', '/api/v1/auth/tokens/999');
         $req->setRouteParams(['id' => '999']);
-        $req->setAttribute('auth_user', ['id' => 3]);
+        $req->attributes->set('auth_user', ['id' => 3]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->revokeToken($req);
@@ -387,14 +387,12 @@ final class AuthControllerTest extends TestCase
         if ($json !== []) {
             // On simule un corps JSON via php://input n'est pas possible dans un test unitaire.
             // On réutilise la réflexion pour injecter le corps JSON directement.
-            $req = new Request();
-            $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-            $ref->setAccessible(true);
-            $ref->setValue($req, $json);
+            $req = Request::capture();
+            $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($json));
             return $req;
         }
 
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void
@@ -432,10 +430,10 @@ final class AuthControllerTest extends TestCase
     {
         [$response, $saved] = $this->loginAndCaptureExpiry([]);
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
         $this->assertNotNull($saved['expires_at']);
         $this->assertEqualsWithDelta(time() + AuthController::TOKEN_TTL, strtotime($saved['expires_at']), 5);
-        $this->assertSame($saved['expires_at'], json_decode($response->body(), true)['expires_at']);
+        $this->assertSame($saved['expires_at'], json_decode($response->getContent(), true)['expires_at']);
     }
 
     public function testShorterExpiresInIsHonoured(): void
@@ -467,7 +465,7 @@ final class AuthControllerTest extends TestCase
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'alice@example.com', 'password' => 'x', 'expires_in' => $expiresIn]);
         $response = $this->controller()->login($req);
 
-        $this->assertSame(422, $response->status());
-        $this->assertNull($req->getAttribute('auth_failed'));
+        $this->assertSame(422, $response->getStatusCode());
+        $this->assertNull($req->attributes->get('auth_failed'));
     }
 }

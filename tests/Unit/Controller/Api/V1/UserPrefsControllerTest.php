@@ -10,7 +10,7 @@ use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Tests\Support\ApiOwnerAuth;
 use kintai\UI\Controller\Api\V1\UserPrefsController;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -51,10 +51,9 @@ final class UserPrefsControllerTest extends TestCase
 
     private function request(array $body): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
+        $req = ApiOwnerAuth::owner(Request::capture());
         $req->setRouteParams(['user_id' => '20']);
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setValue($req, $body);
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
         return $req;
     }
 
@@ -65,7 +64,7 @@ final class UserPrefsControllerTest extends TestCase
 
         $response = $this->controller()->saveDashboardPrefs($this->request(['dashboard_type' => 'employee', 'widgets' => ['stats', 'shifts']]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** @return array<string, array{array<string, mixed>}> */
@@ -100,7 +99,7 @@ final class UserPrefsControllerTest extends TestCase
             'layout'         => ['order' => ['shifts_today', 'kpi_counters', 'Bad Key'], 'widths' => ['shifts_today' => 'half', 'kpi_counters' => 'huge']],
         ]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testANullLayoutResetsIt(): void
@@ -127,7 +126,7 @@ final class UserPrefsControllerTest extends TestCase
         $req = $this->request([]);
         $response = $this->controller()->getDashboardPrefs($req);
 
-        $this->assertSame(['order' => ['kpi_counters'], 'widths' => []], json_decode($response->body(), true)['layout']);
+        $this->assertSame(['order' => ['kpi_counters'], 'widths' => []], json_decode($response->getContent(), true)['layout']);
     }
 
     public function testNavPrefsMustBeAListOfStrings(): void

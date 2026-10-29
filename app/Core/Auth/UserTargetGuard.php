@@ -7,7 +7,7 @@ namespace kintai\Core\Auth;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 
 /**
  * Garde des routes API `/users/{user_id}/...` : charge l'utilisateur ciblé et vérifie que
@@ -39,7 +39,7 @@ final class UserTargetGuard
             fn(array $m): int => (int) $m['store_id'],
             $this->storeUsers->findByUser($userId)
         );
-        $this->permissions->requireUserAccess($request->getAttribute('auth_user') ?? [], $permissionKey, $userId, $storeIds);
+        $this->permissions->requireUserAccess($request->attributes->get('auth_user') ?? [], $permissionKey, $userId, $storeIds);
 
         return $user;
     }

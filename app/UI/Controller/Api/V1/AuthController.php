@@ -9,8 +9,8 @@ use kintai\Core\Auth\PasswordPolicy;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\ApiTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 
 final class AuthController
@@ -35,7 +35,7 @@ final class AuthController
      */
     public function login(Request $request): Response
     {
-        $data     = $request->json() ?? [];
+        $data     = $request->json()->all() ?? [];
         $password = (string) ($data['password'] ?? '');
         $name     = (string) ($data['token_name'] ?? 'API');
 
@@ -44,7 +44,7 @@ final class AuthController
         if (array_key_exists('expires_in', $data)) {
             $requested = is_bool($data['expires_in']) ? false : filter_var($data['expires_in'], FILTER_VALIDATE_INT);
             if ($requested === false || $requested <= 0) {
-                return Response::apiError(
+                return response()->apiError(
                     'expires_in doit être un nombre entier de secondes strictement positif.',
                     422, 'INVALID_EXPIRES_IN'
                 );
@@ -61,7 +61,7 @@ final class AuthController
                 $password,
             );
         } else {
-            return Response::apiError(
+            return response()->apiError(
                 'Identifiants manquants. Fournir email+password ou employee_code+store_code+password.',
                 422, 'MISSING_CREDENTIALS'
             );
@@ -69,11 +69,11 @@ final class AuthController
 
         if (!$ok) {
             // Lu par LoginThrottleMiddleware : seuls les échecs comptent dans la limitation.
-            $request->setAttribute('auth_failed', true);
+            $request->attributes->set('auth_failed', true);
             $this->auditLogger->log($request, 'auth.api_login_failed', 'user', null, [
                 'mode' => isset($data['email']) ? 'email' : 'code',
             ]);
-            return Response::apiError('Identifiants invalides.', 401, 'INVALID_CREDENTIALS');
+            return response()->apiError('Identifiants invalides.', 401, 'INVALID_CREDENTIALS');
         }
 
         // Mot de passe par défaut « 0000 » ou trop court : pas de jeton. Sur le web, l'utilisateur est seulement
@@ -86,7 +86,7 @@ final class AuthController
             $this->auditLogger->log($request, 'auth.api_login_password_change_required', 'user', $userId ?: null, [
                 'mode' => isset($data['email']) ? 'email' : 'code',
             ], null, $userId ?: null);
-            return Response::apiError(
+            return response()->apiError(
                 'Mot de passe à changer : connectez-vous sur le site pour choisir un nouveau mot de passe (8 caractères minimum).',
                 403, 'PASSWORD_CHANGE_REQUIRED'
             );
@@ -111,7 +111,7 @@ final class AuthController
             'name' => $name,
         ], null, (int) $user['id']);
 
-        return Response::json([
+        return response()->json([
             'token'      => $rawToken,
             'token_id'   => $record['id'],
             'expires_at' => $expiresAt,
@@ -122,36 +122,36 @@ final class AuthController
     /** POST /api/v1/auth/logout — révoque le token courant */
     public function logout(Request $request): Response
     {
-        $tokenRecord = $request->getAttribute('api_token');
+        $tokenRecord = $request->attributes->get('api_token');
         if ($tokenRecord !== null) {
             $this->tokens->delete((int) $tokenRecord['id']);
             $this->auditLogger->log($request, 'api_token.revoked', 'api_token', (int) $tokenRecord['id'], [], null, (int) ($tokenRecord['user_id'] ?? 0) ?: null);
         }
 
-        return Response::empty();
+        return response()->noContent();
     }
 
     /** GET /api/v1/auth/me — utilisateur courant */
     public function me(Request $request): Response
     {
-        $user = $request->getAttribute('auth_user');
-        return Response::json($this->sanitizeUser($user));
+        $user = $request->attributes->get('auth_user');
+        return response()->json($this->sanitizeUser($user));
     }
 
     /** GET /api/v1/auth/tokens — liste les tokens du user courant */
     public function listTokens(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $tokens = $this->tokens->findByUserId((int) $user['id']);
 
-        return Response::json(array_map(fn($t) => $this->sanitizeToken($t), $tokens));
+        return response()->json(array_map(fn($t) => $this->sanitizeToken($t), $tokens));
     }
 
     /** DELETE /api/v1/auth/tokens/{id} — révoque un token spécifique */
     public function revokeToken(Request $request): Response
     {
-        $id          = (int) $request->param('id');
-        $user        = $request->getAttribute('auth_user');
+        $id          = (int) $request->route('id');
+        $user        = $request->attributes->get('auth_user');
         $tokenRecord = $this->tokens->findById($id);
 
         if ($tokenRecord === null || (int) $tokenRecord['user_id'] !== (int) $user['id']) {
@@ -160,13 +160,13 @@ final class AuthController
 
         $this->tokens->delete($id);
         $this->auditLogger->log($request, 'api_token.revoked', 'api_token', $id, [], null, (int) $user['id']);
-        return Response::empty();
+        return response()->noContent();
     }
 
     /** GET /api/v1/ping */
     public function ping(Request $request): Response
     {
-        return Response::json(['status' => 'ok', 'version' => 'v1']);
+        return response()->json(['status' => 'ok', 'version' => 'v1']);
     }
 
     private function sanitizeUser(array $user): array

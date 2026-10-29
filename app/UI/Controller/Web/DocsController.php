@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web;
 
 use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\TranslationService;
 use kintai\Core\Services\WikiContentService;
 use kintai\Core\Services\WikiSyncService;
@@ -34,12 +34,12 @@ final class DocsController
         $firstPage = $this->wikiContent->firstPage();
 
         if ($firstPage !== null && $this->wikiContent->pageExists($locale, $firstPage)) {
-            return Response::redirect(route_url('docs.show', ['lang' => $locale, 'page' => $firstPage]));
+            return redirect()->away(route_url('docs.show', ['lang' => $locale, 'page' => $firstPage]));
         }
 
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
-        return Response::html($this->view->render('docs.unavailable', [
+        return response($this->view->render('docs.unavailable', [
             'title'         => __('docs'),
             'locale'        => $locale,
             'githubWikiUrl' => $this->wikiContent->githubWikiUrl($locale),
@@ -49,8 +49,8 @@ final class DocsController
 
     public function show(Request $request): Response
     {
-        $lang = strtolower((string) $request->param('lang'));
-        $page = (string) $request->param('page');
+        $lang = strtolower((string) $request->route('lang'));
+        $page = (string) $request->route('page');
 
         $toc         = $this->wikiContent->tableOfContents($lang);
         $contentHtml = $this->wikiContent->render($lang, $page);
@@ -78,9 +78,9 @@ final class DocsController
             $otherLanguages[$l] = $this->wikiContent->pageExists($l, $page);
         }
 
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
-        return Response::html($this->view->render('docs.show', [
+        return response($this->view->render('docs.show', [
             'title'          => $currentIndex !== null ? $flatItems[$currentIndex]['title'] : __('docs'),
             'lang'           => $lang,
             'page'           => $page,
@@ -102,6 +102,6 @@ final class DocsController
     {
         $result = $this->wikiSync->sync();
 
-        return Response::json($result, $result['ok'] ? 200 : 500);
+        return response()->json($result, $result['ok'] ? 200 : 500);
     }
 }

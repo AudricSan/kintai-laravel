@@ -11,8 +11,8 @@ use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\ScheduleExportService;
@@ -43,12 +43,12 @@ final class ScheduleExportController
     {
         $user = $this->auth->user();
         if (!$user) {
-            return Response::redirect($this->base() . '/login');
+            return redirect()->away($this->base() . '/login');
         }
 
         $format = strtolower((string) $request->query('format', ''));
         if (!in_array($format, ScheduleExportService::FORMATS, true)) {
-            return Response::redirect($this->base() . '/profile?tab=ical');
+            return redirect()->away($this->base() . '/profile?tab=ical');
         }
 
         $userId  = (int) $user['id'];
@@ -98,15 +98,15 @@ final class ScheduleExportController
                     && (string) ($t['start_date'] ?? '') <= $period['to']
             ));
 
-            return Response::ical($this->ical->build($shifts, $timeoffs, $store, $user, $types), $filename);
+            return response()->ical($this->ical->build($shifts, $timeoffs, $store, $user, $types), $filename);
         }
 
         $rows = $this->export->rows($shifts, $store, $types);
 
         if ($format === 'csv') {
-            return Response::csv($this->export->csv($rows), $filename);
+            return response()->csv($this->export->csv($rows), $filename);
         }
 
-        return Response::jsonDownload($this->export->json($rows, $store, $period['from'], $period['to']), $filename);
+        return response()->jsonDownload($this->export->json($rows, $store, $period['from'], $period['to']), $filename);
     }
 }

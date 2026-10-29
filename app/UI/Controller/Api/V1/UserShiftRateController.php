@@ -9,8 +9,8 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Validation\ApiPayloadRules;
 use kintai\Core\Validation\PayloadValidator;
@@ -28,16 +28,16 @@ final class UserShiftRateController
     /** GET /api/v1/users/{user_id}/rates */
     public function index(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'payroll.view');
-        return Response::json($this->rates->findByUser($userId));
+        return response()->json($this->rates->findByUser($userId));
     }
 
     /** GET /api/v1/users/{user_id}/rates/{id} */
     public function show(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
-        $id     = (int) $request->param('id');
+        $userId = (int) $request->route('user_id');
+        $id     = (int) $request->route('id');
         $this->guard->require($request, $userId, 'payroll.view');
 
         $rate = $this->rates->findById($id);
@@ -45,16 +45,16 @@ final class UserShiftRateController
             throw new NotFoundException(__('error_rate_not_found'));
         }
 
-        return Response::json($rate);
+        return response()->json($rate);
     }
 
     /** POST /api/v1/users/{user_id}/rates */
     public function store(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $body = PayloadValidator::validate($request->json() ?? [], ApiPayloadRules::userRate());
+        $body = PayloadValidator::validate($request->json()->all() ?? [], ApiPayloadRules::userRate());
         $this->assertShiftTypeExists($body['shift_type_id']);
         $data = array_merge($body, [
             'user_id'    => $userId,
@@ -67,14 +67,14 @@ final class UserShiftRateController
             'shift_type_id' => $data['shift_type_id'] ?? null,
         ]);
 
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** PUT /api/v1/users/{user_id}/rates/{id} */
     public function update(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
-        $id     = (int) $request->param('id');
+        $userId = (int) $request->route('user_id');
+        $id     = (int) $request->route('id');
         $this->guard->require($request, $userId, 'employees.update');
 
         $rate = $this->rates->findById($id);
@@ -82,7 +82,7 @@ final class UserShiftRateController
             throw new NotFoundException(__('error_rate_not_found'));
         }
 
-        $body = PayloadValidator::validateUpdate($request->json() ?? [], ApiPayloadRules::userRate());
+        $body = PayloadValidator::validateUpdate($request->json()->all() ?? [], ApiPayloadRules::userRate());
         if (isset($body['shift_type_id'])) {
             $this->assertShiftTypeExists($body['shift_type_id']);
         }
@@ -97,7 +97,7 @@ final class UserShiftRateController
             'shift_type_id' => $rate['shift_type_id'] ?? null,
         ]);
 
-        return Response::json($saved);
+        return response()->json($saved);
     }
 
     /** Un taux vise un type de shift existant : un identifiant inconnu créait un taux orphelin. */
@@ -111,8 +111,8 @@ final class UserShiftRateController
     /** DELETE /api/v1/users/{user_id}/rates/{id} */
     public function destroy(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
-        $id     = (int) $request->param('id');
+        $userId = (int) $request->route('user_id');
+        $id     = (int) $request->route('id');
         $this->guard->require($request, $userId, 'employees.update');
 
         $rate = $this->rates->findById($id);
@@ -126,6 +126,6 @@ final class UserShiftRateController
             'shift_type_id' => $rate['shift_type_id'] ?? null,
         ]);
 
-        return Response::empty();
+        return response()->noContent();
     }
 }

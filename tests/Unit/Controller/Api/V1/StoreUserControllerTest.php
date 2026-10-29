@@ -8,7 +8,7 @@ use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\UI\Controller\Api\V1\StoreUserController;
@@ -40,13 +40,9 @@ final class StoreUserControllerTest extends TestCase
 
     private function request(array $body, array $params = ['store_id' => '3']): Request
     {
-        $req = new Request();
-        $json = new \ReflectionProperty(Request::class, 'jsonBody');
-        $json->setAccessible(true);
-        $json->setValue($req, $body);
-        $par = new \ReflectionProperty(Request::class, 'routeParams');
-        $par->setAccessible(true);
-        $par->setValue($req, $params);
+        $req = Request::capture();
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
+        $req->setRouteParams($params);
         return $req;
     }
 
@@ -62,7 +58,7 @@ final class StoreUserControllerTest extends TestCase
         $res = $this->controller->store($this->request([
             'id' => 7, 'store_id' => 99, 'user_id' => 9, 'staff_code' => 'A1', 'role' => 'manager', 'is_manager' => 1,
         ]));
-        $this->assertSame(201, $res->status());
+        $this->assertSame(201, $res->getStatusCode());
     }
 
     public function testStoreRejectsUnknownUser(): void
@@ -104,7 +100,7 @@ final class StoreUserControllerTest extends TestCase
 
     private function actingAs(int $userId, Request $req): Request
     {
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;
     }
 
@@ -136,6 +132,6 @@ final class StoreUserControllerTest extends TestCase
 
         $response = $this->controller->destroy($this->actingAs(2, $this->request([], ['store_id' => '3', 'id' => '9'])));
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 }

@@ -9,7 +9,7 @@ use kintai\Core\InstalledBundleManifestStore;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\BundleRegistryRepositoryInterface;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\BundleInstaller\BundleInstallerService;
@@ -99,9 +99,9 @@ final class BundleMarketControllerTest extends TestCase
     {
         $this->registries->method('all')->willReturn([]);
 
-        $response = $this->makeController()->index(new Request());
+        $response = $this->makeController()->index(Request::capture());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testStoreRejectsInvalidUrl(): void
@@ -111,9 +111,9 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->registries->expects($this->never())->method('create');
 
-        $response = $this->makeController()->store(new Request());
+        $response = $this->makeController()->store(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=invalid', $this->locationOf($response));
     }
 
@@ -124,7 +124,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->registries->expects($this->never())->method('create');
 
-        $response = $this->makeController()->store(new Request());
+        $response = $this->makeController()->store(Request::capture());
 
         $this->assertStringContainsString('error=invalid', $this->locationOf($response));
     }
@@ -137,7 +137,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->registries->expects($this->never())->method('create');
 
-        $response = $this->makeController()->store(new Request());
+        $response = $this->makeController()->store(Request::capture());
 
         $this->assertStringContainsString('error=duplicate', $this->locationOf($response));
     }
@@ -151,7 +151,7 @@ final class BundleMarketControllerTest extends TestCase
             ->with('Mon registry', 'https://example.test/registry.json')
             ->willReturn(['id' => 3, 'name' => 'Mon registry', 'url' => 'https://example.test/registry.json', 'is_official' => false]);
 
-        $response = $this->makeController()->store(new Request());
+        $response = $this->makeController()->store(Request::capture());
 
         $this->assertStringContainsString('success=created', $this->locationOf($response));
     }
@@ -162,7 +162,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->registries->method('find')->willReturn(['id' => 1, 'name' => 'Officiel', 'url' => 'https://example.test/official.json', 'is_official' => true]);
         $this->registries->expects($this->never())->method('delete');
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '1']);
 
         $response = $this->makeController()->destroy($req);
@@ -176,7 +176,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->registries->method('find')->willReturn(['id' => 2, 'name' => 'Perso', 'url' => 'https://example.test/perso.json', 'is_official' => false]);
         $this->registries->expects($this->once())->method('delete')->with(2);
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '2']);
 
         $response = $this->makeController()->destroy($req);
@@ -204,9 +204,9 @@ final class BundleMarketControllerTest extends TestCase
             ['slug' => 'feedback', 'active_version' => '1.0.0', 'source_registry_url' => null],
         ]);
 
-        $response = $this->makeController()->market(new Request());
+        $response = $this->makeController()->market(Request::capture());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /**
@@ -240,9 +240,9 @@ final class BundleMarketControllerTest extends TestCase
             ['slug' => 'daily-report', 'active_version' => '1.0.0', 'source_registry_url' => null],
         ]);
 
-        $response = $this->makeController()->market(new Request());
+        $response = $this->makeController()->market(Request::capture());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testSaveChannelPersistsChannelAndRedirects(): void
@@ -253,7 +253,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->appSettings->expects($this->once())->method('setMany')->with(['bundle_update_channel' => 'beta']);
 
-        $response = $this->makeController()->saveChannel(new Request());
+        $response = $this->makeController()->saveChannel(Request::capture());
 
         $this->assertStringContainsString('channel_saved=beta', $this->locationOf($response));
     }
@@ -266,7 +266,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->appSettings->expects($this->once())->method('setMany')->with(['bundle_update_channel' => 'release']);
 
-        $response = $this->makeController()->saveChannel(new Request());
+        $response = $this->makeController()->saveChannel(Request::capture());
 
         $this->assertStringContainsString('channel_saved=release', $this->locationOf($response));
     }
@@ -275,9 +275,9 @@ final class BundleMarketControllerTest extends TestCase
     {
         $_POST = ['slug' => '', 'repository_url' => '', 'version' => ''];
 
-        $response = $this->makeController()->dryRun(new Request());
+        $response = $this->makeController()->dryRun(Request::capture());
 
-        $this->assertSame(400, $response->status());
+        $this->assertSame(400, $response->getStatusCode());
     }
 
     public function testDryRunReturnsJsonResultFromInstaller(): void
@@ -288,10 +288,10 @@ final class BundleMarketControllerTest extends TestCase
             'version'         => '1.0.0',
         ];
 
-        $response = $this->makeController()->dryRun(new Request());
+        $response = $this->makeController()->dryRun(Request::capture());
 
-        $this->assertSame(422, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(422, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['ok']);
         $this->assertStringContainsString('non reconnue', $data['error']);
     }
@@ -300,7 +300,7 @@ final class BundleMarketControllerTest extends TestCase
     {
         $_POST = ['slug' => 'feedback'];
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('error=invalid', $this->locationOf($response));
     }
@@ -315,7 +315,7 @@ final class BundleMarketControllerTest extends TestCase
             // confirm_third_party volontairement absent
         ];
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('error=invalid', $this->locationOf($response));
     }
@@ -336,7 +336,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->installedBundles->expects($this->once())->method('upsert')->with('fake-bundle', '1.0.0', null);
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('success=fake-bundle', $this->locationOf($response));
     }
@@ -384,7 +384,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::PINNED_COMMIT);
         $this->installedBundles->expects($this->once())->method('upsert');
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('success=fake-bundle', $this->locationOf($response));
     }
@@ -396,7 +396,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::OTHER_COMMIT);
         $this->installedBundles->expects($this->never())->method('upsert');
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         // L'URL ne porte qu'un code ; le détail (en session) est affiché par le layout, jamais lu dans l'URL.
         $location = $this->locationOf($response);
@@ -414,7 +414,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::OTHER_COMMIT, registryReachable: false);
         $this->installedBundles->expects($this->never())->method('upsert');
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('error=', $this->locationOf($response));
     }
@@ -425,7 +425,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->arrangePinnedInstall(null, self::OTHER_COMMIT);
         $this->installedBundles->expects($this->once())->method('upsert');
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('success=fake-bundle', $this->locationOf($response));
     }
@@ -439,7 +439,7 @@ final class BundleMarketControllerTest extends TestCase
         $_POST['expected_commit'] = self::OTHER_COMMIT;
         $this->installedBundles->expects($this->never())->method('upsert');
 
-        $response = $this->makeController()->install(new Request());
+        $response = $this->makeController()->install(Request::capture());
 
         $this->assertStringContainsString('error=', $this->locationOf($response));
     }
@@ -448,10 +448,10 @@ final class BundleMarketControllerTest extends TestCase
     {
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::OTHER_COMMIT);
 
-        $response = $this->makeController()->dryRun(new Request());
+        $response = $this->makeController()->dryRun(Request::capture());
 
-        $this->assertSame(422, $response->status());
-        $this->assertStringContainsString('refusée', json_decode($response->body(), true)['error']);
+        $this->assertSame(422, $response->getStatusCode());
+        $this->assertStringContainsString('refusée', json_decode($response->getContent(), true)['error']);
     }
 
     public function testUninstallRedirectsWithErrorWhenSlugIsMissing(): void
@@ -461,7 +461,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $this->installedBundles->expects($this->never())->method('delete');
 
-        $response = $this->makeController()->uninstall(new Request());
+        $response = $this->makeController()->uninstall(Request::capture());
 
         $this->assertStringContainsString('error=invalid', $this->locationOf($response));
     }
@@ -476,7 +476,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->installedBundles->expects($this->never())->method('delete');
         $this->appSettings->expects($this->never())->method('set');
 
-        $response = $this->makeController()->uninstall(new Request());
+        $response = $this->makeController()->uninstall(Request::capture());
 
         $this->assertStringNotContainsString('uninstalled=', $this->locationOf($response));
     }
@@ -494,7 +494,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->appSettings->expects($this->once())->method('set')
             ->with('enabled_bundles', $this->callback(fn(string $json) => json_decode($json, true) === ['messaging']));
 
-        $response = $this->makeController()->uninstall(new Request());
+        $response = $this->makeController()->uninstall(Request::capture());
 
         $this->assertStringContainsString('uninstalled=feedback', $this->locationOf($response));
         $this->assertDirectoryDoesNotExist($this->bundlesDir . '/feedback');
@@ -533,11 +533,9 @@ final class BundleMarketControllerTest extends TestCase
         return $zipPath;
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     private function ensureViewFile(string $view): void

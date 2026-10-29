@@ -12,8 +12,8 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\TimesheetApprovalRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\TimesheetService;
 use kintai\UI\Controller\Web\HasAdminAccess;
@@ -54,7 +54,7 @@ final class AdminTimesheetController
         $canApprove = false;
         if ($storeId > 0) {
             $this->assertStoreAccess($request, $storeId);
-            $user = $request->getAttribute('auth_user') ?? [];
+            $user = $request->attributes->get('auth_user') ?? [];
             $this->permissions->requireOnStore($user, 'shifts.view', $storeId);
             $store = $this->stores->findById($storeId);
             $weekStart = $this->weekStart($store, (string) ($request->query('week') ?? ''));
@@ -63,7 +63,7 @@ final class AdminTimesheetController
             $canApprove = $this->permissions->can($user, 'shifts.update', $storeId);
         }
 
-        return Response::html($this->view->render('scheduling.timesheets', [
+        return response($this->view->render('scheduling.timesheets', [
             'title'          => __('timesheets'),
             'stores_map'     => array_column(array_map(static fn(array $s): array => ['id' => (int) $s['id'], 'name' => (string) ($s['name'] ?? '#' . $s['id'])], $stores), 'name', 'id'),
             'store_id'       => $storeId,
@@ -109,7 +109,7 @@ final class AdminTimesheetController
         fclose($buf);
 
         $slug = preg_replace('/[^a-z0-9]+/i', '-', (string) ($store['code'] ?? $store['name'] ?? 'store'));
-        return Response::csv($csv, 'feuille-de-temps-' . strtolower(trim((string) $slug, '-')) . '-' . $weekStart . '.csv');
+        return response()->csv($csv, 'feuille-de-temps-' . strtolower(trim((string) $slug, '-')) . '-' . $weekStart . '.csv');
     }
 
     /** POST /admin/timesheets/approve — valide la semaine telle qu'affichée. */
@@ -117,7 +117,7 @@ final class AdminTimesheetController
     {
         [$storeId, , $weekStart] = $this->target($request, 'shifts.update', fn(string $k) => $request->post($k));
         $data = $this->timesheets->week($storeId, $weekStart);
-        $userId = (int) (($request->getAttribute('auth_user') ?? [])['id'] ?? 0);
+        $userId = (int) (($request->attributes->get('auth_user') ?? [])['id'] ?? 0);
         $totals = array_map(static fn(array $t): array => ['planned_minutes' => $t['planned_minutes'], 'worked_minutes' => $t['worked_minutes']], $data['totals']);
         $saved = $this->approvals->approve($storeId, $weekStart, $userId > 0 ? $userId : null, $data['fingerprint'], $totals);
         $this->auditLogger->log($request, 'timesheet.approved', 'store', $storeId, [
@@ -152,7 +152,7 @@ final class AdminTimesheetController
     {
         $storeId = (int) ($input('store_id') ?? 0);
         $this->assertStoreAccess($request, $storeId);
-        $this->permissions->requireOnStore($request->getAttribute('auth_user') ?? [], $permission, $storeId);
+        $this->permissions->requireOnStore($request->attributes->get('auth_user') ?? [], $permission, $storeId);
         $store = $this->stores->findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
@@ -192,7 +192,7 @@ final class AdminTimesheetController
 
     private function back(int $storeId, string $weekStart, string $success): Response
     {
-        return Response::redirect($this->base() . '/admin/timesheets?' . http_build_query([
+        return redirect()->away($this->base() . '/admin/timesheets?' . http_build_query([
             'store_id' => $storeId, 'week' => $weekStart, 'success' => $success,
         ]));
     }

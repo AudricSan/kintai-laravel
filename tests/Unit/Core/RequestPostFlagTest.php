@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Core;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
 /** Audit du 13/10/2026 (M12) : une case absente de la requête garde sa valeur au lieu de valoir « décoché ». */
@@ -18,7 +18,7 @@ final class RequestPostFlagTest extends TestCase
     private function request(array $post): Request
     {
         $_POST = $post;
-        return new Request();
+        return Request::capture();
     }
 
     public function testAbsentFieldKeepsTheCurrentValue(): void

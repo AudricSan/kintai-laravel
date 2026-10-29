@@ -14,7 +14,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Container;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\WebPushEndpointValidator;
 use kintai\Core\Router;
 use kintai\UI\Controller\Web\NotificationController;
@@ -85,7 +85,7 @@ final class NotificationControllerTest extends TestCase
         } else {
             unset($_SERVER['HTTP_X_REQUESTED_WITH']);
         }
-        return new Request();
+        return Request::capture();
     }
 
     /** Simule un corps JSON (php://input non mockable en test unitaire) — même technique que Api/V1/AuthControllerTest. */
@@ -93,10 +93,8 @@ final class NotificationControllerTest extends TestCase
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         unset($_SERVER['HTTP_X_REQUESTED_WITH']);
-        $req = new Request();
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $json);
+        $req = Request::capture();
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($json));
         return $req;
     }
 
@@ -111,7 +109,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->deleteAll($this->makeRequest());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testRedirectsKeepTheSubfolderPrefixWhenInstalledInASubfolder(): void
@@ -124,7 +122,7 @@ final class NotificationControllerTest extends TestCase
             $previous === null ? $_SERVER['SCRIPT_NAME'] = '/index.php' : $_SERVER['SCRIPT_NAME'] = $previous;
         }
 
-        $location = (string) ((fn() => $this->headers['Location'] ?? '')->call($response));
+        $location = (string) ($response->headers->get('Location', ''));
         $this->assertSame('/Kintai/notifications', $location);
     }
 
@@ -135,7 +133,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->deleteAll($this->makeRequest(ajax: true));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -154,7 +152,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->pushSubscribe($this->makeJsonRequest(['endpoint' => self::ENDPOINT, 'keys' => self::KEYS]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** @return array<string, array{array}> */
@@ -188,7 +186,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->pushUnsubscribe($this->makeJsonRequest(['endpoint' => self::ENDPOINT]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testPushUnsubscribeIsNoopWithoutEndpoint(): void
@@ -198,7 +196,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->pushUnsubscribe($this->makeJsonRequest([]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testPushStatusIsTrueOnlyForTheCurrentUsersSubscription(): void
@@ -208,10 +206,10 @@ final class NotificationControllerTest extends TestCase
             ['https://updates.push.services.mozilla.com/other', ['id' => 2, 'user_id' => 9]],
         ]);
 
-        $mine   = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => self::ENDPOINT]))->body(), true);
-        $theirs = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => 'https://updates.push.services.mozilla.com/other']))->body(), true);
-        $unknown = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => 'https://fcm.googleapis.com/inconnu']))->body(), true);
-        $empty  = json_decode($this->controller()->pushStatus($this->makeJsonRequest([]))->body(), true);
+        $mine   = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => self::ENDPOINT]))->getContent(), true);
+        $theirs = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => 'https://updates.push.services.mozilla.com/other']))->getContent(), true);
+        $unknown = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => 'https://fcm.googleapis.com/inconnu']))->getContent(), true);
+        $empty  = json_decode($this->controller()->pushStatus($this->makeJsonRequest([]))->getContent(), true);
 
         $this->assertSame(['subscribed' => true], $mine);
         $this->assertSame(['subscribed' => false], $theirs, 'abonnement d\'un autre compte');
@@ -227,7 +225,7 @@ final class NotificationControllerTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['SCRIPT_NAME']    = '/index.php';
         unset($_SERVER['HTTP_X_REQUESTED_WITH']);
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => $id]);
         return $req;
     }
@@ -243,13 +241,13 @@ final class NotificationControllerTest extends TestCase
     {
         $_SERVER = ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/notifications/3/read', 'SCRIPT_NAME' => '/index.php'];
         $_POST   = ['redirect' => $posted];
-        $req = new \kintai\Core\Request();
+        $req = \Illuminate\Http\Request::capture();
         $req->setRouteParams(['id' => '3']);
 
         $response = $this->controller()->markRead($req);
 
-        $location = (string) ((fn() => $this->headers['Location'] ?? '')->call($response));
-        $this->assertSame(302, $response->status());
+        $location = (string) ($response->headers->get('Location', ''));
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringEndsWith($expectedSuffix, $location);
         $this->assertStringNotContainsString('evil.example', $location);
     }
@@ -276,10 +274,8 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->open($this->makeGetRequest(10));
 
-        $this->assertSame(302, $response->status());
-        $headersRef = new \ReflectionProperty($response, 'headers');
-        $headersRef->setAccessible(true);
-        $this->assertSame('/employee/shifts/day?start=2026-08-03', $headersRef->getValue($response)['Location'] ?? null);
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame('/employee/shifts/day?start=2026-08-03', kintai_test_headers($response)['Location'] ?? null);
     }
 
     public function testOpenFallsBackToNotificationsListWhenNoLink(): void
@@ -290,9 +286,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->open($this->makeGetRequest(10));
 
-        $headersRef = new \ReflectionProperty($response, 'headers');
-        $headersRef->setAccessible(true);
-        $this->assertSame('/notifications', $headersRef->getValue($response)['Location'] ?? null);
+        $this->assertSame('/notifications', kintai_test_headers($response)['Location'] ?? null);
     }
 
     /** Un lien stocké absolu/protocole-relatif (jamais généré par ce code, mais défensif) est ignoré. */
@@ -304,15 +298,13 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller()->open($this->makeGetRequest(10));
 
-        $headersRef = new \ReflectionProperty($response, 'headers');
-        $headersRef->setAccessible(true);
-        $this->assertSame('/notifications', $headersRef->getValue($response)['Location'] ?? null);
+        $this->assertSame('/notifications', kintai_test_headers($response)['Location'] ?? null);
     }
 
     /** « /\site » est lu par les navigateurs comme « //site » : une autre origine. */
     public function testOpenIgnoresBackslashAndControlCharacterLinks(): void
     {
-        foreach (['/\evil.example.com', '/ok\evil', "/ok
+        foreach (['/\evil.example.com', '/ok\evil', "/ok
 x", 'https://evil.example.com'] as $bad) {
             $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
             $this->notifications->method('findById')->with(10)->willReturn(['id' => 10, 'user_id' => 5, 'link' => $bad]);
@@ -321,9 +313,7 @@ x", 'https://evil.example.com'] as $bad) {
 
             $response = $this->controller()->open($this->makeGetRequest(10));
 
-            $headersRef = new \ReflectionProperty($response, 'headers');
-            $headersRef->setAccessible(true);
-            $this->assertSame('/notifications', $headersRef->getValue($response)['Location'] ?? null, $bad);
+            $this->assertSame('/notifications', kintai_test_headers($response)['Location'] ?? null, $bad);
         }
     }
 
@@ -365,12 +355,12 @@ x", 'https://evil.example.com'] as $bad) {
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['SCRIPT_NAME']    = '/index.php';
         $_GET = $query;
-        return new Request();
+        return Request::capture();
     }
 
-    private function json(\kintai\Core\Response $response): array
+    private function json(\Symfony\Component\HttpFoundation\Response $response): array
     {
-        return json_decode($response->body(), true);
+        return json_decode($response->getContent(), true);
     }
 
     public function testPollAsksRepositoryForRowsAfterTheCursorAndAdvancesIt(): void

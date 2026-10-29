@@ -13,7 +13,7 @@ use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Tests\Support\FakeBundleManagerFactory;
 use kintai\Tests\Support\FakeClaimsProvider;
@@ -103,9 +103,9 @@ final class AdminRequestsControllerTest extends TestCase
 
     private function request(bool $isAdmin, ?array $managedStoreIds = null): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => $isAdmin ? 1 : 0]);
-        $req->setAttribute('managed_store_ids', $managedStoreIds);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => $isAdmin ? 1 : 0]);
+        $req->attributes->set('managed_store_ids', $managedStoreIds);
         return $req;
     }
 
@@ -115,7 +115,7 @@ final class AdminRequestsControllerTest extends TestCase
 
         $controller = $this->buildController(true);
         $response   = $controller->index($this->request(true));
-        $data       = json_decode($response->body(), true);
+        $data       = json_decode($response->getContent(), true);
 
         $this->assertSame([], $data['timeoff']);
         $this->assertArrayNotHasKey('swaps', $data, 'shift-swap actif sans fournisseur déclaré');
@@ -128,7 +128,7 @@ final class AdminRequestsControllerTest extends TestCase
 
         $controller = $this->buildController(true);
         $response   = $controller->index($this->request(true));
-        $data       = json_decode($response->body(), true);
+        $data       = json_decode($response->getContent(), true);
 
         $this->assertSame([], $data, 'aucune section');
     }
@@ -143,7 +143,7 @@ final class AdminRequestsControllerTest extends TestCase
         $this->enableBundles(['timeoff', 'shift-swap'], $timeoff);
         $controller = $this->buildController(false);
         $response   = $controller->index($this->request(false, [1]));
-        $data       = json_decode($response->body(), true);
+        $data       = json_decode($response->getContent(), true);
 
         $this->assertCount(1, $data['timeoff']);
         $this->assertSame(1, $data['timeoff'][0]['id']);
@@ -161,7 +161,7 @@ final class AdminRequestsControllerTest extends TestCase
 
         $controller = $this->buildController(true);
         $response   = $controller->index($this->request(true));
-        $data       = json_decode($response->body(), true);
+        $data       = json_decode($response->getContent(), true);
 
         $this->assertCount(1, $data['open_shifts']);
         $columns = array_column($data['open_shifts'][0]['columns'], 'value', 'label');

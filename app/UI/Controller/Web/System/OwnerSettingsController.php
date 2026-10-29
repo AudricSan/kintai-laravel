@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Middleware\ApiRateLimitMiddleware;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\InstanceLocale;
@@ -45,7 +45,7 @@ final class OwnerSettingsController
             $themeColorsDark[$group] = $storedDark !== '' ? $storedDark : ThemeColorPalette::autoDarkBase($themeColors[$group]);
         }
 
-        return Response::html($this->view->render('system.owner-settings', [
+        return response($this->view->render('system.owner-settings', [
             'title'    => __('owner_settings'),
             'settings' => [
                 'app_subtitle'      => $this->settings->subtitle(),
@@ -95,7 +95,7 @@ final class OwnerSettingsController
         // Vide = on retombe sur config/mail.php.
         $mailFromAddress = trim((string) $request->post('mail_from_address', $this->settings->mailFromAddress()));
         if ($mailFromAddress !== '' && !filter_var($mailFromAddress, FILTER_VALIDATE_EMAIL)) {
-            return Response::redirect($this->base() . '/admin/owner-settings?error=mail_from_invalid');
+            return redirect()->away($this->base() . '/admin/owner-settings?error=mail_from_invalid');
         }
         $mailFromName = substr(trim((string) $request->post('mail_from_name', $this->settings->mailFromName())), 0, 100);
 
@@ -138,7 +138,7 @@ final class OwnerSettingsController
         $publicUrlInput = trim((string) $request->post('app_public_url', $this->settings->get(PublicUrlResolver::SETTING_KEY)));
         $publicUrl      = $publicUrlInput === '' ? '' : PublicUrlResolver::normalize($publicUrlInput);
         if ($publicUrl === null) {
-            return Response::redirect($this->base() . '/admin/owner-settings?error=public_url_invalid');
+            return redirect()->away($this->base() . '/admin/owner-settings?error=public_url_invalid');
         }
 
         $oldData = array_merge([
@@ -188,6 +188,6 @@ final class OwnerSettingsController
 
         $this->auditLogger->logUpdate($request, 'owner_settings.updated', 'system', null, $oldData, $newData, []);
 
-        return Response::redirect($this->base() . '/admin/owner-settings?' . ($localeError ? 'error=instance_locale_not_saved' : 'success=1'));
+        return redirect()->away($this->base() . '/admin/owner-settings?' . ($localeError ? 'error=instance_locale_not_saved' : 'success=1'));
     }
 }

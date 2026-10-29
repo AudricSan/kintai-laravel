@@ -22,7 +22,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\Log;
@@ -125,9 +125,9 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             'store_id' => '3', 'role_id' => '2', 'store_role_id' => '2',
             'furigana_last_name' => 'サトウ', 'furigana_first_name' => 'ハナコ', 'phone' => '0312345678',
         ];
-        $request = new Request();
-        $request->setAttribute('auth_user', ['id' => 1, 'is_admin' => false]);
-        $request->setAttribute('managed_store_ids', null);
+        $request = Request::capture();
+        $request->attributes->set('auth_user', ['id' => 1, 'is_admin' => false]);
+        $request->attributes->set('managed_store_ids', null);
         return $request;
     }
 
@@ -142,7 +142,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
     {
         $response = $this->controller($this->events(false))->{$method}(self::request());
 
-        $this->assertContains($response->status(), [200, 302], $source);
+        $this->assertContains($response->getStatusCode(), [200, 302], $source);
         $this->assertSame([], $this->received);
     }
 

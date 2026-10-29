@@ -7,7 +7,7 @@ namespace kintai\Core\Setup;
 use kintai\Core\Exceptions\PlanLimitExceededException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\InstanceLocale;
 use kintai\Core\Services\StoreServiceInterface;
 use kintai\Core\Validation\StoreValidator;

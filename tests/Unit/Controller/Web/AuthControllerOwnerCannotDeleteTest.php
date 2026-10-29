@@ -18,7 +18,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -101,10 +101,10 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
         $controller = $this->controller(true);
         $this->users->expects($this->never())->method('save');
 
-        $response = $controller->deleteAccount(new Request());
+        $response = $controller->deleteAccount(Request::capture());
 
-        $this->assertSame(302, $response->status());
-        $location = (string) ((fn() => $this->headers['Location'] ?? '')->call($response));
+        $this->assertSame(302, $response->getStatusCode());
+        $location = (string) ($response->headers->get('Location', ''));
         $this->assertStringContainsString('error=owner_cannot_delete', $location);
     }
 
@@ -113,6 +113,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
         $controller = $this->controller(false);
         $this->users->expects($this->atLeastOnce())->method('save')->willReturnArgument(0);
 
-        $controller->deleteAccount(new Request());
+        $controller->deleteAccount(Request::capture());
     }
 }

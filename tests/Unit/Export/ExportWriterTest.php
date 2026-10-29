@@ -48,10 +48,10 @@ final class ExportWriterTest extends TestCase
     public function testJsonDescribesTheDataset(): void
     {
         $response = $this->writer->response($this->dataset, $this->rows(), 'json', 'kintai-demo', ['stores' => [3]]);
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
-        $this->assertStringContainsString('application/json', $response->headers()['Content-Type']);
-        $this->assertStringContainsString('filename="kintai-demo.json"', $response->headers()['Content-Disposition']);
+        $this->assertStringContainsString('application/json', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('filename="kintai-demo.json"', $response->headers->get('Content-Disposition'));
         $this->assertSame('demo', $data['dataset']);
         $this->assertSame([3], $data['stores']);
         $this->assertSame(['name', 'hours', 'active'], $data['columns']);
@@ -62,10 +62,10 @@ final class ExportWriterTest extends TestCase
     public function testCsvHasABomTheTranslatedHeadersAndNeutralisedFormulas(): void
     {
         $response = $this->writer->response($this->dataset, $this->rows(), 'csv', 'kintai-demo');
-        $lines    = explode("\r\n", $response->body());
+        $lines    = explode("\r\n", $response->getContent());
 
-        $this->assertStringContainsString('text/csv', $response->headers()['Content-Type']);
-        $this->assertStringStartsWith("\xEF\xBB\xBF", $response->body());
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $response->getContent());
         // Sans traducteur, __() rend la clé : l'en-tête vient bien des clés de traduction des colonnes.
         $this->assertSame("\xEF\xBB\xBFdemo_name;demo_hours;demo_active", $lines[0]);
         $this->assertSame('Aki;7.5;1', $lines[1]);
@@ -76,11 +76,11 @@ final class ExportWriterTest extends TestCase
     {
         $response = $this->writer->response($this->dataset, $this->rows(), 'xlsx', 'kintai-demo');
 
-        $this->assertSame(ExportWriter::XLSX_TYPE, $response->headers()['Content-Type']);
-        $this->assertStringContainsString('filename="kintai-demo.xlsx"', $response->headers()['Content-Disposition']);
+        $this->assertSame(ExportWriter::XLSX_TYPE, $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('filename="kintai-demo.xlsx"', $response->headers->get('Content-Disposition'));
 
         $path = tempnam(sys_get_temp_dir(), 'kx') ?: '';
-        file_put_contents($path, $response->body());
+        file_put_contents($path, $response->getContent());
         try {
             $sheet = IOFactory::load($path)->getActiveSheet();
             $this->assertSame('demo_name', $sheet->getCell('A1')->getValue());
@@ -103,6 +103,6 @@ final class ExportWriterTest extends TestCase
     {
         $response = $this->writer->response($this->dataset, [], 'csv', 'a b/../c"d');
 
-        $this->assertStringContainsString('filename="a_b_.._c_d.csv"', $response->headers()['Content-Disposition']);
+        $this->assertStringContainsString('filename="a_b_.._c_d.csv"', $response->headers->get('Content-Disposition'));
     }
 }

@@ -97,7 +97,7 @@ final class Macros
 
         // Fichier envoyé tel quel, sans le charger en mémoire.
         ResponseFactory::macro('fileStream', function (string $path, string $contentType, string $filename) use ($attachment): SymfonyResponse {
-            $response = new StreamedResponse(static function () use ($path): void {
+            $response = new FileStreamResponse(static function () use ($path): void {
                 readfile($path);
             }, 200, [
                 'Content-Type'   => $contentType,

@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web\Scheduling;
 
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\UI\Controller\Web\Scheduling\AdminShiftTypeController;
@@ -64,13 +64,13 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_POST = ['code' => 'MORNING', 'name' => 'Matin'];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->shiftTypes->expects($this->never())->method('save');
 
         $response = $this->controller()->storeShiftType($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreShiftTypeSyncsSelectedStores(): void
@@ -78,14 +78,14 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_POST = ['code' => 'morning', 'name' => 'Matin', 'store_ids' => ['1', '2']];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->shiftTypes->method('save')->willReturn(['id' => 5, 'code' => 'MORNING']);
         $this->shiftTypes->expects($this->once())->method('syncStores')->with(5, [1, 2]);
 
         $response = $this->controller()->storeShiftType($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Un manager ne gérant aucun des stores cochés ne peut pas créer le type. */
@@ -93,7 +93,7 @@ final class AdminShiftTypeControllerTest extends TestCase
     {
         $_POST = ['code' => 'MORNING', 'name' => 'Matin', 'store_ids' => ['99']];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', [1, 2]);
+        $req->attributes->set('managed_store_ids', [1, 2]);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
         $this->controller()->storeShiftType($req);
@@ -111,14 +111,14 @@ final class AdminShiftTypeControllerTest extends TestCase
 
         $_POST = ['code' => 'MORNING', 'name' => 'Matin'];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->never())->method('syncStores');
 
         $response = $this->controller()->updateShiftType($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /**
@@ -134,7 +134,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->never())->method('syncStores');
 
         $req = $this->makePostRequest(['code' => 'MORNING', 'name' => 'Renommé', 'store_ids' => ['1']]);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
@@ -151,10 +151,10 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->once())->method('syncStores')->with(5, [1, 2]);
 
         $req = $this->makePostRequest(['code' => 'MORNING', 'name' => 'Renommé', 'store_ids' => ['1', '2']]);
-        $req->setAttribute('managed_store_ids', [1, 2]);
+        $req->attributes->set('managed_store_ids', [1, 2]);
         $req->setRouteParams(['id' => 5]);
 
-        $this->assertSame(302, $this->controller()->updateShiftType($req)->status());
+        $this->assertSame(302, $this->controller()->updateShiftType($req)->getStatusCode());
     }
 
     public function testUpdateShiftTypeForbiddenWhenManagingNoneOfExistingStores(): void
@@ -165,7 +165,7 @@ final class AdminShiftTypeControllerTest extends TestCase
 
         $_POST = ['code' => 'MORNING', 'name' => 'Matin', 'store_ids' => ['2']];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
@@ -183,7 +183,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([2]);
 
         $req = $this->makePostRequest([]);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->never())->method('delete');
@@ -200,7 +200,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->never())->method('delete');
 
         $req = $this->makePostRequest([]);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
@@ -215,10 +215,10 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->once())->method('delete')->with(5);
 
         $req = $this->makePostRequest([]);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
-        $this->assertSame(302, $this->controller()->deleteShiftType($req)->status());
+        $this->assertSame(302, $this->controller()->deleteShiftType($req)->getStatusCode());
     }
 
     public function testDeleteOfASharedShiftTypeIsAllowedWithoutStoreRestriction(): void
@@ -229,10 +229,10 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->once())->method('delete')->with(5);
 
         $req = $this->makePostRequest([]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 5]);
 
-        $this->assertSame(302, $this->controller()->deleteShiftType($req)->status());
+        $this->assertSame(302, $this->controller()->deleteShiftType($req)->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -245,7 +245,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(null);
 
         $req = $this->makePostRequest(['store_id' => '1', 'enabled' => '1']);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 5]);
 
         $this->expectException(\kintai\Core\Exceptions\NotFoundException::class);
@@ -258,7 +258,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'code' => 'MORNING']);
 
         $req = $this->makePostRequest(['store_id' => '2', 'enabled' => '1']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->never())->method('enableForStore');
@@ -273,7 +273,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'code' => 'MORNING']);
 
         $req = $this->makePostRequest(['store_id' => '2', 'enabled' => '1']);
-        $req->setAttribute('managed_store_ids', [1, 2]);
+        $req->attributes->set('managed_store_ids', [1, 2]);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->once())->method('enableForStore')->with(5, 2);
@@ -281,7 +281,7 @@ final class AdminShiftTypeControllerTest extends TestCase
 
         $response = $this->controller()->toggleShiftTypeStore($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testToggleShiftTypeStoreDisablesWhenUnchecked(): void
@@ -291,14 +291,14 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([1, 2]);
 
         $req = $this->makePostRequest(['store_id' => '2', 'enabled' => '0']);
-        $req->setAttribute('managed_store_ids', [1, 2]);
+        $req->attributes->set('managed_store_ids', [1, 2]);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->once())->method('disableForStore')->with(5, 2);
 
         $response = $this->controller()->toggleShiftTypeStore($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Décocher le dernier store affecté doit être refusé, pas silencieusement orpheliner le type. */
@@ -309,14 +309,14 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([2]);
 
         $req = $this->makePostRequest(['store_id' => '2', 'enabled' => '0']);
-        $req->setAttribute('managed_store_ids', [1, 2]);
+        $req->attributes->set('managed_store_ids', [1, 2]);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->never())->method('disableForStore');
 
         $response = $this->controller()->toggleShiftTypeStore($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -337,10 +337,10 @@ final class AdminShiftTypeControllerTest extends TestCase
             ]);
             $this->shiftTypes->method('getStoreIds')->willReturnMap([[1, [1, 2]], [2, [1]]]);
             $this->stores->method('findAll')->willReturn([]);
-            $req = new Request();
-            $req->setAttribute('managed_store_ids', [1]);
+            $req = Request::capture();
+            $req->attributes->set('managed_store_ids', [1]);
 
-            $this->assertSame('[1]', $this->controller()->shiftTypes($req)->body());
+            $this->assertSame('[1]', $this->controller()->shiftTypes($req)->getContent());
         } finally {
             file_put_contents($view, '');
             file_put_contents($layout, '');
@@ -350,7 +350,7 @@ final class AdminShiftTypeControllerTest extends TestCase
     private function makePostRequest(array $post): Request
     {
         $_POST = $post;
-        return new Request();
+        return Request::capture();
     }
 
     private function ensureViewFile(string $view): void
@@ -369,7 +369,7 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_POST = ['code' => 'MORNING', 'name' => 'Matin', 'store_ids' => ['1'], 'color' => 'red;position:fixed'];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->shiftTypes->expects($this->never())->method('save');
 
@@ -385,7 +385,7 @@ final class AdminShiftTypeControllerTest extends TestCase
 
         $_POST = ['code' => 'MORNING', 'name' => 'Matin', 'store_ids' => ['1'], 'color' => '"><b>'];
         $req = $this->makePostRequest($_POST);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 5]);
 
         $this->shiftTypes->expects($this->never())->method('save');

@@ -6,8 +6,8 @@ namespace kintai\Core\Cron;
 
 use kintai\Core\Repositories\NotificationRepositoryInterface;
 use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 
 /**
@@ -41,7 +41,7 @@ final class NotificationPurgeJob implements CronJobInterface
         $deleted = $this->notifications->purgeReadBefore($cutoff);
         $expired = $this->subscriptions->purgeUnusedSince($idle);
 
-        return Response::json([
+        return response()->json([
             'ok'                    => true,
             'retention_days'        => $days,
             'cutoff'                => $cutoff,

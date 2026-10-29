@@ -9,8 +9,8 @@ use kintai\Core\Auth\PermissionService;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\StoreServiceInterface;
 use kintai\Core\Validation\ApiPayloadRules;
@@ -39,23 +39,23 @@ final class StoreController
             ));
         }
 
-        return Response::json(Paginator::paginate($items, $page, $limit));
+        return response()->json(Paginator::paginate($items, $page, $limit));
     }
 
     /** GET /api/v1/stores/{id} */
     public function show(Request $request): Response
     {
-        return Response::json($this->requireStore($request, 'stores.view'));
+        return response()->json($this->requireStore($request, 'stores.view'));
     }
 
     /** POST /api/v1/stores */
     public function store(Request $request): Response
     {
-        $data = $request->json() ?? [];
+        $data = $request->json()->all() ?? [];
         unset($data['id']);
         $saved = $this->storeService->createStore($data);
         $this->auditLogger->log($request, 'store.created', 'store', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data);
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** PUT /api/v1/stores/{id} */
@@ -66,7 +66,7 @@ final class StoreController
 
         // Mise à jour partielle : seuls les champs fournis changent, chacun contrôlé (la devise comme le
         // formulaire web, car elle s'affiche dans les statistiques).
-        $data = PayloadValidator::validateUpdate($request->json() ?? [], ApiPayloadRules::storeUpdate());
+        $data = PayloadValidator::validateUpdate($request->json()->all() ?? [], ApiPayloadRules::storeUpdate());
         if (isset($data['code'])) {
             $data['code'] = strtoupper($data['code']);
             $other = $this->stores->findByCode($data['code']);
@@ -78,7 +78,7 @@ final class StoreController
 
         $saved = $this->stores->save(array_merge($data, ['id' => $id]));
         $this->auditLogger->logUpdate($request, 'store.updated', 'store', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data);
-        return Response::json($saved);
+        return response()->json($saved);
     }
 
     /** DELETE /api/v1/stores/{id} */
@@ -89,18 +89,18 @@ final class StoreController
 
         $this->storeService->deleteStore($id);
         $this->auditLogger->log($request, 'store.deleted', 'store', resourceId: $id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     /** Charge le magasin par id et vérifie $permissionKey sur ce magasin (jamais « n'importe lequel »). */
     private function requireStore(Request $request, string $permissionKey): array
     {
-        $id    = (int) $request->param('id');
+        $id    = (int) $request->route('id');
         $store = $this->stores->findById($id);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));

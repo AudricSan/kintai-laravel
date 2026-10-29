@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
@@ -40,7 +40,7 @@ final class SetupWizardController
     public function show(Request $request): Response
     {
         if (!$this->wizard->isPending()) {
-            return Response::redirect($this->base() . '/');
+            return redirect()->away($this->base() . '/');
         }
 
         $requested = (string) $request->query('step', '');
@@ -55,7 +55,7 @@ final class SetupWizardController
      */
     public function step(Request $request): Response
     {
-        $id = (string) $request->param('step');
+        $id = (string) $request->route('step');
         $step = $this->steps->get($id);
         if ($step === null) {
             throw new NotFoundException(__('error_404_message'));
@@ -63,21 +63,21 @@ final class SetupWizardController
 
         if ($request->post('skip', '') === '1') {
             $this->wizard->mark($id, true);
-            return Response::redirect($this->base() . '/admin/setup?step=' . SetupWizard::nextStep($id));
+            return redirect()->away($this->base() . '/admin/setup?step=' . SetupWizard::nextStep($id));
         }
 
         if ($step instanceof MailStep && $request->post('action', '') === 'test') {
             return $this->render($request, $id, ['mail_test' => $step->sendTest($request)]);
         }
 
-        $errors = $step->handle($request, (int) ($request->getAttribute('auth_user')['id'] ?? 0));
+        $errors = $step->handle($request, (int) ($request->attributes->get('auth_user')['id'] ?? 0));
         if ($errors !== []) {
             return $this->render($request, $id, ['errors' => array_map(static fn(string $e): string => __($e), $errors)]);
         }
 
         $this->wizard->mark($id);
         $this->auditLogger->log($request, 'setup.step_saved', 'system', null, ['step' => $id]);
-        return Response::redirect($this->base() . '/admin/setup?step=' . SetupWizard::nextStep($id));
+        return redirect()->away($this->base() . '/admin/setup?step=' . SetupWizard::nextStep($id));
     }
 
     /** POST /admin/setup/finish — termine l'assistant (plus de bandeau) et ouvre le tableau de bord. */
@@ -85,7 +85,7 @@ final class SetupWizardController
     {
         $this->wizard->finish();
         $this->auditLogger->log($request, 'setup.finished', 'system', null, ['progress' => $this->wizard->progress()]);
-        return Response::redirect($this->base() . '/');
+        return redirect()->away($this->base() . '/');
     }
 
     /** POST /admin/setup/license — active la licence saisie, ou passe l'étape (plan gratuit). */
@@ -93,17 +93,17 @@ final class SetupWizardController
     {
         if ($request->post('skip', '') === '1') {
             $this->wizard->mark(SetupWizard::STEP_LICENSE, true);
-            return Response::redirect($this->base() . '/admin/setup?step=' . SetupWizard::STEP_RECAP);
+            return redirect()->away($this->base() . '/admin/setup?step=' . SetupWizard::STEP_RECAP);
         }
 
         $key = trim((string) $request->post('license_key', ''));
         if ($key === '') {
-            return Response::redirect($this->base() . '/admin/setup?step=license&error=missing_license_key');
+            return redirect()->away($this->base() . '/admin/setup?step=license&error=missing_license_key');
         }
         $result = $this->license->activate($key);
         $this->auditLogger->log($request, 'license.activated', 'system', null, ['valid' => (bool) ($result['valid'] ?? false), 'from' => 'setup']);
         if (!($result['valid'] ?? false)) {
-            return Response::redirect($this->base() . '/admin/setup?step=license&error=license_invalid');
+            return redirect()->away($this->base() . '/admin/setup?step=license&error=license_invalid');
         }
 
         $this->wizard->licenseDone();
@@ -112,7 +112,7 @@ final class SetupWizardController
             $this->auditLogger->log($request, 'setup.pending_bundles_installed', 'system', null, ['installed' => $pending['installed'], 'failed' => array_keys($pending['failed'])]);
             return $this->render($request, 'bundles_result', ['result' => $pending, 'next' => SetupWizard::STEP_RECAP]);
         }
-        return Response::redirect($this->base() . '/admin/setup?step=' . SetupWizard::STEP_RECAP);
+        return redirect()->away($this->base() . '/admin/setup?step=' . SetupWizard::STEP_RECAP);
     }
 
     /**
@@ -140,7 +140,7 @@ final class SetupWizardController
     {
         if ($request->post('skip', '') === '1') {
             $this->wizard->mark(SetupWizard::STEP_BUNDLES, true);
-            return Response::redirect($this->base() . '/admin/setup?step=' . SetupWizard::STEP_LICENSE);
+            return redirect()->away($this->base() . '/admin/setup?step=' . SetupWizard::STEP_LICENSE);
         }
 
         $slugs = array_values(array_filter(array_map('strval', (array) $request->post('bundles', [])), static fn(string $s): bool => $s !== ''));
@@ -149,7 +149,7 @@ final class SetupWizardController
         set_time_limit(0);
         $result = $this->wizard->install($slugs, $this->settings->bundleUpdateChannel());
         if ($result['error'] !== null) {
-            return Response::redirect($this->base() . '/admin/setup?step=bundles&error=' . $result['error']);
+            return redirect()->away($this->base() . '/admin/setup?step=bundles&error=' . $result['error']);
         }
         $this->auditLogger->log($request, 'setup.bundles_installed', 'system', null, [
             'installed' => $result['installed'],
@@ -210,6 +210,6 @@ final class SetupWizardController
             $data['summaries'] = $summaries;
         }
 
-        return Response::html($this->view->render('system.setup', $data, 'layout.app'));
+        return response($this->view->render('system.setup', $data, 'layout.app'));
     }
 }

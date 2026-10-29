@@ -9,8 +9,8 @@ use kintai\Core\Extension\PendingRequests;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\UI\Controller\Web\HasAdminAccess;
 use kintai\UI\ViewRenderer;
 
@@ -35,7 +35,7 @@ final class AdminRequestsController
 
     public function index(Request $request): Response
     {
-        $user       = $request->getAttribute('auth_user');
+        $user       = $request->attributes->get('auth_user');
         $managedIds = $this->managedIds($request);
 
         $isOwner = !empty($user['is_admin']);
@@ -46,7 +46,7 @@ final class AdminRequestsController
         $sections = ($this->pendingRequests ?? PendingRequests::current())
             ->sections($managedIds, $can, static fn(?string $feature): bool => feat_bundle($feature));
 
-        return Response::html($this->view->render('requests.index', [
+        return response($this->view->render('requests.index', [
             'title'      => __('requests'),
             'sections'   => $sections,
             'users_map'  => $this->buildUsersMap(),

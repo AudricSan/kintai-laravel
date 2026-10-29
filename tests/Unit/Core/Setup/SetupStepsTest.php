@@ -12,7 +12,7 @@ use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\EnvFileWriter;
 use kintai\Core\Services\InstanceLocale;
@@ -66,7 +66,7 @@ final class SetupStepsTest extends TestCase
     private function post(array $post): Request
     {
         $_POST = $post;
-        return new Request();
+        return Request::capture();
     }
 
     // ── Organisation ────────────────────────────────────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ final class SetupStepsTest extends TestCase
 
     public function testOperationsShowsReadyToCopyCronCommands(): void
     {
-        $data = (new OperationsStep($this->settings))->data(new Request());
+        $data = (new OperationsStep($this->settings))->data(Request::capture());
 
         $this->assertStringContainsString('php artisan schedule:run', $data['cron_command']);
         $this->assertStringContainsString('/cron/run/backup', $data['cron_url']);
@@ -263,7 +263,7 @@ final class SetupStepsTest extends TestCase
     {
         $step = $this->storeStep($this->createStub(StoreServiceInterface::class), [['name' => 'Paris', 'is_active' => 1], ['name' => 'Fermé', 'is_active' => 0]]);
 
-        $this->assertSame(['Paris'], $step->data(new Request())['existing']);
+        $this->assertSame(['Paris'], $step->data(Request::capture())['existing']);
         $this->assertSame('Paris', $step->summary());
         $this->assertNull($this->storeStep($this->createStub(StoreServiceInterface::class))->summary());
     }
@@ -288,6 +288,6 @@ final class SetupStepsTest extends TestCase
 
         $this->assertSame([], $step->handle($this->post([]), 5), 'sans case cochée : rien n\'est envoyé');
         $this->assertSame([], $step->handle($this->post(['send_test' => '1']), 5));
-        $this->assertArrayHasKey('web_push', $step->data(new Request())['status']);
+        $this->assertArrayHasKey('web_push', $step->data(Request::capture())['status']);
     }
 }

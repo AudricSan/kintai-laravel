@@ -7,8 +7,8 @@ namespace kintai\Core\Cron;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\CronTokenRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\Log;
 
 final class CronRunner

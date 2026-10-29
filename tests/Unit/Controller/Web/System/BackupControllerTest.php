@@ -10,7 +10,7 @@ use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\BackupService;
@@ -154,16 +154,14 @@ final class BackupControllerTest extends TestCase
 
     private function requestAs(bool $isAdmin): Request
     {
-        $request = new Request();
-        $request->setAttribute('auth_user', ['id' => 1, 'is_admin' => $isAdmin]);
+        $request = Request::capture();
+        $request->attributes->set('auth_user', ['id' => 1, 'is_admin' => $isAdmin]);
         return $request;
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     /** @return array{type: 'success'|'danger', text: string}|null */
@@ -183,7 +181,7 @@ final class BackupControllerTest extends TestCase
 
         $response = $controller->create($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=created_', $this->locationOf($response));
     }
 
@@ -203,7 +201,7 @@ final class BackupControllerTest extends TestCase
 
         $response = $controller->index($this->requestAs(true));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testDownloadRedirectsWhenFileMissing(): void
@@ -213,7 +211,7 @@ final class BackupControllerTest extends TestCase
         $_GET = ['filename' => 'does_not_exist.zip'];
         $response = $controller->download($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=error_not_found', $this->locationOf($response));
     }
 
@@ -226,7 +224,7 @@ final class BackupControllerTest extends TestCase
         $_GET = ['filename' => $filename];
         $response = $controller->download($this->requestAs(true));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testUpdateReturnsErrorWhenNoUpdateAvailable(): void
@@ -241,7 +239,7 @@ final class BackupControllerTest extends TestCase
 
         $response = $controller->update($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=error_no_update_available', $this->locationOf($response));
     }
 
@@ -265,7 +263,7 @@ final class BackupControllerTest extends TestCase
 
         $response = $controller->update($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $location = $this->locationOf($response);
         // 2 fichiers + release-manifest.json de l'archive vérifiée.
         $this->assertStringStartsWith('/admin/update?success=updated_2.0.0_files-3_deleted-0', $location);
@@ -324,7 +322,7 @@ final class BackupControllerTest extends TestCase
 
         $response = $controller->migrate($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringStartsWith('/admin/update?success=migrated', $this->locationOf($response));
         $this->assertFalse($this->settings->maintenanceModeEnabled());
     }
@@ -337,7 +335,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->saveSettings($this->requestAs(true));
         $_POST = [];
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=settings_saved', $this->locationOf($response));
         $this->assertTrue($this->settings->backupAutoEnabled());
         $this->assertSame(10, $this->settings->backupMaxKeep());
@@ -374,7 +372,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->saveChannel($this->requestAs(true));
         $_POST = [];
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=channel_alpha', $this->locationOf($response));
         $this->assertSame('alpha', $this->settings->updateChannel());
     }
@@ -479,7 +477,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->restore($this->requestAs(true));
         $_POST = [];
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=restored', $this->locationOf($response));
 
         \kintai\Core\Services\Log::reset();
@@ -502,7 +500,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->delete($this->requestAs(true));
         $_POST = [];
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=deleted', $this->locationOf($response));
 
         \kintai\Core\Services\Log::reset();

@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Core\Cron;
 
 use kintai\Core\Cron\LicenseCheckJob;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\LicenseClientService;
 use PHPUnit\Framework\TestCase;
 
@@ -39,8 +39,8 @@ final class LicenseCheckJobTest extends TestCase
 
     public function testRunIsNoopWhenNoLicenseKeyRegistered(): void
     {
-        $response = $this->makeJob()->run(new Request());
-        $data = json_decode($response->body(), true);
+        $response = $this->makeJob()->run(Request::capture());
+        $data = json_decode($response->getContent(), true);
 
         $this->assertTrue($data['ok']);
         $this->assertFalse($data['checked']);
@@ -51,8 +51,8 @@ final class LicenseCheckJobTest extends TestCase
         $this->store['license_key'] = 'KEY-1';
         $job = $this->makeJob([], fn(): string => json_encode(['valid' => true, 'status' => 'active']));
 
-        $response = $job->run(new Request());
-        $data = json_decode($response->body(), true);
+        $response = $job->run(Request::capture());
+        $data = json_decode($response->getContent(), true);
 
         $this->assertTrue($data['ok']);
         $this->assertTrue($data['checked']);

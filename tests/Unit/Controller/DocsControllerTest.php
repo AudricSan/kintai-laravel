@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Controller;
 use kintai\Core\Container;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Router;
 use kintai\Core\Services\TranslationService;
 use kintai\Core\Services\WikiContentService;
@@ -125,27 +125,24 @@ final class DocsControllerTest extends TestCase
     {
         $this->seedFixture();
 
-        $resp = $this->controller('fr')->index(new Request());
+        $resp = $this->controller('fr')->index(Request::capture());
 
-        $this->assertSame(302, $resp->status());
+        $this->assertSame(302, $resp->getStatusCode());
     }
 
     public function testIndexRedirectTargetsCorrectLangAndPage(): void
     {
         $this->seedFixture();
 
-        $resp = $this->controller('fr')->index(new Request());
+        $resp = $this->controller('fr')->index(Request::capture());
 
         // base_url() dépend de SCRIPT_NAME (variable en CLI) : on ne vérifie que le suffixe stable.
         $this->assertStringEndsWith('docs/fr/Home', $this->locationOf($resp));
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     // -------------------------------------------------------------------------
@@ -157,53 +154,53 @@ final class DocsControllerTest extends TestCase
         $this->seedFixture();
 
         // 'ja/Home.md' n'existe pas dans la fixture : simule une traduction manquante.
-        $resp = $this->controller('ja')->index(new Request());
+        $resp = $this->controller('ja')->index(Request::capture());
 
-        $this->assertSame(200, $resp->status());
-        $this->assertStringContainsString('UNAVAILABLE|ja|', $resp->body());
+        $this->assertSame(200, $resp->getStatusCode());
+        $this->assertStringContainsString('UNAVAILABLE|ja|', $resp->getContent());
     }
 
     public function testIndexUnavailableViewIncludesGithubLink(): void
     {
         $this->seedFixture();
 
-        $resp = $this->controller('ja')->index(new Request());
+        $resp = $this->controller('ja')->index(Request::capture());
 
-        $this->assertStringContainsString('https://github.com/', $resp->body());
-        $this->assertStringContainsString('/wiki/' . rawurlencode('ホーム'), $resp->body());
+        $this->assertStringContainsString('https://github.com/', $resp->getContent());
+        $this->assertStringContainsString('/wiki/' . rawurlencode('ホーム'), $resp->getContent());
     }
 
     public function testIndexUnavailableViewReflectsOwnerStatus(): void
     {
         $this->seedFixture();
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 1]);
 
         $resp = $this->controller('ja')->index($req);
 
-        $this->assertStringContainsString('|owner', $resp->body());
+        $this->assertStringContainsString('|owner', $resp->getContent());
     }
 
     public function testIndexUnavailableViewReflectsNonOwnerStatus(): void
     {
         $this->seedFixture();
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => 0]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 0]);
 
         $resp = $this->controller('ja')->index($req);
 
-        $this->assertStringContainsString('|guest', $resp->body());
+        $this->assertStringContainsString('|guest', $resp->getContent());
     }
 
     public function testIndexRendersUnavailableViewWhenWikiEntirelyUnconfigured(): void
     {
         // Pas de seedFixture() : .wiki/ existe (créé dans setUp) mais sans _Sidebar.md.
-        $resp = $this->controller('fr')->index(new Request());
+        $resp = $this->controller('fr')->index(Request::capture());
 
-        $this->assertSame(200, $resp->status());
-        $this->assertStringContainsString('UNAVAILABLE|fr|', $resp->body());
+        $this->assertSame(200, $resp->getStatusCode());
+        $this->assertStringContainsString('UNAVAILABLE|fr|', $resp->getContent());
     }
 
     // -------------------------------------------------------------------------
@@ -214,13 +211,13 @@ final class DocsControllerTest extends TestCase
     {
         $this->seedFixture();
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 1]);
         $req->setRouteParams(['lang' => 'fr', 'page' => 'Home']);
 
         $resp = $this->controller('fr')->show($req);
 
-        $this->assertStringContainsString('SHOW|fr|Home|owner', $resp->body());
+        $this->assertStringContainsString('SHOW|fr|Home|owner', $resp->getContent());
     }
 
     // -------------------------------------------------------------------------

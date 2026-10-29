@@ -21,7 +21,7 @@ use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\PushNotificationService;
@@ -114,13 +114,13 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->grantShiftsUpdateOnStore(1);
 
         $_GET = ['store_id' => '1'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller->shiftDay($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('CAN_MANAGE_TRUE', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('CAN_MANAGE_TRUE', $response->getContent());
     }
 
     public function testCanManageFalseWhenRoleGrantsShiftsUpdateOnOtherStoreOnly(): void
@@ -129,13 +129,13 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->grantShiftsUpdateOnStore(2);
 
         $_GET = ['store_id' => '1'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller->shiftDay($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('CAN_MANAGE_FALSE', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('CAN_MANAGE_FALSE', $response->getContent());
     }
 
     public function testCanManageFalseWhenNoRoleGrantsAnything(): void
@@ -143,13 +143,13 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [] : []);
 
         $_GET = ['store_id' => '1'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller->shiftDay($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('CAN_MANAGE_FALSE', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('CAN_MANAGE_FALSE', $response->getContent());
     }
 
     public function testCanManageTrueForOwnerRegardlessOfPermissions(): void
@@ -157,13 +157,13 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [] : []);
 
         $_GET = ['store_id' => '1'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9, 'is_admin' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9, 'is_admin' => 1]);
 
         $response = $this->controller->shiftDay($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('CAN_MANAGE_TRUE', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('CAN_MANAGE_TRUE', $response->getContent());
     }
 
     private function writeViewFile(string $dir, string $view, string $phpBody): void
@@ -193,10 +193,10 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
             ->willReturnCallback(function (int $uid, string $type, array $ids) use (&$calls) { $calls[$type] = [$uid, $ids]; });
 
         $_GET = ['store_id' => '1'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->assertSame(200, $this->buildController($shifts, $notifRepo)->shiftDay($req)->status());
+        $this->assertSame(200, $this->buildController($shifts, $notifRepo)->shiftDay($req)->getStatusCode());
         $this->assertSame([9, [31]], $calls['shift']);
         $this->assertSame(9, $calls['shift_day'][0]);
         $this->assertContains(shift_day_reference($date), $calls['shift_day'][1]);
@@ -207,10 +207,10 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->writeViewFile($this->viewDir, 'scheduling.shifts-timeline', 'HIGHLIGHT=<?= $highlight_id ?>');
 
         $_GET = ['store_id' => '1', 'highlight' => '31'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->assertStringContainsString('HIGHLIGHT=31', $this->controller->shiftDay($req)->body());
+        $this->assertStringContainsString('HIGHLIGHT=31', $this->controller->shiftDay($req)->getContent());
         $this->writeViewFile($this->viewDir, 'scheduling.shifts-timeline', '<?= $can_manage ? "CAN_MANAGE_TRUE" : "CAN_MANAGE_FALSE" ?>');
     }
 }

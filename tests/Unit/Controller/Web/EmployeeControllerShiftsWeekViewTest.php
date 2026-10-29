@@ -21,7 +21,7 @@ use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\PushNotificationService;
@@ -92,13 +92,13 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
 
     public function testShiftsWeekRendersSharedShiftsViewWithoutCanManage(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller->shiftsWeek($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('CAN_MANAGE_FALSE', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('CAN_MANAGE_FALSE', $response->getContent());
     }
 
     private function writeViewFile(string $dir, string $view, string $phpBody): void

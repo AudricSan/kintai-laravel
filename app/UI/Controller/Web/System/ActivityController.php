@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\HasBaseUrl;
 use kintai\UI\ViewRenderer;
@@ -65,7 +65,7 @@ final class ActivityController
 
         $totalPages = (int) ceil($total / $perPage);
 
-        return Response::html($this->view->render('system.activity-log', [
+        return response($this->view->render('system.activity-log', [
             'title'          => 'Journal d\'activité',
             'tab'            => 'activity',
             'rows'           => $rows,
@@ -79,7 +79,7 @@ final class ActivityController
             'users_map'      => $usersMap,
             'filters'        => $filters,
             // Purge réservée à l'Owner ; le résultat de la dernière purge revient par l'URL après la redirection.
-            'can_purge'      => !empty(($request->getAttribute('auth_user') ?? [])['is_admin']),
+            'can_purge'      => !empty(($request->attributes->get('auth_user') ?? [])['is_admin']),
             'purged'         => $request->query('purged') !== null ? max(0, (int) $request->query('purged')) : null,
             'purge_error'    => $request->query('purge_error') !== null,
             'purge_options'  => array_map('intval', self::PURGE_KEEP_DAYS),
@@ -95,7 +95,7 @@ final class ActivityController
     {
         $keepDays = (string) $request->post('keep_days', '');
         if (!in_array($keepDays, self::PURGE_KEEP_DAYS, true)) {
-            return Response::redirect($this->base() . '/admin/activity?purge_error=1');
+            return redirect()->away($this->base() . '/admin/activity?purge_error=1');
         }
 
         $keep   = (int) $keepDays;
@@ -110,7 +110,7 @@ final class ActivityController
             'deleted'   => $deleted,
         ]);
 
-        return Response::redirect($this->base() . '/admin/activity?purged=' . $deleted);
+        return redirect()->away($this->base() . '/admin/activity?purged=' . $deleted);
     }
 
     /** GET /admin/activity/export — export CSV du journal, avec les mêmes filtres que index(). */
@@ -160,7 +160,7 @@ final class ActivityController
             'rows'    => count($rows),
         ]);
 
-        return Response::csv($csv, 'journal-activite-' . date('Y-m-d') . '.csv');
+        return response()->csv($csv, 'journal-activite-' . date('Y-m-d') . '.csv');
     }
 
     /** @return array<string, mixed> */
@@ -175,7 +175,7 @@ final class ActivityController
             'from'          => $request->query('from'),
             'to'            => $request->query('to'),
             'query'         => $request->query('query'),
-            'store_ids'     => $request->getAttribute('managed_store_ids'),
+            'store_ids'     => $request->attributes->get('managed_store_ids'),
         ];
 
         return array_filter($filters, fn($v) => $v !== null && $v !== '');
@@ -194,7 +194,7 @@ final class ActivityController
             }
         }
 
-        return Response::html($this->view->render('system.activity-log', [
+        return response($this->view->render('system.activity-log', [
             'title'      => 'Fichier error.log',
             'tab'        => 'error-file',
             'err_content' => $content,

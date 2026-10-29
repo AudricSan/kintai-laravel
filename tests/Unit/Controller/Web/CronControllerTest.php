@@ -8,8 +8,8 @@ use kintai\Core\Cron\CronJobInterface;
 use kintai\Core\Cron\CronRunner;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\CronTokenRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\UI\Controller\Web\CronController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -46,7 +46,7 @@ final class CronControllerTest extends TestCase
 
             public function run(Request $request): Response
             {
-                return Response::json(['ok' => true, 'ran' => $this->getName()]);
+                return response()->json(['ok' => true, 'ran' => $this->getName()]);
             }
         };
         $runner->register($stubJob);
@@ -63,17 +63,17 @@ final class CronControllerTest extends TestCase
         $this->cronTokens->expects($this->once())->method('touchLastUsed')->with(1);
 
         $_GET['token'] = 'raw-token';
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['job' => 'stub-job']);
 
         $response = $this->controller()->run($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testRunRejectsMissingToken(): void
     {
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['job' => 'stub-job']);
         $_GET = [];
 
@@ -88,7 +88,7 @@ final class CronControllerTest extends TestCase
         ]);
 
         $_GET['token'] = 'raw-token';
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['job' => 'stub-job']);
 
         $this->expectException(ForbiddenException::class);

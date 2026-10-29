@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web;
 
 use kintai\Core\Auth\PasswordPolicy;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\PasswordResetService;
 use kintai\Core\Services\PublicUrlResolver;
 use kintai\UI\Controller\Web\HasBaseUrl;
@@ -24,7 +24,7 @@ final class PasswordResetController
     /** GET /forgot-password */
     public function showForgotForm(Request $request): Response
     {
-        return Response::html($this->view->render('auth.forgot-password', [
+        return response($this->view->render('auth.forgot-password', [
             'title'   => __('forgot_password_title'),
             'sent'    => false,
             'error'   => false,
@@ -37,7 +37,7 @@ final class PasswordResetController
         $email = trim((string) $request->post('email', ''));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return Response::html($this->view->render('auth.forgot-password', [
+            return response($this->view->render('auth.forgot-password', [
                 'title' => __('forgot_password_title'),
                 'sent'  => false,
                 'error' => true,
@@ -49,7 +49,7 @@ final class PasswordResetController
         // Sans URL configurée, le service n'envoie rien et journalise l'erreur ; l'Owner en est averti dans l'interface.
         $this->passwordReset->sendResetLink($email, $this->publicUrl->resolve() ?? '');
 
-        return Response::html($this->view->render('auth.forgot-password', [
+        return response($this->view->render('auth.forgot-password', [
             'title' => __('forgot_password_title'),
             'sent'  => true,
             'error' => false,
@@ -59,10 +59,10 @@ final class PasswordResetController
     /** GET /reset-password/{token} */
     public function showResetForm(Request $request): Response
     {
-        $token  = (string) $request->param('token', '');
+        $token  = (string) $request->route('token', '');
         $record = $this->passwordReset->findValidToken($token);
 
-        return Response::html($this->view->render('auth.reset-password', [
+        return response($this->view->render('auth.reset-password', [
             'title'   => __('new_password'),
             'token'   => $token,
             'valid'   => $record !== null,
@@ -74,7 +74,7 @@ final class PasswordResetController
     /** POST /reset-password/{token} */
     public function reset(Request $request): Response
     {
-        $token    = (string) $request->param('token', '');
+        $token    = (string) $request->route('token', '');
         $password = (string) $request->post('password', '');
         $confirm  = (string) $request->post('password_confirmation', '');
 
@@ -92,7 +92,7 @@ final class PasswordResetController
             return $this->resetView($token, __('reset_password_invalid_link'));
         }
 
-        return Response::html($this->view->render('auth.reset-password', [
+        return response($this->view->render('auth.reset-password', [
             'title'   => __('new_password'),
             'token'   => $token,
             'valid'   => true,
@@ -106,7 +106,7 @@ final class PasswordResetController
     {
         $record = $this->passwordReset->findValidToken($token);
 
-        return Response::html($this->view->render('auth.reset-password', [
+        return response($this->view->render('auth.reset-password', [
             'title'   => __('new_password'),
             'token'   => $token,
             'valid'   => $record !== null,

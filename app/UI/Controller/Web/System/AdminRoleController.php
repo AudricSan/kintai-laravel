@@ -13,9 +13,9 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Validation\ColorRule;
-use kintai\Core\Response;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\RoleAssignmentSyncService;
 use kintai\UI\Controller\Web\HasBaseUrl;
@@ -76,7 +76,7 @@ final class AdminRoleController
         }
         unset($role);
 
-        return Response::html($this->view->render('system.roles', [
+        return response($this->view->render('system.roles', [
             'title'             => __('roles'),
             'roles'             => $roles,
             'assignment_counts' => $counts,
@@ -88,7 +88,7 @@ final class AdminRoleController
     public function createRole(Request $request): Response
     {
 
-        return Response::html($this->view->render('system.roles-form', [
+        return response($this->view->render('system.roles-form', [
             'title'                 => __('new_role'),
             'mode'                  => 'create',
             'role'                  => [],
@@ -107,7 +107,7 @@ final class AdminRoleController
         $name = trim($request->post('name', ''));
         $slug = $this->uniqueSlug($this->slugify($name));
         if ($name === '' || $slug === '') {
-            return Response::redirect($this->base() . '/admin/roles/create?error=invalid_name');
+            return redirect()->away($this->base() . '/admin/roles/create?error=invalid_name');
         }
 
         ColorRule::assert($request->post('color', ''), 'color', true);
@@ -130,7 +130,7 @@ final class AdminRoleController
             'permissions'       => $permissions,
             'global_permissions' => $globalPermissions,
         ]);
-        return Response::redirect($this->base() . '/admin/roles?success=created');
+        return redirect()->away($this->base() . '/admin/roles?success=created');
     }
 
     /** GET /admin/roles/{id}/edit */
@@ -140,7 +140,7 @@ final class AdminRoleController
         $role['description'] = $this->resolveDescription($role);
         $isOwnerRole = ($role['slug'] ?? null) === 'owner';
 
-        return Response::html($this->view->render('system.roles-form', [
+        return response($this->view->render('system.roles-form', [
             'title'                 => 'Modifier ' . htmlspecialchars($role['name'] ?? ''),
             'mode'                  => 'edit',
             'role'                  => $role,
@@ -163,7 +163,7 @@ final class AdminRoleController
 
         $name = trim($request->post('name', $role['name'] ?? ''));
         if ($name === '') {
-            return Response::redirect($this->base() . '/admin/roles/' . $role['id'] . '/edit?error=invalid_name');
+            return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?error=invalid_name');
         }
 
         ColorRule::assert($request->post('color', ''), 'color', true);
@@ -201,7 +201,7 @@ final class AdminRoleController
             $newRole + ['permissions' => $newPermissions, 'global_permissions' => $newGlobalPermissions],
             [],
         );
-        return Response::redirect($this->base() . '/admin/roles?success=updated');
+        return redirect()->away($this->base() . '/admin/roles?success=updated');
     }
 
     /** POST /admin/roles/{id}/delete */
@@ -213,14 +213,14 @@ final class AdminRoleController
             throw new ForbiddenException(__('error_owner_role_undeletable'));
         }
         if (count($this->assignments->findByRole((int) $role['id'])) > 0) {
-            return Response::redirect($this->base() . '/admin/roles?error=role_in_use');
+            return redirect()->away($this->base() . '/admin/roles?error=role_in_use');
         }
 
         $this->roles->delete((int) $role['id']);
         $this->auditLogger->log($request, 'role.deleted', 'role', (int) $role['id'], [
             'name' => $role['name'] ?? null,
         ]);
-        return Response::redirect($this->base() . '/admin/roles?success=deleted');
+        return redirect()->away($this->base() . '/admin/roles?success=deleted');
     }
 
     /**
@@ -263,14 +263,14 @@ final class AdminRoleController
         }
 
         if ($validUserIds === []) {
-            return Response::redirect($this->base() . '/admin/roles/' . $role['id'] . '/edit?error=invalid_holder');
+            return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?error=invalid_holder');
         }
 
         $this->auditLogger->log($request, 'role.holder_added', 'role', (int) $role['id'], [
             'user_ids' => $validUserIds,
         ]);
 
-        return Response::redirect($this->base() . '/admin/roles/' . $role['id'] . '/edit?success=holder_added');
+        return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?success=holder_added');
     }
 
     /** POST /admin/roles/{id}/holders/{assignmentId}/delete */
@@ -282,14 +282,14 @@ final class AdminRoleController
             throw new ForbiddenException(__('error_owner_role_immutable'));
         }
 
-        $assignment = $this->assignments->findById((int) $request->param('assignmentId'));
+        $assignment = $this->assignments->findById((int) $request->route('assignmentId'));
         if ($assignment === null || (int) $assignment['role_id'] !== (int) $role['id']) {
             throw new NotFoundException(__('error_resource_not_found'));
         }
 
         $userId = (int) $assignment['user_id'];
         if ($isOwnerRole) {
-            $this->ownerGuard->assertCanRemoveOwner((int) ($request->getAttribute('auth_user')['id'] ?? 0), $userId);
+            $this->ownerGuard->assertCanRemoveOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), $userId);
             $this->roleSync->syncOwnerRole($userId, false);
         } else {
             $this->roleSync->revokeStoreRole($userId, (int) $assignment['scope_id']);
@@ -299,7 +299,7 @@ final class AdminRoleController
             'store_id' => $assignment['scope_id'],
         ]);
 
-        return Response::redirect($this->base() . '/admin/roles/' . $role['id'] . '/edit?success=holder_removed');
+        return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?success=holder_removed');
     }
 
     /**
@@ -364,7 +364,7 @@ final class AdminRoleController
 
     private function findRoleOrFail(Request $request): array
     {
-        $role = $this->roles->findById((int) $request->param('id'));
+        $role = $this->roles->findById((int) $request->route('id'));
         if ($role === null) {
             throw new NotFoundException(__('error_role_not_found'));
         }

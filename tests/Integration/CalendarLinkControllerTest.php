@@ -13,7 +13,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Container;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Router;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;
@@ -72,25 +72,24 @@ final class CalendarLinkControllerTest extends TestCase
         $_GET  = [];
     }
 
-    private function location(\kintai\Core\Response $response): string
+    private function location(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $headers = new \ReflectionProperty($response, 'headers');
-        return (string) ($headers->getValue($response)['Location'] ?? '');
+        return (string) (kintai_test_headers($response)['Location'] ?? '');
     }
 
     /** Lance la liaison et renvoie le state envoyé à Google. */
     private function startOauth(array $post = []): string
     {
         $_POST = $post;
-        $response = $this->controller->connect(new Request());
+        $response = $this->controller->connect(Request::capture());
         parse_str((string) parse_url($this->location($response), PHP_URL_QUERY), $q);
         return (string) $q['state'];
     }
 
-    private function returnFromGoogle(array $query): \kintai\Core\Response
+    private function returnFromGoogle(array $query): \Symfony\Component\HttpFoundation\Response
     {
         $_GET = $query;
-        return $this->controller->callback(new Request());
+        return $this->controller->callback(Request::capture());
     }
 
     private function flashTypes(): array
@@ -101,7 +100,7 @@ final class CalendarLinkControllerTest extends TestCase
     public function testConnectRedirectsToGoogleWithPkceAndStoresStateServerSide(): void
     {
         $_POST = [];
-        $response = $this->controller->connect(new Request());
+        $response = $this->controller->connect(Request::capture());
 
         $url = $this->location($response);
         $this->assertStringStartsWith('https://accounts.google.com/o/oauth2/v2/auth?', $url);
@@ -116,7 +115,7 @@ final class CalendarLinkControllerTest extends TestCase
     {
         $this->google->save(false, 'client-id', null);
 
-        $response = $this->controller->connect(new Request());
+        $response = $this->controller->connect(Request::capture());
 
         $this->assertStringEndsWith('/profile?tab=ical', $this->location($response));
         $this->assertFalse(session()->has('_kintai_gcal_oauth'));
@@ -220,7 +219,7 @@ final class CalendarLinkControllerTest extends TestCase
         $this->sync->connect($this->bob, 'RB', null);
         $_POST = ['user_id' => (string) $this->bob];
 
-        $this->controller->disconnect(new Request());
+        $this->controller->disconnect(Request::capture());
 
         $this->assertNull($this->repo->findConnectionByUser($this->alice));
         $this->assertNotNull($this->repo->findConnectionByUser($this->bob), 'aucun identifiant venu de la requête ne désigne la cible');
@@ -232,7 +231,7 @@ final class CalendarLinkControllerTest extends TestCase
         $this->sync->processQueue();
         $_POST = ['calendar_name_mode' => 'store', 'store_id' => '1'];
 
-        $this->controller->options(new Request());
+        $this->controller->options(Request::capture());
         $this->sync->processQueue();
 
         $this->assertSame('Shibuya', $this->repo->findConnectionByUser($this->alice)['calendar_name']);
@@ -246,7 +245,7 @@ final class CalendarLinkControllerTest extends TestCase
         $this->repo->removeFromQueue(1);
         $_POST = [];
 
-        $this->controller->resync(new Request());
+        $this->controller->resync(Request::capture());
 
         $this->assertSame([], $this->repo->dueQueue(10));
     }
@@ -258,12 +257,12 @@ final class CalendarLinkControllerTest extends TestCase
         $job = new CalendarSyncJob($this->repo, $this->sync, $this->google);
 
         $this->google->save(false, 'client-id', null);
-        $disabled = json_decode($job->run(new Request())->body(), true);
+        $disabled = json_decode($job->run(Request::capture())->getContent(), true);
         $this->assertFalse($disabled['enabled']);
         $this->assertCount(0, $this->http->calls('POST', '/events'));
 
         $this->google->save(true, 'client-id', null);
-        $enabled = json_decode($job->run(new Request())->body(), true);
+        $enabled = json_decode($job->run(Request::capture())->getContent(), true);
         $this->assertTrue($enabled['enabled']);
         $this->assertSame(1, $enabled['processed']);
         $this->assertCount(1, $this->http->calls('POST', '/events'));

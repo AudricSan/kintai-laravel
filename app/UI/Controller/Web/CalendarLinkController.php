@@ -7,8 +7,8 @@ namespace kintai\UI\Controller\Web;
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Repositories\CalendarSyncRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\SessionFlash;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;
@@ -60,7 +60,7 @@ final class CalendarLinkController
         ]);
 
         $user = $this->auth->user() ?? [];
-        return Response::redirect($this->client->authorizationUrl(
+        return redirect()->away($this->client->authorizationUrl(
             $this->redirectUri($request),
             $state,
             GoogleCalendarClient::codeChallenge($verifier),
@@ -181,6 +181,6 @@ final class CalendarLinkController
 
     private function back(): Response
     {
-        return Response::redirect($this->base() . '/profile?tab=ical');
+        return redirect()->away($this->base() . '/profile?tab=ical');
     }
 }

@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\DashboardLayoutController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -25,9 +25,9 @@ final class DashboardLayoutControllerTest extends TestCase
 
     private function request(array $body): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 7]);
-        (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $body);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 7]);
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
         return $req;
     }
 
@@ -46,7 +46,7 @@ final class DashboardLayoutControllerTest extends TestCase
             'widths' => ['shifts_today' => 'half', 'kpi_counters' => 'full'],
         ]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testEmployeeLayoutGoesToTheEmployeeDashboard(): void
@@ -65,7 +65,7 @@ final class DashboardLayoutControllerTest extends TestCase
 
         $response = $this->controller->saveManager($this->request(['reset' => true]));
 
-        $this->assertSame(['layout' => null], json_decode($response->body(), true));
+        $this->assertSame(['layout' => null], json_decode($response->getContent(), true));
     }
 
     public function testAddedWidgetGoesToTheEndWithoutResettingTheOthers(): void
@@ -83,7 +83,7 @@ final class DashboardLayoutControllerTest extends TestCase
 
         $response = $this->controller->widgetsManager($this->request(['add' => 'shifts_today']));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testManagerCanAddHisEmployeeWidgets(): void

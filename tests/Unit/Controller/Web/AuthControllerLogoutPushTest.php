@@ -16,7 +16,7 @@ use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -72,9 +72,9 @@ final class AuthControllerLogoutPushTest extends TestCase
         $subscriptions->expects($this->once())->method('deleteByEndpoint')->with('https://fcm.googleapis.com/fcm/send/abc', 9);
         $_POST = ['push_endpoint' => 'https://fcm.googleapis.com/fcm/send/abc'];
 
-        $response = $this->controller($subscriptions)->logout(new Request());
+        $response = $this->controller($subscriptions)->logout(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testLogoutWithoutEndpointDeletesNothing(): void
@@ -83,7 +83,7 @@ final class AuthControllerLogoutPushTest extends TestCase
         $subscriptions->expects($this->never())->method('deleteByEndpoint');
         $_POST = ['push_endpoint' => ''];
 
-        $this->controller($subscriptions)->logout(new Request());
+        $this->controller($subscriptions)->logout(Request::capture());
     }
 
     public function testLogoutStillSucceedsWhenTheCleanupFails(): void
@@ -92,8 +92,8 @@ final class AuthControllerLogoutPushTest extends TestCase
         $subscriptions->method('deleteByEndpoint')->willThrowException(new \RuntimeException('table absente'));
         $_POST = ['push_endpoint' => 'https://fcm.googleapis.com/fcm/send/abc'];
 
-        $response = $this->controller($subscriptions)->logout(new Request());
+        $response = $this->controller($subscriptions)->logout(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 }

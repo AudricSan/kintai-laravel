@@ -17,7 +17,7 @@ use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\Log;
@@ -91,17 +91,17 @@ final class ScheduleExportControllerTest extends TestCase
     private function request(array $query): Request
     {
         $_GET = $query;
-        return new Request();
+        return Request::capture();
     }
 
     public function testJsonContainsOnlyMyShiftsOfTheStoreAndThePeriod(): void
     {
         $response = $this->controller->download($this->request(['format' => 'json', 'store_id' => '3', 'from' => '2026-11-01', 'to' => '2026-11-30']));
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('application/json', $response->headers()['Content-Type']);
-        $this->assertStringContainsString('attachment; filename="kintai-ST3-2026-11-01_2026-11-30.json"', $response->headers()['Content-Disposition']);
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('application/json', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment; filename="kintai-ST3-2026-11-01_2026-11-30.json"', $response->headers->get('Content-Disposition'));
+        $data = json_decode($response->getContent(), true);
         $this->assertSame(1, $data['count']);
         $this->assertSame('Matin', $data['shifts'][0]['shift_type']);
         $this->assertSame(420, $data['shifts'][0]['net_minutes']);
@@ -111,17 +111,17 @@ final class ScheduleExportControllerTest extends TestCase
     {
         $response = $this->controller->download($this->request(['format' => 'csv', 'store_id' => '3', 'from' => '2026-11-01', 'to' => '2026-11-30']));
 
-        $this->assertStringContainsString('text/csv', $response->headers()['Content-Type']);
-        $this->assertStringContainsString('2026-11-02;09:00;17:00;0;60;420;Matin;Shibuya;', $response->body());
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('2026-11-02;09:00;17:00;0;60;420;Matin;Shibuya;', $response->getContent());
     }
 
     public function testIcsContainsTheEventOfThePeriodOnly(): void
     {
         $response = $this->controller->download($this->request(['format' => 'ics', 'store_id' => '3', 'from' => '2026-11-01', 'to' => '2026-11-30']));
 
-        $this->assertStringContainsString('text/calendar', $response->headers()['Content-Type']);
-        $this->assertSame(1, substr_count($response->body(), 'BEGIN:VEVENT'));
-        $this->assertStringContainsString('UID:shift-1@kintai', $response->body());
+        $this->assertStringContainsString('text/calendar', $response->headers->get('Content-Type'));
+        $this->assertSame(1, substr_count($response->getContent(), 'BEGIN:VEVENT'));
+        $this->assertStringContainsString('UID:shift-1@kintai', $response->getContent());
     }
 
     public function testAStoreWhereIAmNotAMemberIsRefused(): void
@@ -134,8 +134,8 @@ final class ScheduleExportControllerTest extends TestCase
     {
         $response = $this->controller->download($this->request(['format' => 'xml', 'store_id' => '3']));
 
-        $this->assertSame(302, $response->status());
-        $this->assertStringContainsString('/profile?tab=ical', $response->headers()['Location']);
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringContainsString('/profile?tab=ical', $response->headers->get('Location'));
     }
 
     public function testAnonymousVisitorsAreSentToTheLogin(): void
@@ -143,7 +143,7 @@ final class ScheduleExportControllerTest extends TestCase
         session()->forget('auth_user_id');
         $response = $this->controller->download($this->request(['format' => 'json', 'store_id' => '3']));
 
-        $this->assertSame(302, $response->status());
-        $this->assertStringContainsString('/login', $response->headers()['Location']);
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringContainsString('/login', $response->headers->get('Location'));
     }
 }

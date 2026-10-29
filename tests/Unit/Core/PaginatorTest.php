@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Api\Paginator;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
 final class PaginatorTest extends TestCase
@@ -116,7 +116,7 @@ final class PaginatorTest extends TestCase
         $_POST   = [];
         $_COOKIE = [];
         $_FILES  = [];
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void

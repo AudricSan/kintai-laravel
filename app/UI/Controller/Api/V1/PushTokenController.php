@@ -7,8 +7,8 @@ namespace kintai\UI\Controller\Api\V1;
 use kintai\Core\Auth\UserTargetGuard;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class PushTokenController
 {
@@ -28,10 +28,10 @@ final class PushTokenController
      */
     public function store(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $data     = $request->json() ?? [];
+        $data     = $request->json()->all() ?? [];
         $token    = trim((string) ($data['token'] ?? ''));
         $platform = (string) ($data['platform'] ?? '');
 
@@ -48,7 +48,7 @@ final class PushTokenController
             'platform' => $platform ?: null,
         ]);
 
-        return Response::json($record, 201);
+        return response()->json($record, 201);
     }
 
     /**
@@ -57,7 +57,7 @@ final class PushTokenController
      */
     public function destroy(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
         $token = trim((string) ($request->json('token') ?? ''));
@@ -66,6 +66,6 @@ final class PushTokenController
         }
 
         $this->tokens->deleteByToken($token, $userId);
-        return Response::empty();
+        return response()->noContent();
     }
 }

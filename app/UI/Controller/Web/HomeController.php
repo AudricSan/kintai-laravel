@@ -16,8 +16,8 @@ use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Extension\Attendances;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\DashboardAlertService;
 use kintai\Core\Services\DashboardLayoutResolver;
 use kintai\Core\Services\SchedulePublication;
@@ -79,13 +79,13 @@ final class HomeController
 
     public function index(Request $request): Response
     {
-        $user  = $request->getAttribute('auth_user');
+        $user  = $request->attributes->get('auth_user');
         $today = date('Y-m-d');
 
         // Manager restreint à un sous-ensemble de stores (PermissionMiddleware) : null = admin
         // global, aucune restriction. Toutes les données du dashboard doivent être
         // bornées à cette liste pour éviter de divulguer des données d'autres stores.
-        $managedStoreIds = $request->getAttribute('managed_store_ids');
+        $managedStoreIds = $request->attributes->get('managed_store_ids');
         $inScope = fn(int $storeId): bool => $managedStoreIds === null || in_array($storeId, $managedStoreIds, true);
 
         $allUsers = $this->users->findAll();
@@ -224,7 +224,7 @@ final class HomeController
 
         $employeeWidgets = $this->employeeWidgets($dashWidgets, $user, array_keys($enabledAll), $today, $userCan);
 
-        return Response::html($this->view->render('dashboard.index', [
+        return response($this->view->render('dashboard.index', [
             'title'              => 'Dashboard',
             'stats'              => [
                 'users'            => count($allUsers),

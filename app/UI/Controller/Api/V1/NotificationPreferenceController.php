@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Api\V1;
 
 use kintai\Core\Auth\UserTargetGuard;
 use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\NotificationPreferenceService;
 
 final class NotificationPreferenceController
@@ -23,10 +23,10 @@ final class NotificationPreferenceController
      */
     public function show(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        return Response::json($this->payload($userId));
+        return response()->json($this->payload($userId));
     }
 
     /**
@@ -38,10 +38,10 @@ final class NotificationPreferenceController
      */
     public function update(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $data = $request->json() ?? [];
+        $data = $request->json()->all() ?? [];
 
         $changes = $data['preferences'] ?? null;
         if ($changes !== null && !is_array($changes)) {
@@ -70,7 +70,7 @@ final class NotificationPreferenceController
             }
         }
 
-        return Response::json($this->payload($userId));
+        return response()->json($this->payload($userId));
     }
 
     private function payload(int $userId): array

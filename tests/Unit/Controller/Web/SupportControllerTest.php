@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Container;
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\GithubIssueService;
 use kintai\Core\Services\Log;
@@ -50,11 +50,9 @@ final class SupportControllerTest extends TestCase
         rmdir($this->tmpDir);
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     private function makeController(?\Closure $poster = null): SupportController
@@ -69,8 +67,8 @@ final class SupportControllerTest extends TestCase
     public function testReportIssueRejectsEmptyFields(): void
     {
         $_POST = ['title' => '', 'description' => '', 'return_to' => '/employee'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $poster = function (): never {
             throw new \RuntimeException('should not call GitHub API');
@@ -78,7 +76,7 @@ final class SupportControllerTest extends TestCase
 
         $response = $this->makeController($poster)->reportIssue($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('ri_error=empty', $this->locationOf($response));
     }
 
@@ -90,8 +88,8 @@ final class SupportControllerTest extends TestCase
             'description' => "Rien ne se passe au clic.",
             'return_to'   => '/employee/shifts',
         ];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 7]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 7]);
 
         $poster = fn(): string => json_encode(['html_url' => 'https://github.com/AudricSan/Kintai/issues/99']);
 
@@ -103,7 +101,7 @@ final class SupportControllerTest extends TestCase
 
         $response = $this->makeController($poster)->reportIssue($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString(
             'ri_success=' . urlencode('https://github.com/AudricSan/Kintai/issues/99'),
             $this->locationOf($response)
@@ -115,12 +113,12 @@ final class SupportControllerTest extends TestCase
         putenv('GITHUB_ISSUES_TOKEN');
         putenv('GITHUB_UPDATE_REPO=AudricSan/Kintai');
         $_POST = ['title' => 'Bug', 'description' => 'Description', 'return_to' => '/employee'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $response = $this->makeController()->reportIssue($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringStartsWith(
             'https://github.com/AudricSan/Kintai/issues/new?',
             $this->locationOf($response)
@@ -131,22 +129,22 @@ final class SupportControllerTest extends TestCase
     {
         putenv('GITHUB_ISSUES_TOKEN=ghp_test_token');
         $_POST = ['title' => 'Bug', 'description' => 'Description', 'return_to' => '/employee'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $poster = fn(): ?string => null;
 
         $response = $this->makeController($poster)->reportIssue($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('ri_error=send_failed', $this->locationOf($response));
     }
 
     public function testReportIssueRejectsUnsafeReturnToAndFallsBackToRoot(): void
     {
         $_POST = ['title' => '', 'description' => '', 'return_to' => '//evil.test'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $response = $this->makeController()->reportIssue($req);
 

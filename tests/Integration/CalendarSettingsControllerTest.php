@@ -8,7 +8,7 @@ use kintai\Core\Auth\UserAnonymizer;
 use kintai\Core\Auth\CredentialRevoker;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Container;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Router;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;
@@ -59,21 +59,20 @@ final class CalendarSettingsControllerTest extends TestCase
         $_GET  = [];
     }
 
-    private function location(\kintai\Core\Response $response): string
+    private function location(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $headers = new \ReflectionProperty($response, 'headers');
-        return (string) ($headers->getValue($response)['Location'] ?? '');
+        return (string) (kintai_test_headers($response)['Location'] ?? '');
     }
 
     public function testSavingKeepsTheSecretWhenTheFieldIsLeftEmptyAndEncryptsANewOne(): void
     {
         $_POST = ['google_calendar_enabled' => '1', 'google_calendar_client_id' => ' new-id ', 'google_calendar_client_secret' => ''];
-        $this->controller->save(new Request());
+        $this->controller->save(Request::capture());
         $this->assertSame('new-id', $this->google->clientId());
         $this->assertSame('client-secret', $this->google->clientSecret(), 'champ vide : secret conservé');
 
         $_POST = ['google_calendar_enabled' => '1', 'google_calendar_client_id' => 'new-id', 'google_calendar_client_secret' => 'brand-new-secret'];
-        $this->controller->save(new Request());
+        $this->controller->save(Request::capture());
         $this->assertSame('brand-new-secret', $this->google->clientSecret());
         $this->assertStringNotContainsString('brand-new-secret', (string) $this->values->get('google_calendar_client_secret'));
     }
@@ -82,7 +81,7 @@ final class CalendarSettingsControllerTest extends TestCase
     {
         $_POST = ['google_calendar_client_id' => 'client-id'];
 
-        $this->controller->save(new Request());
+        $this->controller->save(Request::capture());
 
         $this->assertFalse($this->google->isAvailable());
         $this->assertTrue($this->google->hasSecret());
@@ -117,7 +116,7 @@ final class CalendarSettingsControllerTest extends TestCase
     {
         $this->http->when('POST', '/token', $googleAnswer);
 
-        $response = $this->controller->test(new Request());
+        $response = $this->controller->test(Request::capture());
 
         $this->assertStringEndsWith('?check=' . $expected, $this->location($response));
     }
@@ -126,7 +125,7 @@ final class CalendarSettingsControllerTest extends TestCase
     {
         $this->values->set('google_calendar_client_secret', '');
 
-        $response = $this->controller->test(new Request());
+        $response = $this->controller->test(Request::capture());
 
         $this->assertStringEndsWith('?check=incomplete', $this->location($response));
         $this->assertCount(0, $this->http->calls('POST', '/token'));

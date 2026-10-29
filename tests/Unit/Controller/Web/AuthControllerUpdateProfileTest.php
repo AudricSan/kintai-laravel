@@ -15,7 +15,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -84,7 +84,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('DB write failed');
-        $controller->updateProfile(new Request());
+        $controller->updateProfile(Request::capture());
     }
 
     /** Choix vide (« Langue de l'instance ») ou langue désactivée : le compte suit la langue de l'instance (''). */
@@ -118,7 +118,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
 
         foreach (['', 'de', 'en'] as $choice) {
             $_POST = ['language' => $choice];
-            $controller->updateProfile(new Request());
+            $controller->updateProfile(Request::capture());
         }
 
         $this->assertSame(['', '', 'en'], $saved);

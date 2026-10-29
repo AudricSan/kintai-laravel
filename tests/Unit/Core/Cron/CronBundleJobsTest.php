@@ -10,8 +10,8 @@ use kintai\Core\Cron\CronJobInterface;
 use kintai\Core\Cron\CronRunner;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\CronTokenRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;
 
 /** Tâche de test dont le nom est fixé à la construction. */
@@ -26,7 +26,7 @@ final class NamedTestJob implements CronJobInterface
 
     public function run(Request $request): Response
     {
-        return Response::json(['ok' => true, 'job' => $this->name]);
+        return response()->json(['ok' => true, 'job' => $this->name]);
     }
 }
 

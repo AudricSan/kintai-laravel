@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Setup;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\NotificationChannelStatus;
 use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\NotificationService;

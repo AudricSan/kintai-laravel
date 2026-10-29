@@ -15,7 +15,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\DashboardAlertService;
 use kintai\Core\Services\StoreStatsServiceInterface;
 use kintai\Core\Extension\ExtensionRegistry;
@@ -104,9 +104,9 @@ final class HomeControllerPendingClaimsTest extends TestCase
 
     private function request(): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 99, 'is_admin' => 1]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 99, 'is_admin' => 1]);
+        $req->attributes->set('managed_store_ids', null);
         return $req;
     }
 
@@ -118,7 +118,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
 
         $controller = $this->buildController();
         $response   = $controller->index($this->request());
-        $data       = json_decode($response->body(), true);
+        $data       = json_decode($response->getContent(), true);
 
         // 1 congé pending, aucune candidature (bundle désactivé) : total = 1.
         $this->assertSame(1, $data['stats']['pending_requests']);
@@ -135,7 +135,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
 
         $controller = $this->buildController();
         $response   = $controller->index($this->request());
-        $data       = json_decode($response->body(), true);
+        $data       = json_decode($response->getContent(), true);
 
         // 1 congé pending + 1 candidature pending = 2.
         $this->assertSame(2, $data['stats']['pending_requests']);

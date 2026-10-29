@@ -19,8 +19,8 @@ use kintai\Core\Extension\Events;
 use kintai\Core\Extension\ShiftFormSections;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Auth\PermissionService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvailabilityGuard;
@@ -65,7 +65,7 @@ final class AdminShiftController
         if ($this->publication === null) {
             return $shifts;
         }
-        $user = $request->getAttribute('auth_user') ?? [];
+        $user = $request->attributes->get('auth_user') ?? [];
         if (!empty($user['is_admin'])) {
             return $shifts;
         }
@@ -173,7 +173,7 @@ final class AdminShiftController
             ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
             : $this->users->findAll();
 
-        return Response::html($this->view->render('scheduling.shifts-form', [
+        return response($this->view->render('scheduling.shifts-form', [
             'title'                 => $mode === 'edit' ? 'Modifier le shift #' . $shift['id'] : 'Nouveau shift',
             'mode'                  => $mode,
             'shift'                 => $shift,
@@ -305,7 +305,7 @@ final class AdminShiftController
         }
         asort($usersForFilter);
 
-        return Response::html($this->view->render('scheduling.shifts', [
+        return response($this->view->render('scheduling.shifts', [
             'title'            => 'Shifts',
             'shifts'           => $allShifts,
             'users_map'        => $usersMap,
@@ -389,7 +389,7 @@ final class AdminShiftController
         // Types de shift
         $typesMap = $this->shiftService->getShiftTypesMap();
 
-        return Response::html($this->view->render('scheduling.shifts-calendar', [
+        return response($this->view->render('scheduling.shifts-calendar', [
             'title'         => 'Calendrier',
             'year'          => $year,
             'month'         => $month,
@@ -524,7 +524,7 @@ final class AdminShiftController
         }
 
         // ID de l'utilisateur courant (pour highlight éventuel)
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         $myUserId = (int) ($authUser['id'] ?? 0);
 
         // Peut gérer les shifts du store affiché (Owner, ou RBAC accordant shifts.update sur ce
@@ -543,7 +543,7 @@ final class AdminShiftController
             'low_staff_hour_end'   => (int) ($storeObj['low_staff_hour_end']   ?? -1),
         ];
 
-        return Response::html($this->view->render('scheduling.shifts-timeline', [
+        return response($this->view->render('scheduling.shifts-timeline', [
             'title'               => 'Planning — Timeline',
             'days'                => $days,
             'period_mode'         => $viewMode,
@@ -589,14 +589,14 @@ final class AdminShiftController
         $storeId = (int) $request->post('store_id', 0);
         $until   = (string) $request->post('until', '');
         $this->assertStoreAccess($request, $storeId);
-        $this->permissions->requireOnStore($request->getAttribute('auth_user') ?? [], 'shifts.update', $storeId);
+        $this->permissions->requireOnStore($request->attributes->get('auth_user') ?? [], 'shifts.update', $storeId);
 
         $back = safe_redirect_path((string) $request->post('redirect_to', ''), '')
             ?: $this->base() . '/admin/shifts/timeline?store_id=' . $storeId;
         $sep  = str_contains($back, '?') ? '&' : '?';
         if ($this->publication === null || !$this->publication->isEnabled($storeId)
             || preg_match('/^\d{4}-\d{2}-\d{2}$/', $until) !== 1) {
-            return Response::redirect($back . $sep . 'error=publish_invalid');
+            return redirect()->away($back . $sep . 'error=publish_invalid');
         }
 
         $from   = $this->publication->publishedUntil($storeId);
@@ -608,7 +608,7 @@ final class AdminShiftController
             'notified'  => $result['notified'],
         ], $storeId);
 
-        return Response::redirect($back . $sep . 'success=published&notified=' . $result['notified']);
+        return redirect()->away($back . $sep . 'success=published&notified=' . $result['notified']);
     }
 
     /**
@@ -693,7 +693,7 @@ final class AdminShiftController
             }
         }
 
-        return Response::html($this->view->render('scheduling.shifts-timeline-print', [
+        return response($this->view->render('scheduling.shifts-timeline-print', [
             'days'                => $days,
             'period_mode'         => $viewMode,
             'shifts_by_date_user' => $shiftsByDateUser,
@@ -722,7 +722,7 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->query('redirect_to', ''), '');
 
-        return Response::html($this->view->render('scheduling.shifts-form', [
+        return response($this->view->render('scheduling.shifts-form', [
             'title'       => 'Nouveau shift',
             'mode'        => 'create',
             'shift'       => ['is_open' => $request->query('is_open') === '1' ? 1 : 0],
@@ -747,7 +747,7 @@ final class AdminShiftController
         $startTime = (string) $request->query('start_time', '');
         $endTime   = (string) $request->query('end_time', '');
         if ($startTime === '' || $endTime === '') {
-            return Response::json(['breakdown' => [], 'estimated_salary' => 0.0, 'dominant_type_id' => null]);
+            return response()->json(['breakdown' => [], 'estimated_salary' => 0.0, 'dominant_type_id' => null]);
         }
 
         $start = strtotime($startTime);
@@ -774,7 +774,7 @@ final class AdminShiftController
         );
         $result = $wageCalc->calculate($startTime, $endTime, $types, $netMinutes);
 
-        return Response::json($result);
+        return response()->json($result);
     }
 
     public function storeShift(Request $request): Response
@@ -802,7 +802,7 @@ final class AdminShiftController
         $uid    = (int) $request->post('user_id', 0);
 
         if (!$isOpen && $uid > 0 && $this->hasApprovedTimeoffConflict($uid, $shiftDate)) {
-            return Response::redirect($this->base() . '/admin/shifts/create?error=timeoff_conflict&store_id=' . $storeId);
+            return redirect()->away($this->base() . '/admin/shifts/create?error=timeoff_conflict&store_id=' . $storeId);
         }
 
         if (!$isOpen && $uid > 0 && !$this->availabilityForced($request)) {
@@ -861,15 +861,15 @@ final class AdminShiftController
         $redirectTo = safe_redirect_path((string) $request->post('redirect_to', ''), '');
         if ($redirectTo !== '') {
             $sep = str_contains($redirectTo, '?') ? '&' : '?';
-            return Response::redirect($redirectTo . $sep . 'success=created');
+            return redirect()->away($redirectTo . $sep . 'success=created');
         }
 
-        return Response::redirect($this->base() . '/admin/shifts?success=created');
+        return redirect()->away($this->base() . '/admin/shifts?success=created');
     }
 
     public function editShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->param('id'));
+        $shift = $this->shifts->findById((int) $request->route('id'));
         if ($shift === null) {
             throw new NotFoundException(__('error_shift_not_found'));
         }
@@ -882,7 +882,7 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->query('redirect_to', ''), '');
 
-        return Response::html($this->view->render('scheduling.shifts-form', [
+        return response($this->view->render('scheduling.shifts-form', [
             'title'       => 'Modifier le shift #' . $shift['id'],
             'mode'        => 'edit',
             'shift'       => $shift,
@@ -895,7 +895,7 @@ final class AdminShiftController
 
     public function updateShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->param('id'));
+        $shift = $this->shifts->findById((int) $request->route('id'));
         if ($shift === null) {
             throw new NotFoundException(__('error_shift_not_found'));
         }
@@ -932,7 +932,7 @@ final class AdminShiftController
 
         $targetUid = $isOpen ? 0 : (int) $request->post('user_id', $shift['user_id']);
         if (!$isOpen && $targetUid > 0 && $this->hasApprovedTimeoffConflict($targetUid, $shiftDate)) {
-            return Response::redirect($this->base() . '/admin/shifts/' . $shift['id'] . '/edit?error=timeoff_conflict');
+            return redirect()->away($this->base() . '/admin/shifts/' . $shift['id'] . '/edit?error=timeoff_conflict');
         }
 
         // Seulement quand la personne ou la date change : une simple retouche d'horaire ne doit pas redemander.
@@ -970,7 +970,7 @@ final class AdminShiftController
 
         // Shift retiré de la bourse : les bundles qui l'écoutent (shift-claim retire les candidatures en attente).
         if ($wasOpen && !$isOpen) {
-            $authId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+            $authId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
             Events::current()->dispatch(new OpenShiftClosed($saved, $authId > 0 ? $authId : null));
         }
 
@@ -1024,10 +1024,10 @@ final class AdminShiftController
         $redirectTo = safe_redirect_path((string) $request->post('redirect_to', ''), '');
         if ($redirectTo !== '') {
             $sep = str_contains($redirectTo, '?') ? '&' : '?';
-            return Response::redirect($redirectTo . $sep . 'success=updated');
+            return redirect()->away($redirectTo . $sep . 'success=updated');
         }
 
-        return Response::redirect($this->base() . '/admin/shifts?success=updated');
+        return redirect()->away($this->base() . '/admin/shifts?success=updated');
     }
 
     /**
@@ -1062,7 +1062,7 @@ final class AdminShiftController
 
     public function deleteShift(Request $request): Response
     {
-        $id    = (int) $request->param('id');
+        $id    = (int) $request->route('id');
         $shift = $this->shifts->findById($id);
         if ($shift !== null) {
             $this->assertStoreAccess($request, (int) $shift['store_id']);
@@ -1079,9 +1079,9 @@ final class AdminShiftController
         $redirectTo = safe_redirect_path((string) $request->post('redirect_to', ''), '');
         if ($redirectTo !== '') {
             $sep = str_contains($redirectTo, '?') ? '&' : '?';
-            return Response::redirect($redirectTo . $sep . 'success=conflict_resolved');
+            return redirect()->away($redirectTo . $sep . 'success=conflict_resolved');
         }
-        return Response::redirect($this->base() . '/admin/shifts?success=deleted');
+        return redirect()->away($this->base() . '/admin/shifts?success=deleted');
     }
 
     /**
@@ -1093,7 +1093,7 @@ final class AdminShiftController
         $managedIds = $this->managedIds($request);
         $ids        = $request->post('ids') ?? [];
         if (!is_array($ids) || empty($ids)) {
-            return Response::redirect($this->base() . '/admin/shifts');
+            return redirect()->away($this->base() . '/admin/shifts');
         }
         // Limite côté serveur : 100 IDs maximum
         $ids = array_slice($ids, 0, 100);
@@ -1148,7 +1148,7 @@ final class AdminShiftController
             'success'  => 'bulk_deleted',
             'count'    => $deleted,
         ], fn($v) => $v !== null && $v !== 0 && $v !== ''));
-        return Response::redirect($this->base() . '/admin/shifts?' . $qs);
+        return redirect()->away($this->base() . '/admin/shifts?' . $qs);
     }
 
     /**
@@ -1156,13 +1156,13 @@ final class AdminShiftController
      */
     public function quickShift(Request $request): Response
     {
-        $body    = $request->json() ?? [];
+        $body    = $request->json()->all() ?? [];
         $storeId = (int) ($body['store_id'] ?? 0);
 
         try {
             $this->assertStoreAccess($request, $storeId);
         } catch (ForbiddenException) {
-            return Response::json(['error' => __('error_access_denied')], 403);
+            return response()->json(['error' => __('error_access_denied')], 403);
         }
 
         $shiftDate = $body['shift_date'] ?? '';
@@ -1186,13 +1186,13 @@ final class AdminShiftController
         $bodyUid     = (int) ($body['user_id'] ?? 0);
 
         if (!$isOpen && $bodyUid > 0 && $this->hasApprovedTimeoffConflict($bodyUid, $shiftDate)) {
-            return Response::json(['error' => __('shift_timeoff_conflict')], 409);
+            return response()->json(['error' => __('shift_timeoff_conflict')], 409);
         }
 
         if (!$isOpen && $bodyUid > 0 && empty($body['force_availability'])) {
             $conflict = $this->availabilityConflict($bodyUid, $storeId, $shiftDate);
             if ($conflict !== null) {
-                return Response::json(['error' => $this->availabilityMessage($conflict), 'code' => 'availability_conflict'], 409);
+                return response()->json(['error' => $this->availabilityMessage($conflict), 'code' => 'availability_conflict'], 409);
             }
         }
 
@@ -1223,7 +1223,7 @@ final class AdminShiftController
             'via' => 'drag',
         ], $storeId);
 
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /**
@@ -1337,7 +1337,7 @@ final class AdminShiftController
             ($a['shift_date'] ?? '')
         ));
 
-        return Response::html($this->view->render('scheduling.shifts-conflicts', [
+        return response($this->view->render('scheduling.shifts-conflicts', [
             'title'           => __('shift_conflicts_title'),
             'conflicts'       => $conflicts,
             'too_short'       => $tooShort,
@@ -1368,7 +1368,7 @@ final class AdminShiftController
             $idKeep   = (int) $request->post('id_keep',   0);
             $idDelete = (int) $request->post('id_delete', 0);
             if ($idKeep <= 0 || $idDelete <= 0) {
-                return Response::redirect($this->base() . '/admin/shifts/conflicts');
+                return redirect()->away($this->base() . '/admin/shifts/conflicts');
             }
 
             $shiftKeep   = $this->shifts->findById($idKeep);
@@ -1393,12 +1393,12 @@ final class AdminShiftController
                 'store_id' => $storeId ?: null,
                 'success'  => 'conflict_resolved',
             ], fn($v) => $v !== null && $v !== 0 && $v !== ''));
-            return Response::redirect($this->base() . '/admin/shifts/conflicts?' . $qs);
+            return redirect()->away($this->base() . '/admin/shifts/conflicts?' . $qs);
         }
 
         // --- Mode vrac : résoudre tous les conflits du mois ---
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-            return Response::redirect($this->base() . '/admin/shifts/conflicts');
+            return redirect()->away($this->base() . '/admin/shifts/conflicts');
         }
 
         $mStart    = $month . '-01';
@@ -1477,7 +1477,7 @@ final class AdminShiftController
             'success'  => 'conflicts_resolved',
             'count'    => $deleted,
         ], fn($v) => $v !== null && $v !== 0 && $v !== ''));
-        return Response::redirect($this->base() . '/admin/shifts/conflicts?' . $qs);
+        return redirect()->away($this->base() . '/admin/shifts/conflicts?' . $qs);
     }
 
     /**
@@ -1510,18 +1510,18 @@ final class AdminShiftController
      */
     public function moveShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->param('id'));
+        $shift = $this->shifts->findById((int) $request->route('id'));
         if ($shift === null) {
-            return Response::json(['error' => __('error_shift_not_found')], 404);
+            return response()->json(['error' => __('error_shift_not_found')], 404);
         }
         try {
             $this->assertStoreAccess($request, (int) $shift['store_id']);
         } catch (ForbiddenException) {
-            return Response::json(['error' => __('error_access_denied')], 403);
+            return response()->json(['error' => __('error_access_denied')], 403);
         }
         $old = $shift;
 
-        $body      = $request->json() ?? [];
+        $body      = $request->json()->all() ?? [];
         $shiftDate = $body['shift_date'] ?? $shift['shift_date'];
         $startTime = $body['start_time'] ?? $shift['start_time'];
         $endTime   = $body['end_time']   ?? $shift['end_time'];
@@ -1537,13 +1537,13 @@ final class AdminShiftController
 
         $moveUid = (int) ($shift['user_id'] ?? 0);
         if (empty($shift['is_open']) && $moveUid > 0 && $this->hasApprovedTimeoffConflict($moveUid, $shiftDate)) {
-            return Response::json(['error' => __('shift_timeoff_conflict')], 409);
+            return response()->json(['error' => __('shift_timeoff_conflict')], 409);
         }
 
         if (empty($shift['is_open']) && $moveUid > 0 && $shiftDate !== (string) ($shift['shift_date'] ?? '') && empty($body['force_availability'])) {
             $conflict = $this->availabilityConflict($moveUid, (int) $shift['store_id'], $shiftDate);
             if ($conflict !== null) {
-                return Response::json(['error' => $this->availabilityMessage($conflict), 'code' => 'availability_conflict'], 409);
+                return response()->json(['error' => $this->availabilityMessage($conflict), 'code' => 'availability_conflict'], 409);
             }
         }
 
@@ -1559,7 +1559,7 @@ final class AdminShiftController
 
         $this->auditLogger->logUpdate($request, 'shift.moved', 'shift', (int) $shift['id'], $old, $saved, [], (int) $shift['store_id']);
 
-        return Response::json($saved);
+        return response()->json($saved);
     }
 
     /**

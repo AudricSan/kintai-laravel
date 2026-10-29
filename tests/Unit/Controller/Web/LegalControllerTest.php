@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Controller\Web;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Web\LegalController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -43,25 +43,25 @@ final class LegalControllerTest extends TestCase
 
     public function testMentionsRendersMentionsView(): void
     {
-        $response = $this->controller->mentions(new Request());
+        $response = $this->controller->mentions(Request::capture());
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('MENTIONS', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('MENTIONS', $response->getContent());
     }
 
     public function testTermsRendersTermsView(): void
     {
-        $response = $this->controller->terms(new Request());
+        $response = $this->controller->terms(Request::capture());
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('TERMS', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('TERMS', $response->getContent());
     }
 
     public function testLicenseRendersLicenseView(): void
     {
-        $response = $this->controller->license(new Request());
+        $response = $this->controller->license(Request::capture());
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('LICENSE', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('LICENSE', $response->getContent());
     }
 }

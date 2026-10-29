@@ -12,7 +12,7 @@ use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\DatabaseNotificationPreferenceRepository;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\NotificationTypeRegistry;
 use kintai\Domain\Eloquent\NotificationPreference;
@@ -66,23 +66,22 @@ final class NotificationPreferenceControllerTest extends TestCase
 
     private function request(array $json = [], string $userId = '20'): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setValue($req, $json);
+        $req = ApiOwnerAuth::owner(Request::capture());
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($json));
         $req->setRouteParams(['user_id' => $userId]);
         return $req;
     }
 
-    private function body(\kintai\Core\Response $response): array
+    private function body(\Symfony\Component\HttpFoundation\Response $response): array
     {
-        return json_decode($response->body(), true);
+        return json_decode($response->getContent(), true);
     }
 
     public function testShowReturnsGridWithDefaultsAndQuietHours(): void
     {
         $response = $this->controller->show($this->request());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $data = $this->body($response);
         $this->assertSame(20, $data['user_id']);
         $this->assertSame(
@@ -100,7 +99,7 @@ final class NotificationPreferenceControllerTest extends TestCase
     {
         $response = $this->controller->update($this->request(['preferences' => ['shift_updated' => ['push' => false, 'email' => true]]]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $byType = array_column($this->body($response)['preferences'], null, 'type');
         $this->assertFalse($byType['shift_updated']['push']);
         $this->assertTrue($byType['shift_updated']['email']);

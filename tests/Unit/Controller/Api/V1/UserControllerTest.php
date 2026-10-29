@@ -16,7 +16,7 @@ use kintai\Core\Auth\OwnerGuard;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\Log;
@@ -66,10 +66,8 @@ final class UserControllerTest extends TestCase
 
     private function makeJsonRequest(array $body): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $body);
+        $req = ApiOwnerAuth::owner(Request::capture());
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
         return $req;
     }
 
@@ -80,7 +78,7 @@ final class UserControllerTest extends TestCase
 
         $response = $this->controller()->store($this->makeJsonRequest(['email' => 'new@example.com', 'first_name' => 'Nouvel', 'last_name' => 'Employé']));
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     /** Contrat 1.13 : les bundles qui écoutent EmployeeCreated l'apprennent, sans magasin ni secret. */
@@ -141,7 +139,7 @@ final class UserControllerTest extends TestCase
         $this->users->method('findById')->willReturn(['id' => ApiOwnerAuth::OWNER_ID, 'is_active' => 1, 'deleted_at' => null]);
         $this->users->expects($this->never())->method('delete');
 
-        $req = ApiOwnerAuth::owner(new Request());
+        $req = ApiOwnerAuth::owner(Request::capture());
         $req->setRouteParams(['id' => (string) ApiOwnerAuth::OWNER_ID]);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);

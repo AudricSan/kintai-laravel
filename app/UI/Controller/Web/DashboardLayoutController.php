@@ -10,8 +10,8 @@ use kintai\Core\Extension\DashboardLayout;
 use kintai\Core\Extension\DashboardWidgets;
 use kintai\Core\Repositories\UserDashboardLayoutRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 
 /**
@@ -59,14 +59,14 @@ final class DashboardLayoutController
     /** @param list<string> $offered Widgets proposés sur ce tableau de bord */
     private function save(Request $request, string $dashboardType, array $offered): Response
     {
-        $userId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
-        $body   = $request->json() ?? [];
+        $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
+        $body   = $request->json()->all() ?? [];
 
         if (($body['reset'] ?? false) === true) {
             $this->dashboardPrefs->saveLayout($userId, $dashboardType, null);
             // Revenir au défaut : la disposition en cours n'est plus celle d'une mise en page nommée.
             $this->layouts?->deactivateAll($userId, $dashboardType);
-            return Response::json(['layout' => null]);
+            return response()->json(['layout' => null]);
         }
 
         $layout = DashboardLayout::update(
@@ -80,7 +80,7 @@ final class DashboardLayoutController
         $this->dashboardPrefs->saveLayout($userId, $dashboardType, $layout);
         $this->layouts?->updateActive($userId, $dashboardType, $layout);
 
-        return Response::json(['layout' => $layout]);
+        return response()->json(['layout' => $layout]);
     }
 
     /**
@@ -89,8 +89,8 @@ final class DashboardLayoutController
      */
     private function toggle(Request $request, string $dashboardType, array $offered, array $defaults): Response
     {
-        $userId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
-        $body   = $request->json() ?? [];
+        $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
+        $body   = $request->json()->all() ?? [];
         $add    = is_string($body['add'] ?? null);
         $key    = $add ? $body['add'] : ($body['remove'] ?? null);
 
@@ -113,6 +113,6 @@ final class DashboardLayoutController
 
         $this->auditLogger->logUpdate($request, 'dashboard_prefs.updated', 'user_dashboard_prefs', $userId, $previous, $widgets, ['dashboard' => $dashboardType]);
 
-        return Response::json(['widgets' => $widgets]);
+        return response()->json(['widgets' => $widgets]);
     }
 }

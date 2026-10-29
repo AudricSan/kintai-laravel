@@ -15,7 +15,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -92,9 +92,9 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
             'password_hash' => password_hash('0000', PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
 
-        $response = $this->controller->showProfile(new Request());
+        $response = $this->controller->showProfile(Request::capture());
 
-        $this->assertStringContainsString('DEFAULT_PW_WARNING', $response->body());
+        $this->assertStringContainsString('DEFAULT_PW_WARNING', $response->getContent());
     }
 
     public function testWarningHiddenWhenPasswordHasBeenChanged(): void
@@ -104,9 +104,9 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
             'password_hash' => password_hash('a-real-password', PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
 
-        $response = $this->controller->showProfile(new Request());
+        $response = $this->controller->showProfile(Request::capture());
 
-        $this->assertStringContainsString('NO_WARNING', $response->body());
+        $this->assertStringContainsString('NO_WARNING', $response->getContent());
     }
 
     private function ensureViewFile(string $dir, string $view, string $content): void

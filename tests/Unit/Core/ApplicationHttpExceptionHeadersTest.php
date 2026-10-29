@@ -73,8 +73,6 @@ final class ApplicationHttpExceptionHeadersTest extends TestCase
 
     private function headerOf(\kintai\Core\Response $response, string $name): ?string
     {
-        $prop = new \ReflectionProperty($response, 'headers');
-        $prop->setAccessible(true);
-        return $prop->getValue($response)[$name] ?? null;
+        return kintai_test_headers($response)[$name] ?? null;
     }
 }

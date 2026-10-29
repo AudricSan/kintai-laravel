@@ -9,7 +9,7 @@ use kintai\Core\Repositories\RoleDashboardLayoutRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardLayoutRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\DashboardLayoutResolver;
 use kintai\Core\SessionFlash;
@@ -55,8 +55,8 @@ final class DashboardLayoutsControllerTest extends TestCase
     private function request(array $post, array $user = ['id' => 7]): Request
     {
         $_POST = $post;
-        $req = new Request();
-        $req->setAttribute('auth_user', $user);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', $user);
         return $req;
     }
 
@@ -80,7 +80,7 @@ final class DashboardLayoutsControllerTest extends TestCase
 
         $response = $this->controller->manageManager($this->request(['action' => 'create', 'name' => '  Matin ']));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(__('dashboard_layouts_saved'), $this->flash());
     }
 

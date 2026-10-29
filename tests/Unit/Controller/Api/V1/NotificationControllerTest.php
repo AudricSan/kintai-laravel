@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Api\V1;
 
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Api\V1\NotificationController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -25,8 +25,8 @@ final class NotificationControllerTest extends TestCase
     private function makeRequest(int $authUserId, array $routeParams = [], array $query = []): Request
     {
         $_GET = $query;
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $authUserId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $authUserId]);
         $req->setRouteParams($routeParams);
         return $req;
     }
@@ -48,7 +48,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller->destroy($this->makeRequest(1, ['id' => '7']));
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testDestroyThrowsNotFoundForMissingNotification(): void
@@ -67,7 +67,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller->markRead($this->makeRequest(1, ['id' => '7']));
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -99,7 +99,7 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller->index($this->makeRequest(1, [], ['user_id' => '2']));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testMarkAllReadTargetsTokenUserOnly(): void
@@ -108,6 +108,6 @@ final class NotificationControllerTest extends TestCase
 
         $response = $this->controller->markAllRead($this->makeRequest(1, [], ['user_id' => '2']));
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 }

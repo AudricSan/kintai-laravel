@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Repositories\CalendarSyncRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Calendar\GoogleCalendarClient;
 use kintai\Core\Services\Calendar\GoogleCalendarSettings;
@@ -37,7 +37,7 @@ final class CalendarSettingsController
     {
         $check = (string) $request->query('check', '');
 
-        return Response::html($this->view->render('system.calendar-settings', [
+        return response($this->view->render('system.calendar-settings', [
             'title'         => __('gcal_admin_title'),
             'enabled'       => $this->settings->isEnabled(),
             'client_id'     => $this->settings->clientId(),
@@ -64,7 +64,7 @@ final class CalendarSettingsController
             $before, ['enabled' => $enabled, 'client_id' => $clientId], ['secret_changed' => trim($secret) !== ''],
         );
 
-        return Response::redirect($this->base() . '/admin/calendar-settings?success=saved');
+        return redirect()->away($this->base() . '/admin/calendar-settings?success=saved');
     }
 
     /** POST /admin/calendar-settings/test : vérifie l'identifiant et le secret auprès de Google. */
@@ -74,6 +74,6 @@ final class CalendarSettingsController
             ? 'incomplete'
             : $this->client->checkCredentials($this->redirect->resolve($this->base()));
 
-        return Response::redirect($this->base() . '/admin/calendar-settings?check=' . $result);
+        return redirect()->away($this->base() . '/admin/calendar-settings?check=' . $result);
     }
 }

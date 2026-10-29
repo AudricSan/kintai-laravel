@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Mail\NativeTransport;
 use kintai\Core\Mail\SmtpTransport;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\UI\ViewRenderer;
 
@@ -20,7 +20,7 @@ final class MailTestController
 
     public function show(Request $request): Response
     {
-        return Response::html($this->view->render('system.mail-test', [
+        return response($this->view->render('system.mail-test', [
             'title'      => __('mailtest_title'),
             'mailConfig' => $this->loadConfig(),
             'phpIni'     => $this->phpIniInfo(),
@@ -39,7 +39,7 @@ final class MailTestController
             $result = $this->attemptSend($to);
         }
 
-        return Response::html($this->view->render('system.mail-test', [
+        return response($this->view->render('system.mail-test', [
             'title'      => __('mailtest_title'),
             'mailConfig' => $this->loadConfig(),
             'phpIni'     => $this->phpIniInfo(),

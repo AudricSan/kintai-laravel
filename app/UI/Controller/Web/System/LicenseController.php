@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\BundleDiscoveryService;
 use kintai\Core\FeatureManager;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\LicenseClientService;
@@ -43,7 +43,7 @@ final class LicenseController
             fn(string $slug) => $this->features->isEnabled($slug),
         ));
 
-        return Response::html($this->view->render('system.license', [
+        return response($this->view->render('system.license', [
             'title'            => __('license'),
             'configured'       => $this->license->isConfigured(),
             'licenseKey'       => $this->license->licenseKey(),
@@ -65,7 +65,7 @@ final class LicenseController
     {
         $licenseKey = trim($request->post('license_key', ''));
         if ($licenseKey === '') {
-            return Response::redirect($this->base() . '/admin/license?error=missing_license_key');
+            return redirect()->away($this->base() . '/admin/license?error=missing_license_key');
         }
 
         $result = $this->license->activate($licenseKey);
@@ -75,12 +75,12 @@ final class LicenseController
         ]);
 
         if (!($result['valid'] ?? false)) {
-            return Response::redirect($this->base() . '/admin/license?error=' . urlencode((string) ($result['error'] ?? 'unknown')));
+            return redirect()->away($this->base() . '/admin/license?error=' . urlencode((string) ($result['error'] ?? 'unknown')));
         }
 
         $this->installPendingBundles($request);
 
-        return Response::redirect($this->base() . '/admin/license?success=activated');
+        return redirect()->away($this->base() . '/admin/license?success=activated');
     }
 
     /**
@@ -123,13 +123,13 @@ final class LicenseController
         ]);
 
         if ($result === null) {
-            return Response::redirect($this->base() . '/admin/license?error=no_license');
+            return redirect()->away($this->base() . '/admin/license?error=no_license');
         }
         if (!($result['valid'] ?? false)) {
-            return Response::redirect($this->base() . '/admin/license?error=' . urlencode((string) ($result['error'] ?? 'unknown')));
+            return redirect()->away($this->base() . '/admin/license?error=' . urlencode((string) ($result['error'] ?? 'unknown')));
         }
 
-        return Response::redirect($this->base() . '/admin/license?success=refreshed');
+        return redirect()->away($this->base() . '/admin/license?success=refreshed');
     }
 
     /** POST /admin/license/deactivate */
@@ -139,6 +139,6 @@ final class LicenseController
 
         $this->auditLogger->log($request, 'license.deactivated', 'system', null, []);
 
-        return Response::redirect($this->base() . '/admin/license?success=deactivated');
+        return redirect()->away($this->base() . '/admin/license?success=deactivated');
     }
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\HasBaseUrl;
 use kintai\UI\ViewRenderer;
@@ -27,7 +27,7 @@ final class AdminController
 
     public function navSettings(Request $request): Response
     {
-        $user      = $request->getAttribute('auth_user');
+        $user      = $request->attributes->get('auth_user');
         $isOwner   = !empty($user['is_admin']);
         $userId    = (int) $user['id'];
 
@@ -43,7 +43,7 @@ final class AdminController
         $bottomNavSaved   = \kintai\Core\Extension\Navigation::migrateLegacyMobileKeys($this->navPrefs->getBottomNavItems($userId));
         $bottomNavItems   = !empty($bottomNavSaved) ? $bottomNavSaved : \kintai\Core\Extension\Navigation::MOBILE_DEFAULT_MANAGER;
 
-        return Response::html($this->view->render('system.nav-settings', [
+        return response($this->view->render('system.nav-settings', [
             'hidden'          => $hidden,
             'isOwner'         => $isOwner,
             'sectionOrder'    => $sectionOrder,
@@ -55,7 +55,7 @@ final class AdminController
 
     public function saveNavSettings(Request $request): Response
     {
-        $user      = $request->getAttribute('auth_user');
+        $user      = $request->attributes->get('auth_user');
         $isOwner   = !empty($user['is_admin']);
         $userId    = (int) $user['id'];
 
@@ -99,7 +99,7 @@ final class AdminController
             []
         );
 
-        return Response::redirect($this->base() . '/admin/nav-settings?success=1');
+        return redirect()->away($this->base() . '/admin/nav-settings?success=1');
     }
 
 }

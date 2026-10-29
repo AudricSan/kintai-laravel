@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Controllers;
 use kintai\Core\Container;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
@@ -76,9 +76,9 @@ final class OwnerSettingsControllerTest extends TestCase
     {
         $controller = $this->makeController();
 
-        $response = $controller->show(new Request());
+        $response = $controller->show(Request::capture());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testSaveStoresACustomLightColor(): void
@@ -86,7 +86,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['app_success_color' => '#00FF00'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('#00ff00', $this->stored['app_success_color']);
     }
@@ -96,7 +96,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController(['app_danger_color' => '#123456']);
         $_POST = ['app_danger_color' => 'not-a-color'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('#123456', $this->stored['app_danger_color']);
     }
@@ -106,7 +106,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['app_theme_dark_mode' => 'manual'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('manual', $this->stored['app_theme_dark_mode']);
     }
@@ -116,7 +116,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['app_theme_dark_mode' => 'nightly'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('auto', $this->stored['app_theme_dark_mode']);
     }
@@ -129,7 +129,7 @@ final class OwnerSettingsControllerTest extends TestCase
             'app_primary_color_dark' => '#112233',
         ];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('#112233', $this->stored['app_primary_color_dark']);
     }
@@ -139,7 +139,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController(['app_primary_color_dark' => '#112233']);
         $_POST = ['app_primary_color_dark' => 'nope'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('', $this->stored['app_primary_color_dark']);
     }
@@ -149,7 +149,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController(['access_log_enabled' => '1']);
         $_POST = ['access_log_enabled' => '0'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('0', $this->stored['access_log_enabled']);
     }
@@ -159,7 +159,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['access_log_enabled' => '1'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('1', $this->stored['access_log_enabled']);
     }
@@ -169,7 +169,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['log_retention_days' => '99999'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('3650', $this->stored['log_retention_days']);
     }
@@ -179,7 +179,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['log_retention_days' => '0'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('0', $this->stored['log_retention_days']);
     }
@@ -189,7 +189,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['app_public_url' => 'HTTPS://Kintai.Example.com/app/'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('https://kintai.example.com/app', $this->stored[PublicUrlResolver::SETTING_KEY]);
     }
@@ -200,7 +200,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController([PublicUrlResolver::SETTING_KEY => 'https://old.example.com']);
         $_POST = ['app_public_url' => '/Kintai', 'app_subtitle' => 'Changed'];
 
-        $response = $controller->save(new Request());
+        $response = $controller->save(Request::capture());
 
         $this->assertSame('https://old.example.com', $this->stored[PublicUrlResolver::SETTING_KEY]);
         $this->assertArrayNotHasKey('app_subtitle', $this->stored, 'Rien ne doit être enregistré quand l\'URL est refusée.');
@@ -212,25 +212,23 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController([PublicUrlResolver::SETTING_KEY => 'https://old.example.com']);
         $_POST = ['app_public_url' => ''];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('', $this->stored[PublicUrlResolver::SETTING_KEY]);
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     public function testSaveRedirectsWithSuccessFlag(): void
     {
         $controller = $this->makeController();
 
-        $response = $controller->save(new Request());
+        $response = $controller->save(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Limite de débit de l'API (audit M9) : réglable par l'Owner, 0 = désactivée, valeur bornée. */
@@ -239,7 +237,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['api_rate_limit_per_minute' => '120'];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('120', $this->stored['api_rate_limit_per_minute']);
     }
@@ -248,11 +246,11 @@ final class OwnerSettingsControllerTest extends TestCase
     {
         $controller = $this->makeController();
         $_POST = ['api_rate_limit_per_minute' => '-5'];
-        $controller->save(new Request());
+        $controller->save(Request::capture());
         $this->assertSame('0', $this->stored['api_rate_limit_per_minute']);
 
         $_POST = ['api_rate_limit_per_minute' => '999999999'];
-        $controller->save(new Request());
+        $controller->save(Request::capture());
         $this->assertSame('100000', $this->stored['api_rate_limit_per_minute']);
     }
 
@@ -261,7 +259,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = [];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('300', $this->stored['api_rate_limit_per_minute']);
     }
@@ -275,7 +273,7 @@ final class OwnerSettingsControllerTest extends TestCase
         ]);
         $_POST = [];
 
-        $controller->save(new Request());
+        $controller->save(Request::capture());
 
         $this->assertSame('1', $this->stored['access_log_enabled']);
         $this->assertSame('1', $this->stored['maintenance_mode_enabled']);
@@ -305,10 +303,10 @@ final class OwnerSettingsControllerTest extends TestCase
         mkdir($dir);
         try {
             $_POST = ['app_locale' => 'ja'];
-            $response = $this->makeControllerWithLocale($dir)->save(new Request());
+            $response = $this->makeControllerWithLocale($dir)->save(Request::capture());
 
             $this->assertSame("APP_LOCALE=ja\n", file_get_contents($dir . '/.env'));
-            $this->assertStringContainsString('success=1', (string) ($response->headers()['Location'] ?? ''));
+            $this->assertStringContainsString('success=1', (string) ($response->headers->get('Location') ?? ''));
         } finally {
             @unlink($dir . '/.env');
             @rmdir($dir);
@@ -320,9 +318,9 @@ final class OwnerSettingsControllerTest extends TestCase
     public function testAnUnwritableEnvironmentFileIsReportedAndOtherSettingsAreKept(): void
     {
         $_POST = ['app_locale' => 'ja', 'app_subtitle' => 'Ma société'];
-        $response = $this->makeControllerWithLocale(sys_get_temp_dir() . '/kintai-missing-dir-' . uniqid())->save(new Request());
+        $response = $this->makeControllerWithLocale(sys_get_temp_dir() . '/kintai-missing-dir-' . uniqid())->save(Request::capture());
 
-        $this->assertStringContainsString('error=instance_locale_not_saved', (string) ($response->headers()['Location'] ?? ''));
+        $this->assertStringContainsString('error=instance_locale_not_saved', (string) ($response->headers->get('Location') ?? ''));
         $this->assertSame('Ma société', $this->stored['app_subtitle']);
     }
 }

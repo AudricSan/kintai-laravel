@@ -18,7 +18,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -126,7 +126,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     private function changePassword(string $current, string $new): void
     {
         $_POST = ['current_password' => $current, 'new_password' => $new, 'confirm_password' => $new];
-        $this->controller->saveProfilePassword(new Request());
+        $this->controller->saveProfilePassword(Request::capture());
     }
 
     public function testPasswordChangeRevokesRememberCookiesAndApiTokens(): void
@@ -176,6 +176,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
         $this->api->expects($this->once())->method('deleteByUserId')->with(self::USER_ID)->willReturn(0);
 
         $_POST = ['password' => $this->currentPassword];
-        $this->controller->deleteAccount(new Request());
+        $this->controller->deleteAccount(Request::capture());
     }
 }

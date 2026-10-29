@@ -10,7 +10,7 @@ use PHPUnit\Framework\MockObject\Stub;
 use kintai\Core\Cron\LogPurgeJob;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 
@@ -55,7 +55,7 @@ final class LogPurgeJobTest extends TestCase
             ->willReturn(42);
 
         $response = $job->run($this->makeRequest());
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertTrue($data['ok']);
         $this->assertSame(42, $data['deleted']);
@@ -72,7 +72,7 @@ final class LogPurgeJobTest extends TestCase
             ->willReturn(5);
 
         $response = $job->run($this->makeRequest());
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertTrue($data['ok']);
         $this->assertSame(5, $data['deleted']);
@@ -86,7 +86,7 @@ final class LogPurgeJobTest extends TestCase
         $this->logs->expects($this->never())->method('purgeOlderThan');
 
         $response = $job->run($this->makeRequest());
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertFalse($data['ok']);
     }
@@ -101,7 +101,7 @@ final class LogPurgeJobTest extends TestCase
         $_SERVER  = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => "/cron/run/log-purge$queryStr", 'SCRIPT_NAME' => '/index.php'];
         $_GET     = $query;
         $_POST    = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void

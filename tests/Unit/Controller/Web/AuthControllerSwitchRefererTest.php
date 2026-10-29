@@ -16,8 +16,8 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -90,7 +90,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
             $_SERVER['HTTP_REFERER'] = $referer;
         }
         $_GET = $_COOKIE = $_FILES = [];
-        $request = new Request();
+        $request = Request::capture();
         // back_url() lit la requête courante dans le conteneur.
         Container::getInstance()->instance(Request::class, $request);
 
@@ -99,7 +99,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
 
     private function location(Response $response): string
     {
-        return (string) ((fn() => $this->headers['Location'] ?? '')->call($response));
+        return (string) ($response->headers->get('Location', ''));
     }
 
     /** @return array<string, array{?string, string}> */

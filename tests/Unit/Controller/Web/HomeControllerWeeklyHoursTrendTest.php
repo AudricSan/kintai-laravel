@@ -13,8 +13,8 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\DashboardAlertService;
 use kintai\Core\Services\StoreStatsServiceInterface;
 use kintai\UI\Controller\Web\HomeController;
@@ -96,12 +96,12 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
         $controller = $this->buildController($storeStats, [['id' => 7, 'name' => 'Store 7']]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => 0]);
-        $req->setAttribute('managed_store_ids', [7]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 0]);
+        $req->attributes->set('managed_store_ids', [7]);
 
         $response = $controller->index($req);
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertSame(['2026-30' => 38.5, '2026-31' => 40], $data['weeks']);
     }
@@ -117,12 +117,12 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
         $controller = $this->buildController($storeStats, [['id' => 7, 'name' => 'Store 7'], ['id' => 8, 'name' => 'Store 8']]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => 1]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 1]);
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $controller->index($req);
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertSame([], $data['weeks']);
     }

@@ -9,7 +9,7 @@ use kintai\Core\FeatureManager;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\PlanLimitService;
@@ -67,30 +67,30 @@ final class LicenseControllerTest extends TestCase
 
     public function testShowRendersPage(): void
     {
-        $response = $this->makeController()->show(new Request());
+        $response = $this->makeController()->show(Request::capture());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testActivateRedirectsWithErrorWhenKeyMissing(): void
     {
         $_POST = ['license_key' => ''];
-        $req = new Request();
+        $req = Request::capture();
 
         $response = $this->makeController()->activate($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testActivateWithValidKeyPersistsAndRedirectsSuccess(): void
     {
         $controller = $this->makeController([], fn(): string => json_encode(['valid' => true, 'status' => 'active']));
         $_POST = ['license_key' => 'KEY-1'];
-        $req = new Request();
+        $req = Request::capture();
 
         $response = $controller->activate($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('KEY-1', $this->store['license_key'] ?? null);
     }
 
@@ -98,24 +98,24 @@ final class LicenseControllerTest extends TestCase
     {
         $controller = $this->makeController([], fn(): string => json_encode(['valid' => false, 'error' => 'license_not_found']));
         $_POST = ['license_key' => 'BAD-KEY'];
-        $req = new Request();
+        $req = Request::capture();
 
         $response = $controller->activate($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testDeactivateClearsStoredLicense(): void
     {
         $controller = $this->makeController([], fn(): string => json_encode(['valid' => true]));
         $_POST = ['license_key' => 'KEY-1'];
-        $req = new Request();
+        $req = Request::capture();
         $controller->activate($req);
         $this->assertNotNull($this->store['license_key'] ?? null);
 
-        $response = $controller->deactivate(new Request());
+        $response = $controller->deactivate(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('', $this->store['license_key'] ?? null);
     }
 

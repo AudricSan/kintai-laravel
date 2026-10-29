@@ -19,8 +19,8 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\UserDisplayName;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\EmployeeStatsService;
@@ -74,7 +74,7 @@ final class AdminUserController
      */
     private function assertCanActOnUser(Request $request, int $userId, string $permissionKey): void
     {
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         // Owner (is_admin est dérivé du rôle système par AuthService) : aucune restriction.
         if (!empty($authUser['is_admin'])) {
             return;
@@ -219,7 +219,7 @@ final class AdminUserController
             };
         });
 
-        return Response::html($this->view->render('staff.users', [
+        return response($this->view->render('staff.users', [
             'title'            => 'Personnel',
             'users'            => $users,
             'user_stats'       => $userStats,
@@ -246,7 +246,7 @@ final class AdminUserController
 
         $this->auditLogger->log($request, 'export.employees_json', 'user', 0, ['count' => count($rows)]);
 
-        return Response::jsonDownload(['data' => $rows], 'employees_' . date('Ymd') . '.json');
+        return response()->jsonDownload(['data' => $rows], 'employees_' . date('Ymd') . '.json');
     }
 
     /**
@@ -269,7 +269,7 @@ final class AdminUserController
             'downloadUrl'  => $downloadUrl,
         ]);
 
-        return Response::html($html);
+        return response($html);
     }
 
     public function exportUsersPdfDownload(Request $request): Response
@@ -300,7 +300,7 @@ final class AdminUserController
 
         $this->auditLogger->log($request, 'export.employees_pdf', 'user', 0, ['count' => count($rows)]);
 
-        return Response::pdf(
+        return response()->pdf(
             $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN),
             'employees_' . date('Ymd') . '.pdf',
         );
@@ -411,7 +411,7 @@ final class AdminUserController
 
     public function createUser(Request $request): Response
     {
-        return Response::html($this->view->render('staff.users-form', [
+        return response($this->view->render('staff.users-form', [
             'title'                 => 'Nouvel utilisateur',
             'mode'                  => 'create',
             'user'                  => [],
@@ -427,30 +427,30 @@ final class AdminUserController
         try {
             $this->planLimits->assertCanCreateEmployee();
         } catch (PlanLimitExceededException) {
-            return Response::redirect($this->base() . '/admin/users/create?error=plan_limit_employees');
+            return redirect()->away($this->base() . '/admin/users/create?error=plan_limit_employees');
         }
 
         $email = trim($request->post('email', ''));
         if ($email !== '' && $this->users->findByEmail($email) !== null) {
-            return Response::redirect($this->base() . '/admin/users/create?error=email_taken');
+            return redirect()->away($this->base() . '/admin/users/create?error=email_taken');
         }
 
         if (trim($request->post('last_name', '')) === '' || trim($request->post('first_name', '')) === '') {
-            return Response::redirect($this->base() . '/admin/users/create?error=name_required');
+            return redirect()->away($this->base() . '/admin/users/create?error=name_required');
         }
 
         if (trim($request->post('furigana_last_name', '')) === '' || trim($request->post('furigana_first_name', '')) === '') {
-            return Response::redirect($this->base() . '/admin/users/create?error=furigana_required');
+            return redirect()->away($this->base() . '/admin/users/create?error=furigana_required');
         }
 
         $password = $request->post('password', '');
         $empCode  = strtoupper(trim($request->post('employee_code', ''))) ?: null;
         if ($empCode !== null && !EmployeeRouteBinder::isValidCode($empCode)) {
-            return Response::redirect($this->base() . '/admin/users/create?error=employee_code_invalid_url');
+            return redirect()->away($this->base() . '/admin/users/create?error=employee_code_invalid_url');
         }
         // Code déjà pris : sans ce contrôle, la contrainte unique de la base donnait une erreur 500.
         if ($empCode !== null && $this->users->findByEmployeeCode($empCode) !== null) {
-            return Response::redirect($this->base() . '/admin/users/create?error=employee_code_taken');
+            return redirect()->away($this->base() . '/admin/users/create?error=employee_code_taken');
         }
         if ($password === '') {
             // Mot de passe par défaut « 0000 », comme l'API et la réinitialisation : signalé comme à changer (rappel à
@@ -464,7 +464,7 @@ final class AdminUserController
         // Seul un requérant déjà Owner peut créer un compte Owner : sinon un
         // simple détenteur de employees.create pourrait s'auto-élever en
         // sélectionnant le rôle système dans ce formulaire.
-        $isRequesterOwner = !empty($request->getAttribute('auth_user')['is_admin']);
+        $isRequesterOwner = !empty($request->attributes->get('auth_user')['is_admin']);
         $selectedRole = $this->roleSync->findRole((int) $request->post('role_id', 0));
         $isOwner      = $isRequesterOwner && $selectedRole !== null && !empty($selectedRole['is_system']);
 
@@ -515,7 +515,7 @@ final class AdminUserController
         $this->auditLogger->log($request, 'user.created', 'user', (int) ($saved['id'] ?? 0), [
             'email' => $request->post('email', ''),
         ]);
-        return Response::redirect($this->base() . '/admin/users?success=created');
+        return redirect()->away($this->base() . '/admin/users?success=created');
     }
 
     /**
@@ -527,7 +527,7 @@ final class AdminUserController
         try {
             $this->planLimits->assertCanCreateEmployee();
         } catch (PlanLimitExceededException) {
-            return Response::json(['success' => false, 'error' => 'plan_limit_employees'], 403);
+            return response()->json(['success' => false, 'error' => 'plan_limit_employees'], 403);
         }
 
         $displayName = trim($request->post('display_name', ''));
@@ -541,18 +541,18 @@ final class AdminUserController
         ColorRule::assert($color);
         // Seul un requérant déjà Owner peut créer un autre compte Owner (voir
         // storeUser()/updateUser() pour la même garde).
-        $isAdmin     = !empty($request->getAttribute('auth_user')['is_admin']) && $request->post('is_admin') === '1';
+        $isAdmin     = !empty($request->attributes->get('auth_user')['is_admin']) && $request->post('is_admin') === '1';
         $storeId     = (int) $request->post('store_id', 0);
         $storeRoleId = (int) $request->post('store_role_id', 0);
 
         if ($lastName === '' || $firstName === '') {
-            return Response::json(['success' => false, 'error' => 'name_required'], 422);
+            return response()->json(['success' => false, 'error' => 'name_required'], 422);
         }
 
         $furiganaLastName  = trim($request->post('furigana_last_name', ''));
         $furiganaFirstName = trim($request->post('furigana_first_name', ''));
         if ($furiganaLastName === '' || $furiganaFirstName === '') {
-            return Response::json(['success' => false, 'error' => 'furigana_required'], 422);
+            return response()->json(['success' => false, 'error' => 'furigana_required'], 422);
         }
 
         $displayName = UserDisplayName::resolve($displayName, $firstName, $lastName);
@@ -574,15 +574,15 @@ final class AdminUserController
             // Email fourni explicitement (pas auto-généré) : évite un crash SQL
             // (contrainte unique) si l'employé existe déjà sous un autre nom Excel
             // non reconnu par le matching de l'import.
-            return Response::json(['success' => false, 'error' => 'email_taken'], 409);
+            return response()->json(['success' => false, 'error' => 'email_taken'], 409);
         }
 
         // Vérifier unicité du code employé si fourni
         if ($empCode !== null && !EmployeeRouteBinder::isValidCode($empCode)) {
-            return Response::json(['success' => false, 'error' => 'employee_code_invalid_url'], 422);
+            return response()->json(['success' => false, 'error' => 'employee_code_invalid_url'], 422);
         }
         if ($empCode !== null && $this->users->findByEmployeeCode($empCode) !== null) {
-            return Response::json(['success' => false, 'error' => 'employee_code_taken'], 409);
+            return response()->json(['success' => false, 'error' => 'employee_code_taken'], 409);
         }
 
         if ($password === '') {
@@ -611,7 +611,7 @@ final class AdminUserController
         ]);
 
         if (empty($saved['id'])) {
-            return Response::json(['success' => false, 'error' => __('error_creation_failed')], 500);
+            return response()->json(['success' => false, 'error' => __('error_creation_failed')], 500);
         }
         $this->roleSync->syncOwnerRole((int) $saved['id'], $isAdmin);
 
@@ -634,7 +634,7 @@ final class AdminUserController
             'source' => 'excel_import',
         ]);
 
-        return Response::json([
+        return response()->json([
             'success' => true,
             'user'    => ['id' => (int) $saved['id'], 'name' => $displayName],
         ]);
@@ -648,12 +648,12 @@ final class AdminUserController
     {
         $code = strtoupper(trim($request->query('code', '')));
         if ($code === '') {
-            return Response::json(['available' => true]);
+            return response()->json(['available' => true]);
         }
         $existing  = $this->users->findByEmployeeCode($code);
         $excludeId = (int) $request->query('exclude_id', 0);
         $taken     = $existing !== null && (int) $existing['id'] !== $excludeId;
-        return Response::json(['available' => !$taken]);
+        return response()->json(['available' => !$taken]);
     }
 
     /**
@@ -664,17 +664,17 @@ final class AdminUserController
     {
         $email = trim($request->query('email', ''));
         if ($email === '') {
-            return Response::json(['available' => true]);
+            return response()->json(['available' => true]);
         }
         $existing  = $this->users->findByEmail($email);
         $excludeId = (int) $request->query('exclude_id', 0);
         $taken     = $existing !== null && (int) $existing['id'] !== $excludeId;
-        return Response::json(['available' => !$taken]);
+        return response()->json(['available' => !$taken]);
     }
 
     public function editUser(Request $request): Response
     {
-        $user = $this->users->findById((int) $request->param('id'));
+        $user = $this->users->findById((int) $request->route('id'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -752,7 +752,7 @@ final class AdminUserController
 
         $this->auditLogger->log($request, 'user.viewed', 'user', $userId, [], $userStoreIds[0] ?? null);
 
-        return Response::html($this->view->render('staff.users-form', [
+        return response($this->view->render('staff.users-form', [
             'title'            => 'Modifier ' . htmlspecialchars($user['display_name'] ?? ''),
             'mode'             => 'edit',
             'user'             => $user,
@@ -772,7 +772,7 @@ final class AdminUserController
 
     public function updateUser(Request $request): Response
     {
-        $user = $this->users->findById((int) $request->param('id'));
+        $user = $this->users->findById((int) $request->route('id'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -785,12 +785,12 @@ final class AdminUserController
         $newIsActive  = $request->postFlag('is_active', $user['is_active'] ?? 1);
         $newIsOwner   = $request->postFlag('is_admin', $this->ownerGuard->isOwner((int) $user['id'])) === 1;
         $deactivating = !empty($user['is_active']) && $newIsActive === 0;
-        $demoting     = !empty($request->getAttribute('auth_user')['is_admin']) && !$newIsOwner;
+        $demoting     = !empty($request->attributes->get('auth_user')['is_admin']) && !$newIsOwner;
         if ($deactivating) {
-            $this->ownerGuard->assertNotSelfUnlessOwner((int) ($request->getAttribute('auth_user')['id'] ?? 0), (int) $user['id']);
+            $this->ownerGuard->assertNotSelfUnlessOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), (int) $user['id']);
         }
         if ($deactivating || $demoting) {
-            $this->ownerGuard->assertCanRemoveOwner((int) ($request->getAttribute('auth_user')['id'] ?? 0), (int) $user['id']);
+            $this->ownerGuard->assertCanRemoveOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), (int) $user['id']);
         }
 
         $email = trim($request->post('email', $user['email'] ?? ''));
@@ -863,7 +863,7 @@ final class AdminUserController
         // employees.update pourrait s'auto-promouvoir en postant is_admin=1.
         // Un non-Owner ne touche donc jamais au statut Owner de la cible, ni
         // dans un sens ni dans l'autre.
-        if (!empty($request->getAttribute('auth_user')['is_admin'])) {
+        if (!empty($request->attributes->get('auth_user')['is_admin'])) {
             $this->roleSync->syncOwnerRole((int) $user['id'], $newIsOwner);
         }
         $this->auditLogger->logUpdate($request, 'user.updated', 'user', (int) $user['id'], $user, $data, [], null, null);
@@ -872,36 +872,36 @@ final class AdminUserController
         // endpoint en AJAX à chaque changement de champ : dans ce cas on répond en JSON
         // sans rediriger, pour rester sur la page. La soumission classique (bouton
         // "Enregistrer") continue de rediriger vers la liste comme avant.
-        if ($request->wantsJson()) {
-            return Response::json(['success' => true]);
+        if ($request->wantsJsonResponse()) {
+            return response()->json(['success' => true]);
         }
-        return Response::redirect($this->base() . '/admin/users?success=updated');
+        return redirect()->away($this->base() . '/admin/users?success=updated');
     }
 
     private function updateUserError(Request $request, array $user, string $error): Response
     {
-        if ($request->wantsJson()) {
-            return Response::json(['success' => false, 'error' => $error], 422);
+        if ($request->wantsJsonResponse()) {
+            return response()->json(['success' => false, 'error' => $error], 422);
         }
-        return Response::redirect($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit?error=' . $error);
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit?error=' . $error);
     }
 
     public function deleteUser(Request $request): Response
     {
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
         $this->assertCanActOnUser($request, $id, 'employees.delete');
-        $this->ownerGuard->assertNotSelfUnlessOwner((int) ($request->getAttribute('auth_user')['id'] ?? 0), $id);
-        $this->ownerGuard->assertCanRemoveOwner((int) ($request->getAttribute('auth_user')['id'] ?? 0), $id);
+        $this->ownerGuard->assertNotSelfUnlessOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), $id);
+        $this->ownerGuard->assertCanRemoveOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), $id);
         // Anonymisation plutôt qu'effacement : l'historique (shifts, pointages, paie) reste intact, quel que
         // soit le pilote de base de données (voir UserAnonymizer).
         $this->anonymizer()->anonymize($id);
         $this->auditLogger->log($request, 'user.deleted', 'user', $id, []);
-        return Response::redirect($this->base() . '/admin/users?success=deleted');
+        return redirect()->away($this->base() . '/admin/users?success=deleted');
     }
 
     public function resetPassword(Request $request): Response
     {
-        $user   = $this->users->findById((int) $request->param('id'));
+        $user   = $this->users->findById((int) $request->route('id'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -915,7 +915,7 @@ final class AdminUserController
             'email' => $user['email'] ?? null,
         ], null, null);
 
-        return Response::redirect($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit?success=password_reset');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit?success=password_reset');
     }
 
     // -------------------------------------------------------------------------
@@ -924,7 +924,7 @@ final class AdminUserController
 
     public function setUserRate(Request $request): Response
     {
-        $userId = (int) $request->param('id');
+        $userId = (int) $request->route('id');
         $user   = $this->users->findById($userId);
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
@@ -974,13 +974,13 @@ final class AdminUserController
             }
         }
 
-        return Response::redirect($this->base() . '/admin/users/' . employee_segment($userId) . '/edit?success=rate_updated');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($userId) . '/edit?success=rate_updated');
     }
 
     public function deleteUserRate(Request $request): Response
     {
-        $userId = (int) $request->param('id');
-        $rid    = (int) $request->param('rid');
+        $userId = (int) $request->route('id');
+        $rid    = (int) $request->route('rid');
         $this->assertCanActOnUser($request, $userId, 'employees.update');
 
         $rate = $this->userRates->findById($rid);
@@ -996,13 +996,13 @@ final class AdminUserController
             ]);
         }
 
-        return Response::redirect($this->base() . '/admin/users/' . employee_segment($userId) . '/edit?success=rate_deleted');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($userId) . '/edit?success=rate_deleted');
     }
 
     /** Identifiant de l'utilisateur connecté, null si inconnu. */
     private static function authUserId(Request $request): ?int
     {
-        $id = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $id = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         return $id > 0 ? $id : null;
     }
 }

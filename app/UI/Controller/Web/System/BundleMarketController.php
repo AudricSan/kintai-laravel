@@ -12,8 +12,8 @@ use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Container;
 use kintai\Core\Services\BundleActivationService;
 use kintai\Core\Services\Log;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\SessionFlash;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
@@ -50,7 +50,7 @@ final class BundleMarketController
     /** GET /admin/bundles/registries */
     public function index(Request $request): Response
     {
-        return Response::html($this->view->render('system.bundle-registries', [
+        return response($this->view->render('system.bundle-registries', [
             'title'      => __('bundle_registries'),
             'registries' => $this->registries->all(),
             'error'      => $request->query('error'),
@@ -65,11 +65,11 @@ final class BundleMarketController
         $url = trim((string) $request->post('url', ''));
 
         if ($name === '' || mb_strlen($name) > 150 || !filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
-            return Response::redirect($this->base() . '/admin/bundles/registries?error=invalid');
+            return redirect()->away($this->base() . '/admin/bundles/registries?error=invalid');
         }
 
         if ($this->registries->existsByUrl($url)) {
-            return Response::redirect($this->base() . '/admin/bundles/registries?error=duplicate');
+            return redirect()->away($this->base() . '/admin/bundles/registries?error=duplicate');
         }
 
         $created = $this->registries->create($name, $url);
@@ -79,19 +79,19 @@ final class BundleMarketController
             'url'  => $url,
         ]);
 
-        return Response::redirect($this->base() . '/admin/bundles/registries?success=created');
+        return redirect()->away($this->base() . '/admin/bundles/registries?success=created');
     }
 
     /** POST /admin/bundles/registries/{id}/delete */
     public function destroy(Request $request): Response
     {
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
         $registry = $this->registries->find($id);
         if (!$registry) {
-            return Response::redirect($this->base() . '/admin/bundles/registries');
+            return redirect()->away($this->base() . '/admin/bundles/registries');
         }
         if ($registry['is_official']) {
-            return Response::redirect($this->base() . '/admin/bundles/registries?error=delete_official_forbidden');
+            return redirect()->away($this->base() . '/admin/bundles/registries?error=delete_official_forbidden');
         }
 
         $this->registries->delete($id);
@@ -101,7 +101,7 @@ final class BundleMarketController
             'url'  => $registry['url'],
         ]);
 
-        return Response::redirect($this->base() . '/admin/bundles/registries?success=deleted');
+        return redirect()->away($this->base() . '/admin/bundles/registries?success=deleted');
     }
 
     /** GET /admin/bundles/market — catalogue agrégé de tous les registries actifs. */
@@ -164,7 +164,7 @@ final class BundleMarketController
             ];
         }
 
-        return Response::html($this->view->render('system.bundle-market', [
+        return response($this->view->render('system.bundle-market', [
             'title'   => __('bundle_market'),
             'entries' => $entries,
             'error'   => $request->query('error'),
@@ -192,7 +192,7 @@ final class BundleMarketController
 
         $this->auditLogger->log($request, 'bundle_market.channel_changed', 'system', null, ['channel' => $channel]);
 
-        return Response::redirect($this->base() . '/admin/bundles/market?channel_saved=' . $channel);
+        return redirect()->away($this->base() . '/admin/bundles/market?channel_saved=' . $channel);
     }
 
     /** POST /admin/bundles/market/uninstall — retire un bundle installé (fichiers + base), désactivé au passage. */
@@ -200,12 +200,12 @@ final class BundleMarketController
     {
         $slug = trim((string) $request->post('slug', ''));
         if ($slug === '') {
-            return Response::redirect($this->base() . '/admin/bundles/market?error=invalid');
+            return redirect()->away($this->base() . '/admin/bundles/market?error=invalid');
         }
 
         if (!$this->installer->uninstall($slug)) {
             SessionFlash::put('danger', (string) $this->installer->getLastError());
-            return Response::redirect($this->base() . '/admin/bundles/market?error=failed');
+            return redirect()->away($this->base() . '/admin/bundles/market?error=failed');
         }
 
         $this->disableBundle($slug);
@@ -214,7 +214,7 @@ final class BundleMarketController
             'slug' => $slug,
         ]);
 
-        return Response::redirect($this->base() . '/admin/bundles/market?uninstalled=' . urlencode($slug));
+        return redirect()->away($this->base() . '/admin/bundles/market?uninstalled=' . urlencode($slug));
     }
 
     /**
@@ -249,19 +249,19 @@ final class BundleMarketController
         $version = trim((string) $request->post('version', ''));
 
         if ($slug === '' || $repositoryUrl === '' || $version === '') {
-            return Response::json(['ok' => false, 'error' => __('bundle_market_invalid_request')], 400);
+            return response()->json(['ok' => false, 'error' => __('bundle_market_invalid_request')], 400);
         }
 
         // Empreinte du commit épinglée par le registry, retrouvée côté serveur (jamais lue depuis la requête).
         $registryUrl = trim((string) $request->post('registry_url', ''));
         $pin = $this->catalog->resolvePin($registryUrl !== '' ? $registryUrl : null, $slug, $version);
         if ($pin['error'] !== null) {
-            return Response::json(['ok' => false, 'error' => $pin['error']], 422);
+            return response()->json(['ok' => false, 'error' => $pin['error']], 422);
         }
 
         $result = $this->installer->dryRun($slug, $repositoryUrl, $version, $pin['commit']);
 
-        return Response::json([
+        return response()->json([
             'ok'    => $result->success,
             'error' => $result->error,
         ], $result->success ? 200 : 422);
@@ -272,21 +272,21 @@ final class BundleMarketController
     {
         $input = $this->readInstallInput($request);
         if ($input === null) {
-            return Response::redirect($this->base() . '/admin/bundles/market?error=invalid');
+            return redirect()->away($this->base() . '/admin/bundles/market?error=invalid');
         }
         [$slug, $repositoryUrl, $version, $registryUrl] = $input;
 
         $pin = $this->catalog->resolvePin($registryUrl, $slug, $version);
         if ($pin['error'] !== null) {
             SessionFlash::put('danger', $pin['error']);
-            return Response::redirect($this->base() . '/admin/bundles/market?error=failed');
+            return redirect()->away($this->base() . '/admin/bundles/market?error=failed');
         }
 
         $result = $this->installer->install($slug, $repositoryUrl, $version, $registryUrl, null, $pin['commit']);
 
         if (!$result->success) {
             SessionFlash::put('danger', (string) $result->error);
-            return Response::redirect($this->base() . '/admin/bundles/market?error=failed');
+            return redirect()->away($this->base() . '/admin/bundles/market?error=failed');
         }
 
         $this->auditLogger->log($request, 'bundle.installed', 'bundle', null, [
@@ -295,7 +295,7 @@ final class BundleMarketController
             'commit_pinned' => $pin['commit'] !== null,
         ]);
 
-        return Response::redirect($this->base() . '/admin/bundles/market?success=' . urlencode($slug) . '&activation=' . $this->activate($slug));
+        return redirect()->away($this->base() . '/admin/bundles/market?success=' . urlencode($slug) . '&activation=' . $this->activate($slug));
     }
 
     /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 
 final class AuditLoggerTest extends TestCase
@@ -21,9 +21,9 @@ final class AuditLoggerTest extends TestCase
     {
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/', 'SCRIPT_NAME' => '/index.php', 'REMOTE_ADDR' => '127.0.0.1'];
         $_GET = $_POST = $_COOKIE = $_FILES = [];
-        $req = new Request();
+        $req = Request::capture();
         if ($userId > 0) {
-            $req->setAttribute('auth_user', ['id' => $userId]);
+            $req->attributes->set('auth_user', ['id' => $userId]);
         }
         return $req;
     }

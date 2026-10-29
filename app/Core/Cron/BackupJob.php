@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Core\Cron;
 
 use kintai\Core\Repositories\DatabaseAppSettingsRepository;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\BackupService;
@@ -35,7 +35,7 @@ final class BackupJob implements CronJobInterface
     public function run(Request $request): Response
     {
         if (!$this->settings->backupAutoEnabled()) {
-            return Response::json(['ok' => false, 'error' => 'Backup automatique désactivé.']);
+            return response()->json(['ok' => false, 'error' => 'Backup automatique désactivé.']);
         }
 
         set_time_limit(0);
@@ -55,7 +55,7 @@ final class BackupJob implements CronJobInterface
                 'source'   => 'cron',
             ]);
 
-            return Response::json([
+            return response()->json([
                 'ok'       => true,
                 'filename' => $result['filename'],
                 'size'     => $result['size'],
@@ -63,7 +63,7 @@ final class BackupJob implements CronJobInterface
         } catch (\RuntimeException $e) {
             // Mémorisé pour SystemNotificationService (notification « backup_failed » aux Owners).
             $this->settings->setMany([SystemNotificationService::BACKUP_FAILURE_KEY => date('Y-m-d H:i:s')]);
-            return Response::json([
+            return response()->json([
                 'ok'    => false,
                 'error' => $e->getMessage(),
             ], 500);

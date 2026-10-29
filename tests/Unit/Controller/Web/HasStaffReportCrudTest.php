@@ -8,7 +8,7 @@ use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Web\HasAdminAccess;
 use kintai\UI\Controller\Web\Staff\HasStaffReportCrud;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -73,9 +73,9 @@ final class HasStaffReportCrudTest extends TestCase
     {
         $_GET = $storeFilter > 0 ? ['store_id' => (string) $storeFilter] : [];
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/admin/reports', 'SCRIPT_NAME' => '/index.php'];
-        $req = new Request();
-        $req->setAttribute('auth_user', $authUser);
-        $req->setAttribute('managed_store_ids', $managed);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', $authUser);
+        $req->attributes->set('managed_store_ids', $managed);
         return $req;
     }
 

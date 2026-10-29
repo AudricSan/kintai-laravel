@@ -9,8 +9,8 @@ use kintai\Core\Repositories\RoleDashboardLayoutRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardLayoutRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\DashboardLayoutResolver;
 use kintai\Core\SessionFlash;
@@ -58,7 +58,7 @@ final class DashboardLayoutsController
 
     private function handle(Request $request, string $dashboardType, string $fallback): Response
     {
-        $user   = $request->getAttribute('auth_user') ?? [];
+        $user   = $request->attributes->get('auth_user') ?? [];
         $userId = (int) ($user['id'] ?? 0);
         $action = (string) $request->post('action', '');
         $back   = back_url(base_url() . $fallback);
@@ -81,7 +81,7 @@ final class DashboardLayoutsController
             $this->auditLogger->log($request, 'dashboard_layouts.' . $action, 'user_dashboard_layouts', $userId, ['dashboard' => $dashboardType], null, $userId);
             SessionFlash::put('success', __('dashboard_layouts_saved'));
         }
-        return Response::redirect($back);
+        return redirect()->away($back);
     }
 
     /** @return string|null clé de traduction de l'erreur, ou null si réussi */

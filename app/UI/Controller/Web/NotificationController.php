@@ -9,8 +9,8 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
 use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\WebPushEndpointValidator;
 use kintai\UI\ViewRenderer;
 
@@ -38,7 +38,7 @@ final class NotificationController
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
         $page       = min($totalPages, max(1, (int) $request->query('page', 1)));
 
-        return Response::html($this->view->render('notifications.index', [
+        return response($this->view->render('notifications.index', [
             'title'         => __('notifications'),
             'notifications' => $this->repo->findByUser($userId, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
             'page'          => $page,
@@ -57,7 +57,7 @@ final class NotificationController
     public function open(Request $request): Response
     {
         $userId = (int) $this->auth->user()['id'];
-        $id     = (int) $request->param('id');
+        $id     = (int) $request->route('id');
 
         $notification = $this->repo->findById($id);
         if ($notification === null || (int) ($notification['user_id'] ?? 0) !== $userId) {
@@ -70,21 +70,21 @@ final class NotificationController
         // enregistré avant ce contrôle, ou venu d'un bundle, ne doit jamais faire de cette route une redirection ouverte.
         $link = safe_redirect_path((string) ($notification['link'] ?? ''), '/notifications');
 
-        return Response::redirect($this->base() . $link);
+        return redirect()->away($this->base() . $link);
     }
 
     public function markRead(Request $request): Response
     {
         $userId = (int) $this->auth->user()['id'];
-        $id     = (int) $request->param('id');
+        $id     = (int) $request->route('id');
         $this->repo->markRead($id, $userId);
 
-        if ($request->isAjax()) {
-            return Response::json(['ok' => true]);
+        if ($request->ajax()) {
+            return response()->json(['ok' => true]);
         }
 
         // Chemin interne uniquement : une destination absolue ou en `//` faisait de cette route une redirection ouverte.
-        return Response::redirect(safe_redirect_path((string) $request->post('redirect', ''), $this->base() . '/notifications'));
+        return redirect()->away(safe_redirect_path((string) $request->post('redirect', ''), $this->base() . '/notifications'));
     }
 
     public function markAllRead(Request $request): Response
@@ -92,11 +92,11 @@ final class NotificationController
         $userId = (int) $this->auth->user()['id'];
         $this->repo->markAllRead($userId);
 
-        if ($request->isAjax()) {
-            return Response::json(['ok' => true]);
+        if ($request->ajax()) {
+            return response()->json(['ok' => true]);
         }
 
-        return Response::redirect($this->base() . '/notifications');
+        return redirect()->away($this->base() . '/notifications');
     }
 
     public function deleteAll(Request $request): Response
@@ -104,11 +104,11 @@ final class NotificationController
         $userId = (int) $this->auth->user()['id'];
         $this->repo->deleteAllForUser($userId);
 
-        if ($request->isAjax()) {
-            return Response::json(['ok' => true]);
+        if ($request->ajax()) {
+            return response()->json(['ok' => true]);
         }
 
-        return Response::redirect($this->base() . '/notifications');
+        return redirect()->away($this->base() . '/notifications');
     }
 
     /**
@@ -133,7 +133,7 @@ final class NotificationController
 
         $this->subscriptions->save($userId, $endpoint, $p256dh, $authKey, $_SERVER['HTTP_USER_AGENT'] ?? null);
 
-        return Response::json(['ok' => true]);
+        return response()->json(['ok' => true]);
     }
 
     /**
@@ -149,7 +149,7 @@ final class NotificationController
             $this->subscriptions->deleteByEndpoint($endpoint, $userId);
         }
 
-        return Response::json(['ok' => true]);
+        return response()->json(['ok' => true]);
     }
 
     /**
@@ -163,7 +163,7 @@ final class NotificationController
         $endpoint = trim((string) ($request->json('endpoint') ?? ''));
         $row      = $endpoint !== '' ? $this->subscriptions->findByEndpoint($endpoint) : null;
 
-        return Response::json(['subscribed' => $row !== null && (int) $row['user_id'] === $userId]);
+        return response()->json(['subscribed' => $row !== null && (int) $row['user_id'] === $userId]);
     }
 
     /**
@@ -204,7 +204,7 @@ final class NotificationController
             $payload['panel_html'] = $this->panelHtml($userId, $count);
         }
 
-        return Response::json($payload);
+        return response()->json($payload);
     }
 
     /** Contenu du panneau de la cloche, même partiel que la topbar. */

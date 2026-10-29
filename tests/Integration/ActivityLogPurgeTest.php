@@ -9,7 +9,7 @@ use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\DatabaseLogRepository;
 use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\System\ActivityController;
 use kintai\UI\ViewRenderer;
@@ -56,7 +56,7 @@ final class ActivityLogPurgeTest extends TestCase
     private function purgeRequest(string $keepDays): Request
     {
         $_POST = ['keep_days' => $keepDays];
-        $request = new Request();
+        $request = Request::capture();
         $_POST = [];
 
         return $request;
@@ -81,7 +81,7 @@ final class ActivityLogPurgeTest extends TestCase
 
         // Deux entrées de plus de 30 jours supprimées ; Log n'est pas branché ici, donc pas d'entrée d'audit.
         $this->assertSame(2, $this->rowCount());
-        $this->assertStringContainsString('purged=2', ($response->headers()['Location'] ?? ''));
+        $this->assertStringContainsString('purged=2', ($response->headers->get('Location') ?? ''));
     }
 
     public function testControllerDeletesEverythingWhenKeepIsZero(): void
@@ -89,7 +89,7 @@ final class ActivityLogPurgeTest extends TestCase
         $response = $this->controller()->purge($this->purgeRequest('0'));
 
         $this->assertSame(0, $this->rowCount());
-        $this->assertStringContainsString('purged=4', ($response->headers()['Location'] ?? ''));
+        $this->assertStringContainsString('purged=4', ($response->headers->get('Location') ?? ''));
     }
 
     public function testControllerRefusesAnUnknownChoiceAndDeletesNothing(): void
@@ -97,7 +97,7 @@ final class ActivityLogPurgeTest extends TestCase
         foreach (['', 'abc', '-1', '15'] as $bad) {
             $response = $this->controller()->purge($this->purgeRequest($bad));
 
-            $this->assertStringContainsString('purge_error=1', ($response->headers()['Location'] ?? ''));
+            $this->assertStringContainsString('purge_error=1', ($response->headers->get('Location') ?? ''));
         }
         $this->assertSame(4, $this->rowCount());
     }

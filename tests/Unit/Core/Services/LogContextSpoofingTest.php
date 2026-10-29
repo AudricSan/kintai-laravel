@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Core\Services;
 
 use kintai\Core\Container;
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\Log;
 use PHPUnit\Framework\TestCase;
 
@@ -46,7 +46,7 @@ final class LogContextSpoofingTest extends TestCase
     {
         $_GET = [];
         $_POST = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     public function testUserComesFromTheAuthenticatedRequestNotFromTheQueryString(): void
@@ -54,7 +54,7 @@ final class LogContextSpoofingTest extends TestCase
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/x?auth_user[id]=1', 'SCRIPT_NAME' => '/index.php', 'REMOTE_ADDR' => '203.0.113.7'];
         $_REQUEST = ['auth_user' => ['id' => '1', 'store_id' => '1']];
         $request = $this->request();
-        $request->setAttribute('auth_user', ['id' => 42, 'store_id' => 3]);
+        $request->attributes->set('auth_user', ['id' => 42, 'store_id' => 3]);
         $this->container->instance(Request::class, $request);
 
         Log::write(LogRepositoryInterface::LEVEL_ERROR, LogRepositoryInterface::CHANNEL_BUSINESS, 'boom');

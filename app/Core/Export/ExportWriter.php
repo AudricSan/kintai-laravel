@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Export;
 
 use kintai\Contract\Extension\ExportDataset;
-use kintai\Core\Response;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\ScheduleExportService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -32,9 +32,9 @@ final class ExportWriter
         $name  = (string) preg_replace('/[^A-Za-z0-9._-]/', '_', $basename);
 
         return match ($format) {
-            'json'  => Response::jsonDownload($this->json($dataset, $table, $meta), $name . '.json'),
-            'csv'   => Response::csv($this->csv($dataset, $table), $name . '.csv'),
-            'xlsx'  => Response::download($this->xlsx($dataset, $table), self::XLSX_TYPE, $name . '.xlsx'),
+            'json'  => response()->jsonDownload($this->json($dataset, $table, $meta), $name . '.json'),
+            'csv'   => response()->csv($this->csv($dataset, $table), $name . '.csv'),
+            'xlsx'  => response()->fileContents($this->xlsx($dataset, $table), self::XLSX_TYPE, $name . '.xlsx'),
             default => throw new \InvalidArgumentException("Format d'export inconnu : {$format}"),
         };
     }

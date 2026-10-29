@@ -16,7 +16,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -90,7 +90,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $_POST = ['current_password' => $this->wrongPassword, 'new_password' => $this->newPassword, 'confirm_password' => $this->newPassword];
-        $this->controller->saveProfilePassword(new Request());
+        $this->controller->saveProfilePassword(Request::capture());
     }
 
     public function testPasswordChangeRefusedWhenCurrentPasswordIsWrong(): void
@@ -101,7 +101,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $_POST = ['current_password' => $this->wrongPassword, 'new_password' => $this->newPassword, 'confirm_password' => $this->newPassword];
-        $this->controller->saveProfilePassword(new Request());
+        $this->controller->saveProfilePassword(Request::capture());
     }
 
     public function testPasswordChangeAcceptedWithTheRightCurrentPassword(): void
@@ -114,25 +114,22 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         ));
 
         $_POST = ['current_password' => $this->rightPassword, 'new_password' => $this->newPassword, 'confirm_password' => $this->newPassword];
-        $this->controller->saveProfilePassword(new Request());
+        $this->controller->saveProfilePassword(Request::capture());
     }
 
-    private function changePasswordTo(string $new): \kintai\Core\Response
+    private function changePasswordTo(string $new): \Symfony\Component\HttpFoundation\Response
     {
         $this->users->method('findById')->willReturn([
             'id' => self::USER_ID, 'password_hash' => password_hash($this->rightPassword, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
         $_POST = ['current_password' => $this->rightPassword, 'new_password' => $new, 'confirm_password' => $new];
 
-        return $this->controller->saveProfilePassword(new Request());
+        return $this->controller->saveProfilePassword(Request::capture());
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     public function testANewPasswordShorterThanThePolicyIsRefused(): void
@@ -170,7 +167,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $_POST = ['password' => $this->wrongPassword];
-        $this->controller->deleteAccount(new Request());
+        $this->controller->deleteAccount(Request::capture());
     }
 
     public function testAccountDeletionRefusedWhenPasswordIsWrong(): void
@@ -181,6 +178,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $_POST = ['password' => $this->wrongPassword];
-        $this->controller->deleteAccount(new Request());
+        $this->controller->deleteAccount(Request::capture());
     }
 }

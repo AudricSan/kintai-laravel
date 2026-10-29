@@ -14,8 +14,8 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\Core\Services\RoleAssignmentSyncService;
@@ -105,10 +105,10 @@ final class AdminStoreControllerTest extends TestCase
             new PermissionService($this->roleAssignments, $this->roles),
         );
         $_POST = ['code' => 'NEW', 'name' => 'Nouveau'];
-        $req = new Request();
+        $req = Request::capture();
         $_POST = [];
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         try {
             $controller->storeStore($req);
@@ -120,31 +120,31 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testStoresRendersList(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->stores->method('findAll')->willReturn([]);
 
         $response = $this->controller()->stores($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testCreateStoreRendersForm(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $response = $this->controller()->createStore($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testEditStoreRendersForm(): void
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => 1]);
 
         $store = [
@@ -160,7 +160,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $response = $this->controller()->editStore($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testEditStoreRendersFormWhenABundleIsDisabledInstanceWide(): void
@@ -179,8 +179,8 @@ final class AdminStoreControllerTest extends TestCase
             new PermissionService($this->roleAssignments, $this->roles),
         );
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => 1]);
 
         $store = ['id' => 1, 'name' => 'Test Store', 'currency' => 'JPY', 'week_start_day' => 1, 'timezone' => 'Asia/Tokyo'];
@@ -193,7 +193,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $response = $controller->editStore($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testUpdateStorePersistsPhotosFeatureSlug(): void
@@ -204,8 +204,8 @@ final class AdminStoreControllerTest extends TestCase
             ['feature_shifts', 'feature_timeclock', 'feature_timeoff', 'feature_swaps', 'feature_open_shifts', 'feature_messages', 'feature_daily_reports', 'feature_notes'],
             '0'
         );
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
@@ -239,7 +239,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $response = $controller->updateStore($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
         // Seule la fonctionnalité proposée (Core) reçoit une décision ; celles des bundles absents ne sont pas
         // envoyées et gardent leur décision enregistrée (saveFeatureDecisions ne touche qu'aux clés données).
@@ -254,8 +254,8 @@ final class AdminStoreControllerTest extends TestCase
         // survivre à la sauvegarde au lieu d'être silencieusement décochées (régression
         // constatée en prod : éditer un store désactivait "photos" pour de bon).
         $_POST = ['name' => 'Test Store', 'feature_shifts' => '1'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
@@ -283,7 +283,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $response = $controller->updateStore($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
         // Magasin jamais configuré : seule la case proposée est décidée ; messages et photos n'ont aucune décision et
         // restent donc actifs à la réactivation de leur bundle (régression du point 11 de la revue du 15/10/2026).
@@ -297,8 +297,8 @@ final class AdminStoreControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->logRepo = $this->createMock(LogRepositoryInterface::class);
         $this->registerLogRepository();
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'uid' => '5']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A', 'currency' => 'JPY']);
@@ -315,7 +315,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $response = $this->controller()->employeeStats($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** @return array<string, array{string, bool}> */
@@ -336,15 +336,15 @@ final class AdminStoreControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_SERVER = ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/admin/stores/1/members', 'SCRIPT_NAME' => '/index.php'];
         $_POST   = ['user_id' => '0', 'redirect_to' => $redirectTo];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => 1]);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
 
         $response = $this->controller()->addMember($req);
 
-        $location = (string) ((fn() => $this->headers['Location'] ?? '')->call($response));
-        $this->assertSame(302, $response->status());
+        $location = (string) ($response->headers->get('Location', ''));
+        $this->assertSame(302, $response->getStatusCode());
         $kept
             ? $this->assertSame($redirectTo, $location)
             : $this->assertStringEndsWith('/admin/stores/1/edit?success=member_added', $location);
@@ -373,9 +373,9 @@ final class AdminStoreControllerTest extends TestCase
         $this->roles->method('getGlobalPermissionKeys')->willReturn([]);
         $this->stores->method('findById')->willReturn(['id' => 1]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 2]);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 2]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => 1, 'mid' => 9]);
         return $req;
     }
@@ -437,8 +437,8 @@ final class AdminStoreControllerTest extends TestCase
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['name' => 'Tokyo Est'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn([
@@ -518,8 +518,8 @@ final class AdminStoreControllerTest extends TestCase
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['name' => 'Test Store', 'feature_shifts' => '1', 'feature_acme_board' => '1'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
@@ -563,7 +563,7 @@ final class AdminStoreControllerTest extends TestCase
             new PermissionService($this->roleAssignments, $this->roles),
         );
 
-        $this->assertSame(302, $controller->updateStore($req)->status());
+        $this->assertSame(302, $controller->updateStore($req)->getStatusCode());
         $this->assertSame(['shifts' => true, 'acme_board' => true], $captured['_features']);
     }
 }

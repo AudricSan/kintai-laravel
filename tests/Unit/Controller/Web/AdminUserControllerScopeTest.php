@@ -18,7 +18,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\Log;
@@ -100,10 +100,10 @@ final class AdminUserControllerScopeTest extends TestCase
     private function asManager(int $targetId, array $post = []): Request
     {
         $_POST = $post;
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => (string) $targetId]);
-        $req->setAttribute('auth_user', ['id' => self::MANAGER, 'is_admin' => false]);
-        $req->setAttribute('managed_store_ids', [self::STORE_A]);
+        $req->attributes->set('auth_user', ['id' => self::MANAGER, 'is_admin' => false]);
+        $req->attributes->set('managed_store_ids', [self::STORE_A]);
         return $req;
     }
 
@@ -165,7 +165,7 @@ final class AdminUserControllerScopeTest extends TestCase
 
         $response = $this->controller->resetPassword($this->asManager(31));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // ------------------------------------------- actions sur soi-même (audit M13)

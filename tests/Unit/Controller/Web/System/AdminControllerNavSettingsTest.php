@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Controller\Web\System;
 
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\System\AdminController;
 use kintai\UI\ViewRenderer;
@@ -56,8 +56,8 @@ final class AdminControllerNavSettingsTest extends TestCase
 
         $this->navPrefs->expects($this->once())->method('saveHidden')->with(7, ['messages']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', $user);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', $user);
 
         $this->controller->saveNavSettings($req);
     }
@@ -79,8 +79,8 @@ final class AdminControllerNavSettingsTest extends TestCase
 
         $this->navPrefs->expects($this->once())->method('saveHidden')->with(7, ['daily_reports']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', $user);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', $user);
 
         $this->controller->saveNavSettings($req);
     }

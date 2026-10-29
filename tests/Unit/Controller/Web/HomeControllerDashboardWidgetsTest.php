@@ -13,7 +13,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\DashboardAlertService;
 use kintai\Core\Services\StoreStatsServiceInterface;
 use kintai\UI\Controller\Web\HomeController;
@@ -81,11 +81,11 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
         // L'utilisateur n'a gardé que 'kpi_counters' coché lors de la dernière sauvegarde.
         $this->dashboardPrefs->method('getEnabledWidgets')->with(1, 'admin')->willReturn(['kpi_counters']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 1]);
 
         $response = $this->controller->index($req);
-        $enabledWidgets = json_decode($response->body(), true);
+        $enabledWidgets = json_decode($response->getContent(), true);
 
         $this->assertSame(['kpi_counters'], $enabledWidgets);
     }

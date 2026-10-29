@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core\Cron;
 
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\SystemNotificationService;
 
 /**
@@ -23,6 +23,6 @@ final class SystemNotificationsJob implements CronJobInterface
 
     public function run(Request $request): Response
     {
-        return Response::json(['ok' => true, 'notified' => $this->service->run(true)]);
+        return response()->json(['ok' => true, 'notified' => $this->service->run(true)]);
     }
 }

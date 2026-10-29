@@ -19,8 +19,8 @@ use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
 use kintai\Core\Auth\PermissionService;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\DashboardLayoutResolver;
 use kintai\Core\Services\NotificationService;
@@ -64,7 +64,7 @@ final class EmployeeController
 
     public function dashboard(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
         $today  = date('Y-m-d');
 
@@ -114,7 +114,7 @@ final class EmployeeController
             static fn(?string $f): bool => feat_bundle($f) && ($f === null || $storeFeatures === null || in_array($f, (array) $storeFeatures, true)),
         );
 
-        return Response::html($this->view->render('employee.dashboard', [
+        return response($this->view->render('employee.dashboard', [
             'title'            => __('dashboard'),
             'user'             => $user,
             'shifts_today'     => $shiftsToday,
@@ -158,12 +158,12 @@ final class EmployeeController
     public function shifts(Request $request): Response
     {
         // Redirige vers la vue Timeline (3 jours par défaut à partir d'aujourd'hui)
-        return Response::redirect($this->base() . '/employee/shifts/day?start=' . date('Y-m-d') . '&view=3days');
+        return redirect()->away($this->base() . '/employee/shifts/day?start=' . date('Y-m-d') . '&view=3days');
     }
 
     public function shiftsCalendar(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         // Mois affiché
@@ -233,7 +233,7 @@ final class EmployeeController
             }
         }
 
-        return Response::html($this->view->render('scheduling.shifts-calendar', [
+        return response($this->view->render('scheduling.shifts-calendar', [
             'title'          => __('my_planning'),
             'year'           => $year,
             'month'          => $month,
@@ -256,7 +256,7 @@ final class EmployeeController
 
     public function shiftsWeek(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $weekParam = $request->query('week', '');
@@ -323,7 +323,7 @@ final class EmployeeController
         }
 
 
-        return Response::html($this->view->render('scheduling.shifts', [
+        return response($this->view->render('scheduling.shifts', [
             'title'          => 'Mon planning',
             'days'           => $days,
             'shifts_by_date' => $shiftsByDate,
@@ -347,7 +347,7 @@ final class EmployeeController
         if (($resp = $this->assertFeature($request, 'shifts')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         // Mode d'affichage : '3days' (défaut) ou 'week'
@@ -483,7 +483,7 @@ final class EmployeeController
         ];
 
 
-        return Response::html($this->view->render('scheduling.shifts-timeline', [
+        return response($this->view->render('scheduling.shifts-timeline', [
             'title'               => 'Mon planning',
             'page_heading'        => __('my_planning'),
             'show_request_swap'   => true,
@@ -532,20 +532,20 @@ final class EmployeeController
             $qs['store_id'] = $request->query('store_id');
         }
         $query = $qs ? ('?' . http_build_query($qs)) : '';
-        return Response::redirect($this->base() . '/profile' . $query);
+        return redirect()->away($this->base() . '/profile' . $query);
     }
 
     public function saveProfileAvailability(Request $request): Response
     {
-        $user    = $request->getAttribute('auth_user');
+        $user    = $request->attributes->get('auth_user');
         $userId  = (int) ($user['id'] ?? 0);
-        $body    = $request->allPost();
+        $body    = $request->request->all();
         $storeId = (int) ($body['store_id'] ?? 0);
 
         $memberships = $this->storeUsers->findByUser($userId);
         $myStoreIds  = array_map(fn($m) => (int) $m['store_id'], $memberships);
         if (!in_array($storeId, $myStoreIds, true)) {
-            return Response::redirect($this->base() . '/profile?tab=availability&error=forbidden');
+            return redirect()->away($this->base() . '/profile?tab=availability&error=forbidden');
         }
 
         $oldAvailabilities = $this->availabilities->findByUserAndStore($userId, $storeId);
@@ -579,7 +579,7 @@ final class EmployeeController
         $newAvailabilities = $this->availabilities->findByUserAndStore($userId, $storeId);
         $this->auditLogger->logUpdate($request, 'availability.updated', 'availability', null, $oldAvailabilities, $newAvailabilities, ['store_id' => $storeId], $storeId);
 
-        return Response::redirect($this->base() . '/profile?tab=availability&store_id=' . $storeId . '&success=saved');
+        return redirect()->away($this->base() . '/profile?tab=availability&store_id=' . $storeId . '&success=saved');
     }
 
     // Bourse aux shifts : bundle distribué hors monorepo (kintai-bundle-shift-claim), voir docs/architecture.md
@@ -599,12 +599,12 @@ final class EmployeeController
      */
     public function navSettings(Request $request): Response
     {
-        return Response::redirect($this->base() . '/profile?tab=nav');
+        return redirect()->away($this->base() . '/profile?tab=nav');
     }
 
     public function saveNavSettings(Request $request): Response
     {
-        $user    = $request->getAttribute('auth_user');
+        $user    = $request->attributes->get('auth_user');
         $userId  = (int) $user['id'];
         $oldHidden = $this->navPrefs->getHidden($userId);
         $oldSectionOrder = $this->navPrefs->getSectionOrder($userId);
@@ -647,6 +647,6 @@ final class EmployeeController
             'bottom_nav' => $bottomItems,
         ], []);
 
-        return Response::redirect($this->base() . '/profile?tab=nav&success=1');
+        return redirect()->away($this->base() . '/profile?tab=nav&success=1');
     }
 }

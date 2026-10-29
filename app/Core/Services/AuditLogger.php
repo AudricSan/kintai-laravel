@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 
 final class AuditLogger
 {

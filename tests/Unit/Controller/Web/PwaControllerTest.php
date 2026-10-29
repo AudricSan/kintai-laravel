@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Controller\Web;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Web\PwaController;
 use PHPUnit\Framework\TestCase;
 
@@ -24,8 +24,8 @@ final class PwaControllerTest extends TestCase
         $_SERVER['HTTP_HOST']   = 'kintai.example';
         $_SERVER['SCRIPT_NAME'] = '/index.php';
 
-        $response = (new PwaController())->manifest(new Request());
-        $data     = json_decode($response->body(), true);
+        $response = (new PwaController())->manifest(Request::capture());
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertSame('standalone', $data['display']);
 
@@ -41,13 +41,12 @@ final class PwaControllerTest extends TestCase
 
     public function testServiceWorkerInjectsAssetVersionAsCacheName(): void
     {
-        $response = (new PwaController())->serviceWorker(new Request());
+        $response = (new PwaController())->serviceWorker(Request::capture());
 
-        $reflection = new \ReflectionProperty($response, 'headers');
-        $headers = $reflection->getValue($response);
+        $headers = kintai_test_headers($response);
         $this->assertSame('application/javascript; charset=UTF-8', $headers['Content-Type']);
 
-        $this->assertStringContainsString("const CACHE = 'kintai-" . asset_version() . "';", $response->body());
-        $this->assertStringNotContainsString('__ASSET_VERSION__', $response->body());
+        $this->assertStringContainsString("const CACHE = 'kintai-" . asset_version() . "';", $response->getContent());
+        $this->assertStringNotContainsString('__ASSET_VERSION__', $response->getContent());
     }
 }

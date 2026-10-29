@@ -14,7 +14,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvailabilityGuard;
 use kintai\Core\Services\NotificationService;
@@ -84,20 +84,19 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
     private function postRequest(array $post, ?int $routeId = null): Request
     {
         $_POST = $post;
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         return $routeId === null ? $req : $this->withId($req, $routeId);
     }
 
     private function jsonRequest(array $body, ?int $routeId = null): Request
     {
-        $req = new Request();
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setValue($req, $body);
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         return $routeId === null ? $req : $this->withId($req, $routeId);
     }
@@ -122,7 +121,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
 
         $response = $this->controller->storeShift($this->postRequest($this->shiftPost(self::SUNDAY)));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testForcingTheScheduleSavesTheShiftAnyway(): void
@@ -131,7 +130,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
 
         $response = $this->controller->storeShift($this->postRequest($this->shiftPost(self::SUNDAY, ['force_availability' => '1'])));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testAnAvailableDayIsSavedWithoutWarning(): void
@@ -140,7 +139,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
 
         $response = $this->controller->storeShift($this->postRequest($this->shiftPost(self::MONDAY)));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // ── Formulaire de modification ──────────────────────────────────────────
@@ -151,7 +150,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
 
         $response = $this->controller->updateShift($this->postRequest($this->shiftPost(self::SUNDAY), 9));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testEditingOtherFieldsOfAShiftDoesNotAskAgain(): void
@@ -161,7 +160,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
         // Même personne, même date que le shift enregistré : aucun avertissement.
         $response = $this->controller->updateShift($this->postRequest($this->shiftPost(self::MONDAY, ['end_time' => '18:00']), 9));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // ── Création rapide et déplacement (JSON) ───────────────────────────────
@@ -171,11 +170,11 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
         $body = ['store_id' => 1, 'user_id' => 5, 'shift_date' => self::SUNDAY, 'start_time' => '09:00', 'end_time' => '17:00'];
 
         $refused = $this->controller->quickShift($this->jsonRequest($body));
-        $this->assertSame(409, $refused->status());
-        $this->assertSame('availability_conflict', json_decode((string) $refused->body(), true)['code']);
+        $this->assertSame(409, $refused->getStatusCode());
+        $this->assertSame('availability_conflict', json_decode((string) $refused->getContent(), true)['code']);
 
         $forced = $this->controller->quickShift($this->jsonRequest($body + ['force_availability' => true]));
-        $this->assertSame(201, $forced->status());
+        $this->assertSame(201, $forced->getStatusCode());
     }
 
     public function testMovingByDragAnswers409WithACodeThenAcceptsTheForcedRequest(): void
@@ -183,17 +182,17 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
         $body = ['shift_date' => self::SUNDAY, 'start_time' => '09:00', 'end_time' => '17:00'];
 
         $refused = $this->controller->moveShift($this->jsonRequest($body, 9));
-        $this->assertSame(409, $refused->status());
-        $this->assertSame('availability_conflict', json_decode((string) $refused->body(), true)['code']);
+        $this->assertSame(409, $refused->getStatusCode());
+        $this->assertSame('availability_conflict', json_decode((string) $refused->getContent(), true)['code']);
 
         $forced = $this->controller->moveShift($this->jsonRequest($body + ['force_availability' => true], 9));
-        $this->assertSame(200, $forced->status());
+        $this->assertSame(200, $forced->getStatusCode());
     }
 
     public function testChangingOnlyTheHoursByDragDoesNotWarn(): void
     {
         $response = $this->controller->moveShift($this->jsonRequest(['shift_date' => self::MONDAY, 'start_time' => '10:00', 'end_time' => '18:00'], 9));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 }

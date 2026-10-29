@@ -7,7 +7,7 @@ namespace kintai\Tests\Support;
 use kintai\Core\Auth\PermissionService;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -45,7 +45,7 @@ final class ApiOwnerAuth
     /** Authentifie la requête comme l'Owner. */
     public static function owner(Request $request): Request
     {
-        $request->setAttribute('auth_user', ['id' => self::OWNER_ID]);
+        $request->attributes->set('auth_user', ['id' => self::OWNER_ID]);
         return $request;
     }
 }

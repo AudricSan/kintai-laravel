@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Container;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Router;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
@@ -144,8 +144,8 @@ final class SetupWizardControllerTest extends TestCase
     {
         $_POST = $post;
         $_GET = $query;
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 5, 'is_admin' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 5, 'is_admin' => 1]);
         $req->setRouteParams($params);
         return $req;
     }
@@ -154,8 +154,8 @@ final class SetupWizardControllerTest extends TestCase
     {
         $response = $this->controller->step($this->request([], ['step' => 'organisation']));
 
-        $this->assertSame(302, $response->status());
-        $this->assertStringEndsWith('?step=store', (string) ($response->headers()['Location'] ?? ''));
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringEndsWith('?step=store', (string) ($response->headers->get('Location') ?? ''));
         $this->assertSame(SetupWizard::DONE, $this->wizard->progress()['organisation']);
         $this->assertSame([['user' => 5]], $this->saved);
     }
@@ -164,7 +164,7 @@ final class SetupWizardControllerTest extends TestCase
     {
         $response = $this->controller->step($this->request(['skip' => '1'], ['step' => 'organisation']));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(SetupWizard::SKIPPED, $this->wizard->progress()['organisation']);
         $this->assertSame([], $this->saved);
     }
@@ -175,8 +175,8 @@ final class SetupWizardControllerTest extends TestCase
 
         $response = $this->controller->step($this->request([], ['step' => 'organisation']));
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('setup_org_name_required', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('setup_org_name_required', $response->getContent());
         $this->assertNull($this->wizard->progress()['organisation'], 'rien n\'est marqué fait');
     }
 
@@ -189,12 +189,12 @@ final class SetupWizardControllerTest extends TestCase
 
     public function testShowOpensTheRequestedStepOtherwiseTheFirstOneToDo(): void
     {
-        $this->assertStringContainsString('name="support_email"', $this->controller->show($this->request([], [], ['step' => 'organisation']))->body());
+        $this->assertStringContainsString('name="support_email"', $this->controller->show($this->request([], [], ['step' => 'organisation']))->getContent());
 
         // Étape inconnue dans l'URL : on retombe sur la première à faire.
         $response = $this->controller->show($this->request([], [], ['step' => 'not-a-step']));
-        $this->assertStringContainsString('name="support_email"', $response->body());
-        $this->assertStringContainsString('aria-current="step"', $response->body());
+        $this->assertStringContainsString('name="support_email"', $response->getContent());
+        $this->assertStringContainsString('aria-current="step"', $response->getContent());
     }
 
     public function testAnsweringTheQuestionnaireShowsTheSelectionWithTheRecommendedBundlesChecked(): void
@@ -204,7 +204,7 @@ final class SetupWizardControllerTest extends TestCase
             ['slug' => 'timeclock', 'name' => 'Pointage', 'description' => 'd', 'version' => '1.0.0', 'repository_url' => '', 'registry_url' => ''],
         ];
 
-        $html = $this->controller->questions($this->request(['answers' => ['timeclock', 'inconnue']]))->body();
+        $html = $this->controller->questions($this->request(['answers' => ['timeclock', 'inconnue']]))->getContent();
 
         $this->assertMatchesRegularExpression('/value="timeclock"[^>]*checked/s', $html);
         $this->assertDoesNotMatchRegularExpression('/value="timeoff"[^>]*checked/s', $html);
@@ -215,8 +215,8 @@ final class SetupWizardControllerTest extends TestCase
     {
         $response = $this->controller->finish($this->request());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertFalse($this->wizard->isPending());
-        $this->assertSame(302, $this->controller->show($this->request())->status());
+        $this->assertSame(302, $this->controller->show($this->request())->getStatusCode());
     }
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Api\V1;
 
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class ActivityController
 {
@@ -35,7 +35,7 @@ final class ActivityController
         $rows  = $this->logs->findAll($page, $perPage, $filters);
         $total = $this->logs->countAll($filters);
 
-        return Response::json([
+        return response()->json([
             'data'     => $rows,
             'total'    => $total,
             'page'     => $page,

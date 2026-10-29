@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Core\Cron;
 use PHPUnit\Framework\TestCase;
 use kintai\Core\Cron\BackupJob;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\BackupService;
@@ -55,9 +55,9 @@ final class BackupJobTest extends TestCase
     public function testRunReturnsOkOnSuccess(): void
     {
         $response = $this->job->run($this->makeRequest());
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertTrue($data['ok']);
         $this->assertStringContainsString('backup_', $data['filename']);
         $this->assertIsInt($data['size']);
@@ -66,7 +66,7 @@ final class BackupJobTest extends TestCase
     public function testRunWithCustomNote(): void
     {
         $response = $this->job->run($this->makeRequest(['note' => 'Avant mise à jour']));
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertTrue($data['ok']);
     }
@@ -81,7 +81,7 @@ final class BackupJobTest extends TestCase
         $_SERVER  = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => "/cron/backup$queryStr", 'SCRIPT_NAME' => '/index.php'];
         $_GET     = $query;
         $_POST    = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void

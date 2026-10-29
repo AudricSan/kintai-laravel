@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Core\Cron;
 
 use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 
@@ -27,7 +27,7 @@ final class LogPurgeJob implements CronJobInterface
     {
         $days = $this->settings->logRetentionDays();
         if ($days <= 0) {
-            return Response::json(['ok' => false, 'error' => 'Rétention illimitée (log_retention_days = 0), purge désactivée.']);
+            return response()->json(['ok' => false, 'error' => 'Rétention illimitée (log_retention_days = 0), purge désactivée.']);
         }
 
         $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
@@ -39,7 +39,7 @@ final class LogPurgeJob implements CronJobInterface
             'deleted'        => $deleted,
         ]);
 
-        return Response::json([
+        return response()->json([
             'ok'      => true,
             'cutoff'  => $cutoff,
             'deleted' => $deleted,

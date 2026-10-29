@@ -7,8 +7,8 @@ namespace kintai\UI\Controller\Web;
 use kintai\Core\BundleManager;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Sert les assets statiques (CSS/JS) qu'un bundle actif a déclarés via
@@ -35,8 +35,8 @@ final class BundleAssetController
 
     public function serve(Request $request): Response
     {
-        $slug = (string) $request->param('slug');
-        $path = (string) $request->param('path');
+        $slug = (string) $request->route('slug');
+        $path = (string) $request->route('path');
 
         $root = $this->bundleManager->assetsPathFor($slug);
         if ($root === null) {
@@ -65,9 +65,9 @@ final class BundleAssetController
 
         $name = basename($file);
 
-        return Response::fileStream($file, self::MIME_TYPES[$ext], $name)
-            ->withHeader('Content-Disposition', "inline; filename=\"{$name}\"")
-            ->withHeader('X-Content-Type-Options', 'nosniff')
-            ->withHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return response()->fileStream($file, self::MIME_TYPES[$ext], $name)
+            ->header('Content-Disposition', "inline; filename=\"{$name}\"")
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('Cache-Control', 'public, max-age=31536000, immutable');
     }
 }

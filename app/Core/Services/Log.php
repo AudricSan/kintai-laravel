@@ -52,8 +52,8 @@ final class Log
     {
         if (self::$container !== null) {
             try {
-                $req = self::$container->make(\kintai\Core\Request::class);
-                $user = $req->getAttribute('auth_user');
+                $req = self::$container->make(\Illuminate\Http\Request::class);
+                $user = $req->attributes->get('auth_user');
                 if (is_array($user)) {
                     return isset($user['id']) ? (int) $user['id'] : null;
                 }
@@ -67,8 +67,8 @@ final class Log
     {
         if (self::$container !== null) {
             try {
-                $req = self::$container->make(\kintai\Core\Request::class);
-                $user = $req->getAttribute('auth_user');
+                $req = self::$container->make(\Illuminate\Http\Request::class);
+                $user = $req->attributes->get('auth_user');
                 if (is_array($user) && isset($user['store_id'])) {
                     return (int) $user['store_id'];
                 }

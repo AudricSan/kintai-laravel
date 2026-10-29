@@ -21,7 +21,7 @@ use kintai\Core\Repositories\NotificationRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\PushNotificationService;
@@ -93,8 +93,8 @@ final class EmployeeControllerNavSettingsTest extends TestCase
 
         $this->navPrefs->expects($this->once())->method('saveHidden')->with(9, ['messages']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $this->controller->saveNavSettings($req);
     }
@@ -114,8 +114,8 @@ final class EmployeeControllerNavSettingsTest extends TestCase
 
         $this->navPrefs->expects($this->once())->method('saveHidden')->with(9, ['swaps']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $this->controller->saveNavSettings($req);
     }

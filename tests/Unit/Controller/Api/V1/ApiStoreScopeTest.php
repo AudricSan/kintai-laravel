@@ -21,7 +21,7 @@ use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\Log;
@@ -93,12 +93,11 @@ final class ApiStoreScopeTest extends TestCase
 
     private function request(int $userId, array $params = [], ?array $json = null): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
         $req->setRouteParams($params);
         if ($json !== null) {
-            $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-            $ref->setValue($req, $json);
+            $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($json));
         }
         return $req;
     }
@@ -158,7 +157,7 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $controller->update($this->request(self::MANAGER, ['id' => '3'], ['notes' => 'x']));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShiftCreationIgnoresIdFromBody(): void
@@ -171,7 +170,7 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $controller->store($this->request(self::MANAGER, [], ['id' => 9, 'store_id' => self::STORE_A, 'shift_date' => '2026-10-20', 'start_time' => '09:00', 'end_time' => '17:00']));
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     public function testShiftCreationRequiresStoreId(): void
@@ -205,15 +204,15 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $controller->index($this->requestWithQuery(self::MANAGER, ['user_id' => '77']));
 
-        $ids = array_column(json_decode($response->body(), true)['data'], 'id');
+        $ids = array_column(json_decode($response->getContent(), true)['data'], 'id');
         $this->assertSame([1], $ids);
     }
 
     private function requestWithQuery(int $userId, array $query): Request
     {
         $_GET = $query;
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;
     }
 
@@ -292,7 +291,7 @@ final class ApiStoreScopeTest extends TestCase
             ['password' => 'nouveau-mot-de-passe', 'password_hash' => 'forgé', 'id' => 99]
         ));
 
-        $this->assertArrayNotHasKey('password_hash', json_decode($response->body(), true));
+        $this->assertArrayNotHasKey('password_hash', json_decode($response->getContent(), true));
     }
 
     public function testRawPasswordHashCannotBeInjectedOnUpdate(): void
@@ -318,8 +317,8 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $this->userController()->store($this->request(self::OWNER, [], ['id' => 1, 'email' => 'a@example.com', 'first_name' => 'A', 'last_name' => 'B']));
 
-        $this->assertSame(201, $response->status());
-        $this->assertArrayNotHasKey('password_hash', json_decode($response->body(), true));
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertArrayNotHasKey('password_hash', json_decode($response->getContent(), true));
     }
 
     public function testShowAndIndexNeverExposePasswordHash(): void
@@ -330,10 +329,10 @@ final class ApiStoreScopeTest extends TestCase
         $this->storeUsers->method('findByUser')->willReturn([['store_id' => self::STORE_A]]);
 
         $show = $this->userController()->show($this->request(self::OWNER, ['id' => '31']));
-        $this->assertArrayNotHasKey('password_hash', json_decode($show->body(), true));
+        $this->assertArrayNotHasKey('password_hash', json_decode($show->getContent(), true));
 
         $index = $this->userController()->index($this->request(self::OWNER));
-        $this->assertArrayNotHasKey('password_hash', json_decode($index->body(), true)['data'][0]);
+        $this->assertArrayNotHasKey('password_hash', json_decode($index->getContent(), true)['data'][0]);
     }
 
     public function testUserIndexIsRestrictedToManagedStoreMembers(): void
@@ -344,7 +343,7 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $this->userController()->index($this->request(self::MANAGER));
 
-        $ids = array_column(json_decode($response->body(), true)['data'], 'id');
+        $ids = array_column(json_decode($response->getContent(), true)['data'], 'id');
         $this->assertEqualsCanonicalizing([31, self::MANAGER], $ids);
     }
 
@@ -473,7 +472,7 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $controller->destroy($this->request(self::MANAGER, ['id' => '31']));
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testDeletedAccountsAreNoLongerListed(): void
@@ -485,7 +484,7 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $this->userController()->index($this->request(self::OWNER));
 
-        $this->assertSame([31], array_column(json_decode($response->body(), true)['data'], 'id'));
+        $this->assertSame([31], array_column(json_decode($response->getContent(), true)['data'], 'id'));
     }
 
     // ------------------------------------------- actions sur soi-même (audit M13)
@@ -523,6 +522,6 @@ final class ApiStoreScopeTest extends TestCase
 
         $response = $this->userController()->update($this->request(self::MANAGER, ['id' => (string) self::MANAGER], ['phone' => '090-0000-0000']));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 }

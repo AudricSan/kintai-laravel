@@ -9,7 +9,7 @@ use kintai\Core\Auth\PermissionService;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\UI\Controller\Api\V1\ShiftTypeController;
@@ -45,10 +45,8 @@ final class ShiftTypeControllerTest extends TestCase
 
     private function makeJsonRequest(array $body): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $body);
+        $req = ApiOwnerAuth::owner(Request::capture());
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
         return $req;
     }
 
@@ -58,12 +56,12 @@ final class ShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'code' => 'MORNING']);
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([1, 2]);
 
-        $req = ApiOwnerAuth::owner(new Request());
+        $req = ApiOwnerAuth::owner(Request::capture());
         $req->setRouteParams(['id' => '5']);
 
         $response = $this->controller()->show($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertSame([1, 2], $data['store_ids']);
     }
 
@@ -85,7 +83,7 @@ final class ShiftTypeControllerTest extends TestCase
 
     private function asManager(Request $request): Request
     {
-        $request->setAttribute('auth_user', ['id' => 9]);
+        $request->attributes->set('auth_user', ['id' => 9]);
         return $request;
     }
 
@@ -96,7 +94,7 @@ final class ShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([1, 2]);
         $this->shiftTypes->expects($this->never())->method('delete');
 
-        $req = $this->asManager(new Request());
+        $req = $this->asManager(Request::capture());
         $req->setRouteParams(['id' => '5']);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
@@ -110,7 +108,7 @@ final class ShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([1, 2]);
         $this->shiftTypes->expects($this->never())->method('save');
 
-        $req = $this->asManager(new Request());
+        $req = $this->asManager(Request::capture());
         $req->setRouteParams(['id' => '5']);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
@@ -124,10 +122,10 @@ final class ShiftTypeControllerTest extends TestCase
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(5)->willReturn([1]);
         $this->shiftTypes->expects($this->once())->method('delete')->with(5);
 
-        $req = $this->asManager(new Request());
+        $req = $this->asManager(Request::capture());
         $req->setRouteParams(['id' => '5']);
 
-        $this->assertSame(204, $this->managerOfStoreOne()->destroy($req)->status());
+        $this->assertSame(204, $this->managerOfStoreOne()->destroy($req)->getStatusCode());
     }
 
     public function testStoreWithStoreIdsArraySyncsAllStores(): void
@@ -141,7 +139,7 @@ final class ShiftTypeControllerTest extends TestCase
 
         $response = $this->controller()->store($req);
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     /** store_id scalaire (rétrocompatibilité) : toujours accepté, converti en tableau à 1 élément. */
@@ -188,7 +186,7 @@ final class ShiftTypeControllerTest extends TestCase
 
         $response = $this->controller()->update($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testUpdateWithStoreIdsReplacesAssignments(): void
@@ -236,6 +234,6 @@ final class ShiftTypeControllerTest extends TestCase
 
         $response = $this->controller()->store($this->makeJsonRequest(['code' => 'X', 'name' => 'X', 'start_time' => '08:00', 'end_time' => '16:00', 'color' => '#a1b2c3', 'store_ids' => [1]]));
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 }

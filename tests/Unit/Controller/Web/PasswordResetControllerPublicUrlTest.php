@@ -8,7 +8,7 @@ use kintai\Core\Mail\MailerService;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\PasswordResetRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\PasswordResetService;
 use kintai\Core\Services\PublicUrlResolver;
@@ -72,14 +72,14 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
         // Un attaquant choisit cet en-tête : il ne doit jamais servir à construire le lien.
         $_SERVER['HTTP_HOST'] = 'evil.example.net';
 
-        return new Request();
+        return Request::capture();
     }
 
     public function testAResetTokenIsCreatedWhenAPublicUrlIsConfigured(): void
     {
         $this->resets->expects($this->once())->method('create');
 
-        $body = $this->controller('https://kintai.example.com')->sendLink($this->request())->body();
+        $body = $this->controller('https://kintai.example.com')->sendLink($this->request())->getContent();
 
         $this->assertSame('SENT', $body);
     }
@@ -88,7 +88,7 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
     {
         $this->resets->expects($this->never())->method('create');
 
-        $body = $this->controller('')->sendLink($this->request())->body();
+        $body = $this->controller('')->sendLink($this->request())->getContent();
 
         // Même page « envoyé » qu'avec un compte inconnu : pas d'énumération possible.
         $this->assertSame('SENT', $body);

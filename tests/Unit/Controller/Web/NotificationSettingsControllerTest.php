@@ -23,7 +23,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\WebPushSubscriptionRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Router;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
@@ -180,10 +180,9 @@ final class NotificationSettingsControllerTest extends TestCase
         $_GET  = [];
     }
 
-    private function location(\kintai\Core\Response $response): string
+    private function location(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $headers = new \ReflectionProperty($response, 'headers');
-        return (string) ($headers->getValue($response)['Location'] ?? '');
+        return (string) (kintai_test_headers($response)['Location'] ?? '');
     }
 
     public function testSavingTheRetentionClampsItToTheAllowedRange(): void
@@ -191,7 +190,7 @@ final class NotificationSettingsControllerTest extends TestCase
         foreach ([['30', '30'], ['2', '7'], ['0', '7'], ['999999', '3650'], ['abc', '7']] as [$posted, $stored]) {
             $_POST = ['notifications_retention_days' => $posted];
 
-            $response = $this->controller->save(new Request());
+            $response = $this->controller->save(Request::capture());
 
             $this->assertStringContainsString('success=saved', $this->location($response));
             $this->assertSame($stored, $this->settings->get('notifications_retention_days'), "saisi : $posted");
@@ -202,7 +201,7 @@ final class NotificationSettingsControllerTest extends TestCase
     {
         $_POST = [];
 
-        $this->controller->save(new Request());
+        $this->controller->save(Request::capture());
 
         $this->assertSame('45', $this->settings->get('notifications_retention_days'));
     }
@@ -214,7 +213,7 @@ final class NotificationSettingsControllerTest extends TestCase
         $this->prefs->saveQuietHours(1, true, $now->modify('-1 hour')->format('H:i'), $now->modify('+1 hour')->format('H:i'));
         $this->prefs->saveChanges(1, [NotificationPreferenceService::TEST_TYPE => ['push' => false, 'email' => false]]);
 
-        $response = $this->controller->sendTest(new Request());
+        $response = $this->controller->sendTest(Request::capture());
 
         $this->assertSame(1, Notification::where('user_id', 1)->where('type', NotificationPreferenceService::TEST_TYPE)->count());
         $this->assertCount(1, $this->mails, 'l\'e-mail part malgré les préférences et les heures silencieuses');
@@ -239,7 +238,7 @@ final class NotificationSettingsControllerTest extends TestCase
     {
         $before = $this->settings->get(VapidKeyStore::PUBLIC_KEY);
 
-        $response = $this->controller->regenerateVapid(new Request());
+        $response = $this->controller->regenerateVapid(Request::capture());
 
         $this->assertStringContainsString('success=vapid', $this->location($response));
         $this->assertNotSame($before, $this->settings->get(VapidKeyStore::PUBLIC_KEY));

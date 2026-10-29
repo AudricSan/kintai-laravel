@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web\System;
 
 use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\System\ActivityController;
 use kintai\UI\ViewRenderer;
@@ -54,8 +54,8 @@ final class ActivityControllerTest extends TestCase
 
     public function testManagerScopedRequestFiltersLogsByManagedStoreIds(): void
     {
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [3]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [3]);
 
         $this->logs->expects($this->once())->method('findAll')
             ->with(1, 100, $this->callback(fn(array $f) => ($f['store_ids'] ?? null) === [3]))
@@ -64,13 +64,13 @@ final class ActivityControllerTest extends TestCase
 
         $response = $this->controller->index($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testOwnerRequestDoesNotFilterByStore(): void
     {
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->logs->expects($this->once())->method('findAll')
             ->with(1, 100, $this->callback(fn(array $f) => !array_key_exists('store_ids', $f)))
@@ -79,13 +79,13 @@ final class ActivityControllerTest extends TestCase
 
         $response = $this->controller->index($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testExportReturnsCsvWithMatchingRows(): void
     {
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->logs->expects($this->once())->method('findAll')
             ->with(1, 20000, [])
@@ -102,15 +102,15 @@ final class ActivityControllerTest extends TestCase
 
         $response = $this->controller->export($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringContainsString('auth.login', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('auth.login', $response->getContent());
     }
 
     public function testExportAppliesSameFiltersAsIndex(): void
     {
         $_GET = ['level' => 'error', 'channel' => 'audit'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [3]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [3]);
 
         $this->logs->expects($this->once())->method('findAll')
             ->with(1, 20000, $this->callback(fn(array $f) => ($f['level'] ?? null) === 'error'
@@ -120,7 +120,7 @@ final class ActivityControllerTest extends TestCase
 
         $response = $this->controller->export($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     private function writeViewFile(string $dir, string $view, string $phpBody): void

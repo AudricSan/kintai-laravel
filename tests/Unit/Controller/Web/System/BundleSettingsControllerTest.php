@@ -9,7 +9,7 @@ use kintai\Core\FeatureManager;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\PlanLimitService;
@@ -110,12 +110,12 @@ final class BundleSettingsControllerTest extends TestCase
     {
         $controller = $this->makeController(new FeatureManager(['team-directory']));
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $response = $controller->show($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testSavePersistsSelectedBundlesAsJson(): void
@@ -124,8 +124,8 @@ final class BundleSettingsControllerTest extends TestCase
         $controller = $this->makeController(new FeatureManager(['team-directory']));
 
         $_POST = ['bundle_team-directory' => '1'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $captured = null;
         $this->appSettings->expects($this->once())->method('set')->willReturnCallback(
@@ -137,7 +137,7 @@ final class BundleSettingsControllerTest extends TestCase
 
         $response = $controller->save($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
         sort($captured);
         $this->assertSame(['team-directory'], $captured);
@@ -157,14 +157,14 @@ final class BundleSettingsControllerTest extends TestCase
             'bundle_fake-bundle-4'  => '1',
             'bundle_fake-bundle-5'  => '1',
         ];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->appSettings->expects($this->never())->method('set');
 
         $response = $controller->save($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Au-dessus du quota (instance antérieure), garder ou réduire reste permis : seul l'ajout est refusé. */
@@ -175,12 +175,12 @@ final class BundleSettingsControllerTest extends TestCase
         $controller = $this->makeController(new FeatureManager($all));
 
         $_POST = array_fill_keys(array_map(fn(string $s): string => 'bundle_' . $s, $all), '1');
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->appSettings->expects($this->once())->method('set');
 
-        $this->assertStringEndsWith('/admin/bundles?success=1', $controller->save($req)->headers()['Location'] ?? '');
+        $this->assertStringEndsWith('/admin/bundles?success=1', $controller->save($req)->headers->get('Location') ?? '');
     }
 
     public function testSaveAllowsExactlyFourBundlesOnFreePlan(): void
@@ -194,14 +194,14 @@ final class BundleSettingsControllerTest extends TestCase
             'bundle_fake-bundle-3'  => '1',
             'bundle_fake-bundle-4'  => '1',
         ];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->appSettings->expects($this->once())->method('set');
 
         $response = $controller->save($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testOfficialBundlesRegistryListsBundlesShippedWithTheRepo(): void
@@ -220,8 +220,8 @@ final class BundleSettingsControllerTest extends TestCase
     {
         $controller = $this->makeController(new FeatureManager(['team-directory']));
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $captured = null;
         $this->appSettings->method('set')->willReturnCallback(

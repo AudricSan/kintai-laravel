@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core;
 
 use kintai\Core\Container;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -38,7 +38,7 @@ final class BackUrlHelperTest extends TestCase
             unset($_SERVER['HTTP_REFERER']);
         }
 
-        $request = new Request();
+        $request = Request::capture();
         Container::getInstance()->instance(Request::class, $request);
         return $request;
     }
@@ -101,7 +101,7 @@ final class BackUrlHelperTest extends TestCase
         $_SERVER['HTTP_HOST'] = 'kintai.example';
         $_SERVER['HTTP_REFERER'] = 'http://kintai.example/Kintai/public/admin/stores/1/reports/salary?page=3';
 
-        $request = new Request();
+        $request = Request::capture();
         Container::getInstance()->instance(Request::class, $request);
 
         $this->assertSame(

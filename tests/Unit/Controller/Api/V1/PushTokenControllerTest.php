@@ -11,7 +11,7 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\DevicePushTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Api\V1\PushTokenController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -53,7 +53,7 @@ final class PushTokenControllerTest extends TestCase
         $req = $this->requestWithJson(['token' => 'device-abc', 'platform' => 'android'], ['user_id' => '20']);
         $response = $this->controller()->store($req);
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     public function testStoreRejectsMissingToken(): void
@@ -99,15 +99,13 @@ final class PushTokenControllerTest extends TestCase
         $req = $this->requestWithJson(['token' => 'device-abc'], ['user_id' => '20']);
         $response = $this->controller()->destroy($req);
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     private function requestWithJson(array $json, array $routeParams = []): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $json);
+        $req = ApiOwnerAuth::owner(Request::capture());
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($json));
         $req->setRouteParams($routeParams);
         return $req;
     }

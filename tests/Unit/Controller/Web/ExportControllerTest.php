@@ -28,7 +28,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\Log;
@@ -125,35 +125,35 @@ final class ExportControllerTest extends TestCase
     private function request(array $query): Request
     {
         $_GET = $query;
-        return new Request();
+        return Request::capture();
     }
 
     public function testAnEmployeeExportsOnlyHisOwnScheduleAsJson(): void
     {
         $response = $this->controller->download($this->request(['dataset' => 'shifts', 'target' => 'me', 'format' => 'json', 'from' => '2026-11-01', 'to' => '2026-11-30']));
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertSame(1, $data['count'], "l'horaire de l'autre employé n'est pas exporté");
         $this->assertSame('Sato Aki', $data['rows'][0]['employee']);
-        $this->assertStringContainsString('kintai-shifts-2026-11-01_2026-11-30.json', $response->headers()['Content-Disposition']);
+        $this->assertStringContainsString('kintai-shifts-2026-11-01_2026-11-30.json', $response->headers->get('Content-Disposition'));
     }
 
     public function testAskingForPeopleInThePersonalScopeStillGivesOnlyMyData(): void
     {
         $response = $this->controller->download($this->request(['dataset' => 'shifts', 'target' => 'me', 'format' => 'csv', 'user_ids' => ['6'], 'from' => '2026-11-01', 'to' => '2026-11-30']));
 
-        $this->assertStringContainsString('text/csv', $response->headers()['Content-Type']);
-        $this->assertStringContainsString('Sato Aki', $response->body());
-        $this->assertStringNotContainsString('Sato Ben', $response->body());
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('Sato Aki', $response->getContent());
+        $this->assertStringNotContainsString('Sato Ben', $response->getContent());
     }
 
     public function testXlsxIsServedAsAWorkbook(): void
     {
         $response = $this->controller->download($this->request(['dataset' => 'employees', 'target' => 'me', 'format' => 'xlsx']));
 
-        $this->assertSame(ExportWriter::XLSX_TYPE, $response->headers()['Content-Type']);
-        $this->assertStringStartsWith('PK', $response->body(), 'un classeur xlsx est une archive zip');
+        $this->assertSame(ExportWriter::XLSX_TYPE, $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('PK', $response->getContent(), 'un classeur xlsx est une archive zip');
     }
 
     public function testAnEmployeeCannotExportAStoreNorPayroll(): void
@@ -161,20 +161,20 @@ final class ExportControllerTest extends TestCase
         foreach ([['shifts', 'store:3'], ['shifts', 'all'], ['payroll', 'me'], ['stores', 'me']] as [$dataset, $target]) {
             $response = $this->controller->download($this->request(['dataset' => $dataset, 'target' => $target, 'format' => 'json']));
 
-            $this->assertSame(302, $response->status(), "$dataset/$target");
-            $this->assertStringContainsString('/exports?error=forbidden', $response->headers()['Location']);
+            $this->assertSame(302, $response->getStatusCode(), "$dataset/$target");
+            $this->assertStringContainsString('/exports?error=forbidden', $response->headers->get('Location'));
         }
     }
 
     public function testTheCalendarFormatIsOnlyForTheScheduleOfOnePerson(): void
     {
         $ics = $this->controller->download($this->request(['dataset' => 'shifts', 'target' => 'me', 'format' => 'ics', 'from' => '2026-11-01', 'to' => '2026-11-30']));
-        $this->assertStringContainsString('text/calendar', $ics->headers()['Content-Type']);
-        $this->assertSame(1, substr_count($ics->body(), 'BEGIN:VEVENT'));
+        $this->assertStringContainsString('text/calendar', $ics->headers->get('Content-Type'));
+        $this->assertSame(1, substr_count($ics->getContent(), 'BEGIN:VEVENT'));
 
         $other = $this->controller->download($this->request(['dataset' => 'employees', 'target' => 'me', 'format' => 'ics']));
-        $this->assertSame(302, $other->status());
-        $this->assertStringNotContainsString('error=', $other->headers()['Location']);
+        $this->assertSame(302, $other->getStatusCode());
+        $this->assertStringNotContainsString('error=', $other->headers->get('Location'));
     }
 
     public function testUnknownDatasetOrFormatGoesBackToThePage(): void
@@ -182,8 +182,8 @@ final class ExportControllerTest extends TestCase
         foreach ([['nope', 'json'], ['shifts', 'xml']] as [$dataset, $format]) {
             $response = $this->controller->download($this->request(['dataset' => $dataset, 'target' => 'me', 'format' => $format]));
 
-            $this->assertSame(302, $response->status());
-            $this->assertStringEndsWith('/exports', $response->headers()['Location']);
+            $this->assertSame(302, $response->getStatusCode());
+            $this->assertStringEndsWith('/exports', $response->headers->get('Location'));
         }
     }
 
@@ -192,6 +192,6 @@ final class ExportControllerTest extends TestCase
         session()->forget('auth_user_id');
         $response = $this->controller->download($this->request(['dataset' => 'shifts', 'target' => 'me', 'format' => 'json']));
 
-        $this->assertStringContainsString('/login', $response->headers()['Location']);
+        $this->assertStringContainsString('/login', $response->headers->get('Location'));
     }
 }

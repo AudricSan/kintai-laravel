@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Core\Setup;
 
 use kintai\Core\Mail\MailerService;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\EnvFileWriter;
 
 /**

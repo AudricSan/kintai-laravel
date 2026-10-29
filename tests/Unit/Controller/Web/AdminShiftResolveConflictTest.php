@@ -15,7 +15,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvailabilityGuard;
 use kintai\Core\Services\NotificationService;
@@ -68,13 +68,13 @@ final class AdminShiftResolveConflictTest extends TestCase
         );
     }
 
-    private function resolve(int $keep, int $delete): \kintai\Core\Response
+    private function resolve(int $keep, int $delete): \Symfony\Component\HttpFoundation\Response
     {
         $_POST = ['id_keep' => (string) $keep, 'id_delete' => (string) $delete];
-        $req = new Request();
+        $req = Request::capture();
         $_POST = [];
-        $req->setAttribute('auth_user', ['id' => 1]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
+        $req->attributes->set('managed_store_ids', null);
         return $this->controller->resolveNewerConflict($req);
     }
 
@@ -83,7 +83,7 @@ final class AdminShiftResolveConflictTest extends TestCase
         $this->shifts->expects($this->once())->method('delete')->with(1);
         // L'employé est prévenu, comme pour une suppression directe.
         $this->notifs->expects($this->once())->method('notify')->with(3, 'shift_deleted', 'notif_shift_deleted_body', $this->anything(), $this->greaterThan(20000101));
-        $this->assertSame(302, $this->resolve(2, 1)->status());
+        $this->assertSame(302, $this->resolve(2, 1)->getStatusCode());
     }
 
     public function testOvernightShiftOverlapIsAConflict(): void
@@ -117,7 +117,7 @@ final class AdminShiftResolveConflictTest extends TestCase
     {
         $this->shifts->expects($this->never())->method('delete');
         $this->notifs->expects($this->never())->method('notify');
-        $this->assertSame(302, $this->resolve(2, 99)->status());
+        $this->assertSame(302, $this->resolve(2, 99)->getStatusCode());
     }
 
     public function testBulkResolutionNotifiesEachEmployeeWhoseShiftIsDeleted(): void
@@ -127,10 +127,10 @@ final class AdminShiftResolveConflictTest extends TestCase
         $this->notifs->expects($this->exactly(2))->method('notify')->with(3, 'shift_deleted');
 
         $_POST = ['bulk' => '1', 'month' => '2026-10'];
-        $req = new Request();
+        $req = Request::capture();
         $_POST = [];
-        $req->setAttribute('auth_user', ['id' => 1]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
+        $req->attributes->set('managed_store_ids', null);
         $this->controller->resolveNewerConflict($req);
     }
 }

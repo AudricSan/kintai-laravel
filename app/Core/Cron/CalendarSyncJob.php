@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Core\Cron;
 
 use kintai\Core\Repositories\CalendarSyncRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\Calendar\GoogleCalendarSettings;
 use kintai\Core\Services\CalendarSyncService;
 
@@ -33,7 +33,7 @@ final class CalendarSyncJob implements CronJobInterface
     public function run(Request $request): Response
     {
         if (!$this->settings->isAvailable()) {
-            return Response::json(['ok' => true, 'enabled' => false]);
+            return response()->json(['ok' => true, 'enabled' => false]);
         }
 
         $reconciled = 0;
@@ -43,7 +43,7 @@ final class CalendarSyncJob implements CronJobInterface
             }
         }
 
-        return Response::json(['ok' => true, 'enabled' => true, 'reconciled' => $reconciled] + $this->sync->processQueue());
+        return response()->json(['ok' => true, 'enabled' => true, 'reconciled' => $reconciled] + $this->sync->processQueue());
     }
 
     /** @return list<int> */

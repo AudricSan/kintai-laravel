@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web;
 
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Sert les fichiers de storage/uploads derrière l'authentification.
@@ -55,7 +55,7 @@ final class StorageFileController
 
     public function serve(Request $request): Response
     {
-        $path = (string) $request->param('path');
+        $path = (string) $request->route('path');
 
         $base = realpath($this->uploadsPath);
         if ($base === false) {
@@ -83,12 +83,12 @@ final class StorageFileController
         $mime = self::INLINE_TYPES[$ext] ?? self::ATTACHMENT_TYPES[$ext];
         $name = basename($file);
 
-        $response = Response::fileStream($file, $mime, $name)
-            ->withHeader('X-Content-Type-Options', 'nosniff')
-            ->withHeader('Cache-Control', 'private, max-age=3600');
+        $response = response()->fileStream($file, $mime, $name)
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('Cache-Control', 'private, max-age=3600');
 
         if ($inline) {
-            $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$name}\"");
+            $response = $response->header('Content-Disposition', "inline; filename=\"{$name}\"");
         }
 
         return $response;

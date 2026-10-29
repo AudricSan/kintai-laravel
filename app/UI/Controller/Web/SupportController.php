@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\UI\Controller\Web;
 
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\GithubIssueService;
 use kintai\Core\Services\UpdateService;
@@ -38,7 +38,7 @@ final class SupportController
         $description = trim((string) $request->post('description', ''));
 
         if ($title === '' || $description === '') {
-            return Response::redirect($returnTo . '?ri_error=empty');
+            return redirect()->away($returnTo . '?ri_error=empty');
         }
 
         $title = mb_substr($title, 0, self::MAX_TITLE_LENGTH);
@@ -52,7 +52,7 @@ final class SupportController
             ? $this->issues->createIssue($title, $body)
             : ['ok' => false, 'error' => 'not_configured'];
 
-        $user = $request->getAttribute('auth_user') ?? [];
+        $user = $request->attributes->get('auth_user') ?? [];
 
         if ($result['ok']) {
             $this->auditLogger->log(
@@ -65,15 +65,15 @@ final class SupportController
                 (int) ($user['id'] ?? 0)
             );
 
-            return Response::redirect($returnTo . '?ri_success=' . urlencode($result['issue_url']));
+            return redirect()->away($returnTo . '?ri_success=' . urlencode($result['issue_url']));
         }
 
         if ($result['error'] === 'not_configured') {
             // Pas de jeton configuré sur cette instance : on se rabat sur un lien
             // GitHub pré-rempli plutôt que de bloquer le signalement.
-            return Response::redirect($this->issues->fallbackUrl($title, $description));
+            return redirect()->away($this->issues->fallbackUrl($title, $description));
         }
 
-        return Response::redirect($returnTo . '?ri_error=send_failed');
+        return redirect()->away($returnTo . '?ri_error=send_failed');
     }
 }

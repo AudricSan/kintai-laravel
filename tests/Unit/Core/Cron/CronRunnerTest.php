@@ -15,8 +15,8 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\CronTokenRepositoryInterface;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\TranslationService;
 
 final class CronRunnerTest extends TestCase
@@ -109,10 +109,10 @@ final class CronRunnerTest extends TestCase
                 : null);
 
         $this->cronTokens->expects($this->once())->method('touchLastUsed')->with(1);
-        $this->sampleJob->expects($this->once())->method('run')->with($req)->willReturn(Response::json(['ok' => true]));
+        $this->sampleJob->expects($this->once())->method('run')->with($req)->willReturn(response()->json(['ok' => true]));
 
         $response = $this->runner()->run('test-job', $req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testRunWithValidBearerTokenExecutesJob(): void
@@ -126,10 +126,10 @@ final class CronRunnerTest extends TestCase
                 : null);
 
         $this->cronTokens->expects($this->once())->method('touchLastUsed')->with(2);
-        $this->sampleJob->method('run')->willReturn(Response::json(['ok' => true]));
+        $this->sampleJob->method('run')->willReturn(response()->json(['ok' => true]));
 
         $response = $this->runner()->run('test-job', $req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testRunThrowsForbiddenWhenNoToken(): void
@@ -183,7 +183,7 @@ final class CronRunnerTest extends TestCase
     {
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/', 'SCRIPT_NAME' => '/index.php'];
         $_GET = $_POST = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     private function requestWithQuery(string $token): Request
@@ -191,7 +191,7 @@ final class CronRunnerTest extends TestCase
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => "/cron/run/test?token=$token", 'SCRIPT_NAME' => '/index.php'];
         $_GET    = ['token' => $token];
         $_POST   = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     // -------------------------------------------------------------------------
@@ -203,14 +203,14 @@ final class CronRunnerTest extends TestCase
         $this->cronTokens = $this->createMock(CronTokenRepositoryInterface::class);
         $this->sampleJob = $this->createMock(CronJobInterface::class);
         $this->sampleJob->method('getName')->willReturn('test-job');
-        $expected = Response::json(['ok' => true]);
+        $expected = response()->json(['ok' => true]);
         $this->sampleJob->expects($this->once())->method('run')->willReturn($expected);
         $this->cronTokens->expects($this->never())->method('findByToken');
 
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/cron/run/test-job', 'SCRIPT_NAME' => '/index.php'];
         $_GET = ['date' => '2026-10-13'];
 
-        $this->assertSame($expected, $this->runner()->runLocal('test-job', new Request()));
+        $this->assertSame($expected, $this->runner()->runLocal('test-job', Request::capture()));
     }
 
     public function testRunLocalThrowsNotFoundWhenJobUnknown(): void
@@ -228,7 +228,7 @@ final class CronRunnerTest extends TestCase
             'HTTP_AUTHORIZATION'       => "Bearer $token",
         ];
         $_GET = $_POST = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void

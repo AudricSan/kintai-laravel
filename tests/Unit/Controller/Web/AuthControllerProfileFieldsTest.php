@@ -20,7 +20,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\UI\Controller\Web\AuthController;
@@ -139,7 +139,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
             return $d;
         });
 
-        $this->controller->updateProfile(new Request());
+        $this->controller->updateProfile(Request::capture());
 
         $this->assertSame(1, $saved['show_in_directory']);
         $this->assertArrayNotHasKey('share_email', $saved);
@@ -169,7 +169,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
             return $d;
         });
 
-        $this->controller->updateProfile(new Request());
+        $this->controller->updateProfile(Request::capture());
 
         $this->assertNotNull($saved);
         $this->assertSame('01 23 45 67 89', $saved['phone']);
@@ -197,7 +197,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
             return $d;
         });
 
-        $this->controller->updateProfile(new Request());
+        $this->controller->updateProfile(Request::capture());
 
         $this->assertSame(0, $saved['show_in_directory']);
     }
@@ -212,7 +212,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
             return $d;
         });
 
-        $this->controller->updateProfile(new Request());
+        $this->controller->updateProfile(Request::capture());
 
         $this->assertSame(0, $saved['share_email']);
         $this->assertSame(0, $saved['share_phone']);
@@ -234,7 +234,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
             return $d;
         });
 
-        $this->controller->updateProfile(new Request());
+        $this->controller->updateProfile(Request::capture());
 
         $this->assertSame('Bonjour', $saved['bio']);
         $this->assertSame(1, $saved['show_in_directory'], 'case absente : valeur conservée');

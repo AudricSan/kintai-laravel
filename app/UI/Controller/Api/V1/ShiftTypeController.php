@@ -10,8 +10,8 @@ use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Validation\ApiPayloadRules;
 use kintai\Core\Validation\PayloadValidator;
@@ -48,14 +48,14 @@ final class ShiftTypeController
             }));
         }
 
-        return Response::json(Paginator::paginate($items, $page, $limit));
+        return response()->json(Paginator::paginate($items, $page, $limit));
     }
 
     /** GET /api/v1/shift-types/{id} */
     public function show(Request $request): Response
     {
         $type = $this->requireType($request, 'shifts.view');
-        return Response::json($this->withStoreIds($type));
+        return response()->json($this->withStoreIds($type));
     }
 
     /**
@@ -67,7 +67,7 @@ final class ShiftTypeController
      */
     public function store(Request $request): Response
     {
-        $body     = $request->json() ?? [];
+        $body     = $request->json()->all() ?? [];
         $storeIds = $this->extractStoreIds($body);
         $data     = PayloadValidator::validate($body, ApiPayloadRules::shiftType());
         $data['code'] = strtoupper($data['code']);
@@ -80,7 +80,7 @@ final class ShiftTypeController
         }
 
         $this->auditLogger->log($request, 'shift_type.created', 'shift_type', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeIds[0] ?? null);
-        return Response::json($this->withStoreIds($saved), 201);
+        return response()->json($this->withStoreIds($saved), 201);
     }
 
     /**
@@ -93,7 +93,7 @@ final class ShiftTypeController
         $old      = $this->requireType($request, 'shifts.update');
         $id       = (int) $old['id'];
         $this->assertManagesEveryStore($request, $id);
-        $body     = $request->json() ?? [];
+        $body     = $request->json()->all() ?? [];
         $storeIds = $this->extractStoreIds($body);
         $data     = PayloadValidator::validate($body, ApiPayloadRules::shiftType(), true);
         if ($data === [] && $storeIds === []) {
@@ -113,7 +113,7 @@ final class ShiftTypeController
         }
 
         $this->auditLogger->logUpdate($request, 'shift_type.updated', 'shift_type', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: $storeIds[0] ?? null);
-        return Response::json($this->withStoreIds($saved));
+        return response()->json($this->withStoreIds($saved));
     }
 
     /** DELETE /api/v1/shift-types/{id} */
@@ -125,7 +125,7 @@ final class ShiftTypeController
 
         $this->shiftTypes->delete($id);
         $this->auditLogger->log($request, 'shift_type.deleted', 'shift_type', resourceId: $id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     /**
@@ -143,13 +143,13 @@ final class ShiftTypeController
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     /** Charge le type par id et vérifie $permissionKey sur au moins un de ses magasins (ou sans restriction). */
     private function requireType(Request $request, string $permissionKey): array
     {
-        $id   = (int) $request->param('id');
+        $id   = (int) $request->route('id');
         $type = $this->shiftTypes->findById($id);
         if ($type === null) {
             throw new NotFoundException(__('error_shift_type_not_found'));

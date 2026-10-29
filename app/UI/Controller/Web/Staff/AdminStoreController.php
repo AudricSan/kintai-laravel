@@ -17,8 +17,8 @@ use kintai\Core\Extension\StoreFeatures;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\RoleAssignmentSyncService;
 use kintai\Core\Services\SchedulePublication;
@@ -67,7 +67,7 @@ final class AdminStoreController
         $sort   = $request->query('sort') ?? 'name_asc';
         $stores = $this->storeService->getStoresForAdmin($this->managedIds($request), $sort);
 
-        return Response::html($this->view->render('staff.stores', [
+        return response($this->view->render('staff.stores', [
             'title'  => 'Stores',
             'stores' => $stores,
             'sort'   => $sort,
@@ -80,7 +80,7 @@ final class AdminStoreController
             throw new ForbiddenException(__('error_owner_only_create_store'));
         }
 
-        return Response::html($this->view->render('staff.stores-form', [
+        return response($this->view->render('staff.stores-form', [
             'title'                 => 'Nouveau store',
             'mode'                  => 'create',
             'store'                 => [],
@@ -123,12 +123,12 @@ final class AdminStoreController
         $this->auditLogger->log($request, 'store.created', 'store', (int) ($savedStore['id'] ?? 0), [
             'name' => $request->post('name', ''),
         ]);
-        return Response::redirect($this->base() . '/admin/stores?success=created');
+        return redirect()->away($this->base() . '/admin/stores?success=created');
     }
 
     public function editStore(Request $request): Response
     {
-        $store = $this->stores->findById((int) $request->param('id'));
+        $store = $this->stores->findById((int) $request->route('id'));
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -155,7 +155,7 @@ final class AdminStoreController
             fn($u) => !in_array((int) $u['id'], $memberUserIds, true) && !empty($u['is_active'])
         ));
 
-        return Response::html($this->view->render('staff.stores-form', [
+        return response($this->view->render('staff.stores-form', [
             'title'             => 'Modifier ' . htmlspecialchars($store['name'] ?? ''),
             'mode'              => 'edit',
             'store'             => $store,
@@ -174,7 +174,7 @@ final class AdminStoreController
 
     public function updateStore(Request $request): Response
     {
-        $store = $this->stores->findById((int) $request->param('id'));
+        $store = $this->stores->findById((int) $request->route('id'));
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -251,7 +251,7 @@ final class AdminStoreController
         $this->auditLogger->logUpdate($request, 'store.updated', 'store', $storeId, $store, $newStoreData, [
             'name' => $request->post('name', $store['name'] ?? ''),
         ], $storeId);
-        return Response::redirect($this->base() . '/admin/stores?success=updated');
+        return redirect()->away($this->base() . '/admin/stores?success=updated');
     }
 
     public function deleteStore(Request $request): Response
@@ -260,7 +260,7 @@ final class AdminStoreController
             throw new ForbiddenException(__('error_owner_only_delete_store'));
         }
 
-        $id    = (int) $request->param('id');
+        $id    = (int) $request->route('id');
         $store = $this->stores->findById($id);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
@@ -270,7 +270,7 @@ final class AdminStoreController
         $this->auditLogger->log($request, 'store.deleted', 'store', $id, [
             'name' => $store['name'] ?? null,
         ]);
-        return Response::redirect($this->base() . '/admin/stores?success=deleted');
+        return redirect()->away($this->base() . '/admin/stores?success=deleted');
     }
 
     /**
@@ -284,7 +284,7 @@ final class AdminStoreController
 
     private function callerId(Request $request): int
     {
-        return (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        return (int) ($request->attributes->get('auth_user')['id'] ?? 0);
     }
 
     private function assertCanManageMember(Request $request, int $userId): void
@@ -292,7 +292,7 @@ final class AdminStoreController
         if ($this->users->findById($userId) === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
-        $callerId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $callerId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         $owners   = $this->permissions->ownerUserIds();
         if ($userId !== $callerId && in_array($userId, $owners, true) && !in_array($callerId, $owners, true)) {
             throw new ForbiddenException(__('error_not_store_manager'));
@@ -302,14 +302,14 @@ final class AdminStoreController
     /** Un non-Owner ne peut attribuer qu'un rôle plafonné par ses propres droits (voir PermissionService::canAssignRole). */
     private function assertCanAssignRole(Request $request, int $roleId, int $storeId): void
     {
-        if (!$this->permissions->canAssignRole($request->getAttribute('auth_user') ?? [], $roleId, $storeId)) {
+        if (!$this->permissions->canAssignRole($request->attributes->get('auth_user') ?? [], $roleId, $storeId)) {
             throw new ForbiddenException(__('error_role_exceeds_own_permissions'));
         }
     }
 
     public function addMember(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store   = $this->stores->findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
@@ -345,13 +345,13 @@ final class AdminStoreController
             (string) $request->post('redirect_to', ''),
             $this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=member_added',
         );
-        return Response::redirect($dest);
+        return redirect()->away($dest);
     }
 
     public function updateMemberRole(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
-        $mid     = (int) $request->param('mid');
+        $storeId = (int) $request->route('id');
+        $mid     = (int) $request->route('mid');
 
         $membership = $this->storeUsers->findById($mid);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
@@ -361,7 +361,7 @@ final class AdminStoreController
 
         $role = $this->roleSync->findAssignableRole((int) $request->post('role_id', 0));
         if ($role === null) {
-            return Response::redirect($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?error=invalid_role');
+            return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?error=invalid_role');
         }
         $roleId  = (int) $role['id'];
         $userId  = (int) $membership['user_id'];
@@ -376,13 +376,13 @@ final class AdminStoreController
             'user_id' => $membership['user_id'] ?? null,
         ], $storeId);
 
-        return Response::redirect($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=role_updated');
+        return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=role_updated');
     }
 
     public function removeMember(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
-        $mid     = (int) $request->param('mid');
+        $storeId = (int) $request->route('id');
+        $mid     = (int) $request->route('mid');
 
         $membership = $this->storeUsers->findById($mid);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
@@ -399,13 +399,13 @@ final class AdminStoreController
             'user_id' => $membership['user_id'] ?? null,
         ], $storeId);
 
-        return Response::redirect($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=member_removed');
+        return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=member_removed');
     }
 
     public function editMemberDeductions(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
-        $mid     = (int) $request->param('mid');
+        $storeId = (int) $request->route('id');
+        $mid     = (int) $request->route('mid');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -419,7 +419,7 @@ final class AdminStoreController
         $user = $this->users->findById((int) $membership['user_id']);
         if ($user === null) throw new NotFoundException(__('error_user_not_found'));
 
-        return Response::html($this->view->render('staff.member-deductions', [
+        return response($this->view->render('staff.member-deductions', [
             'title'              => 'Cotisations — ' . ($user['display_name'] ?? $user['email'] ?? ''),
             'store'              => $store,
             'membership'         => $membership,
@@ -431,8 +431,8 @@ final class AdminStoreController
 
     public function saveMemberDeductions(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
-        $mid     = (int) $request->param('mid');
+        $storeId = (int) $request->route('id');
+        $mid     = (int) $request->route('mid');
         $this->assertStoreAccess($request, $storeId);
 
         $membership = $this->storeUsers->findById($mid);
@@ -456,12 +456,12 @@ final class AdminStoreController
             ? $redirectTo
             : $fallback;
 
-        return Response::redirect($target);
+        return redirect()->away($target);
     }
 
     public function storeStats(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -475,7 +475,7 @@ final class AdminStoreController
 
         $stats = $this->storeStatsService->storeStats($storeId, $period, $minShiftMin, $maxShiftMin);
 
-        return Response::html($this->view->render('analytics.store-stats', array_merge($stats, [
+        return response($this->view->render('analytics.store-stats', array_merge($stats, [
             'title'        => 'Statistiques — ' . ($store['name'] ?? ''),
             'store'        => $store,
             'currency'     => $store['currency'] ?? 'EUR',
@@ -486,7 +486,7 @@ final class AdminStoreController
 
     public function storeStatsExport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -567,12 +567,12 @@ final class AdminStoreController
         ], $storeId);
 
         $filename = 'stats-' . preg_replace('/[^a-z0-9]+/i', '-', $name) . '-' . $since . '.csv';
-        return Response::csv($csv, $filename);
+        return response()->csv($csv, $filename);
     }
 
     public function storeProfitability(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->assertStoreAccess($request, $storeId);
         // Sans fournisseur de ventes actif (daily-report), la page n'a rien à montrer : elle n'est pas proposée.
         if (!Sales::current()->available()) {
@@ -594,7 +594,7 @@ final class AdminStoreController
         $data     = $this->storeStatsService->storeProfitability($storeId, $from, $to);
         $currency = currency_symbol($store['currency'] ?? 'EUR', store_currency_style($store));
 
-        return Response::html($this->view->render('analytics.store-profitability', array_merge($data, [
+        return response($this->view->render('analytics.store-profitability', array_merge($data, [
             'title'    => 'Rentabilité — ' . ($store['name'] ?? ''),
             'store'    => $store,
             'currency' => $currency,
@@ -609,8 +609,8 @@ final class AdminStoreController
 
     public function employeeStats(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
-        $userId  = (int) $request->param('uid');
+        $storeId = (int) $request->route('id');
+        $userId  = (int) $request->route('uid');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -634,7 +634,7 @@ final class AdminStoreController
 
         $empName        = trim(($user['last_name'] ?? '') . ' ' . ($user['first_name'] ?? '')) ?: ($user['email'] ?? '');
 
-        return Response::html($this->view->render('staff.employee-stats', array_merge($data, [
+        return response($this->view->render('staff.employee-stats', array_merge($data, [
             'title'           => 'Statistiques — ' . $empName,
             'store'           => $store,
             'user'            => $user,
@@ -645,7 +645,7 @@ final class AdminStoreController
 
     public function employeeReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -656,7 +656,7 @@ final class AdminStoreController
         $period = max(7, min(365, (int) ($request->query('period') ?? 30)));
         $data   = $this->storeStatsService->employeeReport($storeId, $period);
 
-        return Response::html($this->view->render('staff.employee-report', array_merge($data, [
+        return response($this->view->render('staff.employee-report', array_merge($data, [
             'title'    => 'Rapport employés — ' . ($store['name'] ?? ''),
             'store'    => $store,
             'currency' => $store['currency'] ?? 'EUR',

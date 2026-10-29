@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Core;
 use kintai\Core\Container;
 use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\OldInput;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\SessionFlash;
 use kintai\Core\ValidationFeedback;
 use PHPUnit\Framework\TestCase;
@@ -35,13 +35,13 @@ final class ValidationFeedbackTest extends TestCase
 
     private function request(string $method, array $post, ?string $referer): Request
     {
-        $_SERVER = ['REQUEST_METHOD' => $method, 'REQUEST_URI' => '/Kintai/admin/stores/1/edit', 'SCRIPT_NAME' => '/Kintai/index.php',
+        $_SERVER = ['REQUEST_METHOD' => $method, 'REQUEST_URI' => '/Kintai/admin/stores/1/edit', 'SCRIPT_NAME' => '/Kintai/index.php', 'SCRIPT_FILENAME' => '/srv/Kintai/index.php', 'PHP_SELF' => '/Kintai/index.php',
             'HTTP_HOST' => 'kintai.test'];
         if ($referer !== null) {
             $_SERVER['HTTP_REFERER'] = $referer;
         }
         $_POST = $post;
-        $request = new Request();
+        $request = Request::capture();
         Container::getInstance()->instance(Request::class, $request);
         return $request;
     }
@@ -54,8 +54,8 @@ final class ValidationFeedbackTest extends TestCase
 
         $response = ValidationFeedback::redirectBack($e, $request);
 
-        $this->assertSame(303, $response?->status());
-        $this->assertSame('http://kintai.test/Kintai/admin/stores/1/edit', $response->headers()['Location']);
+        $this->assertSame(303, $response?->getStatusCode());
+        $this->assertSame('http://kintai.test/Kintai/admin/stores/1/edit', $response->headers->get('Location'));
         $this->assertSame([['type' => 'danger', 'text' => 'URL du magasin invalide']], SessionFlash::pull());
         $old = OldInput::pull();
         $this->assertSame('/Kintai/admin/stores/1/edit', $old['action']);

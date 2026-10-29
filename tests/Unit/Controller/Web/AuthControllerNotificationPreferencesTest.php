@@ -19,7 +19,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\AvatarImageOptimizer;
 use kintai\Core\Services\NotificationPreferenceService;
@@ -107,10 +107,9 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
         $_POST = [];
     }
 
-    private function location(\kintai\Core\Response $response): string
+    private function location(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $headers = new \ReflectionProperty($response, 'headers');
-        return (string) ($headers->getValue($response)['Location'] ?? '');
+        return (string) (kintai_test_headers($response)['Location'] ?? '');
     }
 
     public function testSavesCheckedBoxesAsDeviationsAndQuietHours(): void
@@ -124,9 +123,9 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
             'quiet_end'     => '07:00',
         ];
 
-        $response = $this->controller->saveNotificationPreferences(new Request());
+        $response = $this->controller->saveNotificationPreferences(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('tab=notifications', $this->location($response));
         $this->assertStringContainsString('success=saved', $this->location($response));
         $rows = NotificationPreference::orderBy('channel')->get(['type', 'channel', 'enabled'])->toArray();
@@ -147,7 +146,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
             'shown' => ['shift_assigned', 'shift_deleted'],
         ];
 
-        $this->controller->saveNotificationPreferences(new Request());
+        $this->controller->saveNotificationPreferences(Request::capture());
 
         // shift_deleted (affiché, décoché) : push et e-mail coupés ; shift_updated (non affiché) : inchangé.
         $this->assertSame(
@@ -160,7 +159,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
     {
         $_POST = ['quiet_start' => '22:00', 'quiet_end' => '07:00'];
 
-        $this->controller->saveNotificationPreferences(new Request());
+        $this->controller->saveNotificationPreferences(Request::capture());
 
         // 5 types du Core, tout décoché : écart partout où le défaut était « activé » (5 push + 3 e-mails).
         $this->assertSame(8,NotificationPreference::where('enabled', false)->count());
@@ -171,7 +170,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
     {
         $_POST = ['push' => [], 'quiet_enabled' => '1', 'quiet_start' => '10:00', 'quiet_end' => '10:00'];
 
-        $response = $this->controller->saveNotificationPreferences(new Request());
+        $response = $this->controller->saveNotificationPreferences(Request::capture());
 
         $this->assertStringContainsString('error=quiet_hours_invalid', $this->location($response));
         $this->assertSame(0, NotificationPreference::count());
@@ -181,8 +180,8 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
     {
         $_POST = ['push' => [['x'], 'shift_assigned'], 'email' => 'texte'];
 
-        $response = $this->controller->saveNotificationPreferences(new Request());
+        $response = $this->controller->saveNotificationPreferences(Request::capture());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 }

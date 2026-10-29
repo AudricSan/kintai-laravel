@@ -13,7 +13,7 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppResetService;
 use kintai\Core\Services\BackupService;
 use kintai\UI\Controller\Web\System\AppResetController;
@@ -115,16 +115,14 @@ final class AppResetControllerTest extends TestCase
 
     private function requestAs(bool $isOwner): Request
     {
-        $request = new Request();
-        $request->setAttribute('auth_user', ['id' => 1, 'email' => 'owner@test.com', 'is_admin' => $isOwner]);
+        $request = Request::capture();
+        $request->attributes->set('auth_user', ['id' => 1, 'email' => 'owner@test.com', 'is_admin' => $isOwner]);
         return $request;
     }
 
-    private function locationOf(\kintai\Core\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     // Le rejet non-Owner est désormais couvert par OwnerOnlyMiddlewareTest
@@ -136,7 +134,7 @@ final class AppResetControllerTest extends TestCase
 
         $response = $this->controller->prepare($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=invalid_reset_mode', $this->locationOf($response));
         $this->assertCount(0, glob($this->tmpDir . '/storage/backups/*.zip') ?: [], 'aucune sauvegarde ne doit être créée pour un mode invalide');
     }
@@ -147,7 +145,7 @@ final class AppResetControllerTest extends TestCase
 
         $response = $this->controller->prepare($this->requestAs(true));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertCount(1, glob($this->tmpDir . '/storage/backups/*.zip') ?: [], 'la sauvegarde doit avoir été créée avant la page de confirmation');
     }
 
@@ -160,7 +158,7 @@ final class AppResetControllerTest extends TestCase
 
         $response = $this->controller->execute($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=reset_backup_missing', $this->locationOf($response));
         $this->assertSame(1, Capsule::table('users')->count(), 'rien ne doit être vidé si la sauvegarde est manquante');
     }
@@ -172,7 +170,7 @@ final class AppResetControllerTest extends TestCase
 
         $response = $this->controller->execute($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=reset_data', $this->locationOf($response));
         $this->assertSame(1, Capsule::table('users')->count(), 'users doit être conservé en mode données');
         $this->assertFileExists($this->tmpDir . '/storage/installed.lock');
@@ -186,7 +184,7 @@ final class AppResetControllerTest extends TestCase
 
         $response = $this->controller->execute($this->requestAs(true));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('/', $this->locationOf($response));
         $this->assertSame(0, Capsule::table('users')->count(), 'users doit être vidé en mode usine');
         $this->assertFalse(session()->has('auth_user_id'), 'la session doit être détruite après un reset usine');

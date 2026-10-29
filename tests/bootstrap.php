@@ -13,6 +13,21 @@ $app = $GLOBALS["kintai_test_app"] = require dirname(__DIR__) . "/bootstrap/stan
 $app->loadEnvironmentFrom('.env.testing');
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+// Aide des tests : en-têtes d'une réponse sous forme de tableau « Nom => valeur ».
+function kintai_test_headers(object $response): array
+{
+    if ($response instanceof kintai\Core\Response) {
+        return $response->headers();
+    }
+
+    $headers = [];
+    foreach ($response->headers->allPreserveCaseWithoutCookies() as $name => $values) {
+        $headers[$name] = implode(', ', $values);
+    }
+
+    return $headers;
+}
+
 // Aide des tests : donne à une requête construite à la main les paramètres qu'une route Laravel lui aurait donnés.
 Illuminate\Http\Request::macro('setRouteParams', function (array $params): void {
     /** @var Illuminate\Http\Request $this */

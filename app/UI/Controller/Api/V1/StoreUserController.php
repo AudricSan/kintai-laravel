@@ -11,8 +11,8 @@ use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 
 final class StoreUserController
@@ -29,7 +29,7 @@ final class StoreUserController
     /** Un gestionnaire non-Owner ne désactive ni ne supprime sa propre adhésion (voir OwnerGuard). */
     private function assertNotSelf(Request $request, int $targetUserId): void
     {
-        $callerId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $callerId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($this->ownerGuard !== null) {
             $this->ownerGuard->assertNotSelfUnlessOwner($callerId, $targetUserId);
         } elseif ($callerId === $targetUserId) {
@@ -40,16 +40,16 @@ final class StoreUserController
     /** GET /api/v1/stores/{store_id}/members */
     public function index(Request $request): Response
     {
-        $storeId = (int) $request->param('store_id');
+        $storeId = (int) $request->route('store_id');
         $this->requireStore($storeId);
-        return Response::json($this->storeUsers->findByStore($storeId));
+        return response()->json($this->storeUsers->findByStore($storeId));
     }
 
     /** GET /api/v1/stores/{store_id}/members/{id} */
     public function show(Request $request): Response
     {
-        $storeId = (int) $request->param('store_id');
-        $id      = (int) $request->param('id');
+        $storeId = (int) $request->route('store_id');
+        $id      = (int) $request->route('id');
         $this->requireStore($storeId);
 
         $member = $this->storeUsers->findById($id);
@@ -57,15 +57,15 @@ final class StoreUserController
             throw new NotFoundException(__('error_member_not_found'));
         }
 
-        return Response::json($member);
+        return response()->json($member);
     }
 
     /** POST /api/v1/stores/{store_id}/members */
     public function store(Request $request): Response
     {
-        $storeId = (int) $request->param('store_id');
+        $storeId = (int) $request->route('store_id');
         $this->requireStore($storeId);
-        $data   = array_merge($this->allowedFields($request->json() ?? []), ['store_id' => $storeId]);
+        $data   = array_merge($this->allowedFields($request->json()->all() ?? []), ['store_id' => $storeId]);
 
         // `user_id` obligatoire, existant et pas déjà membre : sans cela un POST
         // créait des lignes orphelines ou en double.
@@ -79,14 +79,14 @@ final class StoreUserController
 
         $saved  = $this->storeUsers->save($data);
         $this->auditLogger->log($request, 'store_user.created', 'store_user', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeId);
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** PUT /api/v1/stores/{store_id}/members/{id} */
     public function update(Request $request): Response
     {
-        $storeId = (int) $request->param('store_id');
-        $id      = (int) $request->param('id');
+        $storeId = (int) $request->route('store_id');
+        $id      = (int) $request->route('id');
         $this->requireStore($storeId);
 
         $existing = $this->storeUsers->findById($id);
@@ -95,12 +95,12 @@ final class StoreUserController
         }
 
         // `user_id` et `store_id` sont immuables : une adhésion ne change ni de personne ni de magasin.
-        $data = $this->allowedFields($request->json() ?? []);
+        $data = $this->allowedFields($request->json()->all() ?? []);
         unset($data['user_id']);
         if (array_key_exists('is_active', $data) && empty($data['is_active']) && !empty($existing['is_active'] ?? 1)) {
             $this->assertNotSelf($request, (int) $existing['user_id']);
         }
-        return Response::json($this->storeUsers->save(array_merge($existing, $data, ['id' => $id, 'store_id' => $storeId])));
+        return response()->json($this->storeUsers->save(array_merge($existing, $data, ['id' => $id, 'store_id' => $storeId])));
     }
 
     /**
@@ -121,8 +121,8 @@ final class StoreUserController
     /** DELETE /api/v1/stores/{store_id}/members/{id} */
     public function destroy(Request $request): Response
     {
-        $storeId = (int) $request->param('store_id');
-        $id      = (int) $request->param('id');
+        $storeId = (int) $request->route('store_id');
+        $id      = (int) $request->route('id');
         $this->requireStore($storeId);
 
         $existing = $this->storeUsers->findById($id);
@@ -134,7 +134,7 @@ final class StoreUserController
 
         $this->storeUsers->delete($id);
         $this->auditLogger->log($request, 'store_user.deleted', 'store_user', resourceId: $id, storeId: $storeId);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function requireStore(int $id): void

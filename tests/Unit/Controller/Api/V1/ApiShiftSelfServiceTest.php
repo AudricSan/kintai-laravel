@@ -8,7 +8,7 @@ use kintai\Core\Auth\PermissionService;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Api\V1\ShiftController;
 use PHPUnit\Framework\TestCase;
@@ -50,10 +50,10 @@ final class ApiShiftSelfServiceTest extends TestCase
     private function ids(int $caller, array $query): array
     {
         $_GET = $query;
-        $request = new Request();
+        $request = Request::capture();
         $_GET = [];
-        $request->setAttribute('auth_user', ['id' => $caller]);
-        return array_map(fn($s) => (int) $s['id'], json_decode($this->controller()->index($request)->body(), true)['data']);
+        $request->attributes->set('auth_user', ['id' => $caller]);
+        return array_map(fn($s) => (int) $s['id'], json_decode($this->controller()->index($request)->getContent(), true)['data']);
     }
 
     public function testAnEmployeeReadsTheirOwnShiftsInEveryStore(): void

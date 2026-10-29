@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Setup;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 
 /**
  * Une étape de configuration de l'assistant (/admin/setup) qui suit l'installateur. L'ordre des étapes, leur état

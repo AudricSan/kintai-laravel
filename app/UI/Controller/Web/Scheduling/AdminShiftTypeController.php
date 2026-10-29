@@ -8,9 +8,9 @@ use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Validation\ColorRule;
-use kintai\Core\Response;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Web\HasAdminAccess;
 use kintai\UI\ViewRenderer;
@@ -63,7 +63,7 @@ final class AdminShiftTypeController
             }
         }
 
-        return Response::html($this->view->render('scheduling.shift-types', [
+        return response($this->view->render('scheduling.shift-types', [
             'title'          => 'Types de shifts',
             'shift_types'    => $types,
             'type_store_ids' => $typeStoreIds,
@@ -75,7 +75,7 @@ final class AdminShiftTypeController
 
     public function createShiftType(Request $request): Response
     {
-        return Response::html($this->view->render('scheduling.shift-types-form', [
+        return response($this->view->render('scheduling.shift-types-form', [
             'title'              => 'Nouveau type de shift',
             'mode'               => 'create',
             'shift_type'         => [],
@@ -89,7 +89,7 @@ final class AdminShiftTypeController
         ColorRule::assert($request->post('color', '#6366f1'));
         $storeIds = $this->postedStoreIds($request);
         if ($storeIds === []) {
-            return Response::redirect($this->base() . '/admin/shift-types/create?error=store_required');
+            return redirect()->away($this->base() . '/admin/shift-types/create?error=store_required');
         }
         $this->assertAnyStoreAccess($request, $storeIds);
 
@@ -106,12 +106,12 @@ final class AdminShiftTypeController
 
         $this->auditLogger->log($request, 'shift_type.created', 'shift_type', (int) ($savedType['id'] ?? 0), ['code' => $request->post('code', ''), 'name' => $request->post('name', '')], $storeIds[0]);
 
-        return Response::redirect($this->base() . '/admin/shift-types?success=created');
+        return redirect()->away($this->base() . '/admin/shift-types?success=created');
     }
 
     public function editShiftType(Request $request): Response
     {
-        $type = $this->shiftTypes->findById((int) $request->param('id'));
+        $type = $this->shiftTypes->findById((int) $request->route('id'));
         if ($type === null) {
             throw new NotFoundException(__('error_shift_type_not_found'));
         }
@@ -119,7 +119,7 @@ final class AdminShiftTypeController
         $this->assertAnyStoreAccess($request, $storeIds);
         $this->assertManagesEveryStore($request, $storeIds);
 
-        return Response::html($this->view->render('scheduling.shift-types-form', [
+        return response($this->view->render('scheduling.shift-types-form', [
             'title'              => 'Modifier ' . htmlspecialchars($type['name'] ?? ''),
             'mode'               => 'edit',
             'shift_type'         => $type,
@@ -130,7 +130,7 @@ final class AdminShiftTypeController
 
     public function updateShiftType(Request $request): Response
     {
-        $type = $this->shiftTypes->findById((int) $request->param('id'));
+        $type = $this->shiftTypes->findById((int) $request->route('id'));
         if ($type === null) {
             throw new NotFoundException(__('error_shift_type_not_found'));
         }
@@ -140,7 +140,7 @@ final class AdminShiftTypeController
 
         $submittedStoreIds = $this->postedStoreIds($request);
         if ($submittedStoreIds === []) {
-            return Response::redirect($this->base() . '/admin/shift-types/' . $type['id'] . '/edit?error=store_required');
+            return redirect()->away($this->base() . '/admin/shift-types/' . $type['id'] . '/edit?error=store_required');
         }
 
         // Un gestionnaire de store ne voit dans son formulaire que les stores qu'il
@@ -172,7 +172,7 @@ final class AdminShiftTypeController
 
         $this->auditLogger->logUpdate($request, 'shift_type.updated', 'shift_type', (int) $type['id'], $type, $newData, [], $submittedStoreIds[0] ?? null);
 
-        return Response::redirect($this->base() . '/admin/shift-types?success=updated');
+        return redirect()->away($this->base() . '/admin/shift-types?success=updated');
     }
 
     /**
@@ -195,7 +195,7 @@ final class AdminShiftTypeController
 
     public function deleteShiftType(Request $request): Response
     {
-        $id   = (int) $request->param('id');
+        $id   = (int) $request->route('id');
         $type = $this->shiftTypes->findById($id);
         $storeIds = $type !== null ? $this->shiftTypes->getStoreIds($id) : [];
         if ($type !== null) {
@@ -204,12 +204,12 @@ final class AdminShiftTypeController
         }
         $this->shiftTypes->delete($id);
         $this->auditLogger->log($request, 'shift_type.deleted', 'shift_type', $id, ['code' => $type['code'] ?? '', 'name' => $type['name'] ?? ''], $storeIds[0] ?? null);
-        return Response::redirect($this->base() . '/admin/shift-types?success=deleted');
+        return redirect()->away($this->base() . '/admin/shift-types?success=deleted');
     }
 
     public function toggleShiftTypeStore(Request $request): Response
     {
-        $id   = (int) $request->param('id');
+        $id   = (int) $request->route('id');
         $type = $this->shiftTypes->findById($id);
         if ($type === null) {
             throw new NotFoundException(__('error_shift_type_not_found'));
@@ -223,7 +223,7 @@ final class AdminShiftTypeController
         if (!$enabled) {
             $remaining = array_diff($this->shiftTypes->getStoreIds($id), [$storeId]);
             if ($remaining === []) {
-                return Response::redirect($this->base() . '/admin/shift-types?error=store_required');
+                return redirect()->away($this->base() . '/admin/shift-types?error=store_required');
             }
             $this->shiftTypes->disableForStore($id, $storeId);
         } else {
@@ -239,7 +239,7 @@ final class AdminShiftTypeController
             $storeId,
         );
 
-        return Response::redirect($this->base() . '/admin/shift-types?success=' . ($enabled ? 'store_enabled' : 'store_disabled'));
+        return redirect()->away($this->base() . '/admin/shift-types?success=' . ($enabled ? 'store_enabled' : 'store_disabled'));
     }
 
     /** @return int[] */

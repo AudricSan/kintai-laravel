@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Setup;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\PublicUrlResolver;
 

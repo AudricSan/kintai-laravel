@@ -9,7 +9,7 @@ use kintai\Core\Cron\CronRunner;
 use kintai\Core\Cron\NotificationPurgeJob;
 use kintai\Core\Repositories\DatabaseNotificationRepository;
 use kintai\Core\Repositories\DatabaseWebPushSubscriptionRepository;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Domain\Eloquent\Notification;
 use kintai\Domain\Eloquent\WebPushSubscription;
@@ -98,7 +98,7 @@ final class NotificationPurgeJobTest extends TestCase
         $recentRead = $this->notification(1, 10);
         $oldUnread  = $this->notification(1, null, 400);
 
-        $response = json_decode($this->job()->run(new Request())->body(), true);
+        $response = json_decode($this->job()->run(Request::capture())->getContent(), true);
 
         $this->assertTrue($response['ok']);
         $this->assertSame(90, $response['retention_days']);
@@ -113,11 +113,11 @@ final class NotificationPurgeJobTest extends TestCase
         $this->notification(1, 20);
         $this->notification(1, 5);
 
-        $this->job(['notifications_retention_days' => '14'])->run(new Request());
+        $this->job(['notifications_retention_days' => '14'])->run(Request::capture());
         $this->assertSame(1, Notification::count(), 'lue depuis 20 jours > 14 : supprimée ; 5 jours : conservée');
 
         $this->notification(1, 8);
-        $this->job(['notifications_retention_days' => '1'])->run(new Request());
+        $this->job(['notifications_retention_days' => '1'])->run(Request::capture());
         $this->assertSame(1, Notification::count(), 'une valeur sous le minimum est ramenée à 7 jours : celle de 8 jours est supprimée, celle de 5 jours reste');
     }
 
@@ -148,7 +148,7 @@ final class NotificationPurgeJobTest extends TestCase
         $neverUsedNew = $this->subscription('https://push.example/never-new', null, 5);
         $active      = $this->subscription('https://push.example/active', 3, 400);
 
-        $response = json_decode($this->job()->run(new Request())->body(), true);
+        $response = json_decode($this->job()->run(Request::capture())->getContent(), true);
 
         $this->assertSame(2, $response['subscriptions_deleted']);
         $this->assertNull(WebPushSubscription::find($dead));

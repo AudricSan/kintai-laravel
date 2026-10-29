@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace kintai\UI\Controller\Web;
 
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Exceptions\ForbiddenException;
 
 trait HasAdminAccess
 {
     protected function managedIds(Request $request): ?array
     {
-        return $request->getAttribute('managed_store_ids');
+        return $request->attributes->get('managed_store_ids');
     }
 
     protected function availableStores(?array $managedIds): array
@@ -25,7 +25,7 @@ trait HasAdminAccess
 
     protected function assertStoreAccess(Request $request, int $storeId): void
     {
-        $managedIds = $request->getAttribute('managed_store_ids');
+        $managedIds = $request->attributes->get('managed_store_ids');
         if ($managedIds !== null && !in_array($storeId, $managedIds, true)) {
             throw new ForbiddenException(__('error_not_store_manager'));
         }
@@ -38,7 +38,7 @@ trait HasAdminAccess
      */
     protected function assertAnyStoreAccess(Request $request, array $storeIds): void
     {
-        $managedIds = $request->getAttribute('managed_store_ids');
+        $managedIds = $request->attributes->get('managed_store_ids');
         if ($managedIds === null) {
             return;
         }

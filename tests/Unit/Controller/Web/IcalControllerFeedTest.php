@@ -18,7 +18,7 @@ use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\Log;
@@ -86,7 +86,7 @@ final class IcalControllerFeedTest extends TestCase
 
     private function request(): Request
     {
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['token' => 'tok', 'store_id' => '3']);
         return $req;
     }
@@ -114,7 +114,7 @@ final class IcalControllerFeedTest extends TestCase
         $this->users->method('findById')->willReturnCallback(fn($a0) => $a0 === 9 ? ['id' => 9, 'is_active' => 1] : null);
         $this->storeUsers->method('findMembership')->willReturnCallback(fn($a0, $a1) => $a0 === 3 && $a1 === 9 ? ['id' => 1] : null);
 
-        $this->assertSame(200, $this->controller->feed($this->request())->status());
+        $this->assertSame(200, $this->controller->feed($this->request())->getStatusCode());
     }
 
     /** L'ETag ignore DTSTAMP : un client dont l'agenda n'a pas changé reçoit un 304 au lieu du flux complet. */
@@ -124,7 +124,7 @@ final class IcalControllerFeedTest extends TestCase
         $this->storeUsers->method('findMembership')->willReturn(['id' => 1]);
 
         $first = $this->controller->feed($this->request());
-        $etag = $first->headers()['ETag'] ?? '';
+        $etag = $first->headers->get('ETag') ?? '';
         $this->assertNotSame('', $etag);
 
         $_SERVER['HTTP_IF_NONE_MATCH'] = $etag;
@@ -135,8 +135,8 @@ final class IcalControllerFeedTest extends TestCase
             unset($_SERVER['HTTP_IF_NONE_MATCH']);
         }
 
-        $this->assertSame(304, $second->status());
-        $this->assertSame('', $second->body());
-        $this->assertSame(200, $this->controller->feed($this->request())->status(), 'sans If-None-Match : flux complet');
+        $this->assertSame(304, $second->getStatusCode());
+        $this->assertSame('', $second->getContent());
+        $this->assertSame(200, $this->controller->feed($this->request())->getStatusCode(), 'sans If-None-Match : flux complet');
     }
 }

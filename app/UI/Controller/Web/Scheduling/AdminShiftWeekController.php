@@ -10,8 +10,8 @@ use kintai\Core\Repositories\ShiftWeekTemplateRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\Core\Services\NotificationService;
@@ -115,14 +115,14 @@ final class AdminShiftWeekController
     {
         $storeId ??= (int) $request->post('store_id', 0);
         $this->assertStoreAccess($request, $storeId);
-        $this->permissions->requireOnStore($request->getAttribute('auth_user') ?? [], $permission, $storeId);
+        $this->permissions->requireOnStore($request->attributes->get('auth_user') ?? [], $permission, $storeId);
         return $storeId;
     }
 
     /** @return array{id: int, store_id: int, name: string, entries: list<array<string, mixed>>, created_by: ?int} */
     private function template(Request $request): array
     {
-        $template = $this->templates->findById((int) $request->param('id'));
+        $template = $this->templates->findById((int) $request->route('id'));
         if ($template === null) {
             throw new NotFoundException(__('error_resource_not_found'));
         }
@@ -137,7 +137,7 @@ final class AdminShiftWeekController
 
     private function authId(Request $request): ?int
     {
-        $id = (int) (($request->getAttribute('auth_user') ?? [])['id'] ?? 0);
+        $id = (int) (($request->attributes->get('auth_user') ?? [])['id'] ?? 0);
         return $id > 0 ? $id : null;
     }
 
@@ -205,6 +205,6 @@ final class AdminShiftWeekController
         $back = safe_redirect_path((string) $request->post('redirect_to', ''), '')
             ?: $this->base() . '/admin/shifts/timeline?store_id=' . $storeId;
         $sep  = str_contains($back, '?') ? '&' : '?';
-        return Response::redirect($back . $sep . http_build_query($params));
+        return redirect()->away($back . $sep . http_build_query($params));
     }
 }

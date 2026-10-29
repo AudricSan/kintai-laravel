@@ -21,7 +21,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\Log;
@@ -109,9 +109,9 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
     private function request(array $post): Request
     {
         $_POST = $post;
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => (string) self::TARGET_ID]);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => false]);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => false]);
         return $req;
     }
 

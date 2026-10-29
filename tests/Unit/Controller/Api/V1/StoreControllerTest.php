@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Controller\Api\V1;
 use kintai\Tests\Support\ApiOwnerAuth;
 use kintai\Core\Exceptions\PlanLimitExceededException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\Core\Services\StoreServiceInterface;
@@ -46,10 +46,8 @@ final class StoreControllerTest extends TestCase
 
     private function makeJsonRequest(array $body): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $body);
+        $req = ApiOwnerAuth::owner(Request::capture());
+        $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($body));
         return $req;
     }
 
@@ -64,7 +62,7 @@ final class StoreControllerTest extends TestCase
 
         $response = $this->controller()->store($this->makeJsonRequest(['code' => 'ST01', 'name' => 'Store A']));
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     public function testStorePropagatesPlanLimitException(): void
@@ -143,7 +141,7 @@ final class StoreControllerTest extends TestCase
 
         $response = $this->controller()->update($this->updateRequest(['name' => ' Tokyo Est ', 'is_active' => false, 'created_at' => 'x', 'daily_report_settings' => '{}']));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** DELETE /api/v1/stores/{id} passe par StoreService (suppression douce + rôles retirés), comme le web. */
@@ -158,6 +156,6 @@ final class StoreControllerTest extends TestCase
         $req = $this->makeJsonRequest([]);
         $req->setRouteParams(['id' => '5']);
 
-        $this->assertSame(204, $this->controller()->destroy($req)->status());
+        $this->assertSame(204, $this->controller()->destroy($req)->getStatusCode());
     }
 }

@@ -18,8 +18,8 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\LicenseClientService;
 use kintai\Core\Services\Log;
@@ -111,12 +111,12 @@ final class AdminUserControllerTest extends TestCase
 
     public function testUsersRenders(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $response = $this->controller()->users($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /**
@@ -137,12 +137,12 @@ final class AdminUserControllerTest extends TestCase
         ]);
 
         $_GET = ['search' => 'yamada'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $response = $this->controller()->users($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $_GET = [];
     }
 
@@ -154,8 +154,8 @@ final class AdminUserControllerTest extends TestCase
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->userRates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('findAll')->willReturn([
             ['id' => 5, 'employee_code' => 'E005', 'last_name' => 'Dupont', 'first_name' => 'Jean',
@@ -169,9 +169,9 @@ final class AdminUserControllerTest extends TestCase
         $this->shiftTypes->method('findAll')->willReturn([['id' => 2, 'name' => 'Salle']]);
 
         $response = $this->controller()->exportUsersJson($req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
 
-        $data = json_decode($response->body(), true)['data'];
+        $data = json_decode($response->getContent(), true)['data'];
         $this->assertCount(1, $data);
         $this->assertSame('E005', $data[0]['employee_code']);
         $this->assertSame('jean@test.com', $data[0]['email']);
@@ -185,8 +185,8 @@ final class AdminUserControllerTest extends TestCase
     public function testExportUsersJsonRespectsStoreFilter(): void
     {
         $_GET['store_id'] = '1';
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('findAll')->willReturn([
             ['id' => 5, 'display_name' => 'In Store', 'email' => 'a@test.com', 'is_active' => 1],
@@ -201,7 +201,7 @@ final class AdminUserControllerTest extends TestCase
         $this->shiftTypes->method('findAll')->willReturn([]);
 
         $response = $this->controller()->exportUsersJson($req);
-        $data = json_decode($response->body(), true)['data'];
+        $data = json_decode($response->getContent(), true)['data'];
 
         $this->assertCount(1, $data);
         $this->assertSame('In Store', $data[0]['display_name']);
@@ -212,8 +212,8 @@ final class AdminUserControllerTest extends TestCase
         // mPDF lit $_SERVER['PHP_SELF'], absent en environnement CLI/tests.
         $_SERVER['PHP_SELF'] ??= '/index.php';
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([]);
@@ -221,8 +221,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->exportUsersPdf($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringNotContainsString('%PDF', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringNotContainsString('%PDF', $response->getContent());
     }
 
     public function testExportUsersPdfDownloadReturnsPdfResponse(): void
@@ -230,8 +230,8 @@ final class AdminUserControllerTest extends TestCase
         // mPDF lit $_SERVER['PHP_SELF'], absent en environnement CLI/tests.
         $_SERVER['PHP_SELF'] ??= '/index.php';
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([]);
@@ -239,15 +239,15 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->exportUsersPdfDownload($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringStartsWith('%PDF', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
     public function testEditUserRenders(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => 1]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'email' => 'test@test.com']);
@@ -256,7 +256,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->editUser($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testEditUserLogsProfileConsultation(): void
@@ -264,8 +264,8 @@ final class AdminUserControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->logRepo = $this->createMock(LogRepositoryInterface::class);
         $this->registerLogRepository();
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => 5]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@test.com']);
@@ -281,7 +281,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->editUser($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -301,14 +301,14 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ドウ',
             'furigana_first_name' => 'ジョン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('save')->willReturn(['id' => 7, 'display_name' => 'John Doe']);
 
         $response = $this->controller()->quickCreateUser($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['success']);
         $this->assertSame(7, $data['user']['id']);
     }
@@ -328,8 +328,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->quickCreateUser($req);
 
-        $this->assertSame(403, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(403, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
         $this->assertSame('plan_limit_employees', $data['error']);
     }
@@ -343,8 +343,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->quickCreateUser($req);
 
-        $this->assertSame(422, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(422, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
     }
 
@@ -362,8 +362,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->quickCreateUser($req);
 
-        $this->assertSame(422, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(422, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
         $this->assertSame('furigana_required', $data['error']);
     }
@@ -379,7 +379,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'スミス',
             'furigana_first_name' => 'ジェーン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $captured = null;
         $this->users->method('save')->willReturnCallback(function (array $d) use (&$captured) {
@@ -404,7 +404,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'スミス',
             'furigana_first_name' => 'ジェーン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('findByEmail')->willReturn(null);
         $captured = null;
@@ -438,8 +438,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->quickCreateUser($req);
 
-        $this->assertSame(409, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(409, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
         $this->assertSame('employee_code_taken', $data['error']);
     }
@@ -468,8 +468,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->quickCreateUser($req);
 
-        $this->assertSame(409, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(409, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['success']);
         $this->assertSame('email_taken', $data['error']);
     }
@@ -485,7 +485,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ジョン',
             'furigana_first_name' => 'ジョン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $captured = null;
         $this->users->method('save')->willReturnCallback(function (array $d) use (&$captured) {
@@ -513,7 +513,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ジョン',
             'furigana_first_name' => 'ジョン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('save')->willReturn(['id' => 10, 'display_name' => 'John']);
         $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
@@ -553,7 +553,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ジョン',
             'furigana_first_name' => 'ジョン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('save')->willReturn(['id' => 10, 'display_name' => 'John']);
         $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(null);
@@ -580,7 +580,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ジョン',
             'furigana_first_name' => 'ジョン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->users->method('save')->willReturn(['id' => 10, 'display_name' => 'John']);
         $this->roles->method('findAll')->willReturn([
@@ -622,7 +622,7 @@ final class AdminUserControllerTest extends TestCase
         ]);
         // Requérant Owner : seul un Owner peut créer un autre compte Owner
         // (voir testQuickCreateUserIgnoresIsAdminWhenRequesterIsNotOwner).
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('save')->willReturn(['id' => 11, 'display_name' => 'Jane']);
         $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
@@ -652,7 +652,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ジェーン',
             'furigana_first_name' => 'ジェーン',
         ]);
-        $req->setAttribute('auth_user', ['id' => 2, 'is_admin' => false]);
+        $req->attributes->set('auth_user', ['id' => 2, 'is_admin' => false]);
 
         $this->users->method('save')->willReturn(['id' => 12, 'display_name' => 'Jane']);
         $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
@@ -682,10 +682,10 @@ final class AdminUserControllerTest extends TestCase
             'role_id'      => '1',
             'store_id'     => '3',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
         // Requérant Owner : seul un Owner peut créer un autre compte Owner
         // (voir testStoreUserIgnoresOwnerRoleSelectionWhenRequesterIsNotOwner).
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->roles->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
         $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
@@ -724,8 +724,8 @@ final class AdminUserControllerTest extends TestCase
             'furigana_first_name' => 'ジェーン',
             'role_id'      => '1',
         ]);
-        $req->setAttribute('managed_store_ids', [3]);
-        $req->setAttribute('auth_user', ['id' => 2, 'is_admin' => false]);
+        $req->attributes->set('managed_store_ids', [3]);
+        $req->attributes->set('auth_user', ['id' => 2, 'is_admin' => false]);
 
         $this->roles->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
         $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
@@ -750,7 +750,7 @@ final class AdminUserControllerTest extends TestCase
             'role_id'      => '2',
             'store_id'     => '3',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
 
         $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['employees.view']);
@@ -781,7 +781,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'ドウ',
             'furigana_first_name' => 'ジョン',
         ]);
-        $req->setAttribute('managed_store_ids', null);
+        $req->attributes->set('managed_store_ids', null);
         $this->roleAssignments->method('findByUser')->willReturn([]);
 
         $captured = null;
@@ -815,7 +815,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->storeUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreUserRedirectsWithErrorOnEmailConflict(): void
@@ -831,7 +831,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->storeUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Le nom et le prénom sont désormais obligatoires à la création (formulaire principal). */
@@ -846,7 +846,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->storeUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Le furigana est désormais obligatoire à la création (formulaire principal). */
@@ -863,7 +863,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->storeUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testUpdateUserRedirectsWithErrorWhenEmailTakenByAnotherUser(): void
@@ -879,7 +879,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->updateUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Le nom et le prénom sont désormais obligatoires à l'édition, sauf s'ils sont déjà en base. */
@@ -895,7 +895,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->updateUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Le furigana est désormais obligatoire à l'édition, sauf s'il est déjà en base. */
@@ -911,7 +911,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->updateUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Un code employé déjà porté par un autre compte est refusé avec un message, pas par une erreur 500 de la base. */
@@ -928,8 +928,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->updateUser($req);
 
-        $this->assertSame(302, $response->status());
-        $this->assertStringContainsString('error=employee_code_taken', $response->headers()['Location'] ?? '');
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringContainsString('error=employee_code_taken', $response->headers->get('Location') ?? '');
     }
 
     /** Garder son propre code ne doit pas être pris pour un doublon. */
@@ -944,7 +944,7 @@ final class AdminUserControllerTest extends TestCase
         $req = $this->makePostRequest(['email' => 'me@example.com', 'employee_code' => 'EMP9', 'furigana_last_name' => 'テスト', 'furigana_first_name' => 'テスト']);
         $req->setRouteParams(['id' => 5]);
 
-        $this->assertSame(302, $this->controller()->updateUser($req)->status());
+        $this->assertSame(302, $this->controller()->updateUser($req)->getStatusCode());
     }
 
     public function testUpdateUserAllowsKeepingOwnEmailUnchanged(): void
@@ -964,7 +964,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->updateUser($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -990,7 +990,7 @@ final class AdminUserControllerTest extends TestCase
             'is_admin' => '1',
         ]);
         $req->setRouteParams(['id' => 5]);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->controller()->updateUser($req);
     }
@@ -1020,7 +1020,7 @@ final class AdminUserControllerTest extends TestCase
             'is_admin' => '1',
         ]);
         $req->setRouteParams(['id' => 5]);
-        $req->setAttribute('auth_user', ['id' => 2, 'is_admin' => false]);
+        $req->attributes->set('auth_user', ['id' => 2, 'is_admin' => false]);
 
         $this->controller()->updateUser($req);
     }
@@ -1037,8 +1037,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmployeeCode($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['available']);
     }
 
@@ -1050,8 +1050,8 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmployeeCode($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['available']);
     }
 
@@ -1074,7 +1074,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmployeeCode($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['available']);
     }
 
@@ -1086,7 +1086,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmployeeCode($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['available']);
     }
 
@@ -1102,7 +1102,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmail($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['available']);
     }
 
@@ -1114,7 +1114,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmail($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['available']);
     }
 
@@ -1126,7 +1126,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmail($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['available']);
     }
 
@@ -1138,7 +1138,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmail($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['available']);
     }
 
@@ -1150,7 +1150,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->checkEmail($req);
 
-        $data = json_decode($response->body(), true);
+        $data = json_decode($response->getContent(), true);
         $this->assertFalse($data['available']);
     }
 
@@ -1167,7 +1167,7 @@ final class AdminUserControllerTest extends TestCase
         $this->shiftTypes->method('getStoreIds')->willReturn([2]);
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => '10']);
 
         $this->userRates->expects($this->never())->method('save');
@@ -1188,14 +1188,14 @@ final class AdminUserControllerTest extends TestCase
         $this->userRates->method('findRate')->willReturn(null);
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => '10']);
 
         $this->userRates->expects($this->once())->method('save')->willReturnCallback(fn (array $d) => $d + ['id' => 1]);
 
         $response = $this->controller()->setUserRate($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testDeleteUserRateForbiddenWhenManagingNoneOfTypeStores(): void
@@ -1206,7 +1206,7 @@ final class AdminUserControllerTest extends TestCase
         $this->shiftTypes->method('getStoreIds')->willReturn([2]);
 
         $req = $this->makePostRequest([]);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['id' => '10', 'rid' => '3']);
 
         $this->userRates->expects($this->never())->method('delete');
@@ -1229,7 +1229,7 @@ final class AdminUserControllerTest extends TestCase
         $this->roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
 
         $req = $this->makePostRequest($post);
-        $req->setAttribute('auth_user', ['id' => 7, 'is_admin' => true]);
+        $req->attributes->set('auth_user', ['id' => 7, 'is_admin' => true]);
         $req->setRouteParams(['id' => (string) $targetId]);
         return $req;
     }
@@ -1256,7 +1256,7 @@ final class AdminUserControllerTest extends TestCase
 
         $response = $this->controller()->deleteUser($this->actingAsOwner(8));
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testAnOwnerCannotDeactivateThemselves(): void
@@ -1290,16 +1290,16 @@ final class AdminUserControllerTest extends TestCase
     private function makePostRequest(array $post): Request
     {
         $_POST = $post;
-        $req = new Request();
+        $req = Request::capture();
         // Demandeur par défaut ; les tests qui en ont besoin d'un autre le redéfinissent.
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => false]);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => false]);
         return $req;
     }
 
     private function makeQueryRequest(array $query): Request
     {
         $_GET = $query;
-        return new Request();
+        return Request::capture();
     }
 
     private function ensureViewFile(string $view): void

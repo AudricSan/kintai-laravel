@@ -8,8 +8,8 @@ use kintai\Core\BundleDiscoveryService;
 use kintai\Core\FeatureManager;
 use kintai\Core\LicenseServiceProvider;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\BundleActivationService;
 use kintai\Core\Services\PlanLimitService;
@@ -50,7 +50,7 @@ final class BundleSettingsController
         $maxActiveBundles = $this->planLimits->maxActiveBundles();
         $activeCount = count(array_filter($bundles, fn(array $b) => $b['enabled']));
 
-        return Response::html($this->view->render('system.bundles', [
+        return response($this->view->render('system.bundles', [
             'title'            => __('bundle_settings'),
             'bundles'          => $bundles,
             'success'          => isset($_GET['success']),
@@ -80,7 +80,7 @@ final class BundleSettingsController
         // Au-dessus du quota, seul l'ajout est refusé : l'Owner peut toujours réduire, un bundle à la fois.
         $maxActiveBundles = $this->planLimits->maxActiveBundles();
         if (!BundleActivationService::allowsChange($oldEnabled, $enabled, $maxActiveBundles)) {
-            return Response::redirect($this->base() . '/admin/bundles?error=bundle_quota_exceeded');
+            return redirect()->away($this->base() . '/admin/bundles?error=bundle_quota_exceeded');
         }
 
         $this->appSettings->set(
@@ -94,7 +94,7 @@ final class BundleSettingsController
             'enabled_bundles' => $enabled,
         ], []);
 
-        return Response::redirect($this->base() . '/admin/bundles?success=1');
+        return redirect()->away($this->base() . '/admin/bundles?success=1');
     }
 
     private function officialBundleSlugs(): array

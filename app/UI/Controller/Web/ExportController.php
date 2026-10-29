@@ -16,8 +16,8 @@ use kintai\Core\Extension\ExportDatasets;
 use kintai\Core\Repositories\ShiftRepositoryInterface;
 use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\ScheduleExportService;
@@ -58,7 +58,7 @@ final class ExportController
     {
         $user = $this->auth->user();
         if (!$user) {
-            return Response::redirect($this->base() . '/login');
+            return redirect()->away($this->base() . '/login');
         }
 
         $available = $this->access->available($user, ExportDatasets::current()->all());
@@ -79,7 +79,7 @@ final class ExportController
             $candidates = $this->selection->candidates((int) substr($target, 6));
         }
 
-        return Response::html($this->view->render('exports.index', [
+        return response($this->view->render('exports.index', [
             'title'      => __('export_title'),
             'available'  => $available,
             'dataset'    => $entry['dataset'] ?? null,
@@ -97,16 +97,16 @@ final class ExportController
     {
         $user = $this->auth->user();
         if (!$user) {
-            return Response::redirect($this->base() . '/login');
+            return redirect()->away($this->base() . '/login');
         }
 
         $dataset = ExportDatasets::current()->find((string) $request->query('dataset', ''));
         $format  = strtolower((string) $request->query('format', ''));
         if ($dataset === null || !in_array($format, [...ExportWriter::FORMATS, 'ics'], true)) {
-            return Response::redirect($this->base() . '/exports');
+            return redirect()->away($this->base() . '/exports');
         }
         if ($format === 'ics' && $dataset->key !== 'shifts') {
-            return Response::redirect($this->base() . '/exports');
+            return redirect()->away($this->base() . '/exports');
         }
 
         [$scope, $storeId] = $this->parseTarget((string) $request->query('target', ''));
@@ -122,7 +122,7 @@ final class ExportController
                 $period['from'], $period['to'], user_locale($user),
             );
         } catch (ForbiddenException) {
-            return Response::redirect($this->base() . '/exports?error=forbidden');
+            return redirect()->away($this->base() . '/exports?error=forbidden');
         }
 
         $basename = 'kintai-' . $dataset->key . ($dataset->hasPeriod ? '-' . $period['from'] . '_' . $period['to'] : '');
@@ -130,11 +130,11 @@ final class ExportController
         if ($format === 'ics') {
             $ics = $this->ics($query, $user);
             if ($ics === null) {
-                return Response::redirect($this->base() . '/exports?error=ics_scope');
+                return redirect()->away($this->base() . '/exports?error=ics_scope');
             }
             $this->trace($request, $user, $dataset, $scope, $query->storeIds, 'ics', $ics['count']);
 
-            return Response::ical($ics['body'], $basename . '.ics');
+            return response()->ical($ics['body'], $basename . '.ics');
         }
 
         $rows = [...$dataset->provider->rows($query)];

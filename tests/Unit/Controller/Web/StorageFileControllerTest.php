@@ -6,7 +6,7 @@ namespace kintai\Tests\Unit\Controller\Web;
 
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Web\StorageFileController;
 use PHPUnit\Framework\TestCase;
 
@@ -42,11 +42,11 @@ final class StorageFileControllerTest extends TestCase
 
     private function makeRequest(string $path, ?array $managedIds = null): Request
     {
-        $request = new Request();
+        $request = Request::capture();
         $request->setRouteParams(['path' => $path]);
-        $request->setAttribute('auth_user', ['id' => 1, 'is_admin' => $managedIds === null]);
+        $request->attributes->set('auth_user', ['id' => 1, 'is_admin' => $managedIds === null]);
         if ($managedIds !== null) {
-            $request->setAttribute('managed_store_ids', $managedIds);
+            $request->attributes->set('managed_store_ids', $managedIds);
         }
         return $request;
     }
@@ -55,7 +55,7 @@ final class StorageFileControllerTest extends TestCase
     {
         $response = $this->controller->serve($this->makeRequest('img/3/7/photo_1.jpg'));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testRejectsPathTraversal(): void
@@ -82,7 +82,7 @@ final class StorageFileControllerTest extends TestCase
     {
         $response = $this->controller->serve($this->makeRequest('img/3/7/photo_1.jpg', [3]));
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testManagerCannotAccessOtherStoreFile(): void
@@ -95,9 +95,8 @@ final class StorageFileControllerTest extends TestCase
     {
         $response = $this->controller->serve($this->makeRequest('img/3/7/vecteur.svg'));
 
-        $this->assertSame(200, $response->status());
-        $reflection = new \ReflectionProperty($response, 'headers');
-        $headers = $reflection->getValue($response);
+        $this->assertSame(200, $response->getStatusCode());
+        $headers = kintai_test_headers($response);
         $this->assertStringContainsString('attachment', $headers['Content-Disposition']);
         $this->assertSame('nosniff', $headers['X-Content-Type-Options']);
     }

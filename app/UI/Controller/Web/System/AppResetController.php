@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Auth\AuthService;
 use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppResetService;
 use kintai\Core\Services\BackupService;
 use kintai\UI\Controller\Web\HasBaseUrl;
@@ -38,13 +38,13 @@ final class AppResetController
 
         $mode = (string) $request->post('mode', 'data');
         if (!in_array($mode, self::MODES, true)) {
-            return Response::redirect($this->base() . '/admin/backup?error=invalid_reset_mode');
+            return redirect()->away($this->base() . '/admin/backup?error=invalid_reset_mode');
         }
         $keep = $this->validKeepCategories($request->post('keep', []));
 
         $backup = $this->backup->create('[auto] Sauvegarde avant réinitialisation (' . $mode . ')');
 
-        return Response::html($this->view->render('system.reset-confirm', [
+        return response($this->view->render('system.reset-confirm', [
             'title'          => __('reset_title'),
             'mode'           => $mode,
             'keep'           => $keep,
@@ -59,26 +59,26 @@ final class AppResetController
 
         $mode = (string) $request->post('mode', 'data');
         if (!in_array($mode, self::MODES, true)) {
-            return Response::redirect($this->base() . '/admin/backup?error=invalid_reset_mode');
+            return redirect()->away($this->base() . '/admin/backup?error=invalid_reset_mode');
         }
         $keep = $this->validKeepCategories($request->post('keep', []));
 
         $backupFilename = (string) $request->post('backup_filename', '');
         if ($backupFilename === '' || !file_exists($this->backup->getPath($backupFilename))) {
-            return Response::redirect($this->base() . '/admin/backup?error=reset_backup_missing');
+            return redirect()->away($this->base() . '/admin/backup?error=reset_backup_missing');
         }
 
-        $user = $request->getAttribute('auth_user') ?? [];
+        $user = $request->attributes->get('auth_user') ?? [];
         $this->logReset($mode, $keep, $backupFilename, (string) ($user['email'] ?? $user['id'] ?? 'unknown'));
 
         if ($mode === 'factory') {
             $this->reset->resetFactory();
             $this->auth->logout();
-            return Response::redirect($this->base() . '/');
+            return redirect()->away($this->base() . '/');
         }
 
         $this->reset->resetData($keep);
-        return Response::redirect($this->base() . '/admin/backup?success=reset_data');
+        return redirect()->away($this->base() . '/admin/backup?success=reset_data');
     }
 
     /** @return string[] */

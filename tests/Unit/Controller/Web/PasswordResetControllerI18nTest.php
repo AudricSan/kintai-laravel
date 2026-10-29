@@ -10,7 +10,7 @@ use kintai\Core\Repositories\ApiTokenRepositoryInterface;
 use kintai\Core\Repositories\PasswordResetRepositoryInterface;
 use kintai\Core\Repositories\RememberTokenRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\PasswordResetService;
@@ -76,7 +76,7 @@ final class PasswordResetControllerI18nTest extends TestCase
     private function resetRequest(string $password, string $confirm): Request
     {
         $_POST = ['password' => $password, 'password_confirmation' => $confirm];
-        $request = new Request();
+        $request = Request::capture();
         $request->setRouteParams(['token' => 'tok']);
         $_POST = [];
         return $request;
@@ -89,7 +89,7 @@ final class PasswordResetControllerI18nTest extends TestCase
 
     public function testForgotFormTitleIsATranslationKey(): void
     {
-        $body = $this->controller->showForgotForm(new Request())->body();
+        $body = $this->controller->showForgotForm(Request::capture())->getContent();
 
         $this->assertStringContainsString('TITLE=forgot_password_title', $body);
     }
@@ -97,17 +97,17 @@ final class PasswordResetControllerI18nTest extends TestCase
     public function testResetFormTitleIsATranslationKey(): void
     {
         $this->resets->method('findByToken')->willReturn($this->validRecord());
-        $request = new Request();
+        $request = Request::capture();
         $request->setRouteParams(['token' => 'tok']);
 
-        $this->assertStringContainsString('TITLE=new_password', $this->controller->showResetForm($request)->body());
+        $this->assertStringContainsString('TITLE=new_password', $this->controller->showResetForm($request)->getContent());
     }
 
     public function testTooShortPasswordErrorIsATranslationKey(): void
     {
         $this->resets->method('findByToken')->willReturn($this->validRecord());
 
-        $body = $this->controller->reset($this->resetRequest('short', 'short'))->body();
+        $body = $this->controller->reset($this->resetRequest('short', 'short'))->getContent();
 
         $this->assertStringContainsString('ERROR=reset_password_too_short', $body);
     }
@@ -116,7 +116,7 @@ final class PasswordResetControllerI18nTest extends TestCase
     {
         $this->resets->method('findByToken')->willReturn($this->validRecord());
 
-        $body = $this->controller->reset($this->resetRequest('long-enough-1', 'long-enough-2'))->body();
+        $body = $this->controller->reset($this->resetRequest('long-enough-1', 'long-enough-2'))->getContent();
 
         $this->assertStringContainsString('ERROR=password_mismatch', $body);
     }
@@ -126,7 +126,7 @@ final class PasswordResetControllerI18nTest extends TestCase
         // Jeton inconnu : la vérification finale du service échoue.
         $this->resets->method('findByToken')->willReturn(null);
 
-        $body = $this->controller->reset($this->resetRequest('long-enough-1', 'long-enough-1'))->body();
+        $body = $this->controller->reset($this->resetRequest('long-enough-1', 'long-enough-1'))->getContent();
 
         $this->assertStringContainsString('ERROR=reset_password_invalid_link', $body);
     }

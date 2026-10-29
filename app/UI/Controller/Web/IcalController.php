@@ -13,8 +13,8 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Extension\Absences;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\SchedulePublication;
@@ -41,8 +41,8 @@ final class IcalController
      */
     public function feed(Request $request): Response
     {
-        $token   = $request->param('token') ?? '';
-        $storeId = (int) ($request->param('store_id') ?? 0);
+        $token   = $request->route('token') ?? '';
+        $storeId = (int) ($request->route('store_id') ?? 0);
 
         $tokenRow = $this->icalTokens->findByToken($token);
         if (!$tokenRow || (int) $tokenRow['store_id'] !== $storeId) {
@@ -97,10 +97,10 @@ final class IcalController
         // ce qui limite la charge des relectures fréquentes.
         $etag = '"' . md5((string) preg_replace('/^DTSTAMP:.*\r?\n/m', '', $content)) . '"';
         if ($request->header('If-None-Match') === $etag) {
-            return Response::empty()->withStatus(304)->withHeader('ETag', $etag);
+            return response()->noContent()->setStatusCode(304)->header('ETag', $etag);
         }
 
-        return Response::ical($content, $filename)->withHeader('ETag', $etag);
+        return response()->ical($content, $filename)->header('ETag', $etag);
     }
 
     /**
@@ -111,11 +111,11 @@ final class IcalController
     {
         $user = $this->auth->user();
         if (!$user) {
-            return Response::redirect($this->base() . '/login');
+            return redirect()->away($this->base() . '/login');
         }
 
         $userId  = (int) $user['id'];
-        $storeId = (int) ($request->param('store_id') ?? 0);
+        $storeId = (int) ($request->route('store_id') ?? 0);
 
         $this->icalTokens->deleteByUserAndStore($userId, $storeId);
         $saved = $this->icalTokens->save([
@@ -129,7 +129,7 @@ final class IcalController
             'store_id' => $storeId,
         ], $storeId, $userId);
 
-        return Response::redirect($this->base() . '/profile?success=1');
+        return redirect()->away($this->base() . '/profile?success=1');
     }
 
 

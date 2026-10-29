@@ -10,7 +10,7 @@ use kintai\Tests\Support\ApiOwnerAuth;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\Controller\Api\V1\UserShiftRateController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -60,8 +60,8 @@ final class UserShiftRateControllerTest extends TestCase
 
         $response = $this->controller()->index($this->requestFor(['user_id' => '20']));
 
-        $this->assertSame(200, $response->status());
-        $this->assertCount(1, json_decode($response->body(), true));
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertCount(1, json_decode($response->getContent(), true));
     }
 
     public function testIndexThrowsWhenUserNotFound(): void
@@ -97,7 +97,7 @@ final class UserShiftRateControllerTest extends TestCase
         $req = $this->requestFor(['user_id' => '20'], ['shift_type_id' => 3, 'hourly_rate' => 15.5]);
         $response = $this->controller()->store($req);
 
-        $this->assertSame(201, $response->status());
+        $this->assertSame(201, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -115,7 +115,7 @@ final class UserShiftRateControllerTest extends TestCase
         $req = $this->requestFor(['user_id' => '20', 'id' => '5'], ['hourly_rate' => 20.0]);
         $response = $this->controller()->update($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testUpdateThrowsWhenRateNotFound(): void
@@ -139,7 +139,7 @@ final class UserShiftRateControllerTest extends TestCase
 
         $response = $this->controller()->destroy($this->requestFor(['user_id' => '20', 'id' => '5']));
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testDestroyThrowsWhenRateBelongsToAnotherUser(): void
@@ -153,11 +153,9 @@ final class UserShiftRateControllerTest extends TestCase
 
     private function requestFor(array $routeParams, array $json = []): Request
     {
-        $req = ApiOwnerAuth::owner(new Request());
+        $req = ApiOwnerAuth::owner(Request::capture());
         if ($json !== []) {
-            $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-            $ref->setAccessible(true);
-            $ref->setValue($req, $json);
+            $req->setJson(new \Symfony\Component\HttpFoundation\InputBag($json));
         }
         $req->setRouteParams($routeParams);
         return $req;

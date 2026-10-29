@@ -9,8 +9,8 @@ use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Extension\DashboardLayout;
 use kintai\Core\Repositories\UserDashboardPrefsRepositoryInterface;
 use kintai\Core\Repositories\UserNavPrefsRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Validation\ApiPayloadRules;
 use kintai\Core\Validation\PayloadValidator;
 
@@ -25,11 +25,11 @@ final class UserPrefsController
     /** GET /api/v1/users/{user_id}/dashboard-prefs?type=admin */
     public function getDashboardPrefs(Request $request): Response
     {
-        $userId        = (int) $request->param('user_id');
+        $userId        = (int) $request->route('user_id');
         $dashboardType = $request->query('type', 'admin') ?? 'admin';
         $this->guard->require($request, $userId, 'employees.view');
 
-        return Response::json([
+        return response()->json([
             'user_id'        => $userId,
             'dashboard_type' => $dashboardType,
             'widgets'        => $this->dashboardPrefs->getEnabledWidgets($userId, $dashboardType),
@@ -45,10 +45,10 @@ final class UserPrefsController
      */
     public function saveDashboardPrefs(Request $request): Response
     {
-        $userId        = (int) $request->param('user_id');
+        $userId        = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $payload       = $request->json() ?? [];
+        $payload       = $request->json()->all() ?? [];
         $data          = PayloadValidator::validate($payload, ApiPayloadRules::dashboardPrefs());
         $dashboardType = (string) ($data['dashboard_type'] ?? 'admin');
 
@@ -63,7 +63,7 @@ final class UserPrefsController
             $this->dashboardPrefs->saveLayout($userId, $dashboardType, $layout === null ? null : DashboardLayout::normalize($layout));
         }
 
-        return Response::json([
+        return response()->json([
             'user_id'        => $userId,
             'dashboard_type' => $dashboardType,
             'widgets'        => $this->dashboardPrefs->getEnabledWidgets($userId, $dashboardType),
@@ -74,10 +74,10 @@ final class UserPrefsController
     /** GET /api/v1/users/{user_id}/nav-prefs */
     public function getNavPrefs(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.view');
 
-        return Response::json([
+        return response()->json([
             'user_id' => $userId,
             'hidden'  => $this->navPrefs->getHidden($userId),
         ]);
@@ -86,14 +86,14 @@ final class UserPrefsController
     /** PUT /api/v1/users/{user_id}/nav-prefs */
     public function saveNavPrefs(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $data   = PayloadValidator::validate($request->json() ?? [], ApiPayloadRules::navPrefs());
+        $data   = PayloadValidator::validate($request->json()->all() ?? [], ApiPayloadRules::navPrefs());
         $hidden = $data['hidden'] ?? [];
 
         $this->navPrefs->saveHidden($userId, $hidden);
 
-        return Response::json(['user_id' => $userId, 'hidden' => $hidden]);
+        return response()->json(['user_id' => $userId, 'hidden' => $hidden]);
     }
 }

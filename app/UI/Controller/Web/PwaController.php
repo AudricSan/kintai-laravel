@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\UI\Controller\Web;
 
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class PwaController
 {
@@ -44,7 +44,7 @@ final class PwaController
             ],
         ];
 
-        return Response::json($data)->withHeader('Content-Type', 'application/manifest+json');
+        return response()->json($data)->header('Content-Type', 'application/manifest+json');
     }
 
     /**
@@ -59,6 +59,6 @@ final class PwaController
         $template = file_get_contents(BASE_PATH . '/app/Core/Templates/sw.js.tpl');
         $body = str_replace('__ASSET_VERSION__', asset_version(), $template);
 
-        return Response::html($body)->withHeader('Content-Type', 'application/javascript; charset=UTF-8');
+        return response($body)->header('Content-Type', 'application/javascript; charset=UTF-8');
     }
 }

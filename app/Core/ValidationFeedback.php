@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Core;
 
+use Illuminate\Http\Request;
 use kintai\Core\Exceptions\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Erreur de validation d'un formulaire web (audit n°8, I6, décision : retour au formulaire). Avant, une
@@ -29,9 +31,9 @@ final class ValidationFeedback
         foreach (self::messages($e) as $text) {
             SessionFlash::put('danger', $text);
         }
-        OldInput::put(base_url() . $request->uri(), $request->allPost());
+        OldInput::put(base_url() . $request->slashPath(), $request->request->all());
 
-        return Response::redirect($back, 303);
+        return redirect()->away($back, 303);
     }
 
     /**

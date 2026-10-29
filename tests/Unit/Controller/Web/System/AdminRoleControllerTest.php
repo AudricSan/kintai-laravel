@@ -15,7 +15,7 @@ use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\RoleAssignmentSyncService;
 use kintai\Tests\Support\FakeBundleManagerFactory;
@@ -79,8 +79,8 @@ final class AdminRoleControllerTest extends TestCase
 
     private function ownerRequest(): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         return $req;
     }
 
@@ -101,7 +101,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->roles($this->ownerRequest());
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -111,7 +111,7 @@ final class AdminRoleControllerTest extends TestCase
     public function testCreateRoleRendersForm(): void
     {
         $response = $this->controller()->createRole($this->ownerRequest());
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testStoreRoleCreatesRoleWithPermissions(): void
@@ -142,7 +142,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->storeRole($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('Auditor', $captured['name']);
         $this->assertSame('auditor', $captured['slug']);
         $this->assertSame(0, $captured['is_system']);
@@ -206,7 +206,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->storeRole($this->ownerRequest());
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreRoleDedupesSlugWhenAlreadyTaken(): void
@@ -264,7 +264,7 @@ final class AdminRoleControllerTest extends TestCase
         $req->setRouteParams(['id' => 2]);
 
         $response = $this->controller()->editRole($req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testEditRoleForOwnerRoleListsActiveUsersWithoutStoreMembership(): void
@@ -284,7 +284,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->editRole($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testUpdateRoleThrowsForbiddenOnSystemRole(): void
@@ -316,7 +316,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->updateRole($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(['shifts.view'], $capturedPermissions);
     }
 
@@ -433,7 +433,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->deleteRole($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testDeleteRoleDeletesWhenUnassigned(): void
@@ -448,7 +448,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->deleteRole($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -494,7 +494,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->addHolder($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=holder_added', $this->redirectLocation($response));
         $this->assertSame([[7, 1, 'global', null]], $assigned);
     }
@@ -511,7 +511,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->addHolder($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=invalid_holder', $this->redirectLocation($response));
     }
 
@@ -531,7 +531,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->addHolder($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=invalid_holder', $this->redirectLocation($response));
     }
 
@@ -563,7 +563,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->addHolder($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=holder_added', $this->redirectLocation($response));
         $this->assertSame([
             [7, 2, 'store', 3],
@@ -599,7 +599,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->removeHolder($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=holder_removed', $this->redirectLocation($response));
     }
 
@@ -658,7 +658,7 @@ final class AdminRoleControllerTest extends TestCase
 
         $response = $this->controller()->removeHolder($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=holder_removed', $this->redirectLocation($response));
     }
 
@@ -675,10 +675,9 @@ final class AdminRoleControllerTest extends TestCase
         $this->assertSame('Description personnalisée', $method->invoke($this->controller(), ['slug' => 'manager', 'description' => 'Description personnalisée']));
     }
 
-    private function redirectLocation(\kintai\Core\Response $response): string
+    private function redirectLocation(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        return $ref->getValue($response)['Location'] ?? '';
+        return kintai_test_headers($response)['Location'] ?? '';
     }
 
     private function ensureViewFile(string $view): void

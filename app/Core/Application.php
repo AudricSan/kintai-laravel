@@ -368,8 +368,11 @@ final class Application
                 return Response::json(['error' => $e->getMessage(), 'errors' => $e->errors], 422);
             }
             // Formulaire web : retour au formulaire avec les messages précis et la saisie conservée.
-            return ValidationFeedback::redirectBack($e, $request)
-                ?? $this->renderError(422, implode(' ', ValidationFeedback::messages($e)), $request);
+            $feedback = ValidationFeedback::redirectBack($e, NativeCall::nativeRequest($request));
+
+            return $feedback !== null
+                ? Response::native($feedback)
+                : $this->renderError(422, implode(' ', ValidationFeedback::messages($e)), $request);
         }
 
         if ($e instanceof MethodNotAllowedException) {

@@ -8,7 +8,7 @@ use kintai\Core\BundleContract\Bundle;
 use kintai\Core\BundleManager;
 use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\UI\Controller\Web\BundleAssetController;
 use PHPUnit\Framework\TestCase;
 
@@ -76,7 +76,7 @@ final class BundleAssetControllerTest extends TestCase
 
     private function makeRequest(string $slug, string $path): Request
     {
-        $request = new Request();
+        $request = Request::capture();
         $request->setRouteParams(['slug' => $slug, 'path' => $path]);
         return $request;
     }
@@ -85,9 +85,8 @@ final class BundleAssetControllerTest extends TestCase
     {
         $response = $this->controller->serve($this->makeRequest('fake-bundle', 'css/style.css'));
 
-        $this->assertSame(200, $response->status());
-        $reflection = new \ReflectionProperty($response, 'headers');
-        $headers = $reflection->getValue($response);
+        $this->assertSame(200, $response->getStatusCode());
+        $headers = kintai_test_headers($response);
         $this->assertSame('text/css', $headers['Content-Type']);
         $this->assertStringContainsString('immutable', $headers['Cache-Control']);
         $this->assertSame('nosniff', $headers['X-Content-Type-Options']);

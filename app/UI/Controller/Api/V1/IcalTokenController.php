@@ -8,8 +8,8 @@ use kintai\Core\Auth\UserTargetGuard;
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\IcalTokenRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class IcalTokenController
 {
@@ -22,16 +22,16 @@ final class IcalTokenController
     /** GET /api/v1/users/{user_id}/ical-tokens */
     public function index(Request $request): Response
     {
-        $userId = (int) $request->param('user_id');
+        $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.view');
-        return Response::json($this->icalTokens->findByUser($userId));
+        return response()->json($this->icalTokens->findByUser($userId));
     }
 
     /** GET /api/v1/users/{user_id}/ical-tokens/{store_id} */
     public function show(Request $request): Response
     {
-        $userId  = (int) $request->param('user_id');
-        $storeId = (int) $request->param('store_id');
+        $userId  = (int) $request->route('user_id');
+        $storeId = (int) $request->route('store_id');
         $this->guard->require($request, $userId, 'employees.view');
 
         $token = $this->icalTokens->findByUserAndStore($userId, $storeId);
@@ -39,16 +39,16 @@ final class IcalTokenController
             throw new NotFoundException(__('error_ical_token_not_found'));
         }
 
-        return Response::json($token);
+        return response()->json($token);
     }
 
     /** POST /api/v1/users/{user_id}/ical-tokens */
     public function store(Request $request): Response
     {
-        $userId  = (int) $request->param('user_id');
+        $userId  = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $data    = $request->json() ?? [];
+        $data    = $request->json()->all() ?? [];
         $storeId = (int) ($data['store_id'] ?? 0);
         $this->assertMember($userId, $storeId);
 
@@ -57,14 +57,14 @@ final class IcalTokenController
         // en base et remonterait en 500 au lieu de simplement rendre le token existant.
         $saved = $this->icalTokens->findOrCreateForUserAndStore($userId, $storeId);
 
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** DELETE /api/v1/users/{user_id}/ical-tokens/{store_id} */
     public function destroy(Request $request): Response
     {
-        $userId  = (int) $request->param('user_id');
-        $storeId = (int) $request->param('store_id');
+        $userId  = (int) $request->route('user_id');
+        $storeId = (int) $request->route('store_id');
         $this->guard->require($request, $userId, 'employees.update');
 
         if ($this->icalTokens->findByUserAndStore($userId, $storeId) === null) {
@@ -72,14 +72,14 @@ final class IcalTokenController
         }
 
         $this->icalTokens->deleteByUserAndStore($userId, $storeId);
-        return Response::empty();
+        return response()->noContent();
     }
 
     /** POST /api/v1/users/{user_id}/ical-tokens/{store_id}/regenerate */
     public function regenerate(Request $request): Response
     {
-        $userId  = (int) $request->param('user_id');
-        $storeId = (int) $request->param('store_id');
+        $userId  = (int) $request->route('user_id');
+        $storeId = (int) $request->route('store_id');
         $this->guard->require($request, $userId, 'employees.update');
         $this->assertMember($userId, $storeId);
 
@@ -92,7 +92,7 @@ final class IcalTokenController
             'created_at' => $existing['created_at'] ?? date('Y-m-d H:i:s'),
         ]));
 
-        return Response::json($saved);
+        return response()->json($saved);
     }
 
     /** Le flux iCal d'un magasin n'est délivré qu'à ses membres. */

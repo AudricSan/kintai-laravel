@@ -6,8 +6,8 @@ namespace kintai\UI\Controller\Web\Staff;
 
 use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Exceptions\ValidationException;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\PdfCjkFontResolver;
 
 /**
@@ -48,8 +48,8 @@ trait HasStaffReportCrud
      */
     private function findReportOrFail(Request $request): array
     {
-        $storeId  = (int) $request->param('id');
-        $reportId = (int) $request->param('rid');
+        $storeId  = (int) $request->route('id');
+        $reportId = (int) $request->route('rid');
         $this->assertStoreAccess($request, $storeId);
 
         $report = $this->reportRepo()->findById($reportId);
@@ -79,11 +79,11 @@ trait HasStaffReportCrud
 
     private function listReports(Request $request, string $titlePrefix): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
-        return Response::html($this->view->render($this->reportConfig()['view'], array_merge([
+        return response($this->view->render($this->reportConfig()['view'], array_merge([
             'title'   => $titlePrefix . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
             'reports' => $this->reportRepo()->findByStore($storeId),
@@ -134,7 +134,7 @@ trait HasStaffReportCrud
             'store_id' => $storeId,
         ], $storeId);
 
-        return Response::html($this->view->render($this->reportConfig()['view'] . '-show', array_merge([
+        return response($this->view->render($this->reportConfig()['view'] . '-show', array_merge([
             'title'  => $this->reportShowTitle($report),
             'store'  => $this->stores->findById($storeId),
             'report' => $report,
@@ -151,7 +151,7 @@ trait HasStaffReportCrud
     {
         [$report, $storeId] = $this->findReportOrFail($request);
 
-        return Response::html($this->view->render($this->reportConfig()['view'] . '-form', array_merge([
+        return response($this->view->render($this->reportConfig()['view'] . '-form', array_merge([
             'title'  => $this->reportEditTitle(),
             'store'  => $this->stores->findById($storeId),
             'mode'   => 'edit',
@@ -227,7 +227,7 @@ trait HasStaffReportCrud
             'downloadUrl' => $this->base() . '/admin/stores/' . $storeId . '/reports/' . $cfg['slug'] . '/' . $reportId . '/pdf/download',
         ], $this->reportShowExtras($storeId, $report)));
 
-        return Response::html($html);
+        return response($html);
     }
 
     /** Génération réelle du fichier PDF (mPDF), déclenchée depuis la barre d'outils de l'aperçu. */
@@ -246,7 +246,7 @@ trait HasStaffReportCrud
 
     private function redirectToList(int $storeId, string $slug, string $flag): Response
     {
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/reports/' . $slug . '?success=' . $flag);
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/' . $slug . '?success=' . $flag);
     }
 
     /**
@@ -256,8 +256,8 @@ trait HasStaffReportCrud
      */
     private function storesAndFilter(Request $request): array
     {
-        $authUser = $request->getAttribute('auth_user');
-        $managedIds = $request->getAttribute('managed_store_ids');
+        $authUser = $request->attributes->get('auth_user');
+        $managedIds = $request->attributes->get('managed_store_ids');
 
         // `managed_store_ids === null` = portée illimitée : Owner, mais aussi un rôle personnalisé
         // accordant la permission « Toutes les boutiques » (tester `is_admin` seul les excluait).
@@ -314,7 +314,7 @@ trait HasStaffReportCrud
         $mpdf->SetTitle($filename);
         $mpdf->WriteHTML($html);
 
-        return Response::pdf($mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN), $filename);
+        return response()->pdf($mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN), $filename);
     }
 
     /**

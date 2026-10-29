@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\UI\Controller\Web\System;
 
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationChannelStatus;
@@ -39,7 +39,7 @@ final class NotificationSettingsController
     {
         $sent = (string) $request->query('channels', '');
 
-        return Response::html($this->view->render('system.notification-settings', [
+        return response($this->view->render('system.notification-settings', [
             'title'          => __('notif_admin_title'),
             'retention_days' => $this->settings->notificationsRetentionDays(),
             'retention_min'  => AppSettingsService::NOTIFICATIONS_RETENTION_MIN,
@@ -65,7 +65,7 @@ final class NotificationSettingsController
             ['notifications_retention_days' => (string) $old], ['notifications_retention_days' => (string) $new], [],
         );
 
-        return Response::redirect($this->base() . '/admin/notifications-settings?success=saved');
+        return redirect()->away($this->base() . '/admin/notifications-settings?success=saved');
     }
 
     /** POST /admin/notifications-settings/test : notification de test à l'Owner, par tous les canaux actifs. */
@@ -77,17 +77,17 @@ final class NotificationSettingsController
 
         $this->notifications->notify($userId, NotificationPreferenceService::TEST_TYPE, 'notif_test_body', [], null, '/admin/notifications-settings');
 
-        return Response::redirect($this->base() . '/admin/notifications-settings?success=test&channels=' . implode(',', $channels));
+        return redirect()->away($this->base() . '/admin/notifications-settings?success=test&channels=' . implode(',', $channels));
     }
 
     /** POST /admin/notifications-settings/vapid : nouvelles clés, tous les abonnements web actuels deviennent invalides. */
     public function regenerateVapid(Request $request): Response
     {
         if (!$this->vapid->regenerate()) {
-            return Response::redirect($this->base() . '/admin/notifications-settings?error=vapid_failed');
+            return redirect()->away($this->base() . '/admin/notifications-settings?error=vapid_failed');
         }
         $this->auditLogger->log($request, 'notification_settings.vapid_regenerated', 'system');
 
-        return Response::redirect($this->base() . '/admin/notifications-settings?success=vapid');
+        return redirect()->away($this->base() . '/admin/notifications-settings?success=vapid');
     }
 }

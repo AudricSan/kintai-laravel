@@ -17,8 +17,8 @@ use kintai\Core\Exceptions\ValidationException;
 use kintai\Core\Extension\Events;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\UserDisplayName;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\PlanLimitService;
@@ -65,15 +65,15 @@ final class UserController
             $items = array_values(array_filter($items, fn(array $u): bool => isset($visible[(int) $u['id']])));
         }
 
-        return Response::json(Paginator::paginate(array_map([$this, 'withoutSecrets'], $items), $page, $limit));
+        return response()->json(Paginator::paginate(array_map([$this, 'withoutSecrets'], $items), $page, $limit));
     }
 
     /** GET /api/v1/users/{id} */
     public function show(Request $request): Response
     {
-        $user = $this->requireUser((int) $request->param('id'));
+        $user = $this->requireUser((int) $request->route('id'));
         $this->permissions->requireUserAccess($this->authUser($request), 'employees.view', (int) $user['id'], $this->storeIdsOf((int) $user['id']));
-        return Response::json($this->withoutSecrets($user));
+        return response()->json($this->withoutSecrets($user));
     }
 
     /** POST /api/v1/users — `password` (en clair) facultatif ; sans lui, mot de passe par défaut à changer. */
@@ -81,7 +81,7 @@ final class UserController
     {
         $this->planLimits->assertCanCreateEmployee();
 
-        $body = $request->json() ?? [];
+        $body = $request->json()->all() ?? [];
         $data = $this->normalizeUser(PayloadValidator::validate($body, ApiPayloadRules::user()));
         $this->assertIdentityAvailable($data, 0);
         $data['password_hash'] = $this->hashFromPayload($body) ?? PasswordHasher::hash(PasswordPolicy::DEFAULT_PASSWORD);
@@ -93,17 +93,17 @@ final class UserController
             ($this->events ?? Events::current())->dispatch(new EmployeeCreated($saved, null, $authId > 0 ? $authId : null, 'api'));
         }
         $this->auditLogger->log($request, 'user.created', 'user', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $this->withoutSecrets($data));
-        return Response::json($this->withoutSecrets($saved), 201);
+        return response()->json($this->withoutSecrets($saved), 201);
     }
 
     /** PUT /api/v1/users/{id} */
     public function update(Request $request): Response
     {
-        $id  = (int) $request->param('id');
+        $id  = (int) $request->route('id');
         $old = $this->requireUser($id);
         $this->permissions->requireUserAccess($this->authUser($request), 'employees.update', $id, $this->storeIdsOf($id));
 
-        $body    = $request->json() ?? [];
+        $body    = $request->json()->all() ?? [];
         $data    = $this->normalizeUser(PayloadValidator::validate($body, ApiPayloadRules::user(), true));
         // Désactiver un Owner : même garde que la suppression (au moins un Owner actif, pas soi-même).
         if (!empty($old['is_active']) && array_key_exists('is_active', $data) && empty($data['is_active'])) {
@@ -127,13 +127,13 @@ final class UserController
         }
 
         $this->auditLogger->logUpdate($request, 'user.updated', 'user', resourceId: $id, oldData: $this->withoutSecrets($old), newData: $this->withoutSecrets($saved), extraContext: $this->withoutSecrets($data));
-        return Response::json($this->withoutSecrets($saved));
+        return response()->json($this->withoutSecrets($saved));
     }
 
     /** DELETE /api/v1/users/{id} */
     public function destroy(Request $request): Response
     {
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
         $this->requireUser($id);
         $this->permissions->requireUserAccess($this->authUser($request), 'employees.delete', $id, $this->storeIdsOf($id));
         $this->ownerGuard->assertCanRemoveOwner((int) ($this->authUser($request)['id'] ?? 0), $id);
@@ -142,12 +142,12 @@ final class UserController
         // Anonymisation plutôt qu'effacement (même résultat sous SQLite et MySQL, historique conservé).
         $this->anonymizer()->anonymize($id);
         $this->auditLogger->log($request, 'user.deleted', 'user', resourceId: $id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     private function requireUser(int $id): array
