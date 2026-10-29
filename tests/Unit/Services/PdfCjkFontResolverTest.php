@@ -16,7 +16,7 @@ final class PdfCjkFontResolverTest extends TestCase
     {
         $this->tmpDir = sys_get_temp_dir() . '/kintai_cjk_font_test_' . bin2hex(random_bytes(4));
         mkdir($this->tmpDir . '/storage/fonts', 0775, true);
-        putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
         // Isole aussi le repli "polices Windows" pour ne pas dépendre de ce qui
         // est réellement installé sur la machine qui exécute les tests.
@@ -33,7 +33,7 @@ final class PdfCjkFontResolverTest extends TestCase
         }
         rmdir($this->tmpDir);
 
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
         putenv($this->originalSystemRoot === false ? 'SystemRoot' : 'SystemRoot=' . $this->originalSystemRoot);
     }
 
@@ -51,7 +51,7 @@ final class PdfCjkFontResolverTest extends TestCase
         $this->assertNotNull($font);
         $this->assertSame('notosansjp', $font['default']);
         $this->assertArrayHasKey('notosansjp', $font['data']);
-        $this->assertSame([$this->tmpDir . '/storage/fonts'], $font['dir']);
+        $this->assertSame([$this->tmpDir . '/storage/fonts'], array_map(static fn(string $d): string => str_replace('\', '/', $d), $font['dir']));
     }
 
     public function testApplyToLeavesConfigUnchangedWhenNoFontAvailable(): void

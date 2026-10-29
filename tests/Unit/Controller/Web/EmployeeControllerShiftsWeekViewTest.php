@@ -25,7 +25,7 @@ use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\PushNotificationService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\UI\Controller\Web\EmployeeController;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
@@ -76,10 +76,7 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
             new NotificationService(
                 $this->createStub(NotificationRepositoryInterface::class),
                 new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class)),
-                new TranslationService(
-                    $this->createStub(TranslationRepositoryInterface::class),
-                    $this->createStub(LanguageRepositoryInterface::class),
-                ),
+                kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
             ),
             $this->createStub(UserNavPrefsRepositoryInterface::class),

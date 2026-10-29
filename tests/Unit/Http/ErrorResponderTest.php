@@ -55,7 +55,7 @@ final class ErrorResponderTest extends TestCase
 
     public function testALaravelValidationErrorIsAnsweredLikeAKintaiOne(): void
     {
-        $validator = new \Illuminate\Validation\Validator(new \kintai\Foundation\Bridge\KintaiTranslator(), [], []);
+        $validator = new \Illuminate\Validation\Validator(kintai_test_translator(), [], []);
         $validator->errors()->merge([
             'name' => ['Nom obligatoire.', 'Autre message.'],
             'mail' => ['Adresse invalide.'],

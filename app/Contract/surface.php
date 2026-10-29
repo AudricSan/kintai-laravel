@@ -47,7 +47,7 @@ return [
     'kintai\\Contract\\Data\\AppSettingsRepositoryInterface' => ['target' => 'kintai\\Core\\Repositories\\AppSettingsRepositoryInterface', 'status' => 'stable', 'role' => 'Paramètres de l\'instance.'],
     'kintai\\Contract\\Services\\AuditLogger' => ['target' => 'kintai\\Core\\Services\\AuditLogger', 'status' => 'stable', 'role' => 'Journal d\'activité.'],
     'kintai\\Contract\\Services\\NotificationService' => ['target' => 'kintai\\Core\\Services\\NotificationService', 'status' => 'stable', 'role' => 'Notifications (et push).'],
-    'kintai\\Contract\\Services\\TranslationService' => ['target' => 'kintai\\Core\\Services\\TranslationService', 'status' => 'stable', 'role' => 'Traductions.'],
+    'kintai\\Contract\\Services\\TranslationService' => ['target' => 'Illuminate\\Contracts\\Translation\\Translator', 'status' => 'stable', 'role' => 'Traductions.'],
     'kintai\\Contract\\Services\\ImageCompressionService' => ['target' => 'kintai\\Core\\Services\\ImageCompressionService', 'status' => 'stable', 'role' => 'Compression d\'images.'],
     'kintai\\Contract\\Services\\Mailer' => ['target' => 'kintai\\Core\\Mail\\MailerService', 'status' => 'stable', 'role' => 'Envoi d\'e-mails par le transport configuré de l\'instance : send(destinataires, sujet, HTML, pièces jointes) (contrat 1.15).'],
     'kintai\\Contract\\Services\\PdfCjkFontResolver' => ['target' => 'kintai\\Core\\Services\\PdfCjkFontResolver', 'status' => 'stable', 'role' => 'Police japonaise des PDF (mPDF) : PdfCjkFontResolver::applyTo($config) (contrat 1.16).'],

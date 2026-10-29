@@ -7,7 +7,7 @@ namespace kintai\Tests\Unit\Core;
 use Illuminate\Container\Container;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -20,30 +20,16 @@ if (!defined('BASE_PATH')) {
  */
 final class NotificationBodyHelperTest extends TestCase
 {
-    private ?TranslationService $previous = null;
-    private TranslationService $translations;
+    private Translator $translations;
 
     protected function setUp(): void
     {
-        $container = Container::getInstance();
-        if ($container->has(TranslationService::class)) {
-            $this->previous = $container->make(TranslationService::class);
-        }
-        $this->translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
-        $container->instance(TranslationService::class, $this->translations);
+        $this->translations = kintai_test_real_translator();
     }
 
     protected function tearDown(): void
     {
-        if ($this->previous !== null) {
-            Container::getInstance()->instance(TranslationService::class, $this->previous);
-            return;
-        }
-        // Aucun service auparavant : le retirer, sinon __() traduirait dans les tests suivants qui attendent la clé.
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 
     private function lang(string $locale): array

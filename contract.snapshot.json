@@ -155,7 +155,7 @@
         },
         "kintai\\Contract\\Services\\TranslationService": {
             "status": "stable",
-            "target": "kintai\\Core\\Services\\TranslationService"
+            "target": "Illuminate\\Contracts\\Translation\\Translator"
         },
         "kintai\\Contract\\Services\\UserSelection": {
             "status": "stable",
@@ -215,9 +215,10 @@
             "status": "stable",
             "params": [
                 "key",
-                "replace"
+                "replace",
+                "locale"
             ],
-            "returns": "string"
+            "returns": "array|string|null"
         },
         "back_url": {
             "status": "stable",
@@ -543,6 +544,7 @@
         "provides": "(): mixed",
         "register": "(): void",
         "registerMigrations": "(): void",
+        "registerTranslations": "(): void",
         "salesProviders": "(): array",
         "shiftFormSections": "(): array",
         "storeFeatures": "(): array",

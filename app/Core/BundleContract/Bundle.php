@@ -304,6 +304,18 @@ abstract class Bundle extends ServiceProvider
     }
 
     /**
+     * Traductions du bundle (dossier `lang`, fichiers {locale}.json) : ajoutées à celles de l'application, dont les
+     * clés l'emportent en cas de collision.
+     */
+    public function registerTranslations(): void
+    {
+        $directory = rtrim($this->getPath(), '/\\') . '/lang';
+        if (is_dir($directory)) {
+            $this->loadJsonTranslationsFrom($directory);
+        }
+    }
+
+    /**
      * Boot du bundle, une fois tous les bundles enregistrés.
      */
     public function boot(): void

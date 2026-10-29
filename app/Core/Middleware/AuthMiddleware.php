@@ -16,7 +16,6 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Http\Routing\Routes;
 use kintai\Core\Services\EmployeeStatsService;
-use kintai\Core\Services\TranslationService;
 use kintai\UI\ViewRenderer;
 
 /**
@@ -87,7 +86,7 @@ final class AuthMiddleware
         });
 
         // Langue courante
-        $view->share('locale', $this->container->make(TranslationService::class)->getLocale());
+        $view->share('locale', app()->getLocale());
         $activeLanguages = $this->container->make(LanguageRepositoryInterface::class)->findAllActive();
         $view->share('active_languages', $activeLanguages);
         // Langue de l'instance, proposée dans le profil (« suivre la langue de l'instance »).

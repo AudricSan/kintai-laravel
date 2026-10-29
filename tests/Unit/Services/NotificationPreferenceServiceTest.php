@@ -19,7 +19,7 @@ use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\NotificationTypeRegistry;
 use kintai\Core\Services\PushNotificationService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Domain\Eloquent\Notification;
 use kintai\Domain\Eloquent\NotificationPreference;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -320,10 +320,7 @@ final class NotificationPreferenceServiceTest extends TestCase
         });
         $push = new PushNotificationService(['fcm' => ['enabled' => true, 'project_id' => 'kintai-test', 'credentials_path' => '']], $tokens);
 
-        $translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
+        $translations = kintai_test_real_translator();
 
         return new NotificationService(new DatabaseNotificationRepository(), $push, $translations, $this->users, $this->registry, $prefs);
     }

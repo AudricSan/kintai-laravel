@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services\Calendar;
 
+use Illuminate\Contracts\Translation\Translator;
 use kintai\Core\Services\StoreTimezone;
-use kintai\Core\Services\TranslationService;
 
 /**
  * Construit l'événement Google d'un shift ou d'un congé et son empreinte. L'empreinte (SHA-256 du contenu envoyé) permet
@@ -19,7 +19,7 @@ final class CalendarEventBuilder
     /** Couleur Google (« Tomate ») réservée aux congés. */
     public const TIMEOFF_COLOR_ID = '11';
 
-    public function __construct(private readonly TranslationService $translations) {}
+    public function __construct(private readonly Translator $translations) {}
 
     /**
      * @param array<string, mixed>      $shift

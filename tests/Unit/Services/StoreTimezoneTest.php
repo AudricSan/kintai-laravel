@@ -8,7 +8,7 @@ use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\StoreTimezone;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Validation\StoreValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -73,10 +73,7 @@ final class StoreTimezoneTest extends TestCase
 
     public function testTheIcalFeedHonoursAStoreSavedAsUtcPlusNine(): void
     {
-        $translations = new TranslationService(
-            new JsonTranslationRepository(dirname(__DIR__, 3) . '/lang', dirname(__DIR__, 3) . '/app/Bundles'),
-            new JsonLanguageRepository(dirname(__DIR__, 3) . '/lang'),
-        );
+        $translations = kintai_test_real_translator();
         $shift = ['id' => 1, 'shift_date' => '2026-11-02', 'start_time' => '06:00', 'end_time' => '15:00'];
 
         $legacy = (new IcalService($translations))->build([$shift], [], ['name' => 'Shibuya', 'timezone' => 'UTC+9'], ['language' => 'fr']);

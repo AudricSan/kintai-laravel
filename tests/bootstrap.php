@@ -93,3 +93,47 @@ function kintai_test_migrate(): void
     $kernel->call('migrate', ['--force' => true]);
     $kernel->call('db:seed', ['--force' => true]);
 }
+
+// Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
+// « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
+function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator
+{
+    $loader = new Illuminate\Translation\ArrayLoader();
+    foreach ($catalog as $code => $lines) {
+        $loader->addMessages($code, '*', $lines);
+    }
+
+    return kintai_test_install_translator(new Illuminate\Translation\Translator($loader, $locale));
+}
+
+// Aide des tests : traducteur sur les vrais fichiers lang/ (JSON et validation.php).
+function kintai_test_real_translator(string $locale = 'en', bool $install = true): Illuminate\Translation\Translator
+{
+    $translator = new Illuminate\Translation\Translator(
+        new Illuminate\Translation\FileLoader(new Illuminate\Filesystem\Filesystem(), dirname(__DIR__) . '/lang'),
+        $locale,
+    );
+    $translator->setFallback($locale);
+
+    return $install ? kintai_test_install_translator($translator) : $translator;
+}
+
+function kintai_test_install_translator(Illuminate\Translation\Translator $translator): Illuminate\Translation\Translator
+{
+    $app = $GLOBALS['kintai_test_app'];
+    $GLOBALS['kintai_test_translator_original'] ??= $app->make('translator');
+    $app->instance('translator', $translator);
+    Illuminate\Support\Facades\Lang::clearResolvedInstance('translator');
+
+    return $translator;
+}
+
+function kintai_test_translator_reset(): void
+{
+    $GLOBALS['kintai_test_app']->instance('translator', $GLOBALS['kintai_test_translator_original']);
+    Illuminate\Support\Facades\Lang::clearResolvedInstance('translator');
+}
+
+// Par défaut les tests n'ont aucun texte : __() rend la clé. Un test qui veut des textes installe le sien.
+$GLOBALS['kintai_test_translator_original'] = new Illuminate\Translation\Translator(new Illuminate\Translation\ArrayLoader(), 'en');
+kintai_test_translator_reset();

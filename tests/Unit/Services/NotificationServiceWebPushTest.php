@@ -19,7 +19,7 @@ use kintai\Core\Services\NotificationPreferenceService;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\NotificationTypeRegistry;
 use kintai\Core\Services\PushNotificationService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Services\VapidKeyStore;
 use kintai\Core\Services\WebPushService;
 use kintai\Domain\Eloquent\Notification;
@@ -111,10 +111,7 @@ final class NotificationServiceWebPushTest extends TestCase
         $this->service = new NotificationService(
             new DatabaseNotificationRepository(),
             new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class)),
-            new TranslationService(
-                new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-                new JsonLanguageRepository(BASE_PATH . '/lang'),
-            ),
+            kintai_test_real_translator(),
             $users,
             $registry,
             $this->prefs,

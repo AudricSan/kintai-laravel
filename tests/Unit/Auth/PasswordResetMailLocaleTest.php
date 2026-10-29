@@ -11,7 +11,7 @@ use kintai\Core\Repositories\PasswordResetRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Services\PasswordResetService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class PasswordResetMailLocaleTest extends TestCase
 {
-    private TranslationService $translator;
+    private Translator $translator;
     private PasswordResetService $service;
 
     protected function setUp(): void
@@ -29,15 +29,9 @@ final class PasswordResetMailLocaleTest extends TestCase
             'fr' => ['reset_mail_subject' => 'Sujet FR', 'reset_mail_title' => 'Titre FR', 'reset_mail_greeting' => 'Bonjour :name,'],
             'ja' => ['reset_mail_subject' => '件名 JA', 'reset_mail_title' => 'タイトル JA', 'reset_mail_greeting' => ':name 様'],
         ];
-        $translations = $this->createStub(TranslationRepositoryInterface::class);
-        $translations->method('findByLocale')->willReturnCallback(fn(string $l) => $catalog[$l] ?? []);
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findDefault')->willReturn(['code' => 'fr']);
-
-        $this->translator = new TranslationService($translations, $languages);
+        $this->translator = kintai_test_translator($catalog, 'fr');
         $this->translator->setLocale('fr');
         // __() passe par le conteneur : on y place ce traducteur le temps du test.
-        Container::getInstance()->instance(TranslationService::class, $this->translator);
 
         $this->service = new PasswordResetService(
             $this->createStub(PasswordResetRepositoryInterface::class),
@@ -51,7 +45,7 @@ final class PasswordResetMailLocaleTest extends TestCase
     protected function tearDown(): void
     {
         // Les autres tests supposent qu'aucun traducteur n'est enregistré (__() renvoie alors la clé).
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 
     private function call(string $method, mixed ...$args): mixed

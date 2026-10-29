@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\Log;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\UI\Controller\Web\IcalController;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -51,11 +51,7 @@ final class IcalControllerFeedTest extends TestCase
         $this->shifts->method('findRecentDeletionsByUserAndStore')->willReturn([]);
 
         // __() lit le TranslationService du Container (voir IcalServiceTest).
-        $translations = new TranslationService(
-            new JsonTranslationRepository(dirname(__DIR__, 4) . '/lang', dirname(__DIR__, 4) . '/app/Bundles'),
-            new JsonLanguageRepository(dirname(__DIR__, 4) . '/lang'),
-        );
-        Container::getInstance()->instance(TranslationService::class, $translations);
+        $translations = kintai_test_real_translator();
 
         $this->controller = new IcalController(
             new IcalService($translations),
@@ -81,7 +77,7 @@ final class IcalControllerFeedTest extends TestCase
     {
         Log::reset();
         // Retire le TranslationService lié dans setUp() : il fausserait les tests qui attendent des clés brutes.
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 
     private function request(): Request

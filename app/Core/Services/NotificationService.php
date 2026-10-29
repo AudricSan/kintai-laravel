@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
+use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Bus\Dispatcher;
 use kintai\Core\Jobs\DeliverNotification;
 use kintai\Core\Repositories\NotificationRepositoryInterface;
@@ -19,7 +20,7 @@ class NotificationService
     public function __construct(
         private readonly NotificationRepositoryInterface $repo,
         private readonly PushNotificationService $push,
-        private readonly TranslationService $translations,
+        private readonly Translator $translations,
         private readonly UserRepositoryInterface $users,
         // Optionnel : sans registre, aucune notification n'est rattachée à un type d'objet (pas de « lu » automatique).
         private readonly ?NotificationTypeRegistry $types = null,
@@ -54,8 +55,8 @@ class NotificationService
         $this->translations->setLocale($locale);
 
         try {
-            $title = $this->translations->translate('notif_' . $type);
-            $body  = $this->translations->translate($bodyKey, $params);
+            $title = $this->translations->get('notif_' . $type);
+            $body  = $this->translations->get($bodyKey, $params);
         } finally {
             $this->translations->setLocale($previous);
         }

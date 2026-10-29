@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,27 +23,17 @@ final class NotificationTypesTest extends TestCase
 
     protected function setUp(): void
     {
-        $prop = new \ReflectionProperty(Container::class, 'instance');
-        $this->previous = $prop->getValue();
-        $prop->setValue(null, null);
-
-        $translations = $this->createStub(TranslationRepositoryInterface::class);
-        $translations->method('findByLocale')->willReturn([
+        kintai_test_translator(['en' => [
             'notif_acme_ready'        => 'Acme est prêt',
             'notif_acme_legacy'       => 'Ancienne notification Acme',
             'audit_acme_board_pinned' => 'Tableau épinglé',
             'notif_shift_assigned'    => 'Shift assigné',
-        ]);
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findDefault')->willReturn(['code' => 'en']);
-        $service = new TranslationService($translations, $languages);
-        $service->setLocale('en');
-        Container::getInstance()->instance(TranslationService::class, $service);
+        ]], 'en');
     }
 
     protected function tearDown(): void
     {
-        (new \ReflectionProperty(Container::class, 'instance'))->setValue(null, $this->previous);
+        kintai_test_translator_reset();
     }
 
     /** @param array<string, mixed> $active slug => types déclarés (array, ou \Throwable levée) */

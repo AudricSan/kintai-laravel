@@ -22,7 +22,7 @@ use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\IcalService;
 use kintai\Core\Services\Log;
 use kintai\Core\Services\ScheduleExportService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\UI\Controller\Web\ScheduleExportController;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -54,11 +54,7 @@ final class ScheduleExportControllerTest extends TestCase
         $types = $this->createStub(ShiftTypeRepositoryInterface::class);
         $types->method('findAll')->willReturn([['id' => 7, 'name' => 'Matin']]);
 
-        $translations = new TranslationService(
-            new JsonTranslationRepository(dirname(__DIR__, 4) . '/lang', dirname(__DIR__, 4) . '/app/Bundles'),
-            new JsonLanguageRepository(dirname(__DIR__, 4) . '/lang'),
-        );
-        Container::getInstance()->instance(TranslationService::class, $translations);
+        $translations = kintai_test_real_translator();
 
         $this->controller = new ScheduleExportController(
             new AuthService(
@@ -84,7 +80,7 @@ final class ScheduleExportControllerTest extends TestCase
     {
         session()->forget(['auth_user_id', 'auth_pw_fp']);
         Log::reset();
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 
     /** @param array<string, string> $query */

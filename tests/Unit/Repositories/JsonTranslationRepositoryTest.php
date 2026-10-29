@@ -3,27 +3,44 @@ declare(strict_types=1);
 
 namespace kintai\Tests\Unit\Repositories;
 
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Translation\FileLoader;
+use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 use kintai\Core\Repositories\JsonTranslationRepository;
 
 final class JsonTranslationRepositoryTest extends TestCase
 {
     private string $langPath;
+    private FileLoader $loader;
     private JsonTranslationRepository $repo;
 
     protected function setUp(): void
     {
         $this->langPath = sys_get_temp_dir() . '/kintai_translrepo_' . uniqid();
         mkdir($this->langPath, 0755, true);
-        $this->repo = new JsonTranslationRepository($this->langPath);
+        $this->loader = new FileLoader(new Filesystem(), $this->langPath);
+        $this->repo = new JsonTranslationRepository($this->langPath, new Translator($this->loader, 'en'));
     }
 
     protected function tearDown(): void
     {
-        foreach (glob($this->langPath . '/*') ?: [] as $f) {
-            unlink($f);
+        $this->removeDirRecursive($this->langPath);
+    }
+
+    private function removeDirRecursive(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
         }
-        rmdir($this->langPath);
+        foreach (scandir($dir) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $entry;
+            is_dir($path) ? $this->removeDirRecursive($path) : unlink($path);
+        }
+        rmdir($dir);
     }
 
     public function testSaveCreatesFileAndKey(): void
@@ -60,15 +77,14 @@ final class JsonTranslationRepositoryTest extends TestCase
 
     public function testFindAllKeysUnionsAcrossLocalesButIgnoresManifest(): void
     {
+        $this->repo->save('fr', 'a', 'A');
+        $this->repo->save('en', 'b', 'B');
         file_put_contents($this->langPath . '/languages.json', json_encode([['code' => 'fr']]));
-        $this->repo->save('fr', 'hello', 'Bonjour');
-        $this->repo->save('en', 'hello', 'Hello');
-        $this->repo->save('fr', 'bye', 'Au revoir');
 
         $keys = $this->repo->findAllKeys();
         sort($keys);
 
-        $this->assertSame(['bye', 'hello'], $keys);
+        $this->assertSame(['a', 'b'], $keys);
     }
 
     public function testDeleteRemovesKeyFromOneLocaleOnly(): void
@@ -76,22 +92,20 @@ final class JsonTranslationRepositoryTest extends TestCase
         $this->repo->save('fr', 'hello', 'Bonjour');
         $this->repo->save('en', 'hello', 'Hello');
 
-        $result = $this->repo->delete('fr', 'hello');
-
-        $this->assertSame(1, $result);
+        $this->assertSame(1, $this->repo->delete('fr', 'hello'));
         $this->assertNull($this->repo->findValue('fr', 'hello'));
         $this->assertSame('Hello', $this->repo->findValue('en', 'hello'));
     }
 
     public function testDeleteReturnsZeroWhenKeyMissing(): void
     {
-        $this->assertSame(0, $this->repo->delete('fr', 'unknown'));
+        $this->assertSame(0, $this->repo->delete('fr', 'nope'));
     }
 
     public function testCountByLocale(): void
     {
-        $this->repo->save('fr', 'hello', 'Bonjour');
-        $this->repo->save('fr', 'bye', 'Au revoir');
+        $this->repo->save('fr', 'a', 'A');
+        $this->repo->save('fr', 'b', 'B');
 
         $this->assertSame(2, $this->repo->countByLocale('fr'));
         $this->assertSame(0, $this->repo->countByLocale('ja'));
@@ -107,119 +121,61 @@ final class JsonTranslationRepositoryTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Fusion avec les lang/*.json des bundles (app/Bundles/<Name>/lang/*.json)
+    // lang/ des bundles, ajouté au chargeur de Laravel par loadJsonTranslationsFrom()
     // -------------------------------------------------------------------------
 
-    private string $bundlesDir;
-    private JsonTranslationRepository $repoWithBundles;
-
-    private function makeBundleLangFile(string $bundle, string $locale, array $data): void
+    private function addBundleLang(string $locale, array $data): string
     {
-        $dir = $this->bundlesDir . '/' . $bundle . '/lang';
+        $dir = sys_get_temp_dir() . '/kintai_translrepo_bundle_' . uniqid();
         mkdir($dir, 0755, true);
         file_put_contents($dir . '/' . $locale . '.json', json_encode($data, JSON_UNESCAPED_UNICODE));
+        $this->loader->addJsonPath($dir);
+
+        return $dir;
     }
 
-    private function removeDirRecursive(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-        foreach (scandir($dir) ?: [] as $entry) {
-            if ($entry === '.' || $entry === '..') {
-                continue;
-            }
-            $path = $dir . '/' . $entry;
-            is_dir($path) ? $this->removeDirRecursive($path) : unlink($path);
-        }
-        rmdir($dir);
-    }
-
-    public function testBundleTranslationsAreMergedOnTopOfCore(): void
+    public function testBundleTranslationsAreMergedWithTheApplicationOnes(): void
     {
         file_put_contents($this->langPath . '/fr.json', json_encode(['save' => 'Enregistrer']));
-        $this->bundlesDir = sys_get_temp_dir() . '/kintai_translrepo_bundles_' . uniqid();
-        $this->makeBundleLangFile('Feedback', 'fr', ['feedback_title' => 'Retours']);
-        $this->repoWithBundles = new JsonTranslationRepository($this->langPath, $this->bundlesDir);
+        $dir = $this->addBundleLang('fr', ['feedback_title' => 'Retours']);
 
-        $merged = $this->repoWithBundles->findByLocale('fr');
+        $merged = $this->repo->findByLocale('fr');
 
         $this->assertSame('Enregistrer', $merged['save']);
         $this->assertSame('Retours', $merged['feedback_title']);
-
-        $this->removeDirRecursive($this->bundlesDir);
+        $this->removeDirRecursive($dir);
     }
 
-    public function testKeyMissingFromBundleFallsBackToCoreValue(): void
+    public function testTheApplicationOverridesABundleKey(): void
     {
         file_put_contents($this->langPath . '/fr.json', json_encode(['save' => 'Enregistrer']));
-        $this->bundlesDir = sys_get_temp_dir() . '/kintai_translrepo_bundles_' . uniqid();
-        $this->makeBundleLangFile('Feedback', 'fr', ['feedback_title' => 'Retours']);
-        $this->repoWithBundles = new JsonTranslationRepository($this->langPath, $this->bundlesDir);
+        $dir = $this->addBundleLang('fr', ['save' => 'Envoyer']);
 
-        // 'save' n'est défini que dans le Core : le bundle en hérite sans le redéfinir.
-        $this->assertSame('Enregistrer', $this->repoWithBundles->findValue('fr', 'save'));
-
-        $this->removeDirRecursive($this->bundlesDir);
+        $this->assertSame('Enregistrer', $this->repo->findValue('fr', 'save'));
+        $this->removeDirRecursive($dir);
     }
 
-    public function testBundleCanOverrideACoreKey(): void
+    public function testSavingABundleKeyWritesItInTheApplicationFile(): void
     {
-        file_put_contents($this->langPath . '/fr.json', json_encode(['save' => 'Enregistrer']));
-        $this->bundlesDir = sys_get_temp_dir() . '/kintai_translrepo_bundles_' . uniqid();
-        $this->makeBundleLangFile('Feedback', 'fr', ['save' => 'Envoyer']);
-        $this->repoWithBundles = new JsonTranslationRepository($this->langPath, $this->bundlesDir);
+        $dir = $this->addBundleLang('fr', ['feedback_title' => 'Retours']);
 
-        $this->assertSame('Envoyer', $this->repoWithBundles->findValue('fr', 'save'));
+        $this->repo->save('fr', 'feedback_title', 'Avis');
 
-        $this->removeDirRecursive($this->bundlesDir);
-    }
-
-    public function testSavingAnExistingBundleKeyWritesBackToTheBundleFile(): void
-    {
-        file_put_contents($this->langPath . '/fr.json', json_encode(['save' => 'Enregistrer']));
-        $this->bundlesDir = sys_get_temp_dir() . '/kintai_translrepo_bundles_' . uniqid();
-        $this->makeBundleLangFile('Feedback', 'fr', ['feedback_title' => 'Retours']);
-        $this->repoWithBundles = new JsonTranslationRepository($this->langPath, $this->bundlesDir);
-
-        $this->repoWithBundles->save('fr', 'feedback_title', 'Avis');
-
-        $bundleFile = $this->bundlesDir . '/Feedback/lang/fr.json';
-        $coreFile   = $this->langPath . '/fr.json';
-        $this->assertSame('Avis', json_decode(file_get_contents($bundleFile), true)['feedback_title']);
-        $this->assertArrayNotHasKey('feedback_title', json_decode(file_get_contents($coreFile), true));
-
-        $this->removeDirRecursive($this->bundlesDir);
-    }
-
-    public function testNewKeySavedThroughTheAggregatedRepositoryDefaultsToCore(): void
-    {
-        $this->bundlesDir = sys_get_temp_dir() . '/kintai_translrepo_bundles_' . uniqid();
-        mkdir($this->bundlesDir, 0755, true);
-        $this->repoWithBundles = new JsonTranslationRepository($this->langPath, $this->bundlesDir);
-
-        $this->repoWithBundles->save('fr', 'brand_new_key', 'Valeur');
-
-        $this->assertSame(
-            'Valeur',
-            json_decode(file_get_contents($this->langPath . '/fr.json'), true)['brand_new_key']
-        );
-
-        $this->removeDirRecursive($this->bundlesDir);
+        $this->assertSame('Avis', json_decode(file_get_contents($this->langPath . '/fr.json'), true)['feedback_title']);
+        $this->assertSame('Avis', $this->repo->findValue('fr', 'feedback_title'));
+        $this->assertSame('Retours', json_decode(file_get_contents($dir . '/fr.json'), true)['feedback_title']);
+        $this->removeDirRecursive($dir);
     }
 
     public function testFindAllKeysIncludesBundleKeys(): void
     {
         file_put_contents($this->langPath . '/fr.json', json_encode(['save' => 'Enregistrer']));
-        $this->bundlesDir = sys_get_temp_dir() . '/kintai_translrepo_bundles_' . uniqid();
-        $this->makeBundleLangFile('Feedback', 'fr', ['feedback_title' => 'Retours']);
-        $this->repoWithBundles = new JsonTranslationRepository($this->langPath, $this->bundlesDir);
+        $dir = $this->addBundleLang('fr', ['feedback_title' => 'Retours']);
 
-        $keys = $this->repoWithBundles->findAllKeys();
+        $keys = $this->repo->findAllKeys();
         sort($keys);
 
         $this->assertSame(['feedback_title', 'save'], $keys);
-
-        $this->removeDirRecursive($this->bundlesDir);
+        $this->removeDirRecursive($dir);
     }
 }

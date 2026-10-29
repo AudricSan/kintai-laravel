@@ -34,7 +34,7 @@ use kintai\Core\Services\IcalService;
 use kintai\Core\Services\Log;
 use kintai\Core\Services\ScheduleExportService;
 use kintai\Core\Services\ShiftWageCalculator;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Services\UserSelection;
 use kintai\UI\Controller\Web\ExportController;
 use kintai\UI\ViewRenderer;
@@ -84,11 +84,7 @@ final class ExportControllerTest extends TestCase
         $this->bind(StoresExport::class, new StoresExport($directory));
         $this->bind(PayrollExport::class, new PayrollExport($shifts, $types, $this->createStub(UserShiftTypeRateRepositoryInterface::class), new ShiftWageCalculator(), $directory));
 
-        $translations = new TranslationService(
-            new JsonTranslationRepository(dirname(__DIR__, 4) . '/lang', dirname(__DIR__, 4) . '/app/Bundles'),
-            new JsonLanguageRepository(dirname(__DIR__, 4) . '/lang'),
-        );
-        $this->bind(TranslationService::class, $translations);
+        $translations = kintai_test_real_translator();
 
         $this->controller = new ExportController(
             new ViewRenderer(dirname(__DIR__, 4) . '/app/UI/View'),

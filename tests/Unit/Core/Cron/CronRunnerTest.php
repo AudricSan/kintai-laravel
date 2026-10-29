@@ -17,7 +17,7 @@ use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 
 final class CronRunnerTest extends TestCase
 {
@@ -73,22 +73,13 @@ final class CronRunnerTest extends TestCase
 
     public function testJobLabelComesFromTheTranslationConventionOrFallsBackToTheName(): void
     {
-        $prop = new \ReflectionProperty(Container::class, 'instance');
-        $previous = $prop->getValue();
-        $prop->setValue(null, null);
         try {
-            $translations = $this->createStub(TranslationRepositoryInterface::class);
-            $translations->method('findByLocale')->willReturn(['cron_job_auto_validate' => 'Validation automatique']);
-            $languages = $this->createStub(LanguageRepositoryInterface::class);
-            $languages->method('findDefault')->willReturn(['code' => 'fr']);
-            $service = new TranslationService($translations, $languages);
-            $service->setLocale('fr');
-            Container::getInstance()->instance(TranslationService::class, $service);
+            kintai_test_translator(['fr' => ['cron_job_auto_validate' => 'Validation automatique']], 'fr');
 
             $this->assertSame('Validation automatique', CronRunner::label('auto-validate'));
             $this->assertSame('photo-retention', CronRunner::label('photo-retention'));
         } finally {
-            $prop->setValue(null, $previous);
+            kintai_test_translator_reset();
         }
     }
 

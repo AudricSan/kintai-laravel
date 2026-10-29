@@ -11,29 +11,23 @@ use Illuminate\Support\ServiceProvider;
 use kintai\Console\KintaiScriptCommand;
 use kintai\Core\BundleManager;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Routing\EmployeeRouteBinder;
 use kintai\Core\Routing\RouteBinderRegistry;
 use kintai\Core\Routing\StoreRouteBinder;
-use kintai\Core\Services\TranslationService;
 use kintai\UI\ViewRenderer;
 use kintai\Foundation\Auth\KintaiGate;
 use kintai\Foundation\Auth\KintaiGuard;
-use kintai\Foundation\Bridge\KintaiTranslator;
 
 /**
  * Raccorde Laravel aux services de Kintai pendant la migration : les helpers de Laravel (__(), csrf_token(),
  * csrf_field(), session(), auth()) et le Gate rendent ce que rendaient les services de Kintai, et les scripts de
  * scripts/ deviennent des commandes Artisan.
  *
- * Enregistrés comme instances : un fournisseur différé de Laravel (traductions) ne les remplace pas ensuite.
  */
 final class KintaiServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->instance('translator', new KintaiTranslator());
-
         defined('BASE_PATH') || define('BASE_PATH', rtrim($this->app->basePath(), '/\\'));
 
         // Paramètres de route typés ({id:store}, {uid:employee}) : segments lisibles ↔ identifiants (voir Core\Routing)
@@ -55,11 +49,6 @@ final class KintaiServiceProvider extends ServiceProvider
             $views->share('BASE_URL', base_url());
             return $views;
         });
-
-        $this->app->singleton(TranslationService::class, fn($app) => new TranslationService(
-            $app->make(TranslationRepositoryInterface::class),
-            $app->make(LanguageRepositoryInterface::class),
-        ));
 
         // Contrôleurs : la redirection ou la 404 d'un paramètre typé est rendue juste avant l'action.
         $this->app->bind(

@@ -19,12 +19,12 @@ final class AppResetServiceTest extends TestCase
         // exécution de la suite de tests (bug découvert le 2026-08-07, voir CHANGELOG).
         $this->storageDir = sys_get_temp_dir() . '/kintai_reset_storage_test_' . uniqid();
         mkdir($this->storageDir, 0775, true);
-        putenv('KINTAI_STORAGE_PATH=' . $this->storageDir);
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->storageDir;
     }
 
     protected function tearDown(): void
     {
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
         foreach (glob($this->storageDir . '/*') as $file) {
             unlink($file);
         }

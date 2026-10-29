@@ -20,7 +20,7 @@ final class AppResetServiceTest extends TestCase
         mkdir($this->tmpDir . '/storage/uploads/avatars', 0775, true);
         file_put_contents($this->tmpDir . '/storage/uploads/avatars/1.png', 'x');
         file_put_contents($this->tmpDir . '/storage/installed.lock', bin2hex(random_bytes(8)));
-        putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
         $this->capsule = kintai_test_database();
 
@@ -33,7 +33,7 @@ final class AppResetServiceTest extends TestCase
 
     protected function tearDown(): void
     {
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
         $it = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->tmpDir, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST

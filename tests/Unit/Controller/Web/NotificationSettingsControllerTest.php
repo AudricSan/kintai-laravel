@@ -33,7 +33,7 @@ use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\NotificationTypeRegistry;
 use kintai\Core\Services\PublicUrlResolver;
 use kintai\Core\Services\PushNotificationService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Services\UnsubscribeTokens;
 use kintai\Core\Services\VapidKeyStore;
 use kintai\Domain\Eloquent\Notification;
@@ -137,10 +137,7 @@ final class NotificationSettingsControllerTest extends TestCase
         $mailer = new MailerService(['driver' => 'native', 'from' => ['address' => 'kintai@mon-domaine.fr']], $transport);
         $publicUrl = new PublicUrlResolver($appSettings, '');
 
-        $translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
+        $translations = kintai_test_real_translator('en', false);
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));

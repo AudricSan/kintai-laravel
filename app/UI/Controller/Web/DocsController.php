@@ -7,7 +7,6 @@ namespace kintai\UI\Controller\Web;
 use kintai\Core\Exceptions\ForbiddenException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\TranslationService;
 use kintai\Core\Services\WikiContentService;
 use kintai\Core\Services\WikiSyncService;
 use kintai\UI\ViewRenderer;
@@ -16,7 +15,6 @@ final class DocsController
 {
     public function __construct(
         private readonly ViewRenderer $view,
-        private readonly TranslationService $translations,
         private readonly WikiContentService $wikiContent,
         private readonly WikiSyncService $wikiSync,
     ) {}
@@ -30,7 +28,7 @@ final class DocsController
      */
     public function index(Request $request): Response
     {
-        $locale    = $this->translations->getLocale();
+        $locale    = app()->getLocale();
         $firstPage = $this->wikiContent->firstPage();
 
         if ($firstPage !== null && $this->wikiContent->pageExists($locale, $firstPage)) {

@@ -10,7 +10,7 @@ use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 final class I18nMiddlewareTest extends TestCase
 {
     private LanguageRepositoryInterface&Stub $languages;
-    private TranslationService $translationService;
     private ?I18nMiddleware $middleware = null;
     private UserRepositoryInterface&Stub $users;
 
@@ -26,10 +25,6 @@ final class I18nMiddlewareTest extends TestCase
     {
         $this->languages = $this->createStub(LanguageRepositoryInterface::class);
 
-        $translationRepo = $this->createStub(TranslationRepositoryInterface::class);
-        $translationRepo->method('findByLocale')->willReturn([]);
-
-        $this->translationService = new TranslationService($translationRepo, $this->languages);
         $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
@@ -37,7 +32,7 @@ final class I18nMiddlewareTest extends TestCase
     private function middleware(): I18nMiddleware
     {
         if ($this->middleware === null) {
-            $this->middleware = new I18nMiddleware($this->translationService, $this->languages, $this->users);
+            $this->middleware = new I18nMiddleware($this->languages, $this->users);
         }
 
         return $this->middleware;
@@ -76,7 +71,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
-        $this->assertSame('en', $this->translationService->getLocale());
+        $this->assertSame('en', app()->getLocale());
     }
 
     public function testSessionLocaleUsedWhenActive(): void
@@ -86,7 +81,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
-        $this->assertSame('fr', $this->translationService->getLocale());
+        $this->assertSame('fr', app()->getLocale());
     }
 
     public function testSessionLocaleIgnoredWhenLanguageInactive(): void
@@ -97,7 +92,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
-        $this->assertSame('en', $this->translationService->getLocale());
+        $this->assertSame('en', app()->getLocale());
     }
 
     public function testLoggedInUserGetsTheProfileLanguageBeforeSessionCookieAndBrowser(): void
@@ -113,7 +108,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($req, $this->noop());
 
-        $this->assertSame('ja', $this->translationService->getLocale());
+        $this->assertSame('ja', app()->getLocale());
     }
 
     public function testLoggedInUserWithoutLanguageFollowsTheInstanceNotTheBrowser(): void
@@ -127,7 +122,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($req, $this->noop());
 
-        $this->assertSame('ja', $this->translationService->getLocale());
+        $this->assertSame('ja', app()->getLocale());
     }
 
     public function testLastAccountLanguageCookieComesBeforeTheBrowserOnTheLoginPage(): void
@@ -139,7 +134,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($req, $this->noop());
 
-        $this->assertSame('ja', $this->translationService->getLocale());
+        $this->assertSame('ja', app()->getLocale());
     }
 
     public function testBrowserLanguageUsedWhenActive(): void
@@ -150,7 +145,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($req, $this->noop());
 
-        $this->assertSame('ja', $this->translationService->getLocale());
+        $this->assertSame('ja', app()->getLocale());
     }
 
     public function testInstanceLanguageWinsOverTheLegacyDefault(): void
@@ -161,7 +156,7 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
-        $this->assertSame('en', $this->translationService->getLocale());
+        $this->assertSame('en', app()->getLocale());
     }
 
     public function testDefaultLocaleUsedAsUltimateFallback(): void
@@ -173,6 +168,6 @@ final class I18nMiddlewareTest extends TestCase
 
         $this->middleware()->handle($req, $this->noop());
 
-        $this->assertSame('fr', $this->translationService->getLocale());
+        $this->assertSame('fr', app()->getLocale());
     }
 }

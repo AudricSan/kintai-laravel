@@ -35,6 +35,8 @@ final class ResetAuthSessionFingerprint implements Extension
                 // typées installe le sien.
                 $app->instance(\kintai\Core\Routing\RouteBinderRegistry::class, new \kintai\Core\Routing\RouteBinderRegistry());
                 \Illuminate\Support\Facades\Route::clearResolvedInstance('router');
+                // Aucun texte par défaut : __() rend la clé (voir kintai_test_translator()).
+                kintai_test_translator_reset();
                 // Même raison pour les lectures de comptes et de droits gardées le temps d'une requête.
                 \kintai\Core\Database\RequestMemo::flush();
             }

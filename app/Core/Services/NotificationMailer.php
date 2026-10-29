@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
+use Illuminate\Contracts\Translation\Translator;
 use kintai\Core\Mail\MailerService;
 
 /**
@@ -22,7 +23,7 @@ final class NotificationMailer
         private readonly MailerService $mailer,
         private readonly PublicUrlResolver $publicUrl,
         private readonly UnsubscribeTokens $tokens,
-        private readonly TranslationService $translations,
+        private readonly Translator $translations,
     ) {}
 
     /** L'envoi d'e-mail est-il possible sur cette instance (e-mail réglé et URL publique connue) ? */
@@ -97,9 +98,9 @@ final class NotificationMailer
         $body   = nl2br($h($body), false);
         $open   = $h($openUrl);
         $unsub  = $h($unsubscribeUrl);
-        $view   = $h($this->translations->translate('notif_mail_view'));
-        $footer = $h($this->translations->translate('notif_mail_footer'));
-        $stop   = $h($this->translations->translate('notif_mail_unsubscribe'));
+        $view   = $h($this->translations->get('notif_mail_view'));
+        $footer = $h($this->translations->get('notif_mail_footer'));
+        $stop   = $h($this->translations->get('notif_mail_unsubscribe'));
 
         return <<<HTML
         <!DOCTYPE html>

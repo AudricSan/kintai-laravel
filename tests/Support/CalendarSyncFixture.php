@@ -21,7 +21,7 @@ use kintai\Core\Services\CalendarSyncService;
 use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\PublicUrlResolver;
 use kintai\Core\Services\SecretBox;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 
 if (!defined('BASE_PATH')) {
     define('BASE_PATH', dirname(__DIR__, 2));
@@ -68,11 +68,7 @@ trait CalendarSyncFixture
         $this->capsule->table('shift_types')->insert(['name' => 'Matin', 'code' => 'M', 'start_time' => '09:00', 'end_time' => '17:00', 'created_at' => $now, 'updated_at' => $now]);
         $this->day = date('Y-m-d', strtotime('+3 days'));
 
-        $translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
-        Container::getInstance()->instance(TranslationService::class, $translations);
+        $translations = kintai_test_real_translator('en', false);
 
         $this->values  = new InMemoryAppSettings(['app_subtitle' => 'Sakura Co.']);
         $this->secrets = new SecretBox($this->values);
@@ -122,6 +118,6 @@ trait CalendarSyncFixture
 
     private function tearDownCalendarFixture(): void
     {
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 }

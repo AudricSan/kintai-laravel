@@ -8,7 +8,7 @@ use Illuminate\Container\Container;
 use kintai\Core\Repositories\LanguageRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Services\WikiContentService;
 use kintai\Core\Services\WikiSyncService;
 use kintai\UI\Controller\Web\DocsController;
@@ -91,25 +91,12 @@ final class DocsControllerTest extends TestCase
         // ホーム.md volontairement absent : simule une traduction non disponible.
     }
 
-    private function translationService(string $locale): TranslationService
-    {
-        $translationRepo = $this->createStub(TranslationRepositoryInterface::class);
-        $translationRepo->method('findByLocale')->willReturn([]);
-
-        $languageRepo = $this->createStub(LanguageRepositoryInterface::class);
-        $languageRepo->method('findDefault')->willReturn(['code' => 'en']);
-
-        $service = new TranslationService($translationRepo, $languageRepo);
-        $service->setLocale($locale);
-
-        return $service;
-    }
-
     private function controller(string $locale): DocsController
     {
+        app()->setLocale($locale);
+
         return new DocsController(
             new ViewRenderer($this->tmpViews),
-            $this->translationService($locale),
             new WikiContentService($this->tmpWiki),
             new WikiSyncService($this->tmpWiki),
         );

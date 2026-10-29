@@ -15,7 +15,7 @@ use kintai\Core\Services\PushNotificationService;
 use kintai\Core\BundleManager;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Services\NotificationTypeRegistry;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Domain\Eloquent\Notification;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +40,7 @@ final class NotificationServiceTest extends TestCase
 {
     private NotificationService $service;
     private PushNotificationService $push;
-    private TranslationService $translations;
+    private Translator $translations;
     private UserRepositoryInterface $users;
 
     /** @var array<int, array{id:int, language:?string}> */
@@ -71,10 +71,7 @@ final class NotificationServiceTest extends TestCase
         // no-op immédiat, aucun appel réseau n'a lieu dans ce test.
         $push = new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class));
 
-        $translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
+        $translations = kintai_test_real_translator();
 
         $this->usersById = [];
         $this->users = $this->createStub(UserRepositoryInterface::class);

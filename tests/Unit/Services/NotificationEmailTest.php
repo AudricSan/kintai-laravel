@@ -24,7 +24,7 @@ use kintai\Core\Services\NotificationService;
 use kintai\Core\Services\NotificationTypeRegistry;
 use kintai\Core\Services\PublicUrlResolver;
 use kintai\Core\Services\PushNotificationService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Services\UnsubscribeTokens;
 use kintai\Domain\Eloquent\Notification;
 use kintai\Tests\Support\InMemoryAppSettings;
@@ -110,10 +110,7 @@ final class NotificationEmailTest extends TestCase
             }
         };
         $config = $configured ? ['driver' => 'native', 'from' => ['address' => 'kintai@mon-domaine.fr', 'name' => 'Kintai']] : [];
-        $translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
+        $translations = kintai_test_real_translator();
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
 

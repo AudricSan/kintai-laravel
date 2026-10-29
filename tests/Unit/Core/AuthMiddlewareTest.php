@@ -25,7 +25,7 @@ use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\EmployeeStatsService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
@@ -51,10 +51,7 @@ final class AuthMiddlewareTest extends TestCase
         // instance sans constructeur suffit pour ce test (aucun bundle réellement actif).
         $this->container->instance(BundleManager::class, (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor());
 
-        $this->container->instance(TranslationService::class, new TranslationService(
-            $this->createStub(TranslationRepositoryInterface::class),
-            $this->createStub(LanguageRepositoryInterface::class),
-        ));
+        kintai_test_translator();
         $this->container->instance(
             LanguageRepositoryInterface::class,
             $this->createStub(LanguageRepositoryInterface::class),

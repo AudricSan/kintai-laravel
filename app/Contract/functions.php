@@ -21,7 +21,7 @@ declare(strict_types=1);
  */
 return [
     'declared' => [
-        '__'                  => ['since' => '1.0.0', 'status' => 'stable', 'params' => ['key', 'replace'], 'returns' => 'string', 'role' => 'Traduction dans la langue courante ; renvoie la clé si elle est absente. Les paramètres remplacent « :nom ».'],
+        '__'                  => ['since' => '1.0.0', 'status' => 'stable', 'params' => ['key', 'replace', 'locale'], 'returns' => 'array|string|null', 'role' => 'Traduction dans la langue courante (ou celle donnée) ; renvoie la clé si elle est absente. Les paramètres remplacent « :nom ».'],
         'csrf_token'          => ['since' => '1.0.0', 'status' => 'stable', 'params' => [], 'returns' => '?string', 'role' => 'Jeton CSRF de la session.'],
         'csrf_field'          => ['since' => '1.0.0', 'status' => 'stable', 'params' => [], 'returns' => 'Illuminate\Support\HtmlString', 'role' => 'Champ caché HTML du jeton CSRF, à placer dans chaque formulaire POST.'],
         'csp_nonce'           => ['since' => '1.0.0', 'status' => 'stable', 'params' => [], 'returns' => 'string', 'role' => 'Nonce de la requête pour un <script nonce="…"> inévitable.'],

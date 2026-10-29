@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
 use kintai\Core\Services\IcalService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 
 if (!defined('BASE_PATH')) {
     define('BASE_PATH', dirname(__DIR__, 3));
@@ -28,23 +28,19 @@ if (!defined('BASE_PATH')) {
  */
 final class IcalServiceTest extends TestCase
 {
-    private TranslationService $translations;
+    private Translator $translations;
     private IcalService $service;
 
     protected function setUp(): void
     {
-        $this->translations = new TranslationService(
-            new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles'),
-            new JsonLanguageRepository(BASE_PATH . '/lang'),
-        );
-        Container::getInstance()->instance(TranslationService::class, $this->translations);
+        $this->translations = kintai_test_real_translator();
 
         $this->service = new IcalService($this->translations);
     }
 
     protected function tearDown(): void
     {
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 
     private function store(): array

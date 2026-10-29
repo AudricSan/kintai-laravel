@@ -14,7 +14,7 @@ use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\BackupService;
 use kintai\Core\Services\GithubUpdateService;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Core\Services\UpdateService;
 use kintai\UI\Controller\Web\System\BackupController;
 use kintai\UI\ViewRenderer;
@@ -39,7 +39,7 @@ final class BackupControllerTest extends TestCase
         mkdir($this->tmpDir . '/storage/uploads', 0775, true);
         mkdir($this->tmpDir . '/config', 0775, true);
 
-        putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
         $capsule = kintai_test_database();
 
@@ -61,23 +61,19 @@ final class BackupControllerTest extends TestCase
         // ce qui masquerait exactement le bug que ce test vérifie (interpolation :filename
         // etc. jamais appliquée si __() ne fait que renvoyer la clé).
         $langPath = dirname(__DIR__, 5) . '/lang';
-        $translationService = new TranslationService(
-            new JsonTranslationRepository($langPath),
-            new JsonLanguageRepository($langPath),
-        );
+        $translationService = kintai_test_real_translator();
         $translationService->setLocale('fr');
-        Container::getInstance()->instance(TranslationService::class, $translationService);
     }
 
     protected function tearDown(): void
     {
         $this->clearCachedReleases();
         $this->removeDir($this->tmpDir);
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
         $_GET = [];
         \kintai\Core\Services\Log::reset();
 
-        Container::getInstance()->offsetUnset(TranslationService::class);
+        kintai_test_translator_reset();
     }
 
     private function setPrivate(object $obj, string $prop, mixed $value): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
+use Illuminate\Contracts\Translation\Translator;
 use kintai\Core\Auth\CredentialRevoker;
 use kintai\Core\Mail\MailerService;
 use kintai\Core\Repositories\PasswordResetRepositoryInterface;
@@ -20,7 +21,7 @@ final class PasswordResetService
         // Optionnel pour les tests qui construisent le service à la main.
         private readonly ?CredentialRevoker $revoker = null,
         // Pour écrire l'e-mail dans la langue du destinataire ; sans lui, langue de la requête en cours.
-        private readonly ?TranslationService $translator = null,
+        private readonly ?Translator $translator = null,
     ) {}
 
     /**

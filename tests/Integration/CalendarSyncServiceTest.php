@@ -6,7 +6,7 @@ namespace kintai\Tests\Integration;
 
 use Illuminate\Container\Container;
 use kintai\Core\Services\Calendar\CalendarEventBuilder;
-use kintai\Core\Services\TranslationService;
+use Illuminate\Translation\Translator;
 use kintai\Tests\Support\CalendarSyncFixture;
 use PHPUnit\Framework\TestCase;
 
@@ -188,7 +188,7 @@ final class CalendarSyncServiceTest extends TestCase
 
     public function testStoreColourIsStableAndNeverTheTimeoffColour(): void
     {
-        $builder = new CalendarEventBuilder(Container::getInstance()->make(TranslationService::class));
+        $builder = new CalendarEventBuilder(app('translator'));
         $seen = [];
         for ($storeId = 1; $storeId <= 30; $storeId++) {
             $event = $builder->forShift(['id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '10:00'], ['id' => $storeId, 'name' => 'S'], null, ['language' => 'fr'], null)['event'];

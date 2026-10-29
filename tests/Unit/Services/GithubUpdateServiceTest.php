@@ -32,7 +32,7 @@ final class GithubUpdateServiceTest extends TestCase
         mkdir($this->tmpDir . '/config', 0775, true);
         file_put_contents($this->tmpDir . '/vendor/should-stay.txt', 'do not touch');
 
-        putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
         $capsule = kintai_test_database();
 
@@ -47,7 +47,7 @@ final class GithubUpdateServiceTest extends TestCase
     {
         $this->clearCachedReleases();
         $this->removeDir($this->tmpDir);
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
     }
 
     private function setPrivate(object $obj, string $prop, mixed $value): void

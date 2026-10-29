@@ -23,7 +23,7 @@ final class BackupServiceTest extends TestCase
         file_put_contents($this->tmpDir . '/storage/app/database.sqlite', '');
         file_put_contents($this->tmpDir . '/storage/uploads/test.txt', 'hello');
 
-        putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
         $this->service = new BackupService(null);
         $ref = new \ReflectionProperty(BackupService::class, 'backupDir');
@@ -39,7 +39,7 @@ final class BackupServiceTest extends TestCase
             $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
         }
         rmdir($this->tmpDir);
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
     }
 
     public function testCreateBackupReturnsArrayWithKeys(): void

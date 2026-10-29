@@ -72,11 +72,6 @@ foreach (array_slice($argv, 2) as $arg) {
 
 $app = require BASE_PATH . '/bootstrap/boot.php';
 
-// Hors requête HTTP, aucun middleware ne choisit la langue : celle par défaut de l'instance (libellés des tâches,
-// textes produits par les tâches).
-$defaultLanguage = $app->make(\kintai\Core\Repositories\LanguageRepositoryInterface::class)->findDefault();
-$app->make(\kintai\Core\Services\TranslationService::class)->setLocale((string) ($defaultLanguage['code'] ?? 'en'));
-
 /** @var CronRunner $runner */
 $runner = $app->make(CronRunner::class);
 

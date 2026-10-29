@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\InstanceLocale;
 use kintai\Core\Services\LocaleCookie;
-use kintai\Core\Services\TranslationService;
 
 /**
  * Langue d'affichage de la requête (ordre détaillé dans InstanceLocale) :
@@ -22,7 +21,6 @@ use kintai\Core\Services\TranslationService;
 final class I18nMiddleware
 {
     public function __construct(
-        private readonly TranslationService $translationService,
         private readonly LanguageRepositoryInterface $languageRepository,
         private readonly ?UserRepositoryInterface $users = null,
     ) {}
@@ -30,7 +28,7 @@ final class I18nMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         $locale = $this->determineLocale($request);
-        $this->translationService->setLocale($locale);
+        app()->setLocale($locale);
 
         return $next($request);
     }

@@ -57,6 +57,7 @@ final class BundleManager
         // Un bundle est un service provider Laravel : l'application l'enregistre, puis le démarre (routes, vues…).
         $bundle = $this->app->register(new $bundleClass($this->app));
         $bundle->registerMigrations();
+        $bundle->registerTranslations();
         $this->bundles[$bundleClass] = $bundle;
     }
 

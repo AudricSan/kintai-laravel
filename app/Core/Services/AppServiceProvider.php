@@ -102,7 +102,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationService::class, fn(Container $c) => new NotificationService(
             $c->make(NotificationRepositoryInterface::class),
             $c->make(PushNotificationService::class),
-            $c->make(TranslationService::class),
+            $c->make('translator'),
             $c->make(UserRepositoryInterface::class),
             $c->make(NotificationTypeRegistry::class),
             $c->make(NotificationPreferenceService::class),
@@ -129,7 +129,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(MailerService::class),
             $c->make(PublicUrlResolver::class),
             $c->make(UnsubscribeTokens::class),
-            $c->make(TranslationService::class),
+            $c->make('translator'),
         ));
         $this->app->singleton(VapidKeyStore::class, fn(Container $c) => new VapidKeyStore($c->make(AppSettingsRepositoryInterface::class)));
         $this->app->singleton(WebPushService::class, fn(Container $c) => new WebPushService(
@@ -145,7 +145,7 @@ final class AppServiceProvider extends ServiceProvider
         ));
         
         $this->app->singleton(IcalService::class, fn(Container $c) => new IcalService(
-            $c->make(TranslationService::class),
+            $c->make('translator'),
         ));
         
         $this->app->singleton(PasswordResetService::class, fn(Container $c) => new PasswordResetService(
@@ -153,7 +153,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(UserRepositoryInterface::class),
             $c->make(MailerService::class),
             $c->make(\kintai\Core\Auth\CredentialRevoker::class),
-            $c->make(TranslationService::class),
+            $c->make('translator'),
         ));
 
         $this->app->singleton(AppSettingsService::class, fn(Container $c) => new AppSettingsService($c->make(AppSettingsRepositoryInterface::class)));

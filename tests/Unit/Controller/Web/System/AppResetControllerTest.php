@@ -43,7 +43,7 @@ final class AppResetControllerTest extends TestCase
         mkdir($this->tmpDir . '/storage/backups', 0775, true);
         mkdir($this->tmpDir . '/storage/uploads', 0775, true);
         file_put_contents($this->tmpDir . '/storage/installed.lock', 'x');
-        putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
+        $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
         $capsule = kintai_test_database();
         kintai_test_migrate();
@@ -78,7 +78,7 @@ final class AppResetControllerTest extends TestCase
     {
         $_POST = [];
         session()->flush();
-        putenv('KINTAI_STORAGE_PATH');
+        unset($_ENV['LARAVEL_STORAGE_PATH']);
         $it = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->tmpDir, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST

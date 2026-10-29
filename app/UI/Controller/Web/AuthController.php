@@ -124,7 +124,7 @@ final class AuthController
             'login_mode' => $_GET['mode'] ?? 'code',
             // Sélecteur de langue de la page de connexion (pour la session ; voir switchLanguage()).
             'login_languages' => $this->languages->findAllActive(),
-            'current_locale'  => \Illuminate\Container\Container::getInstance()->make(\kintai\Core\Services\TranslationService::class)->getLocale(),
+            'current_locale'  => app()->getLocale(),
         ], 'layout.guest'));
     }
 

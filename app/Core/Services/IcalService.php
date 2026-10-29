@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
+use Illuminate\Contracts\Translation\Translator;
 final class IcalService
 {
     public function __construct(
-        private readonly TranslationService $translations,
+        private readonly Translator $translations,
     ) {}
 
     /**

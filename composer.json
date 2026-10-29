@@ -41,10 +41,5 @@
         "allow-plugins": {
             "php-http/discovery": true
         }
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "@php scripts/composer/load-kintai-helpers-first.php"
-        ]
     }
 }

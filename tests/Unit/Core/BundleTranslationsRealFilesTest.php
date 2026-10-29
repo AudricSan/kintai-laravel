@@ -24,7 +24,7 @@ final class BundleTranslationsRealFilesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->repo = new JsonTranslationRepository(BASE_PATH . '/lang', BASE_PATH . '/app/Bundles');
+        $this->repo = new JsonTranslationRepository(BASE_PATH . '/lang', kintai_test_real_translator('en', false));
     }
 
     /** Libellé de chaque bundle extrait du Core : fourni par le bundle lui-même (et vérifié dans son dépôt). */

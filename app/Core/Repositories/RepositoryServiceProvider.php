@@ -43,31 +43,12 @@ final class RepositoryServiceProvider extends ServiceProvider
         $this->app->singleton(BundleRegistryRepositoryInterface::class, fn() => new DatabaseBundleRegistryRepository());
         $this->app->singleton(InstalledBundleRepositoryInterface::class, fn() => new DatabaseInstalledBundleRepository());
 
-
-
-        // Traductions (fichiers JSON, voir lang/languages.json et lang/{code}.json). Chaque
-        // bundle legacy peut définir ses propres app/Bundles/<Name>/lang/{code}.json, et
-        // chaque bundle installé dynamiquement son storage/bundles/<slug>/<version>/lang/{code}.json,
-        // tous fusionnés par-dessus ceux du Core (fallback Core si un bundle ne redéfinit pas une clé).
+        // Traductions : fichiers JSON de Laravel (lang/{code}.json) ; la liste des langues est lang/languages.json.
         $this->app->singleton(LanguageRepositoryInterface::class, fn() => new JsonLanguageRepository(BASE_PATH . '/lang'));
-        $this->app->singleton(TranslationRepositoryInterface::class, fn() => new JsonTranslationRepository(
+        $this->app->singleton(TranslationRepositoryInterface::class, fn($app) => new JsonTranslationRepository(
             BASE_PATH . '/lang',
-            BASE_PATH . '/app/Bundles',
-            self::installedBundleRoots(),
+            $app->make('translator'),
         ));
     }
 
-    /** @return string[] Chemins absolus (storage/bundles/<slug>/<version>) de chaque bundle installé actif. */
-    private static function installedBundleRoots(): array
-    {
-        $bundlesDir = storage_path('bundles');
-        $roots = [];
-        foreach ((new InstalledBundleManifestStore())->all() as $slug => $info) {
-            $version = $info['active_version'] ?? null;
-            if (is_string($version) && $version !== '') {
-                $roots[] = $bundlesDir . '/' . $slug . '/' . $version;
-            }
-        }
-        return $roots;
-    }
 }

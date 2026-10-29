@@ -14,8 +14,7 @@ use kintai\Core\Repositories\JsonTranslationRepository;
  *  - parity       : une clé absente d'une des langues (fr/en/ja) du bundle ;
  *  - placeholders : une clé dont les paramètres « :nom » diffèrent d'une langue à l'autre ;
  *  - prefix       : une clé sans le préfixe du bundle (hors conventions réservées bundle_/notif_/audit_/cron_job_/perm_category_) ;
- *  - collisions   : une clé du Core redéfinie dans lang/{locale}.json sans être déclarée dans lang/overrides/{locale}.json ;
- *  - overrides    : une surcharge d'une clé que le Core ne fournit pas, ou qui change ses paramètres « :nom » ;
+ *  - collisions   : une clé du Core redéfinie dans lang/{locale}.json (le Cœur l'emporte : la valeur du bundle est ignorée) ;
  *  - unknown      : une clé utilisée par le code (littéral __('clé')) que ni le bundle ni le contrat ne fournissent.
  */
 final class TranslationContractChecker
@@ -26,16 +25,15 @@ final class TranslationContractChecker
      * @param string $bundleDir racine du bundle (lang/, src/, Views/, routes.php)
      * @param string $slug      slug du bundle (« daily-report » : préfixe « daily_report_ »)
      * @param string $coreLangDir dossier lang/ du Core
-     * @return array<'parity'|'placeholders'|'prefix'|'collisions'|'overrides'|'unknown', list<string>>
+     * @return array<'parity'|'placeholders'|'prefix'|'collisions'|'unknown', list<string>>
      */
     public static function violations(string $bundleDir, string $slug, string $coreLangDir): array
     {
-        $report = ['parity' => [], 'placeholders' => [], 'prefix' => [], 'collisions' => [], 'overrides' => [], 'unknown' => []];
+        $report = ['parity' => [], 'placeholders' => [], 'prefix' => [], 'collisions' => [], 'unknown' => []];
 
-        $own = $overrides = $core = [];
+        $own = $core = [];
         foreach (self::LOCALES as $locale) {
             $own[$locale]       = self::read($bundleDir . '/lang/' . $locale . '.json');
-            $overrides[$locale] = self::read($bundleDir . '/lang/overrides/' . $locale . '.json');
             $core[$locale]      = self::read(rtrim($coreLangDir, '/\\') . '/' . $locale . '.json');
         }
 
@@ -67,19 +65,9 @@ final class TranslationContractChecker
                 $report['prefix'][] = "$key : préfixe « $prefix » attendu";
             }
             foreach (self::LOCALES as $locale) {
-                if (array_key_exists($key, $core[$locale]) && !array_key_exists($key, $overrides[$locale])) {
-                    $report['collisions'][] = "$key : redéfinit une clé du Core sans la déclarer dans lang/overrides/$locale.json";
+                if (array_key_exists($key, $core[$locale])) {
+                    $report['collisions'][] = "$key : redéfinit une clé du Core (ignorée : le Core l'emporte, $locale)";
                     break;
-                }
-            }
-        }
-
-        foreach (self::LOCALES as $locale) {
-            foreach ($overrides[$locale] as $key => $value) {
-                if (!array_key_exists($key, $core[$locale])) {
-                    $report['overrides'][] = "$key ($locale) : surcharge d'une clé que le Core ne fournit pas";
-                } elseif (JsonTranslationRepository::placeholders((string) $core[$locale][$key]) !== JsonTranslationRepository::placeholders((string) $value)) {
-                    $report['overrides'][] = "$key ($locale) : la surcharge change les paramètres :nom de l'original";
                 }
             }
         }
@@ -88,10 +76,6 @@ final class TranslationContractChecker
         $common   = array_fill_keys(array_merge($contract['stable'], $contract['provisoire']), true);
         foreach (self::usedKeys($bundleDir) as $key => $where) {
             $provided = isset($allOwn[$key]) || isset($common[$key]);
-            // Une clé surchargée par le bundle est fournie par lui.
-            foreach (self::LOCALES as $locale) {
-                $provided = $provided || isset($overrides[$locale][$key]);
-            }
             if (!$provided) {
                 $report['unknown'][] = "$key : utilisée ($where) mais fournie ni par le bundle ni par le contrat";
             }
