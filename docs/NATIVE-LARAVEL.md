@@ -1,92 +1,69 @@
 # Passage à Laravel natif
 
-Objectif : supprimer le pont `KintaiBridge` et toute la couche maison (routeur, conteneur, requête/réponse, session,
-CSRF, middlewares, repositories), pour obtenir une application Laravel standard. La compatibilité avec l'ancien Kintai
-et avec les bundles actuels (contrat 1.31) peut être cassée.
+Objectif : supprimer la couche maison (routeur, conteneur, requête/réponse, session, CSRF, pont `KintaiBridge`) pour
+obtenir une application Laravel standard. **Aucune rétrocompatibilité** : les instances déjà en production sont
+réinstallées (éventuellement avec un script de migration des données), et le contrat de bundle repart en 1.0.0.
 
 Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la référence ci-dessous, et fait l'objet d'un commit.
 
-## Référence de départ (branche `main`, 2026-10-29)
+## Référence
 
-- 3000 tests, 9 erreurs, 12 échecs préexistants (21 cas, dont des séparateurs de chemin Windows).
-- 56 contrôleurs, 99 services, 67 repositories, 20 middlewares, 39 modèles Eloquent dans `app/Domain/Eloquent`.
-- `$_SESSION` n'est lu que dans 9 fichiers de `app/`, mais 39 fichiers de tests y touchent.
+- 2905 tests, 2 échecs d'environnement : `KintaiScriptCommandTest` (avertissement `openssl` de la ligne de commande
+  sous cette installation XAMPP) et `ViewRendererTest::testAMissingViewIsReported` (séparateur de chemin Windows).
 
-## Étapes
-
-1. **Session, CSRF et auth natifs.** Remplacer `$_SESSION` par `session()`, `SessionMiddleware`/`CsrfMiddleware` par
-   `StartSession` + `VerifyCsrfToken`, `AuthService` + `KintaiGuard` par un vrai guard `session` sur le modèle `User`
-   (`Auth::attempt`, `Auth::login`, `Hash`). Supprimer `NativeSessionStore`. *Effet : tout le monde est déconnecté une fois.*
-2. **Requête et réponse natives.** Les 56 contrôleurs prennent `Illuminate\Http\Request` et renvoient des réponses
-   Laravel (`view()`, `redirect()`, `response()->json()`). Supprimer `Core\Request`, `Core\Response`, `ViewRenderer`,
-   `KintaiPhpEngine`, `OldInput`, `SessionFlash` (remplacés par `old()` et `->with()`).
-3. **Middlewares Laravel.** Les 20 middlewares deviennent des classes `handle($request, $next)` standard, groupes
-   `web` et `api`, alias dans `bootstrap/app.php`. Throttling via `RateLimiter`, permissions via `Gate`/policies.
-4. **Routes natives.** `routes/kintai.php` devient `routes/web.php` + `routes/api.php` avec `Route::` standard
-   (`->name()`, `->middleware()`). Supprimer `Core\Router`, `Core\Route`, `KintaiRoutes`, `KintaiRouteAction`,
-   `ResolveKintaiRoute`, `KintaiBridge`, `KintaiKernel`.
-5. **Conteneur et providers.** Supprimer `Core\Container`, `Core\ServiceProvider`, `AliasAwareContainer` ; tout passe
-   par les service providers Laravel et l'injection automatique.
-6. **Structure et namespace.** `kintai\` devient `App\` ; `UI/Controller` → `Http/Controllers`, `UI/View` →
-   `resources/views`, `Domain/Eloquent` → `Models`, `lang/*.json` conservés, `config/*.php` ramenés aux fichiers Laravel
-   (`session`, `auth`, `mail`, `queue`, `cache`, `filesystems`), suppression de `.env.local`/`.env.ovh` spéciaux.
-7. **Persistance.** Les 67 repositories sont réduits : les modèles Eloquent portent les requêtes, les repositories qui
-   n'ajoutent rien sont supprimés ; les migrations passent de `database/migrations/php` à `database/migrations`.
-8. **Bundles.** Un bundle devient un package Composer ou un module avec son `ServiceProvider` Laravel (routes, vues,
-   migrations, traductions chargées par les méthodes standard). Suppression de `InstalledBundleAutoloader`,
-   `BundleManager` et du contrat 1.31 ; dépôt `kintai-laravel-bundles` adapté.
-9. **Installation et mise à jour.** `public/install.php` et `scripts/*.php` remplacés par des commandes Artisan ;
-   planificateur dans `routes/console.php`.
-
-## Ordre et dépendances
-
-Les étapes 1 à 5 sont séquentielles. 6 se fait en une seule passe (renommage global) une fois 1 à 5 terminées. 7 et 8
-peuvent avancer en parallèle après 6.
-
-## Avancement (2026-10-29)
-
-Référence : 2998 tests, 2 échecs d'environnement (avertissement `openssl` en ligne de commande ; séparateur de chemin
-Windows dans `ViewRendererTest`, qui disparaît avec `ViewRenderer`).
+## Avancement
 
 | Étape | État |
 | :--- | :--- |
 | Tests sur l'application Laravel complète (`tests/bootstrap.php`) | Fait |
-| 1. Session et CSRF natifs (`session()`, jeton `_token`, contrat de bundle 2.0.0) | Fait |
-| 1. Garde d'authentification | Garde Laravel personnalisée (`KintaiGuard`) au-dessus d'`AuthService` : conservée (option A) |
-| 2. Requête et réponse natives dans les 56 contrôleurs, 20 middlewares et services HTTP | Fait |
-| 3. Middlewares à signature Laravel | Fait (encore exécutés par le pont, voir ci-dessous) |
-| 4. Routes natives, suppression du routeur et du pont | À faire |
-| 5. Conteneur et providers natifs | À faire |
-| 6. Namespace `kintai\` → `App\` et structure Laravel | À faire |
-| 7. Repositories réduits au profit d'Eloquent, migrations dans `database/migrations` | À faire |
-| 8. Les 13 bundles en service providers Laravel | À faire |
-| 9. Installateur et `scripts/*.php` en commandes Artisan | À faire |
+| 1. Session et CSRF natifs (`session()`, jeton `_token`) | Fait |
+| 1. Garde d'authentification | Garde Laravel personnalisée (`KintaiGuard`) au-dessus d'`AuthService` (choix « option A ») |
+| 2. Requête/réponse Laravel dans les contrôleurs, middlewares et services HTTP | Fait |
+| 3. Middlewares à signature Laravel, pile globale dans `bootstrap/app.php` | Fait |
+| 4. Routes natives (`routes/web.php`, `routes/api.php`), rendu des erreurs, journal d'accès | Fait |
+| 5. Conteneur et fournisseurs natifs (`Core\Application`, `Container`, `ServiceProvider` supprimés) | Fait |
+| 8. Bundles = service providers Laravel, contrat 1.0.0, 13 bundles convertis | Fait (voir ci-dessous) |
+| 9. Scripts en commandes Artisan | Les scripts de `scripts/` sont exposés par `php artisan kintai:*` ; `public/install.php` reste l'installateur web |
+| 6. Namespace `kintai\` → `App\` et réorganisation (`Http/Controllers`, `resources/views`, `Models`) | À faire (renommage global) |
+| 7. Migrations reconstruites (peu de fichiers, installation neuve) et repositories réduits | À faire |
 
-### Ce qui reste de maison (à supprimer aux étapes 4, 5 et 8)
+## Ce qui est natif
 
-- `app/Core/Application.php` (routage, rendu des erreurs, journal d'accès), `Router`, `Route`, `Container`,
-  `ServiceProvider`, `MiddlewarePipeline`, `MiddlewareInterface`, `Request`, `Response`, `NativeCall`.
-- Le pont : `app/Http/KintaiBridge`, `KintaiRoutes`, `KintaiRouteAction`, `Middleware/*` (Kernel, KintaiMiddleware,
-  ResolveKintaiRoute, CarriedResponse).
-- `routes/kintai.php` (DSL maison, avec `permission:` et paramètres typés `{id:store}`) : à convertir en
-  `routes/web.php` et `routes/api.php`.
+- **Routes** : `Route::get(...)->name()->middleware()`. Deux macros ajoutées aux routes de Laravel :
+  `->permission('shifts.update')` (règle RBAC lue par `PermissionMiddleware` / `ApiPermissionMiddleware`) et
+  `->bindSegments(['id' => 'store'])` (segment lisible → identifiant, 301 vers l'URL canonique, 404 rendue après les
+  middlewares : `BindRouteParameters` + `KintaiControllerDispatcher`).
+- **Pile HTTP** : les middlewares de `config/middleware.php` sont dans la pile globale de `bootstrap/app.php`, précédés de
+  `AccessLog` (journal d'accès écrit à la fin de la réponse). `ErrorResponder` rend les exceptions (pages `errors.*`, JSON
+  pour l'API) via `withExceptions()`.
+- **Conteneur et fournisseurs** : `bootstrap/providers.php` liste `KintaiServiceProvider`, puis les fournisseurs de base de
+  données, dépôts, authentification, services, licence et bundles. Les scripts et l'installateur obtiennent l'application
+  complète par `bootstrap/boot.php`.
+- **Bundles** : `Bundle` étend `Illuminate\Support\ServiceProvider`. `BundleManager` les enregistre avec
+  `$app->register()` ; leurs routes (`routes.php`, en `Route::`) sont chargées après celles du Cœur ; leurs vues par
+  `loadViewsFrom()` dans le moteur de vues de l'application. Le contrat (`kintai\Contract\*`) est en 1.0.0 : les alias
+  `Request`, `Response` et `Container` pointent vers Laravel.
+- **Requêtes longues (SSE)** : `response()->stream()` (mise à jour, installation de bundle).
 
-### Plan détaillé de l'étape 4
+## Bundles
 
-1. Générer `routes/web.php` et `routes/api.php` en exécutant `routes/kintai.php` sur un enregistreur de routes
-   (`->name()`, `->middleware()`, macro `->permission()` et macro `->kintaiBind()` pour `{id:store}`).
-2. Les 11 middlewares globaux de `config/middleware.php` passent dans la pile globale de `bootstrap/app.php`.
-3. Paramètres typés : un middleware de résolution (avant ceux de la route) remplace les segments par les identifiants et
-   garde la 301/404 différée dans un attribut ; un second middleware, juste avant le contrôleur, la rend (les contrôles
-   d'accès doivent passer avant que l'on révèle l'existence d'un magasin).
-4. Rendu des erreurs et journal d'accès (`Application::handleException`, `renderError`, `logAccess`) portés dans
-   `withExceptions()` et un middleware terminable.
-5. `route_url()` réimplémenté sur la collection de routes de Laravel.
-6. Les routes des bundles passent par un enregistreur transitoire qui les déclare à Laravel, jusqu'à l'étape 8.
+Les 13 dépôts de `KintaiBundleDev/` ont été convertis (routes en `Route::`, requêtes/réponses de Laravel, `getVersion()`
+lue dans `bundle.json`, `kintai_contract` à `^1.0`, version majeure suivante). Chargés en local depuis `storage/bundles/` :
+13 bundles, 178 routes. **Pas encore commités** dans leurs dépôts ; leurs propres tests (`tests/`) n'ont pas été relancés :
+ils s'appuient sur le Cœur installé dans leur `vendor/` et demandent un `composer update` une fois le Cœur publié.
 
-### Outillage utilisé pour la conversion
+## Reste à faire
 
-Les conversions automatiques (`Response::redirect` → `redirect()->away`, `$request->param` → `$request->route`, etc.)
-ont été faites par des scripts jetables ; leurs règles sont dans `app/Http/Macros.php` (macros Request/Response) et dans
-l'historique git. `redirect()->away()` est volontaire : `redirect('/x')` préfixe la racine de l'URL et doublerait le
-sous-dossier déjà ajouté par `base_url()`.
+1. **Migrations** : reconstruire `database/migrations/php` (107 fichiers) en quelques migrations de création, pour une
+   installation neuve, avec les deux migrations de données (rôles par défaut, registre officiel de bundles). Prévoir un
+   petit script de migration de l'ancienne base vers la nouvelle.
+2. **Repositories** : 67 dépôts à réduire (Eloquent porte les requêtes ; garder les interfaces seulement là où un service
+   en a besoin pour les tests).
+3. **Namespace et structure** : `kintai\` → `App\`, `UI/Controller` → `Http/Controllers`, `UI/View` → `resources/views`,
+   `Domain/Eloquent` → `Models`. Les alias du contrat de bundle (`kintai\Contract\*`) restent le nom public pour les
+   bundles.
+4. **Vues** : `ViewRenderer` garde son propre moteur (directive `@includeInScope`, vues `.php` et Blade) ; il est
+   branché comme service `view` de l'application. À supprimer quand les vues deviennent des vues Blade standard.
+5. **Authentification** : remplacer `AuthService` + `KintaiGuard` par un guard `session` sur le modèle `User`.
+6. **Bundles** : commiter les 13 dépôts, mettre à jour leurs tests et `composer.json`, publier les releases et mettre à jour
+   le registre `KintaiBundle/registry.json`.

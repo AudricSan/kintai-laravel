@@ -202,63 +202,66 @@ final class BackupController
     public function updateStream(Request $request): Response
     {
 
-        session_write_close();
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-        header('Content-Type: text/event-stream');
-        header('Cache-Control: no-cache');
-        header('X-Accel-Buffering: no');
-        header('Connection: keep-alive');
-        set_time_limit(0);
+        session()->save();
 
-        $emit = function (string $event, array $data): void {
-            echo "event: {$event}\n";
-            echo 'data: ' . json_encode($data) . "\n\n";
-            flush();
-        };
-
-        // exit() n'exécute pas les blocs finally en PHP : on restaure la maintenance
-        // explicitement avant chaque exit() plutôt que de compter sur un try/finally.
-        $wasMaintenanceEnabled = $this->settings->maintenanceModeEnabled();
-        if (!$wasMaintenanceEnabled) {
-            $this->settings->setMany(['maintenance_mode_enabled' => '1']);
-        }
-        $restoreMaintenance = function () use ($wasMaintenanceEnabled): void {
-            if (!$wasMaintenanceEnabled) {
-                $this->settings->setMany(['maintenance_mode_enabled' => '0']);
+        return response()->stream(function () use ($request): void {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
             }
-        };
+            set_time_limit(0);
 
-        try {
-            $result = $this->githubUpdate->applyUpdate(function (int $percent, string $label) use ($emit): void {
-                $emit('progress', ['percent' => $percent, 'label' => $label]);
-            });
-        } catch (\Throwable $e) {
+            $emit = function (string $event, array $data): void {
+                echo "event: {$event}\n";
+                echo 'data: ' . json_encode($data) . "\n\n";
+                flush();
+            };
+
+            // La maintenance est restaurée explicitement avant chaque sortie du flux.
+            $wasMaintenanceEnabled = $this->settings->maintenanceModeEnabled();
+            if (!$wasMaintenanceEnabled) {
+                $this->settings->setMany(['maintenance_mode_enabled' => '1']);
+            }
+            $restoreMaintenance = function () use ($wasMaintenanceEnabled): void {
+                if (!$wasMaintenanceEnabled) {
+                    $this->settings->setMany(['maintenance_mode_enabled' => '0']);
+                }
+            };
+
+            try {
+                $result = $this->githubUpdate->applyUpdate(function (int $percent, string $label) use ($emit): void {
+                    $emit('progress', ['percent' => $percent, 'label' => $label]);
+                });
+            } catch (\Throwable $e) {
+                $restoreMaintenance();
+                $emit('error', ['message' => $e->getMessage()]);
+                return;
+            }
+
+            if (!$result['ok']) {
+                $restoreMaintenance();
+                // Code connu (download_failed, checksum_failed…) : message traduit plutôt que le code brut.
+                $code = (string) $result['error'];
+                $text = __('backup_flash_error_' . $code);
+                $emit('error', ['message' => $text !== 'backup_flash_error_' . $code ? $text : $code]);
+                return;
+            }
+
+            $this->auditLogger->log($request, 'update.applied', 'system', null, [
+                'version'            => $result['version'] ?? null,
+                'files_copied'       => $result['files_copied'] ?? null,
+                'files_deleted'      => $result['files_deleted'] ?? null,
+                'migrations_applied' => $result['migrations_applied'] ?? null,
+            ]);
+
             $restoreMaintenance();
-            $emit('error', ['message' => $e->getMessage()]);
-            exit(0);
-        }
-
-        if (!$result['ok']) {
-            $restoreMaintenance();
-            // Code connu (download_failed, checksum_failed…) : message traduit plutôt que le code brut.
-            $code = (string) $result['error'];
-            $text = __('backup_flash_error_' . $code);
-            $emit('error', ['message' => $text !== 'backup_flash_error_' . $code ? $text : $code]);
-            exit(0);
-        }
-
-        $this->auditLogger->log($request, 'update.applied', 'system', null, [
-            'version'            => $result['version'] ?? null,
-            'files_copied'       => $result['files_copied'] ?? null,
-            'files_deleted'      => $result['files_deleted'] ?? null,
-            'migrations_applied' => $result['migrations_applied'] ?? null,
+            $emit('done', $result);
+            return;
+        }, 200, [
+            'Content-Type'      => 'text/event-stream',
+            'Cache-Control'     => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
         ]);
-
-        $restoreMaintenance();
-        $emit('done', $result);
-        exit(0);
     }
 
     public function create(Request $request): Response

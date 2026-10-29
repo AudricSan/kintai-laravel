@@ -300,58 +300,61 @@ final class BundleMarketController
 
     /**
      * POST /admin/bundles/market/install/stream — même installation, en streamant
-     * la progression (SSE). Même contrat que BackupController::updateStream() :
-     * ne retourne jamais réellement, termine par exit(0).
+     * la progression (SSE), dans une réponse en flux (comme BackupController::updateStream()).
      */
     public function installStream(Request $request): Response
     {
         $input = $this->readInstallInput($request);
 
-        session_write_close();
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-        header('Content-Type: text/event-stream');
-        header('Cache-Control: no-cache');
-        header('X-Accel-Buffering: no');
-        header('Connection: keep-alive');
-        set_time_limit(0);
+        session()->save();
 
-        $emit = function (string $event, array $data): void {
-            echo "event: {$event}\n";
-            echo 'data: ' . json_encode($data) . "\n\n";
-            flush();
-        };
+        return response()->stream(function () use ($request, $input): void {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            set_time_limit(0);
 
-        if ($input === null) {
-            $emit('error', ['message' => __('bundle_market_invalid_request')]);
-            exit(0);
-        }
-        [$slug, $repositoryUrl, $version, $registryUrl] = $input;
+            $emit = function (string $event, array $data): void {
+                echo "event: {$event}\n";
+                echo 'data: ' . json_encode($data) . "\n\n";
+                flush();
+            };
 
-        $pin = $this->catalog->resolvePin($registryUrl, $slug, $version);
-        if ($pin['error'] !== null) {
-            $emit('error', ['message' => $pin['error']]);
-            exit(0);
-        }
+            if ($input === null) {
+                $emit('error', ['message' => __('bundle_market_invalid_request')]);
+                return;
+            }
+            [$slug, $repositoryUrl, $version, $registryUrl] = $input;
 
-        $result = $this->installer->install($slug, $repositoryUrl, $version, $registryUrl, function (int $percent, string $label) use ($emit): void {
-            $emit('progress', ['percent' => $percent, 'label' => $label]);
-        }, $pin['commit']);
+            $pin = $this->catalog->resolvePin($registryUrl, $slug, $version);
+            if ($pin['error'] !== null) {
+                $emit('error', ['message' => $pin['error']]);
+                return;
+            }
 
-        if (!$result->success) {
-            $emit('error', ['message' => (string) $result->error]);
-            exit(0);
-        }
+            $result = $this->installer->install($slug, $repositoryUrl, $version, $registryUrl, function (int $percent, string $label) use ($emit): void {
+                $emit('progress', ['percent' => $percent, 'label' => $label]);
+            }, $pin['commit']);
 
-        $this->auditLogger->log($request, 'bundle.installed', 'bundle', null, [
-            'slug'          => $slug,
-            'version'       => $version,
-            'commit_pinned' => $pin['commit'] !== null,
+            if (!$result->success) {
+                $emit('error', ['message' => (string) $result->error]);
+                return;
+            }
+
+            $this->auditLogger->log($request, 'bundle.installed', 'bundle', null, [
+                'slug'          => $slug,
+                'version'       => $version,
+                'commit_pinned' => $pin['commit'] !== null,
+            ]);
+
+            $emit('done', ['slug' => $slug, 'version' => $version, 'activation' => $this->activate($slug)]);
+            return;
+        }, 200, [
+            'Content-Type'      => 'text/event-stream',
+            'Cache-Control'     => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
         ]);
-
-        $emit('done', ['slug' => $slug, 'version' => $version, 'activation' => $this->activate($slug)]);
-        exit(0);
     }
 
     /** Active le bundle qui vient d'être installé s'il reste de la place dans le quota (ACTIVATED, ALREADY, QUOTA_FULL). */
