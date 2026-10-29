@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -56,7 +56,7 @@ final class NotebookControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $this->controller = new NotebookController(
-                new ViewRenderer(sys_get_temp_dir()),
+                kintai_test_views(sys_get_temp_dir()),
                 $this->notes,
                 $this->stores,
                 $this->storeUsers,
@@ -411,7 +411,7 @@ final class NotebookControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'notebook.php', '<?php ?>');
         $this->ensureViewFile($viewDir . '/layout', 'app.php', '<?php echo json_encode(array_column($entries, "id")); ?>');
 
-        $view = new ViewRenderer($viewDir);
+        $view = kintai_test_views($viewDir);
         $view->addNamespace('notebook', $viewDir);
         $controller = new NotebookController(
             $view,
@@ -443,7 +443,7 @@ final class NotebookControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'notebook.php', '<?php ?>');
         $this->ensureViewFile($viewDir . '/layout', 'app.php', '<?php echo json_encode(array_column($entries, "id")); ?>');
 
-        $view = new ViewRenderer($viewDir);
+        $view = kintai_test_views($viewDir);
         $view->addNamespace('notebook', $viewDir);
         $controller = new NotebookController(
             $view,

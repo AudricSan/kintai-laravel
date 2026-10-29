@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 
 use kintai\Contract\View\Components\Badge;
@@ -132,3 +134,5 @@ echo Card::make()
         <?php endforeach; ?>
     </ul>
 <?php endif; ?>
+
+@endsection

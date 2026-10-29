@@ -14,14 +14,14 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class NotebookController
 {
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly NotebookEntryRepositoryInterface $notes,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -76,7 +76,7 @@ final class NotebookController
             $this->notifs->markReadFor($userId, 'notebook_entry', array_map(fn(array $n) => (int) $n['id'], $entries));
         }
 
-        return response($this->view->render('notebook::notebook', [
+        return response($this->view->make('notebook::notebook', [
             'title'         => __('bundle_notebook'),
             'highlight_id'  => (int) $request->query('highlight', 0),
             'entries'       => $entries,
@@ -85,7 +85,7 @@ final class NotebookController
             'can_global'    => $managedIds === null,
             'show_expired'  => $showExpired,
             'can_create'    => $this->permissions->can($user, 'notebook.create', null),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
