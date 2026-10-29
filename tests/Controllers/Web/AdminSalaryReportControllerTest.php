@@ -24,7 +24,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
 use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\Log;
 use kintai\Core\Services\StoreStatsServiceInterface;
@@ -158,8 +158,8 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testAllSalaryReportsBuildsStoreMembersByStoreForTheCreateModal(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->stores->method('findAll')->willReturn([
             ['id' => 1, 'name' => 'Store A'],
@@ -174,13 +174,13 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->allSalaryReports($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testExportSalaryReportsJsonReturnsData(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
         $this->salaryReports->method('findAll')->willReturn([
@@ -188,9 +188,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         ]);
 
         $response = $this->controller()->exportSalaryReportsJson($req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
 
-        $data = json_decode($response->body(), true)['data'];
+        $data = json_decode($response->getContent(), true)['data'];
         $this->assertCount(1, $data);
         $this->assertSame('2026-07', $data[0]['target_month']);
     }
@@ -199,32 +199,32 @@ final class AdminSalaryReportControllerTest extends TestCase
     {
         $_SERVER['PHP_SELF'] ??= '/index.php';
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
         $this->salaryReports->method('findAll')->willReturn([]);
 
         $response = $this->controller()->exportSalaryReportsPdf($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringNotContainsString('%PDF', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringNotContainsString('%PDF', $response->getContent());
     }
 
     public function testExportSalaryReportsPdfDownloadReturnsPdfResponse(): void
     {
         $_SERVER['PHP_SELF'] ??= '/index.php';
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
         $this->salaryReports->method('findAll')->willReturn([]);
 
         $response = $this->controller()->exportSalaryReportsPdfDownload($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertStringStartsWith('%PDF', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
     public function testSalaryReportsPassesStoreMembersForTheEmployeePicker(): void
@@ -233,8 +233,8 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
@@ -246,7 +246,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->salaryReports($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowSalaryReportLogsConsultation(): void
@@ -256,8 +256,8 @@ final class AdminSalaryReportControllerTest extends TestCase
         $container = new Container();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30, 'store_id' => 1, 'target_month' => '2026-08']);
@@ -272,14 +272,14 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->showSalaryReport($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowSalaryReportOfAnotherStoreThrowsNotFound(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         // Le rapport existe mais appartient au store 2, pas au store 1 de l'URL
@@ -294,9 +294,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
@@ -306,7 +306,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->storeSalaryReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreSalaryReportSavesAndRedirects(): void
@@ -335,9 +335,9 @@ final class AdminSalaryReportControllerTest extends TestCase
             'hire_registrations'    => '',
             'remarks'               => '',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
@@ -352,7 +352,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->storeSalaryReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testUpdateSalaryReportMergesPostFieldsAndRedirects(): void
@@ -380,9 +380,9 @@ final class AdminSalaryReportControllerTest extends TestCase
             'hire_registrations'    => '',
             'remarks'               => '',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)
@@ -399,7 +399,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->updateSalaryReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testDeleteSalaryReportDeletesAndLogs(): void
@@ -409,8 +409,8 @@ final class AdminSalaryReportControllerTest extends TestCase
         $container = new Container();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30, 'store_id' => 1]);
@@ -425,7 +425,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->deleteSalaryReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testCreateSalaryReportPresetsFromDailyReportsAndShifts(): void
@@ -434,9 +434,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
@@ -454,7 +454,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->createSalaryReport($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -467,9 +467,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-31'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
@@ -483,8 +483,8 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->calculateSalaryReport($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         // json_decode() renvoie un int pour les flottants sans décimales (10000.0 -> 10000).
         $this->assertEquals(10000.0, $data['preset']['total_payment']);
         $this->assertEquals(8.0, $data['preset']['staff_man_hours']);
@@ -508,9 +508,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
         $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-31'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
@@ -529,8 +529,8 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->calculateSalaryReport($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
 
         // 1h × 1200 (Tôt) + 10h × 1000 (Jour) = 11200, pas 11h × un seul taux.
         $this->assertEquals(11200.0, $data['preset']['staff_total_payment']);
@@ -551,9 +551,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $this->storeStatsService = $this->createMock(StoreStatsServiceInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-15', 'user_id' => '7'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
@@ -574,8 +574,8 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->calculateSalaryReport($req);
 
-        $this->assertSame(200, $response->status());
-        $data = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
         // Seul l'employé 7 est comptabilisé dans le preset (8h à 6000).
         $this->assertEquals(6000.0, $data['preset']['staff_total_payment']);
         $this->assertArrayHasKey('shiftRows', $data['detail']);
@@ -585,30 +585,30 @@ final class AdminSalaryReportControllerTest extends TestCase
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_GET = ['from' => '2026-08-31', 'to' => '2026-08-01'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
 
         $response = $this->controller()->calculateSalaryReport($req);
 
-        $this->assertSame(422, $response->status());
+        $this->assertSame(422, $response->getStatusCode());
     }
 
     public function testCalculateSalaryReportRejectsMalformedDates(): void
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_GET = ['from' => 'not-a-date', 'to' => '2026-08-01'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
 
         $response = $this->controller()->calculateSalaryReport($req);
 
-        $this->assertSame(422, $response->status());
+        $this->assertSame(422, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -663,9 +663,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
         $_GET['user_id'] = '7';
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
@@ -678,7 +678,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         ]);
 
         $response = $this->controller()->createSalaryReport($req);
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testCalculateSalaryPresetScopesHoursToOneEmployeeWhenUserIdGiven(): void
@@ -817,8 +817,8 @@ final class AdminSalaryReportControllerTest extends TestCase
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
         $this->storeStatsService = $this->createMock(StoreStatsServiceInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn([
@@ -831,7 +831,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->showSalaryReport($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testStoreSalaryReportSavesUserIdWhenProvided(): void
@@ -840,9 +840,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08', 'user_id' => '7', 'employee_name' => 'Jean Dupont'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
@@ -854,7 +854,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->storeSalaryReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreSalaryReportAllowsEmployeeReportAlongsideStoreWideReport(): void
@@ -863,9 +863,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08', 'user_id' => '7'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
@@ -876,7 +876,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $response = $this->controller()->storeSalaryReport($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Audit du 13/10/2026 : un rapport de salaire ne peut pas viser un compte étranger au magasin. */
@@ -885,9 +885,9 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08', 'user_id' => '77'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);

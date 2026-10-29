@@ -24,10 +24,6 @@ final class SalaryReportBundle extends Bundle
         return 'salary-report';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -49,7 +45,7 @@ final class SalaryReportBundle extends Bundle
 
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(
             SalaryReportRepositoryInterface::class,

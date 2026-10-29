@@ -13,8 +13,8 @@ use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Data\UserShiftTypeRateRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\Sales;
 use kintai\Contract\Services\ShiftWageCalculator;
@@ -106,7 +106,7 @@ final class AdminSalaryReportController
             }
         }
 
-        return Response::html($this->view->render('salary-report::reports-salary', [
+        return response($this->view->render('salary-report::reports-salary', [
             'title'       => __('salary_report_sr_title'),
             'stores'      => $allStores,
             'store_members_by_store' => $membersByStore,
@@ -154,7 +154,7 @@ final class AdminSalaryReportController
             'count' => count($reports),
         ]);
 
-        return Response::jsonDownload(['data' => $reports], 'salary_reports_' . date('Ymd') . '.json');
+        return response()->jsonDownload(['data' => $reports], 'salary_reports_' . date('Ymd') . '.json');
     }
 
     /**
@@ -175,7 +175,7 @@ final class AdminSalaryReportController
             'downloadUrl'  => $this->base() . '/admin/reports/salary/export/pdf/download' . $this->exportQueryString($request),
         ]);
 
-        return Response::html($html);
+        return response($html);
     }
 
     public function exportSalaryReportsPdfDownload(Request $request): Response
@@ -210,11 +210,11 @@ final class AdminSalaryReportController
 
     public function createSalaryReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         $targetMonth = date('Y-m');
 
         $userId = (int) ($request->query('user_id') ?? 0);
@@ -240,7 +240,7 @@ final class AdminSalaryReportController
             $preset['person_in_charge'] = $authName;
         }
 
-        return Response::html($this->view->render('salary-report::reports-salary-form', [
+        return response($this->view->render('salary-report::reports-salary-form', [
             'title'   => __('salary_report_sr_new') . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
             'mode'    => 'create',
@@ -256,18 +256,18 @@ final class AdminSalaryReportController
      */
     public function calculateSalaryReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
         $from = (string) $request->query('from', '');
         $to = (string) $request->query('to', '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) || $from > $to) {
-            return Response::json(['error' => 'invalid_range'], 422);
+            return response()->json(['error' => 'invalid_range'], 422);
         }
 
         $userId = (int) ($request->query('user_id') ?? 0) ?: null;
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
 
         $preset = $this->calculateSalaryPreset($store, $from, $to, $authUser, $userId);
         $preset['target_month'] = substr($from, 0, 7);
@@ -276,12 +276,12 @@ final class AdminSalaryReportController
             ? $this->storeStatsService->buildPayslipData($storeId, $userId, $from, $to)
             : $this->calculateStoreDetail($storeId, $from, $to);
 
-        return Response::json(['preset' => $preset, 'detail' => $detail]);
+        return response()->json(['preset' => $preset, 'detail' => $detail]);
     }
 
     public function storeSalaryReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
@@ -293,7 +293,7 @@ final class AdminSalaryReportController
 
         $existing = $this->salaryReports->findByStoreAndMonth($storeId, $targetMonth, $userId ?: null);
         if ($existing !== null) {
-            return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/reports/salary/' . $existing['id'] . '/edit?error=already_exists');
+            return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/salary/' . $existing['id'] . '/edit?error=already_exists');
         }
 
         $data = array_merge([
@@ -301,7 +301,7 @@ final class AdminSalaryReportController
             'user_id'      => $userId ?: null,
             'target_month' => $targetMonth,
         ], $this->postData($request, self::REPORT_TYPE['fields']), [
-            'created_by' => $request->getAttribute('auth_user')['id'] ?? 0,
+            'created_by' => $request->attributes->get('auth_user')['id'] ?? 0,
         ]);
 
         $saved = $this->salaryReports->save($data);
