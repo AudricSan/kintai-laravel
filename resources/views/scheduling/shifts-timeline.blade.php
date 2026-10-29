@@ -593,7 +593,7 @@ ob_start();
             <button type="button" class="modal__close" data-on-click="sdQcClose">×</button>
         </div>
         <div class="modal__body">
-            @php $shift ??= []; $all_stores ??= $available_stores ?? []; @endphp
+            @php $shift ??= []; $all_users ??= []; $all_stores ??= $available_stores ?? []; @endphp
             <form id="qc-form" method="POST" action="{!! route_url('admin.shifts.create') !!}">
                 {!! csrf_field() !!}                <input type="hidden" name="redirect_to" value="{{ $_SERVER['REQUEST_URI'] ?? '' }}">
                 @include('_partials._form-shift')
