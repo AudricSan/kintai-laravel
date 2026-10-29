@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /** @var array  $myStores */
 /** @var array  $storeNames */
@@ -222,3 +224,5 @@ uploadBtn.addEventListener('click', function() {
     }
 });
 </script>
+
+@endsection

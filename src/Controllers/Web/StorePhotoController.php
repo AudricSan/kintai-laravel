@@ -14,14 +14,14 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class StorePhotoController
 {
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly StorePhotoRepositoryInterface $photos,
         private readonly StoreRepositoryInterface $stores,
         private readonly AppSettingsRepositoryInterface $appSettings,
@@ -73,7 +73,7 @@ final class StorePhotoController
             $submissionImages[$sid] = $this->enrichWithVersion($this->photos->findImagesBySubmission($sid));
         }
 
-        return response($this->view->render('store-photos::store-photos', [
+        return response($this->view->make('store-photos::store-photos', [
             'title'             => __('store_photos_photos_report'),
             'submissions'       => $submissions,
             'submissionImages'  => $submissionImages,
@@ -82,7 +82,7 @@ final class StorePhotoController
             'filterStoreId'     => $storeId,
             'availableDates'    => $availableDates,
             'filterDate'        => $filterDate,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function create(Request $request): Response
@@ -102,13 +102,13 @@ final class StorePhotoController
             $this->assertPhotosFeatureEnabled($storeId);
         }
 
-        return response($this->view->render('store-photos::store-photos-form', [
+        return response($this->view->make('store-photos::store-photos-form', [
             'title'       => __('store_photos_photo_new_submission'),
             'mode'        => 'create',
             'myStores'    => $myStores,
             'storeNames'  => $storeNames,
             'prefillStoreId' => $storeId,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function store(Request $request): Response
@@ -375,7 +375,7 @@ final class StorePhotoController
         $id = (int) $request->route('id');
         $submission = $this->photos->findSubmissionById($id);
         if (!$submission) {
-            return response($this->view->render('errors.404', ['title' => '404'], 'layout.app'), 404);
+            return response($this->view->make('errors.404', ['title' => '404'])->render(), 404);
         }
         $this->assertStoreAccess($request, (int) $submission['store_id']);
 
@@ -388,14 +388,14 @@ final class StorePhotoController
         $images = $this->enrichWithVersion($this->photos->findImagesBySubmission($id));
         $store  = $this->stores->findById((int) $submission['store_id']);
 
-        return response($this->view->render('store-photos::store-photos-detail', [
+        return response($this->view->make('store-photos::store-photos-detail', [
             'title'        => __('store_photos_photo_submission') . ' #' . $id,
             'submission'   => $submission,
             'images'       => $images,
             'store'        => $store,
             'isOwner'      => !empty($request->attributes->get('auth_user')['is_admin']),
             'backStoreId'  => $this->resolveBackStoreId($request, (int) $submission['store_id']),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function delete(Request $request): Response
@@ -441,11 +441,11 @@ final class StorePhotoController
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        return response($this->view->render('store-photos::store-photos-settings', [
+        return response($this->view->make('store-photos::store-photos-settings', [
             'title'               => __('store_photos_photo_settings'),
             'retentionDays'       => $this->appSettings->get('photo_retention_days', '14'),
             'cleanupDelay'        => $this->appSettings->get('photo_cleanup_delay', '7'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function saveSettings(Request $request): Response

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /** @var array  $submission */
 /** @var array  $images */
@@ -101,3 +103,5 @@ $backUrl   = back_url($BASE_URL . '/admin/photos' . ($backStoreId > 0 ? '?store_
     <script src="<?= $photoCarouselJs ?>"></script>
     <?php endif; ?>
 <?php endif; ?>
+
+@endsection

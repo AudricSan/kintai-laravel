@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Flash;
 
@@ -110,3 +112,5 @@ echo Flash::fromQuery('success', [
     <?php endforeach; ?>
     </div>
 <?php endif; ?>
+
+@endsection

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Flash;
 
@@ -43,3 +45,5 @@ echo Flash::fromQuery('success', ['saved' => __('save_success')])->render();
         <a href="<?= back_url($BASE_URL . '/admin/photos') ?>" class="btn btn--ghost"><?= __('cancel') ?></a>
     </div>
 </form>
+
+@endsection

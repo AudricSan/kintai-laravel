@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\ImageCompressionService;
 use App\Services\NotificationService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -48,7 +48,7 @@ final class StorePhotoControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $viewDir = sys_get_temp_dir() . '/kintai-store-photos-views';
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $view->addNamespace('store-photos', $viewDir);
             $this->controller = new StorePhotoController(
                 $view,
@@ -152,7 +152,7 @@ final class StorePhotoControllerTest extends TestCase
         );
         file_put_contents($base . '/layout/app.php', '<?php echo $content;');
 
-        $view = new ViewRenderer($base);
+        $view = kintai_test_views($base);
         $view->addNamespace('store-photos', $base . '/store-photos');
 
         $controller = new StorePhotoController(
@@ -194,7 +194,7 @@ final class StorePhotoControllerTest extends TestCase
         );
         file_put_contents($base . '/layout/app.php', '<?php echo $content;');
 
-        $view = new ViewRenderer($base);
+        $view = kintai_test_views($base);
         $view->addNamespace('store-photos', $base . '/store-photos');
 
         $controller = new StorePhotoController(
