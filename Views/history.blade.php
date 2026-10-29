@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /**
  * Historique des validations d'un magasin.
@@ -133,3 +135,5 @@ $_errorCode = (string) ($_GET['pc_error'] ?? '');
     </table>
 </div>
 <?php unset($_c, $_cid); ?>
+
+@endsection

@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
 use kintai\Contract\Services\PdfCjkFontResolver;
 use kintai\Contract\Services\TranslationService;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 /**
  * PDF des shifts du lendemain (mPDF, A4 paysage), dans la langue du magasin (repli français), avec la police japonaise
@@ -15,7 +15,7 @@ use kintai\Contract\View\ViewRenderer;
 class PlanningPdfService
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly TranslationService $translations,
     ) {}
 
@@ -62,13 +62,13 @@ class PlanningPdfService
         $previous = $this->translations->getLocale();
         $this->translations->setLocale($locale);
         try {
-            $html = $this->view->render('planning-check::pdf', [
+            $html = $this->view->make('planning-check::pdf', [
                 'store'   => $store,
                 'check'   => $check,
                 'day'     => $day,
                 'context' => $context,
                 'locale'  => $locale,
-            ]);
+            ])->render();
             $title = __('planning_check_pdf_title', ['date' => (string) ($check['target_date'] ?? '')]);
         } finally {
             $this->translations->setLocale($previous);

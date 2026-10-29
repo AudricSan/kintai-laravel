@@ -26,7 +26,7 @@ use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\NotificationService;
 use App\Services\TranslationService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
@@ -121,8 +121,8 @@ final class PlanningCheckServiceTest extends TestCase
 
         $translations = new TranslationService($this->createStub(TranslationRepositoryInterface::class), $this->createStub(LanguageRepositoryInterface::class));
         $test = $this;
-        $pdf = new class(new ViewRenderer('/nonexistent'), $translations, $test) extends PlanningPdfService {
-            public function __construct(ViewRenderer $view, TranslationService $translations, private PlanningCheckServiceTest $test)
+        $pdf = new class(kintai_test_views('/nonexistent'), $translations, $test) extends PlanningPdfService {
+            public function __construct(ViewFactory $view, TranslationService $translations, private PlanningCheckServiceTest $test)
             {
                 parent::__construct($view, $translations);
             }

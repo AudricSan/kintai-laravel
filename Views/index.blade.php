@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /**
  * @var string                          $title
@@ -25,3 +27,5 @@
         </table>
     </div>
 <?php endif; ?>
+
+@endsection

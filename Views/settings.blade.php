@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /**
  * Réglages de la validation du planning pour un magasin.
@@ -128,3 +130,5 @@ $_error = (string) ($_GET['error'] ?? '');
     </div>
 </form>
 <?php unset($_e, $_n, $_key); ?>
+
+@endsection

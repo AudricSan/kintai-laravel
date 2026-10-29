@@ -26,7 +26,7 @@ use kintai\Contract\Services\Mailer;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Services\TranslationService;
 use kintai\Contract\Services\UserSelection;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 /**
  * Validation du planning de demain : avant l'heure limite, une fenêtre demande au manager si les shifts du lendemain sont
@@ -71,7 +71,7 @@ final class PlanningCheckBundle extends Bundle
             $c->make(UserRepositoryInterface::class),
         ));
         $container->singleton(PlanningPdfService::class, fn(Container $c) => new PlanningPdfService(
-            $c->make(ViewRenderer::class),
+            $c->make(ViewFactory::class),
             $c->make(TranslationService::class),
         ));
         $container->singleton(PlanningMailService::class, fn(Container $c) => new PlanningMailService(

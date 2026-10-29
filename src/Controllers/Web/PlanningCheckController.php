@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Services\UserSelection;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 /**
  * Validation du planning de demain : historique par magasin, soumission / validation / refus / renvoi, réglages. Les
@@ -34,7 +34,7 @@ final class PlanningCheckController
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly Repo $repo,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
@@ -67,10 +67,10 @@ final class PlanningCheckController
             return redirect()->away($this->base() . '/admin/stores/' . (int) $visible[0]['id'] . '/planning-check');
         }
 
-        return response($this->view->render('planning-check::index', [
+        return response($this->view->make('planning-check::index', [
             'title'  => __('planning_check_title'),
             'stores' => $visible,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** GET /admin/stores/{id}/planning-check */
@@ -101,7 +101,7 @@ final class PlanningCheckController
         }
         unset($check);
 
-        return response($this->view->render('planning-check::history', [
+        return response($this->view->make('planning-check::history', [
             'title'        => __('planning_check_history_title'),
             'store'        => $store,
             'checks'       => $checks,
@@ -116,7 +116,7 @@ final class PlanningCheckController
             'can_submit'   => $this->permissions->can($user, 'planning_check.submit', $storeId),
             'can_settings' => $this->permissions->can($user, 'planning_check.settings', $storeId),
             'settings'     => $this->repo->settings($storeId),
-        ], 'layout.app'));
+        ])->render());
     }
 
     // ── Soumettre / modifier ────────────────────────────────────────────────────────────────────────────────────
@@ -256,13 +256,13 @@ final class PlanningCheckController
     {
         $store = $this->requireStore($request);
 
-        return response($this->view->render('planning-check::settings', [
+        return response($this->view->make('planning-check::settings', [
             'title'      => __('planning_check_settings_title'),
             'store'      => $store,
             'settings'   => $this->repo->settings((int) $store['id']),
             'candidates' => $this->selection->candidates((int) $store['id']),
             'errors'     => [],
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/stores/{id}/planning-check/settings */
@@ -278,13 +278,13 @@ final class PlanningCheckController
         }
 
         if ($errors !== []) {
-            return response($this->view->render('planning-check::settings', [
+            return response($this->view->make('planning-check::settings', [
                 'title'      => __('planning_check_settings_title'),
                 'store'      => $store,
                 'settings'   => $settings,
                 'candidates' => $this->selection->candidates((int) $store['id']),
                 'errors'     => $errors,
-            ], 'layout.app'));
+            ])->render());
         }
 
         $this->repo->saveSettings((int) $store['id'], $settings);

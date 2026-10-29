@@ -6,7 +6,7 @@ namespace Tests\Bundles\PlanningCheck\Views;
 
 use App\Container;
 use App\Router;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -16,11 +16,11 @@ if (!defined('BASE_PATH')) {
 /** Les trois fenêtres et le PDF se rendent, avec les bons formulaires et sans échapper les données. */
 final class OverlayViewsTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/Views');
+        $this->view = kintai_test_views(dirname(__DIR__, 2) . '/Views');
         $this->view->addNamespace('planning-check', dirname(__DIR__, 2) . '/Views');
         $router = new Router();
         foreach ([
@@ -45,7 +45,7 @@ final class OverlayViewsTest extends TestCase
 
     public function testSubmitOverlayOffersYesNoAndLater(): void
     {
-        $html = $this->view->renderPartial('planning-check::overlay-submit', $this->data());
+        $html = $this->view->make('planning-check::overlay-submit', $this->data())->render();
 
         $this->assertStringContainsString('id="page-overlay-x-title"', $html);
         $this->assertStringContainsString('/s/3/submit"', $html);
@@ -59,7 +59,7 @@ final class OverlayViewsTest extends TestCase
 
     public function testWithoutShiftTheOverlayAsksForAnExplicitConfirmation(): void
     {
-        $html = $this->view->renderPartial('planning-check::overlay-submit', $this->data([]) + []);
+        $html = $this->view->make('planning-check::overlay-submit', $this->data([]) + [])->render();
 
         $this->assertStringContainsString('name="confirm_empty"', $html);
         $this->assertStringContainsString('planning_check_no_shifts', $html);
@@ -67,7 +67,7 @@ final class OverlayViewsTest extends TestCase
 
     public function testApproveOverlayHasApproveAndRejectWithAReason(): void
     {
-        $html = $this->view->renderPartial('planning-check::overlay-approve', $this->data());
+        $html = $this->view->make('planning-check::overlay-approve', $this->data())->render();
 
         $this->assertStringContainsString('/s/3/11/approve"', $html);
         $this->assertStringContainsString('/s/3/11/reject"', $html);
@@ -77,7 +77,7 @@ final class OverlayViewsTest extends TestCase
 
     public function testEditingBarOffersToGoBackToTheValidation(): void
     {
-        $html = $this->view->renderPartial('planning-check::overlay-editing', $this->data());
+        $html = $this->view->make('planning-check::overlay-editing', $this->data())->render();
 
         $this->assertStringContainsString('/s/3/resume"', $html);
         $this->assertStringContainsString('planning_check_back_to_validation', $html);
@@ -86,14 +86,14 @@ final class OverlayViewsTest extends TestCase
     public function testThePdfListsEachShiftAndMarksAnUpdatedVersion(): void
     {
         $data = $this->data();
-        $html = $this->view->renderPartial('planning-check::pdf', array_replace($data, ['context' => ['validated_by' => 'Boss', 'updated' => true, 'generated_at' => '10:05']]));
+        $html = $this->view->make('planning-check::pdf', array_replace($data, ['context' => ['validated_by' => 'Boss', 'updated' => true, 'generated_at' => '10:05']]))->render();
 
         $this->assertStringContainsString('<html lang="fr">', $html);
         $this->assertStringContainsString('Dupont &lt;b&gt;Léa&lt;/b&gt;', $html);
         $this->assertStringContainsString('planning_check_pdf_updated', $html);
         $this->assertStringContainsString('planning_check_pdf_validated', $html);
 
-        $empty = $this->view->renderPartial('planning-check::pdf', $this->data([]));
+        $empty = $this->view->make('planning-check::pdf', $this->data([]))->render();
         $this->assertStringContainsString('planning_check_pdf_no_shift', $empty);
     }
 }

@@ -6,7 +6,7 @@ namespace Tests\Bundles\PlanningCheck\Views;
 
 use App\Container;
 use App\Router;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -19,11 +19,11 @@ if (!defined('BASE_PATH')) {
  */
 final class HistoryResendButtonTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/Views');
+        $this->view = kintai_test_views(dirname(__DIR__, 2) . '/Views');
         $this->view->addNamespace('planning-check', dirname(__DIR__, 2) . '/Views');
         $router = new Router();
         $router->post('/s/{id}/{cid}/resend', [\stdClass::class, 'x'], name: 'admin.planning_check.resend');
@@ -49,19 +49,19 @@ final class HistoryResendButtonTest extends TestCase
             'send_status' => 'sent', 'sent_at' => '2026-10-21 18:00:00', 'needs_resend' => false,
         ];
 
-        return $this->view->renderPartial('planning-check::history', [
+        return $this->view->make('planning-check::history', [
             'title' => 'Historique', 'store' => ['id' => 3, 'name' => 'Shibuya'], 'checks' => [$check], 'names' => [],
             'highlight' => 0, 'can_approve' => $canApprove, 'can_settings' => false, 'settings' => ['enabled' => true],
-        ]);
+        ])->render();
     }
 
     /** @param array<string, mixed>|null $tomorrowCheck */
     private function renderTomorrow(?array $tomorrowCheck, int $count = 2, bool $canApprove = true, bool $enabled = true, bool $withTomorrow = true, bool $canSubmit = true): string
     {
-        return $this->view->renderPartial('planning-check::history', [
+        return $this->view->make('planning-check::history', [
             'title' => 'Historique', 'store' => ['id' => 3, 'name' => 'Shibuya'], 'checks' => [], 'names' => [],
             'highlight' => 0, 'can_approve' => $canApprove, 'can_submit' => $canSubmit, 'can_settings' => false, 'settings' => ['enabled' => $enabled],
-        ] + ($withTomorrow ? ['tomorrow' => ['date' => '2026-10-22', 'check' => $tomorrowCheck, 'count' => $count]] : []));
+        ] + ($withTomorrow ? ['tomorrow' => ['date' => '2026-10-22', 'check' => $tomorrowCheck, 'count' => $count]] : []))->render();
     }
 
     public function testTomorrowCardOffersToCheckAgainEvenWhenNoCheckExistsYet(): void
