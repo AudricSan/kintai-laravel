@@ -24,9 +24,43 @@ use App\Foundation\Auth\KintaiGate;
  */
 final class KintaiServiceProvider extends ServiceProvider
 {
+    /** @var list<class-string> */
+    private const OPTIONAL_SERVICES = [
+        \App\Auth\CredentialRevoker::class,
+        \App\Auth\OwnerGuard::class,
+        \App\Auth\UserAnonymizer::class,
+        \App\Extension\Attendances::class,
+        \App\Extension\Events::class,
+        \App\Extension\PendingRequests::class,
+        \App\InstalledBundleManifestStore::class,
+        \App\Routing\RouteSlugService::class,
+        \App\Security\AttemptCounter::class,
+        \App\Services\BundleActivationService::class,
+        \App\Services\BundleInstaller\BundlePermissionGranter::class,
+        \App\Services\CalendarSyncService::class,
+        \App\Services\Calendar\GoogleCalendarSettings::class,
+        \App\Services\DashboardLayoutResolver::class,
+        \App\Services\EnvFileWriter::class,
+        \App\Services\HttpFetcher::class,
+        \App\Services\InstanceLocale::class,
+        \App\Services\NotificationTypeRegistry::class,
+        \App\Services\WebPushEndpointValidator::class,
+    ];
+
     public function register(): void
     {
         defined('BASE_PATH') || define('BASE_PATH', rtrim($this->app->basePath(), '/\\'));
+
+        // Noms du contrat de bundle (kintai\Contract\…) : alias du conteneur vers la classe réelle, qui porte la liaison.
+        foreach (require __DIR__ . '/../Contract/surface.php' as $alias => $entry) {
+            $this->app->alias($entry['target'], $alias);
+        }
+
+        // Services construits par le conteneur que des constructeurs reçoivent en paramètre facultatif (= null) : Laravel
+        // laisse le défaut d'un paramètre dont la classe n'est pas liée, d'où ces liaisons explicites.
+        foreach (self::OPTIONAL_SERVICES as $service) {
+            $this->app->bind($service);
+        }
 
         // Paramètres de route typés ({id:store}, {uid:employee}) : segments lisibles ↔ identifiants (voir Core\Routing)
         $this->app->singleton(RouteBinderRegistry::class, function ($app): RouteBinderRegistry {

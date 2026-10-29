@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
-use App\Foundation\AliasAwareContainer;
+use Illuminate\Container\Container;
 
 /**
  * Conteneur vierge pour les tests qui remplacent le conteneur global (Container::setInstance()) : seules les liaisons
@@ -12,7 +12,7 @@ use App\Foundation\AliasAwareContainer;
  * vues, traducteur…) restent résolus par l'application de test, pour que les helpers de Laravel (session(),
  * redirect(), response()…) continuent de fonctionner.
  */
-final class TestContainer extends AliasAwareContainer
+final class TestContainer extends Container
 {
     public function make($abstract, array $parameters = [])
     {

@@ -54,7 +54,7 @@ final class ContractSurfaceTest extends TestCase
 
     public function testTheContainerResolvesAnAliasToTheSameBinding(): void
     {
-        $container = new \Tests\Support\TestContainer();
+        $container = $GLOBALS['kintai_test_app'];
         $users = $this->createStub(UserRepositoryInterface::class);
         $container->instance(UserRepositoryInterface::class, $users);
 
@@ -64,13 +64,14 @@ final class ContractSurfaceTest extends TestCase
 
     public function testTheContainerAutowiresAConstructorTypedWithAnAlias(): void
     {
-        $container = new \Tests\Support\TestContainer();
+        $container = $GLOBALS['kintai_test_app'];
         $users = $this->createStub(UserRepositoryInterface::class);
         $container->instance(UserRepositoryInterface::class, $users);
 
         $consumer = $container->make(ContractConsumerFixture::class);
 
         $this->assertSame($users, $consumer->users);
+        $container->forgetInstance(UserRepositoryInterface::class);
     }
 
     /** Les routes d'un bundle nomment leurs middlewares par le contrat : le routeur garde le nom réel de la classe. */
