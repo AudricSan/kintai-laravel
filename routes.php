@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use kintai\Core\Middleware\AuthMiddleware;
+use App\Http\Middleware\AuthMiddleware;
 use kintai\Bundles\Installed\TeamDirectory\Controllers\Web\TeamDirectoryController;
 
 

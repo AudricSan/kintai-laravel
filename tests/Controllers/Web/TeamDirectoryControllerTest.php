@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TeamDirectory\Controllers\Web;
+namespace Tests\Bundles\TeamDirectory\Controllers\Web;
 
 
 use kintai\Bundles\Installed\TeamDirectory\Controllers\Web\TeamDirectoryController;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\UI\ViewRenderer;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 final class TeamDirectoryControllerTest extends TestCase

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TeamDirectory;
+namespace Tests\Bundles\TeamDirectory;
 
-use kintai\Tests\Support\TranslationContractChecker;
+use Tests\Support\TranslationContractChecker;
 use PHPUnit\Framework\TestCase;
 
 /**

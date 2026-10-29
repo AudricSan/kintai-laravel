@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TeamDirectory;
+namespace Tests\Bundles\TeamDirectory;
 
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\ProfileSection;
