@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TimeOff\Services;
+namespace Tests\Bundles\TimeOff\Services;
 
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Services\PendingTimeoffWidget;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

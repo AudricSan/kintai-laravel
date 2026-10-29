@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TimeOff\Controllers\Web;
+namespace Tests\Bundles\TimeOff\Controllers\Web;
 
 
 use kintai\Bundles\Installed\TimeOff\Controllers\Web\AdminTimeoffController;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\NotificationService;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\NotificationService;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -203,7 +203,7 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 3, 'user_id' => 5]]);
         $this->timeoffRequests->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoffForEmployee($req);
     }
 
@@ -229,9 +229,9 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->assertSame(302, $this->controller()->storeTimeoffForEmployee($req)->getStatusCode());
     }
 
-    private function location(\kintai\Core\Response $response): string
+    private function location(\App\Response $response): string
     {
-        $ref = new \ReflectionProperty(\kintai\Core\Response::class, 'headers');
+        $ref = new \ReflectionProperty(\App\Response::class, 'headers');
         $ref->setAccessible(true);
         return $ref->getValue($response)['Location'] ?? '';
     }

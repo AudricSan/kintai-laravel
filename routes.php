@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Middleware\ApiPermissionMiddleware;
-use kintai\Core\Middleware\PermissionMiddleware;
+use App\Http\Middleware\AuthMiddleware;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Http\Middleware\ApiPermissionMiddleware;
+use App\Http\Middleware\PermissionMiddleware;
 use kintai\Bundles\Installed\TimeOff\Controllers\Web\EmployeeTimeoffController;
 use kintai\Bundles\Installed\TimeOff\Controllers\Web\AdminTimeoffController;
 use kintai\Bundles\Installed\TimeOff\Controllers\Api\TimeoffRequestController as ApiTimeoffRequestController;

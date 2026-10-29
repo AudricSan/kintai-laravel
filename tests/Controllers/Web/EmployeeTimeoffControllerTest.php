@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TimeOff\Controllers\Web;
+namespace Tests\Bundles\TimeOff\Controllers\Web;
 
 
 use kintai\Bundles\Installed\TimeOff\Controllers\Web\EmployeeTimeoffController;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -22,7 +22,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
     private TimeoffRequestRepositoryInterface&Stub $timeoffRequests;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private \kintai\Core\Services\NotificationService $notifs;
+    private \App\Services\NotificationService $notifs;
     private ?EmployeeTimeoffController $controller = null;
 
     protected function setUp(): void
@@ -34,7 +34,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->timeoffRequests = $this->createStub(TimeoffRequestRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->notifs = $this->createStub(\kintai\Core\Services\NotificationService::class);
+        $this->notifs = $this->createStub(\App\Services\NotificationService::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -50,11 +50,11 @@ final class EmployeeTimeoffControllerTest extends TestCase
                 $this->stores,
                 $this->storeUsers,
                 new AuditLogger(),
-                $this->createStub(\kintai\Core\Repositories\UserRepositoryInterface::class),
+                $this->createStub(\App\Repositories\UserRepositoryInterface::class),
                 $this->notifs,
-                new \kintai\Core\Auth\PermissionService(
-                    $this->createStub(\kintai\Core\Repositories\RoleAssignmentRepositoryInterface::class),
-                    $this->createStub(\kintai\Core\Repositories\RoleRepositoryInterface::class),
+                new \App\Auth\PermissionService(
+                    $this->createStub(\App\Repositories\RoleAssignmentRepositoryInterface::class),
+                    $this->createStub(\App\Repositories\RoleRepositoryInterface::class),
                 ),
             );
         }
@@ -91,7 +91,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->notifs = $this->createMock(\kintai\Core\Services\NotificationService::class);
+        $this->notifs = $this->createMock(\App\Services\NotificationService::class);
         $this->storeUsers->method('findByUser')->willReturn([['store_id' => 1, 'user_id' => 9]]);
         $this->stores->method('getFeatures')->willReturn([]);
         $this->timeoffRequests->method('findByUser')->with(9)->willReturn([
@@ -160,7 +160,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoff($req);
     }
 
@@ -177,7 +177,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoff($req);
     }
 
@@ -213,7 +213,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoff($req);
     }
 

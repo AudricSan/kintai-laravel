@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Table du bundle, créée si absente (installation neuve), avec le schéma qu'utilise son code (processed_by,
@@ -13,14 +12,15 @@ use Illuminate\Database\Schema\Blueprint;
  * du contrat). Une table existante n'est pas touchée ici : la migration suivante (2026_10_14_000002) aligne celles
  * créées par l'ancien schéma SQL.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if ($this->schema()->hasTable('timeoff_requests')) {
+        if (Schema::hasTable('timeoff_requests')) {
             return;
         }
-        $this->schema()->create('timeoff_requests', function (Blueprint $table) {
-            $table->increments('id');
+        Schema::create('timeoff_requests', function (Blueprint $table) {
+            $table->integer('id', true);
             $table->integer('user_id');
             $table->integer('store_id');
             $table->string('start_date');

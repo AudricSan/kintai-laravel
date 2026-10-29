@@ -12,9 +12,9 @@
     "autoload-dev": {
         "psr-4": {
             "kintai\\": "../../Kintai/src/",
-            "kintai\\Tests\\Support\\": "../../Kintai/tests/Support/",
+            "Tests\\Support\\": "../../Kintai/tests/Support/",
             "kintai\\Bundles\\Installed\\TimeOff\\": "src/",
-            "kintai\\Tests\\Bundles\\TimeOff\\": "tests/"
+            "Tests\\Bundles\\TimeOff\\": "tests/"
         },
         "files": [
             "../../Kintai/src/Core/helpers.php",

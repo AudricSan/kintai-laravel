@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TimeOff;
+namespace Tests\Bundles\TimeOff;
 
 use kintai\Bundles\Installed\TimeOff\Providers\TimeoffAbsenceProvider;
-use kintai\Core\Container;
+use App\Container;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\TimeOff;
+namespace Tests\Bundles\TimeOff;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Container;
-use kintai\Core\Middleware\PermissionMiddleware;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Router;
+use App\Container;
+use App\Http\Middleware\PermissionMiddleware;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Http\Middleware\AuthMiddleware;
+use App\Router;
 
 /**
  * Régression : les routes /admin/timeoff, /employee/timeoff et /api/v1/timeoff-requests
