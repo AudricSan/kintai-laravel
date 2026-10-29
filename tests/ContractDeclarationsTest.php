@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Messaging;
+namespace Tests\Bundles\Messaging;
 
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;

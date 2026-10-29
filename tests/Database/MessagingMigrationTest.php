@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Messaging\Database;
+namespace Tests\Bundles\Messaging\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;
-use kintai\Core\Database\BundleMigrationRunner;
+use App\Database\BundleMigrationRunner;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

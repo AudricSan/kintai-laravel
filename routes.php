@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Middleware\PermissionMiddleware;
+use App\Http\Middleware\AuthMiddleware;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Http\Middleware\PermissionMiddleware;
 use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageController;
 use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageStreamController;
 use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController as ApiMessageController;

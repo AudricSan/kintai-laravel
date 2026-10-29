@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Messaging\Controllers\Api;
+namespace Tests\Bundles\Messaging\Controllers\Api;
 
 
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Exceptions\NotFoundException;
+use App\Exceptions\ForbiddenException;
+use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Messaging;
+namespace Tests\Bundles\Messaging;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Container;
-use kintai\Core\Middleware\ApiAuthMiddleware;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Middleware\PermissionMiddleware;
-use kintai\Core\Router;
+use App\Container;
+use App\Http\Middleware\ApiAuthMiddleware;
+use App\Http\Middleware\AuthMiddleware;
+use App\Http\Middleware\PermissionMiddleware;
+use App\Router;
 
 /**
  * Régression : Messaging était le seul bundle des onze jamais raccordé au

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Messaging\Controllers\Api;
+namespace Tests\Bundles\Messaging\Controllers\Api;
 
 use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 

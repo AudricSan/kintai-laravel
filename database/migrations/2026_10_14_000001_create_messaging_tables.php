@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Tables de la messagerie, créées si absentes (installation neuve), avec le schéma qu'utilise le code du bundle.
@@ -15,12 +14,13 @@ use Illuminate\Database\Schema\Blueprint;
  * sur une installation neuve. Une table déjà présente n'est pas touchée ici : la migration suivante
  * (2026_10_14_000002) aligne les tables existantes.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if (!$this->schema()->hasTable('message_threads')) {
-            $this->schema()->create('message_threads', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('message_threads')) {
+            Schema::create('message_threads', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->integer('store_id');
                 $table->integer('creator_id');
                 $table->string('subject')->nullable();
@@ -34,9 +34,9 @@ return new class($this->capsule) extends Migration {
             });
         }
 
-        if (!$this->schema()->hasTable('thread_participants')) {
-            $this->schema()->create('thread_participants', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('thread_participants')) {
+            Schema::create('thread_participants', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->integer('thread_id');
                 $table->integer('user_id');
                 $table->integer('is_read')->default(0);
@@ -49,9 +49,9 @@ return new class($this->capsule) extends Migration {
             });
         }
 
-        if (!$this->schema()->hasTable('thread_messages')) {
-            $this->schema()->create('thread_messages', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('thread_messages')) {
+            Schema::create('thread_messages', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->integer('thread_id');
                 $table->integer('sender_id');
                 $table->text('body');

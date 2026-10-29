@@ -13,7 +13,7 @@ distribution model — manifest, registry, installer).
 
 There is no build or test suite in this repo (no `composer.json`, no
 PHPUnit). The code is not runnable or functionally testable standalone: every
-class under `src/` depends on `kintai\Core\*` (repositories, middleware,
+class under `src/` depends on `App\*` (repositories, middleware,
 `Request`/`Response`, `ViewRenderer`, `PermissionService`, etc.) that only
 exist inside a running Kintai instance. Verifying a behavior change means
 installing the bundle into a real Kintai instance, not running anything in
@@ -68,7 +68,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   version, `kintai_core` compatibility range, `entry_class`.
 - `src/MessagingBundle.php` — the entry point
   (`kintai\Bundles\Installed\Messaging\MessagingBundle`, extends
-  `kintai\Core\BundleContract\Bundle`). `register()` binds
+  `App\Bundles\Bundle`). `register()` binds
   `MessageRepositoryInterface` to `DatabaseMessageRepository` as a singleton,
   then calls `loadViewsFrom(..., 'messaging')` and `loadRoutesFrom(routes.php)`.
   `MessageRepositoryInterface` is owned and registered by this bundle, not by

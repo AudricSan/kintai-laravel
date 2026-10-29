@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Messaging\Controllers\Web;
+namespace Tests\Bundles\Messaging\Controllers\Web;
 
 use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
