@@ -11,8 +11,8 @@ use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
@@ -41,7 +41,7 @@ final class EmployeeSwapController
         if (($resp = $this->assertFeature($request, 'swaps')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $sent     = $this->swapRequests->findByRequester($userId);
@@ -56,7 +56,7 @@ final class EmployeeSwapController
             $this->notifs->markReadFor($userId, 'swap', $swapIds);
         }
 
-        return Response::html($this->view->render('shift-swap::swaps', [
+        return response($this->view->render('shift-swap::swaps', [
             'title'      => 'Échanges de shifts',
             'highlight_id' => (int) $request->query('highlight', 0),
             'sent'       => $sent,
@@ -68,7 +68,7 @@ final class EmployeeSwapController
 
     public function createSwap(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
         $today  = date('Y-m-d');
 
@@ -110,7 +110,7 @@ final class EmployeeSwapController
             $typesMap[(int) $t['id']] = $t;
         }
 
-        return Response::html($this->view->render('shift-swap::swaps-form', [
+        return response($this->view->render('shift-swap::swaps-form', [
             'title'         => 'Demander un échange',
             'my_shifts'     => $myShifts,
             'colleagues'    => array_values($colleagues),
@@ -125,7 +125,7 @@ final class EmployeeSwapController
         if (($resp = $this->assertFeature($request, 'swaps')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $myShiftId     = (int) $request->post('requester_shift_id', 0);
@@ -171,20 +171,20 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) ($savedSwap['id'] ?? 0)
         );
 
-        return Response::redirect($this->base() . '/employee/swaps?success=created');
+        return redirect()->away($this->base() . '/employee/swaps?success=created');
     }
 
     public function acceptSwap(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $swap = $this->swapRequests->findById((int) $request->param('id'));
+        $swap = $this->swapRequests->findById((int) $request->route('id'));
         if ($swap === null || (int) $swap['target_user_id'] !== $userId) {
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
         if (($swap['status'] ?? '') !== 'pending' || ($swap['accepted_at'] ?? null) !== null) {
-            return Response::redirect($this->base() . '/employee/swaps?error=invalid_state');
+            return redirect()->away($this->base() . '/employee/swaps?error=invalid_state');
         }
 
         $newSwap = array_merge($swap, [
@@ -207,20 +207,20 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) $swap['id']
         );
 
-        return Response::redirect($this->base() . '/employee/swaps?success=accepted');
+        return redirect()->away($this->base() . '/employee/swaps?success=accepted');
     }
 
     public function refuseSwap(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $swap = $this->swapRequests->findById((int) $request->param('id'));
+        $swap = $this->swapRequests->findById((int) $request->route('id'));
         if ($swap === null || (int) $swap['target_user_id'] !== $userId) {
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
         if (($swap['status'] ?? '') !== 'pending' || ($swap['accepted_at'] ?? null) !== null) {
-            return Response::redirect($this->base() . '/employee/swaps?error=invalid_state');
+            return redirect()->away($this->base() . '/employee/swaps?error=invalid_state');
         }
 
         $refusedSwap = array_merge($swap, ['status' => 'refused']);
@@ -240,20 +240,20 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) $swap['id']
         );
 
-        return Response::redirect($this->base() . '/employee/swaps?success=refused');
+        return redirect()->away($this->base() . '/employee/swaps?success=refused');
     }
 
     public function cancelSwap(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $swap = $this->swapRequests->findById((int) $request->param('id'));
+        $swap = $this->swapRequests->findById((int) $request->route('id'));
         if ($swap === null || (int) $swap['requester_id'] !== $userId) {
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
         if (($swap['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/employee/swaps?error=invalid_state');
+            return redirect()->away($this->base() . '/employee/swaps?error=invalid_state');
         }
 
         $cancelledSwap = array_merge($swap, ['status' => 'cancelled']);
@@ -271,7 +271,7 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) $swap['id']
         );
 
-        return Response::redirect($this->base() . '/employee/swaps?success=cancelled');
+        return redirect()->away($this->base() . '/employee/swaps?success=cancelled');
     }
 
     /** Valeurs de remplacement (:colleague/:my_date/:target_date/:store) pour les notifications d'échange. */

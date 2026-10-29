@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\DatabaseShiftSwapRequestRepo
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Services\PendingSwapsWidget;
 use kintai\Contract\Bundle;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\DashboardStat;
 use kintai\Contract\Extension\DashboardWidget;
@@ -30,10 +30,6 @@ final class ShiftSwapBundle extends Bundle
         return 'shift-swap';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -47,7 +43,7 @@ final class ShiftSwapBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->container()->singleton(ShiftSwapRequestRepositoryInterface::class, fn() => new DatabaseShiftSwapRequestRepository());
+        $this->app->singleton(ShiftSwapRequestRepositoryInterface::class, fn() => new DatabaseShiftSwapRequestRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'shift-swap');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

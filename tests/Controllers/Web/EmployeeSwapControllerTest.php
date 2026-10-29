@@ -13,7 +13,7 @@ use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\UI\ViewRenderer;
@@ -109,12 +109,12 @@ final class EmployeeSwapControllerTest extends TestCase
 
         $this->notifs->expects($this->once())->method('notify')->with(2, 'swap_requested', $this->anything(), $this->anything(), 42);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $response = $this->controller()->storeSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertArrayHasKey('target_user_id', $captured);
         $this->assertSame(2, $captured['target_user_id']);
         $this->assertArrayNotHasKey('target_id', $captured);
@@ -136,10 +136,10 @@ final class EmployeeSwapControllerTest extends TestCase
         $this->swapRequests->method('findByTarget')->willReturn([['id' => 4, 'created_at' => '2026-01-02'], ['id' => 9, 'created_at' => '2026-01-03']]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(1, 'swap', [4, 3, 9]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->assertSame(200, $this->controller()->swaps($req)->status());
+        $this->assertSame(200, $this->controller()->swaps($req)->getStatusCode());
     }
 
     public function testStoreSwapRedirectsWhenFeatureDisabledForStore(): void
@@ -150,12 +150,12 @@ final class EmployeeSwapControllerTest extends TestCase
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(5)->willReturn(['shifts']);
 
         $_POST = ['requester_shift_id' => '10', 'target_id' => '2', 'target_shift_id' => '20'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $response = $this->controller()->storeSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testAcceptSwapReadsAndWritesAcceptedAtColumn(): void
@@ -176,13 +176,13 @@ final class EmployeeSwapControllerTest extends TestCase
 
         $this->notifs->expects($this->once())->method('notify')->with(1, 'swap_peer_accepted', $this->anything(), $this->anything(), 5);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '5']);
 
         $response = $this->controller()->acceptSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertArrayHasKey('accepted_at', $captured);
         $this->assertNotNull($captured['accepted_at']);
     }
@@ -196,8 +196,8 @@ final class EmployeeSwapControllerTest extends TestCase
         ];
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn($swap);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '5']);
 
         $this->expectException(ForbiddenException::class);
@@ -222,13 +222,13 @@ final class EmployeeSwapControllerTest extends TestCase
 
         $this->notifs->expects($this->once())->method('notify')->with(1, 'swap_peer_refused', $this->anything(), $this->anything(), 5);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '5']);
 
         $response = $this->controller()->refuseSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('refused', $captured['status']);
     }
 
@@ -245,13 +245,13 @@ final class EmployeeSwapControllerTest extends TestCase
 
         $this->notifs->expects($this->once())->method('notify')->with(9, 'swap_cancelled', $this->anything(), $this->anything(), 5);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '5']);
 
         $response = $this->controller()->cancelSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     private function ensureViewFile(string $dir, string $view): void

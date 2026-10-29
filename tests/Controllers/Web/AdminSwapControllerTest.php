@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryIn
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\UI\ViewRenderer;
@@ -81,12 +81,12 @@ final class AdminSwapControllerTest extends TestCase
             ['id' => 2, 'last_name' => 'Martin', 'first_name' => 'Paul'],
         ]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->createSwap($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /**
@@ -103,12 +103,12 @@ final class AdminSwapControllerTest extends TestCase
             ['id' => 3, 'last_name' => 'Autre', 'first_name' => 'Magasin'],
         ]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [1]);
 
         $response = $this->controller()->createSwap($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testStoreSwapAppliesImmediateExchangeWithoutApprovalWorkflow(): void
@@ -122,8 +122,8 @@ final class AdminSwapControllerTest extends TestCase
             'target_shift_id'    => '20',
             'reason'             => 'Test',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $requesterShift = ['id' => 10, 'user_id' => 1, 'store_id' => 5];
         $targetShift    = ['id' => 20, 'user_id' => 2, 'store_id' => 5];
@@ -150,7 +150,7 @@ final class AdminSwapControllerTest extends TestCase
 
         $response = $this->controller()->storeSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
 
         // Les deux shifts ont été échangés immédiatement (pas de statut pending)
         $this->assertSame(2, $savedShifts[0]['user_id']);
@@ -168,8 +168,8 @@ final class AdminSwapControllerTest extends TestCase
             'requester_shift_id' => '10',
             'target_shift_id'    => '20',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->shifts->method('findById')->willReturnMap([
             [10, ['id' => 10, 'user_id' => 1, 'store_id' => 5]],
@@ -194,12 +194,12 @@ final class AdminSwapControllerTest extends TestCase
         ]);
 
         $_GET = ['requester_id' => '1', 'target_id' => '2'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->createSwap($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         // On ne peut pas vérifier le HTML rendu (vue stub dans les tests), mais on s'assure
         // au minimum qu'aucune exception n'est levée par le filtrage des conflits.
     }
@@ -214,8 +214,8 @@ final class AdminSwapControllerTest extends TestCase
             'requester_shift_id' => '10',
             'target_shift_id'    => '20',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $requesterShift = ['id' => 10, 'user_id' => 1, 'store_id' => 5, 'shift_date' => '2026-08-05'];
         $targetShift    = ['id' => 20, 'user_id' => 2, 'store_id' => 5, 'shift_date' => '2026-08-06'];
@@ -235,7 +235,7 @@ final class AdminSwapControllerTest extends TestCase
 
         $response = $this->controller()->storeSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreSwapForbiddenWhenSameEmployeeSelectedTwice(): void
@@ -246,8 +246,8 @@ final class AdminSwapControllerTest extends TestCase
             'requester_shift_id' => '10',
             'target_shift_id'    => '20',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->storeSwap($req);
@@ -256,8 +256,8 @@ final class AdminSwapControllerTest extends TestCase
     public function testSwapRequestsLooksUpReferencedShiftsForDisplay(): void
     {
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->swapRequests->method('findAll')->willReturn([
             ['id' => 1, 'store_id' => 5, 'requester_id' => 1, 'target_user_id' => 2, 'requester_shift_id' => 10, 'target_shift_id' => 20, 'status' => 'pending'],
@@ -270,7 +270,7 @@ final class AdminSwapControllerTest extends TestCase
 
         $response = $this->controller()->swapRequests($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     private function location(\kintai\Core\Response $response): string
@@ -294,8 +294,8 @@ final class AdminSwapControllerTest extends TestCase
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '31']);
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['status' => 'accepted'] + $this->pendingSwap());
         $this->shifts->expects($this->never())->method('save');
@@ -308,8 +308,8 @@ final class AdminSwapControllerTest extends TestCase
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '31']);
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn($this->pendingSwap());
         // Le shift #10 n'appartient plus au demandeur (1) : il a été réaffecté à 8.
@@ -327,8 +327,8 @@ final class AdminSwapControllerTest extends TestCase
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '31']);
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn($this->pendingSwap());
         $this->shifts->method('findById')->willReturnMap([
@@ -348,8 +348,8 @@ final class AdminSwapControllerTest extends TestCase
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '31']);
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn($this->pendingSwap());
         $this->shifts->method('findById')->willReturnMap([
@@ -371,8 +371,8 @@ final class AdminSwapControllerTest extends TestCase
     public function testRefuseSwapOnAnAlreadyAcceptedSwapChangesNothing(): void
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '31']);
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['status' => 'accepted'] + $this->pendingSwap());
         $this->swapRequests->expects($this->never())->method('save');
@@ -385,8 +385,8 @@ final class AdminSwapControllerTest extends TestCase
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '77']);
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(77)->willReturn([
             'id' => 77, 'store_id' => 5, 'status' => 'accepted', 'requester_id' => 1, 'target_user_id' => 2,
@@ -408,8 +408,8 @@ final class AdminSwapControllerTest extends TestCase
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '77']);
 
         $swap = [
@@ -438,7 +438,7 @@ final class AdminSwapControllerTest extends TestCase
 
         $response = $this->controller()->deleteSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         // Les shifts sont revenus à leurs propriétaires d'origine
         $this->assertSame(1, $savedShifts[0]['user_id']);
         $this->assertSame(2, $savedShifts[1]['user_id']);
@@ -449,8 +449,8 @@ final class AdminSwapControllerTest extends TestCase
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
 
         $swap = [
@@ -466,7 +466,7 @@ final class AdminSwapControllerTest extends TestCase
 
         $response = $this->controller()->deleteSwap($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testSwapRequestsFiltersByStatus(): void
@@ -483,11 +483,11 @@ final class AdminSwapControllerTest extends TestCase
         $this->users->method('findAll')->willReturn([]);
 
         $_GET = ['status' => 'accepted'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->swapRequests($req);
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         $this->assertSame([2], $ids);
     }
@@ -509,11 +509,11 @@ final class AdminSwapControllerTest extends TestCase
         $this->users->method('findAll')->willReturn([]);
 
         $_GET = ['sort' => 'store_asc'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->swapRequests($req);
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         $this->assertSame([2, 1], $ids);
     }

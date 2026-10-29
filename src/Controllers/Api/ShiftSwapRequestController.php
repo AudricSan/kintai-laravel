@@ -9,8 +9,8 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**
@@ -77,21 +77,21 @@ final class ShiftSwapRequestController
             fn(array $i): bool => in_array($i['id'] ?? null, $scopedIds, true) || (int) ($i['requester_id'] ?? 0) === $authId || (int) ($i['target_id'] ?? 0) === $authId,
         ));
 
-        return Response::json(Paginator::paginate($items, $page, $limit));
+        return response()->json(Paginator::paginate($items, $page, $limit));
     }
 
     /** GET /api/v1/shift-swap-requests/{id} */
     public function show(Request $request): Response
     {
         $item = $this->requireSwap($request, 'swaps.view');
-        return Response::json($item);
+        return response()->json($item);
     }
 
     /** POST /api/v1/shift-swap-requests */
     public function store(Request $request): Response
     {
         $authUser = $this->authUser($request);
-        $body     = $request->json() ?? [];
+        $body     = $request->json()->all() ?? [];
 
         $storeId = (int) ($body['store_id'] ?? 0);
         if ($storeId <= 0) {
@@ -110,7 +110,7 @@ final class ShiftSwapRequestController
         ];
         $saved = $this->swapRequests->save($data);
         $this->auditLogger->log($request, 'shift_swap_request.created', 'shift_swap_request', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeId);
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** PUT /api/v1/shift-swap-requests/{id} */
@@ -118,7 +118,7 @@ final class ShiftSwapRequestController
     {
         $old = $this->requireSwap($request, 'swaps.update');
         $id  = (int) $old['id'];
-        $data = array_intersect_key($request->json() ?? [], array_flip(self::UPDATE_FIELDS)) + ['id' => $id];
+        $data = array_intersect_key($request->json()->all() ?? [], array_flip(self::UPDATE_FIELDS)) + ['id' => $id];
         // Une approbation est tracée avec son auteur et sa date.
         if (($data['status'] ?? null) === 'approved') {
             $data['approved_by_id'] = (int) ($this->authUser($request)['id'] ?? 0);
@@ -127,7 +127,7 @@ final class ShiftSwapRequestController
         $data['updated_at'] = date('Y-m-d H:i:s');
         $saved = $this->swapRequests->save($data);
         $this->auditLogger->logUpdate($request, 'shift_swap_request.updated', 'shift_swap_request', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: (int) ($old['store_id'] ?? 0) ?: null);
-        return Response::json($saved);
+        return response()->json($saved);
     }
 
     /** DELETE /api/v1/shift-swap-requests/{id} */
@@ -137,12 +137,12 @@ final class ShiftSwapRequestController
         $id   = (int) $item['id'];
         $this->swapRequests->delete($id);
         $this->auditLogger->log($request, 'shift_swap_request.deleted', 'shift_swap_request', resourceId: $id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     /** Charge la demande par id et vérifie $permissionKey sur son store réel. */
@@ -151,7 +151,7 @@ final class ShiftSwapRequestController
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
             fn(int $id) => $this->swapRequests->findById($id),
-            (int) $request->param('id'),
+            (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: 'Demande d\'échange introuvable.',
         );
