@@ -6,8 +6,8 @@ namespace kintai\Bundles\Installed\StorePhoto\Cron;
 
 use kintai\Bundles\Installed\StorePhoto\Services\PhotoRetentionService;
 use kintai\Contract\Cron\CronJob;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Tâche planifiée « photo-retention » (contrat 1.8) : lancée par un planificateur externe via
@@ -24,6 +24,6 @@ final class PhotoRetentionJob implements CronJob
 
     public function run(Request $request): Response
     {
-        return Response::json(['ok' => true] + $this->retention->run());
+        return response()->json(['ok' => true] + $this->retention->run());
     }
 }

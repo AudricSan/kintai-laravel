@@ -10,8 +10,8 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\AppSettingsRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\View\ViewRenderer;
@@ -73,7 +73,7 @@ final class StorePhotoController
             $submissionImages[$sid] = $this->enrichWithVersion($this->photos->findImagesBySubmission($sid));
         }
 
-        return Response::html($this->view->render('store-photos::store-photos', [
+        return response($this->view->render('store-photos::store-photos', [
             'title'             => __('store_photos_photos_report'),
             'submissions'       => $submissions,
             'submissionImages'  => $submissionImages,
@@ -102,7 +102,7 @@ final class StorePhotoController
             $this->assertPhotosFeatureEnabled($storeId);
         }
 
-        return Response::html($this->view->render('store-photos::store-photos-form', [
+        return response($this->view->render('store-photos::store-photos-form', [
             'title'       => __('store_photos_photo_new_submission'),
             'mode'        => 'create',
             'myStores'    => $myStores,
@@ -116,16 +116,16 @@ final class StorePhotoController
         $managedIds = $this->managedIds($request);
         $storeId    = (int) ($request->post('store_id') ?: 0);
         if ($storeId <= 0) {
-            return $request->isAjax()
-                ? Response::json(['error' => 'store_id required'], 400)
-                : Response::redirect($this->base() . '/admin/photos/create');
+            return $request->ajax()
+                ? response()->json(['error' => 'store_id required'], 400)
+                : redirect()->away($this->base() . '/admin/photos/create');
         }
         $this->assertStoreAccess($request, $storeId);
         $this->assertPhotosFeatureEnabled($storeId);
 
         $weekLabel = $request->post('week_label') ?: date('Y-m-d', strtotime('tuesday this week'));
         $notes     = $request->post('notes') ?? '';
-        $createdBy = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $createdBy = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
 
         // Plusieurs envois pour le même magasin le même jour doivent former un seul
         // rapport : on rattache à l'envoi du jour déjà existant plutôt que d'en
@@ -172,30 +172,30 @@ final class StorePhotoController
             $storeId
         );
 
-        if ($request->isAjax()) {
-            return Response::json(['id' => $submissionId]);
+        if ($request->ajax()) {
+            return response()->json(['id' => $submissionId]);
         }
-        return Response::redirect($this->base() . '/admin/photos?store_id=' . $storeId);
+        return redirect()->away($this->base() . '/admin/photos?store_id=' . $storeId);
     }
 
     public function uploadFile(Request $request): Response
     {
-        $submissionId = (int) $request->param('id');
+        $submissionId = (int) $request->route('id');
         $submission   = $this->photos->findSubmissionById($submissionId);
         if (!$submission) {
-            return Response::json(['error' => __('error_submission_not_found')], 404);
+            return response()->json(['error' => __('error_submission_not_found')], 404);
         }
         $this->assertStoreAccess($request, (int) $submission['store_id']);
         $this->assertPhotosFeatureEnabled((int) $submission['store_id']);
 
         $file = $request->file('photo');
         if ($file === null || !is_uploaded_file($file['tmp_name'])) {
-            return Response::json(['error' => __('error_no_file_uploaded')], 400);
+            return response()->json(['error' => __('error_no_file_uploaded')], 400);
         }
 
         $ext = $this->safeImageExtension($file['name'] ?? '');
         if ($ext === null) {
-            return Response::json(['error' => __('error_file_type_not_allowed')], 422);
+            return response()->json(['error' => __('error_file_type_not_allowed')], 422);
         }
 
         $storeId = (int) $submission['store_id'];
@@ -208,7 +208,7 @@ final class StorePhotoController
 
         $compressed = $this->imageCompressor->compress($file['tmp_name'], $subDir . 'photo_' . ($index + 1));
         if ($compressed === null) {
-            return Response::json(['error' => __('error_file_type_not_allowed')], 422);
+            return response()->json(['error' => __('error_file_type_not_allowed')], 422);
         }
         $safe = basename($compressed['path']);
 
@@ -227,7 +227,7 @@ final class StorePhotoController
             'updated_at'  => date('Y-m-d H:i:s'),
         ]);
 
-        return Response::json(['ok' => true, 'file' => $safe]);
+        return response()->json(['ok' => true, 'file' => $safe]);
     }
 
     /**
@@ -256,15 +256,15 @@ final class StorePhotoController
      */
     public function rotateImage(Request $request): Response
     {
-        $imageId = (int) $request->param('image_id');
+        $imageId = (int) $request->route('image_id');
         $image   = $this->photos->findImageById($imageId);
         if (!$image) {
-            return Response::redirect($this->base() . '/admin/photos');
+            return redirect()->away($this->base() . '/admin/photos');
         }
 
         $submission = $this->photos->findSubmissionById((int) $image['submission_id']);
         if (!$submission) {
-            return Response::redirect($this->base() . '/admin/photos');
+            return redirect()->away($this->base() . '/admin/photos');
         }
 
         $storeId = (int) $submission['store_id'];
@@ -284,7 +284,7 @@ final class StorePhotoController
         $redirect    = $this->base() . '/admin/photos/' . $storeId . '/' . $submission['id']
             . ($backStoreId > 0 ? '?origin_store_id=' . $backStoreId : '');
 
-        return Response::redirect($redirect);
+        return redirect()->away($redirect);
     }
 
     /**
@@ -372,15 +372,15 @@ final class StorePhotoController
 
     public function show(Request $request): Response
     {
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
         $submission = $this->photos->findSubmissionById($id);
         if (!$submission) {
-            return Response::html($this->view->render('errors.404', ['title' => '404'], 'layout.app'), 404);
+            return response($this->view->render('errors.404', ['title' => '404'], 'layout.app'), 404);
         }
         $this->assertStoreAccess($request, (int) $submission['store_id']);
 
         // L'envoi est ouvert par quelqu'un qui y a accès : sa notification d'archivage est lue.
-        $userId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($userId > 0) {
             $this->notifs->markReadFor($userId, 'photo_submission', $id);
         }
@@ -388,27 +388,27 @@ final class StorePhotoController
         $images = $this->enrichWithVersion($this->photos->findImagesBySubmission($id));
         $store  = $this->stores->findById((int) $submission['store_id']);
 
-        return Response::html($this->view->render('store-photos::store-photos-detail', [
+        return response($this->view->render('store-photos::store-photos-detail', [
             'title'        => __('store_photos_photo_submission') . ' #' . $id,
             'submission'   => $submission,
             'images'       => $images,
             'store'        => $store,
-            'isOwner'      => !empty($request->getAttribute('auth_user')['is_admin']),
+            'isOwner'      => !empty($request->attributes->get('auth_user')['is_admin']),
             'backStoreId'  => $this->resolveBackStoreId($request, (int) $submission['store_id']),
         ], 'layout.app'));
     }
 
     public function delete(Request $request): Response
     {
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         if (empty($authUser['is_admin'])) {
             throw new ForbiddenException(__('store_photos_error_owner_only_delete_photos'));
         }
 
-        $id = (int) $request->param('id');
+        $id = (int) $request->route('id');
         $submission = $this->photos->findSubmissionById($id);
         if (!$submission) {
-            return Response::redirect($this->base() . '/admin/photos');
+            return redirect()->away($this->base() . '/admin/photos');
         }
 
         $storeId    = (int) $submission['store_id'];
@@ -431,17 +431,17 @@ final class StorePhotoController
         // filtré) plutôt que de forcer un filtre sur le store de l'élément
         // supprimé — sinon un envoi supprimé depuis la vue "tous les stores"
         // ramenait à tort sur le store de cet envoi.
-        return Response::redirect($this->base() . '/admin/photos' . ($backStoreId > 0 ? '?store_id=' . $backStoreId : ''));
+        return redirect()->away($this->base() . '/admin/photos' . ($backStoreId > 0 ? '?store_id=' . $backStoreId : ''));
     }
 
     public function settings(Request $request): Response
     {
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         if (empty($authUser['is_admin'])) {
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        return Response::html($this->view->render('store-photos::store-photos-settings', [
+        return response($this->view->render('store-photos::store-photos-settings', [
             'title'               => __('store_photos_photo_settings'),
             'retentionDays'       => $this->appSettings->get('photo_retention_days', '14'),
             'cleanupDelay'        => $this->appSettings->get('photo_cleanup_delay', '7'),
@@ -450,7 +450,7 @@ final class StorePhotoController
 
     public function saveSettings(Request $request): Response
     {
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
         if (empty($authUser['is_admin'])) {
             throw new ForbiddenException(__('error_access_denied'));
         }
@@ -465,6 +465,6 @@ final class StorePhotoController
 
         $this->auditLogger->logUpdate($request, 'photo.settings_updated', 'app_settings', 0, [], [], [], 0);
 
-        return Response::redirect($this->base() . '/admin/photos/settings');
+        return redirect()->away($this->base() . '/admin/photos/settings');
     }
 }

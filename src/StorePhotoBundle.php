@@ -23,10 +23,6 @@ final class StorePhotoBundle extends Bundle
         return 'store-photos';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -40,7 +36,7 @@ final class StorePhotoBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->container()->singleton(StorePhotoRepositoryInterface::class, fn() => new DatabaseStorePhotoRepository());
+        $this->app->singleton(StorePhotoRepositoryInterface::class, fn() => new DatabaseStorePhotoRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'store-photos');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

@@ -10,8 +10,8 @@ use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Request;
-use kintai\Core\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\ImageCompressionService;
 use kintai\Core\Services\NotificationService;
@@ -84,12 +84,12 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->method('findImagesBySubmission')->willReturn([]);
 
         $_GET['store_id'] = '1';
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->index($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /**
@@ -109,12 +109,12 @@ final class StorePhotoControllerTest extends TestCase
             ->willReturn([['id' => 10, 'store_id' => 1]]);
         $this->photos->method('findImagesBySubmission')->willReturn([]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [1]);
 
         $response = $this->controller()->index($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** Un ?store_id= hors du périmètre géré est ignoré plutôt que d'être appliqué tel quel. */
@@ -128,12 +128,12 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->method('findImagesBySubmission')->willReturn([]);
 
         $_GET['store_id'] = '2'; // store non géré par ce manager
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [1]);
 
         $response = $this->controller()->index($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /**
@@ -173,13 +173,13 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->method('findImagesBySubmission')->willReturn([]);
 
         $_GET['date'] = '2026-09-07';
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $controller->index($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame('11|2026-09-08,2026-09-07|2026-09-07', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('11|2026-09-08,2026-09-07|2026-09-07', $response->getContent());
     }
 
     /** Un ?date= qui ne correspond à aucun envoi visible est silencieusement ignoré. */
@@ -214,13 +214,13 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->method('findImagesBySubmission')->willReturn([]);
 
         $_GET['date'] = '2099-01-01';
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $controller->index($req);
 
-        $this->assertSame(200, $response->status());
-        $this->assertSame('10|', $response->body());
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('10|', $response->getContent());
     }
 
     // -------------------------------------------------------------------------
@@ -237,9 +237,9 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 2]);
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->show($req);
@@ -253,13 +253,13 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
 
         $response = $this->controller()->show($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** Ouvrir l'envoi marque comme lue sa notification d'archivage, seulement pour un utilisateur connu. */
@@ -271,12 +271,12 @@ final class StorePhotoControllerTest extends TestCase
         $this->notifs = $this->createMock(NotificationService::class);
         $this->notifs->expects($this->once())->method('markReadFor')->with(7, 'photo_submission', 10);
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [1]);
-        $req->setAttribute('auth_user', ['id' => 7]);
+        $req->attributes->set('managed_store_ids', [1]);
+        $req->attributes->set('auth_user', ['id' => 7]);
 
-        $this->assertSame(200, $this->controller()->show($req)->status());
+        $this->assertSame(200, $this->controller()->show($req)->getStatusCode());
     }
 
     public function testShowForbiddenMarksNothing(): void
@@ -286,10 +286,10 @@ final class StorePhotoControllerTest extends TestCase
         $this->notifs = $this->createMock(NotificationService::class);
         $this->notifs->expects($this->never())->method('markReadFor');
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [1]);
-        $req->setAttribute('auth_user', ['id' => 7]);
+        $req->attributes->set('managed_store_ids', [1]);
+        $req->attributes->set('auth_user', ['id' => 7]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->show($req);
@@ -313,13 +313,13 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
 
         $response = $this->controller()->show($req);
 
-        $this->assertSame('0', $response->body());
+        $this->assertSame('0', $response->getContent());
     }
 
     /** Sans ?origin_store_id= (lien direct/ancien), show() retombe sur le store de l'envoi lui-même. */
@@ -335,21 +335,21 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
 
-        $req = new Request();
+        $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
-        $req->setAttribute('managed_store_ids', [1]);
+        $req->attributes->set('managed_store_ids', [1]);
 
         $response = $this->controller()->show($req);
 
-        $this->assertSame('1', $response->body());
+        $this->assertSame('1', $response->getContent());
     }
 
     public function testStoreForbiddenWhenPhotosDisabledForStore(): void
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['store_id' => '1'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         // Une ligne existe en base mais 'photos' n'y figure pas => désactivé pour ce store.
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock']);
@@ -362,8 +362,8 @@ final class StorePhotoControllerTest extends TestCase
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_GET['store_id'] = '1';
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->stores->method('findAll')->willReturn([]);
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts']);
@@ -380,8 +380,8 @@ final class StorePhotoControllerTest extends TestCase
         file_put_contents($viewDir . DIRECTORY_SEPARATOR . 'store-photos-form.php', '<?php echo json_encode($myStores);');
         file_put_contents(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'layout' . DIRECTORY_SEPARATOR . 'app.php', '<?php echo $content;');
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $this->stores->method('findAll')->willReturn([
             ['id' => 1, 'name' => 'Store A'],
@@ -394,33 +394,33 @@ final class StorePhotoControllerTest extends TestCase
 
         $response = $this->controller()->create($req);
 
-        $listed = json_decode($response->body(), true);
+        $listed = json_decode($response->getContent(), true);
         $this->assertSame([1], array_column($listed, 'id'));
     }
 
     public function testStoreWithoutStoreIdRedirectsToCreate(): void
     {
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->store($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreCreatesSubmissionAndLogsAudit(): void
     {
         $_POST = ['store_id' => '1', 'week_label' => '2026-07-07', 'notes' => 'RAS'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 7]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 7]);
 
         $this->appSettings->method('get')->willReturn('14');
         $this->photos->method('saveSubmission')->willReturn(['id' => 55, 'store_id' => 1]);
 
         $response = $this->controller()->store($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /**
@@ -432,9 +432,9 @@ final class StorePhotoControllerTest extends TestCase
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $_POST = ['store_id' => '1', 'notes' => 'Deuxième envoi'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 7]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 7]);
 
         $this->photos->expects($this->atLeastOnce())->method('findTodaySubmission')->with(1, date('Y-m-d'))
             ->willReturn(['id' => 55, 'store_id' => 1, 'notes' => 'Premier envoi', 'image_count' => 2]);
@@ -449,7 +449,7 @@ final class StorePhotoControllerTest extends TestCase
 
         $response = $this->controller()->store($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /** Sans envoi existant pour aujourd'hui, store() crée bien une nouvelle soumission (image_count à 0). */
@@ -457,9 +457,9 @@ final class StorePhotoControllerTest extends TestCase
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $_POST = ['store_id' => '1', 'week_label' => '2026-07-07', 'notes' => 'RAS'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 7]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 7]);
 
         $this->appSettings->method('get')->willReturn('14');
         $this->photos->method('findTodaySubmission')->willReturn(null);
@@ -469,14 +469,14 @@ final class StorePhotoControllerTest extends TestCase
 
         $response = $this->controller()->store($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreForbiddenWhenStoreNotManaged(): void
     {
         $_POST = ['store_id' => '9'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [1, 2]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [1, 2]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->store($req);
@@ -484,8 +484,8 @@ final class StorePhotoControllerTest extends TestCase
 
     public function testDeleteForbiddenForNonAdmin(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 3, 'is_admin' => false]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 3, 'is_admin' => false]);
         $req->setRouteParams(['id' => '1']);
 
         $this->expectException(ForbiddenException::class);
@@ -495,8 +495,8 @@ final class StorePhotoControllerTest extends TestCase
     public function testDeleteRemovesSubmissionForAdmin(): void
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
@@ -504,7 +504,7 @@ final class StorePhotoControllerTest extends TestCase
 
         $response = $this->controller()->delete($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     /**
@@ -515,15 +515,15 @@ final class StorePhotoControllerTest extends TestCase
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $_SERVER['SCRIPT_NAME'] = '/index.php';
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
 
         $response = $this->controller()->delete($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertRedirectLocation($response, '/admin/photos?store_id=3');
     }
 
@@ -537,15 +537,15 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_GET = ['origin_store_id' => '0'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
 
         $response = $this->controller()->delete($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertRedirectLocation($response, '/admin/photos');
     }
 
@@ -555,22 +555,22 @@ final class StorePhotoControllerTest extends TestCase
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_GET = ['origin_store_id' => '9'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
 
         $response = $this->controller()->delete($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertRedirectLocation($response, '/admin/photos?store_id=9');
     }
 
     public function testSettingsForbiddenForNonAdmin(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 3, 'is_admin' => false]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 3, 'is_admin' => false]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->settings($req);
@@ -578,22 +578,22 @@ final class StorePhotoControllerTest extends TestCase
 
     public function testSettingsRendersForAdmin(): void
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->appSettings->method('get')->willReturn('14');
 
         $response = $this->controller()->settings($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testSaveSettingsPersistsRetentionAndCleanupDelay(): void
     {
         $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $_POST = ['photo_retention_days' => '30', 'photo_cleanup_delay' => '10'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 1, 'is_admin' => true]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->appSettings->expects($this->once())->method('setMany')->with([
             'photo_retention_days' => '30',
@@ -602,7 +602,7 @@ final class StorePhotoControllerTest extends TestCase
 
         $response = $this->controller()->saveSettings($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     private function assertRedirectLocation(Response $response, string $expected): void
