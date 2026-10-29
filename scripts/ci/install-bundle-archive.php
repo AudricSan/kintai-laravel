@@ -21,7 +21,6 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 require BASE_PATH . '/app/Core/helpers.php';
 
-use kintai\Core\Database\BundleMigrationRunner;
 use kintai\Core\InstalledBundleAutoloader;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Services\BundleInstaller\BundleInstallerService;
@@ -52,7 +51,7 @@ $installer = new BundleInstallerService(
     $c->make(InstalledBundleRepositoryInterface::class),
     releaseFetcher: fn(string $repo, string $v): string => 'local://' . $slug,
     zipDownloader: fn(string $url, string $dest): bool => copy($zip, $dest),
-    migrationRunner: $c->make(BundleMigrationRunner::class),
+    migrator: $c->make('migrator'),
     permissionGranter: $c->make(BundlePermissionGranter::class),
 );
 $result = $installer->install($slug, 'https://github.com/AudricSan/kintai-bundle-' . $slug, $version);

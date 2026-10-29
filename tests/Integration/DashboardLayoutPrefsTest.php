@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\DatabaseUserDashboardPrefsRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -17,15 +16,9 @@ final class DashboardLayoutPrefsTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty($runner, 'capsule'))->setValue($runner, $capsule);
-        (new \ReflectionProperty($runner, 'migrationsPath'))->setValue($runner, dirname(__DIR__, 2) . '/database/migrations/php');
-        $runner->run();
+        kintai_test_migrate();
 
         $conn = $capsule->getConnection();
         $conn->table('users')->insert(['email' => 'layout@kintai.test', 'password_hash' => 'x', 'first_name' => 'L', 'last_name' => 'Y', 'display_name' => 'L Y']);

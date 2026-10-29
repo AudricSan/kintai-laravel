@@ -7,7 +7,6 @@ namespace kintai\Tests\Integration;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Extension\Events;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\DatabaseAvailabilityRepository;
@@ -44,15 +43,9 @@ final class WeekPlannerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty($runner, 'capsule'))->setValue($runner, $this->capsule);
-        (new \ReflectionProperty($runner, 'migrationsPath'))->setValue($runner, BASE_PATH . '/database/migrations/php');
-        $runner->run();
+        kintai_test_migrate();
 
         ShiftChangeNotifier::override(new ShiftChangeNotifier(new Events(), static function (): void {}));
         FakeAbsenceProvider::register([]);

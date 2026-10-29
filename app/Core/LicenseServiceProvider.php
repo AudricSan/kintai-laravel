@@ -51,7 +51,7 @@ final class LicenseServiceProvider extends ServiceProvider
      * Réglage Owner en base, ou null s'il est absent — y compris quand la base n'est pas encore migrée.
      *
      * Ce fournisseur s'exécute dans le constructeur d'Application, donc AVANT toute migration : c'est le cas de
-     * l'installateur web (étape C) et de `php scripts/db-migrate.php` sur une base neuve. Sans cette tolérance,
+     * l'installateur web (étape C) et de `php artisan migrate` sur une base neuve. Sans cette tolérance,
      * la lecture échoue sur « no such table: app_settings » et aucune installation neuve n'aboutit. On retombe
      * alors sur config/license.php, exactement comme quand la clé n'existe pas.
      *

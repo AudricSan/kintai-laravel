@@ -107,8 +107,8 @@ Sous Apache, `public/.htaccess` redirige toute requête en HTTP simple vers HTTP
 ### Mise à jour
 
 ```bash
-php scripts/db-migrate.php --dry-run   # aperçu des migrations en attente
-php scripts/db-migrate.php             # les applique
+php artisan migrate --pretend      # aperçu des migrations en attente
+php artisan migrate                 # les applique
 ```
 
 Les propriétaires peuvent aussi déclencher une mise à jour en un clic depuis `/admin/update`, en choisissant un canal (stable/beta/alpha) : elle récupère la Release GitHub correspondante, sauvegarde la base et le code au préalable, et affiche une progression en direct.

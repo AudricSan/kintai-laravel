@@ -64,3 +64,32 @@ Illuminate\Http\Request::macro('setRouteParams', function (array $params): void 
     }
     $this->setRouteResolver(static fn () => $route);
 });
+
+// Aide des tests : base SQLite en mémoire neuve, installée comme connexion par défaut de l'application (DB::, Schema::,
+// Eloquent, migrateur). Renvoie la Capsule posée sur cette connexion.
+function kintai_test_database(): kintai\Core\Database\LaravelCapsule
+{
+    $app = $GLOBALS['kintai_test_app'];
+    config(['database.connections.testing' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]]);
+    $app['db']->purge('testing');
+    $app['db']->setDefaultConnection('testing');
+    config(['database.default' => 'testing']);
+
+    // Les modèles Eloquent reviennent sur le gestionnaire de l'application (un test peut avoir posé une autre Capsule).
+    Illuminate\Database\Eloquent\Model::setConnectionResolver($app['db']);
+
+    $capsule = new kintai\Core\Database\LaravelCapsule($app);
+    $capsule->setAsGlobal();
+
+    return $capsule;
+}
+
+// Aide des tests : `php artisan migrate` puis `php artisan db:seed` sur la base de kintai_test_database().
+function kintai_test_migrate(): void
+{
+    // Certains tests vident $_SERVER ; la console de Symfony lit PHP_SELF.
+    $_SERVER['PHP_SELF'] ??= 'artisan';
+    $kernel = $GLOBALS['kintai_test_app']->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->call('migrate', ['--force' => true]);
+    $kernel->call('db:seed', ['--force' => true]);
+}

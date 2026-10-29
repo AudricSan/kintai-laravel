@@ -7,7 +7,6 @@ namespace kintai\Tests\Integration;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\Auth\PasswordPolicy;
 use kintai\Core\Database\DemoDataSeeder;
-use kintai\Core\Database\MigrationRunner;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,18 +20,9 @@ final class DemoDataSeederTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        foreach (['capsule' => $this->capsule, 'migrationsPath' => dirname(__DIR__, 2) . '/database/migrations/php'] as $prop => $value) {
-            $p = new \ReflectionProperty($runner, $prop);
-            $p->setAccessible(true);
-            $p->setValue($runner, $value);
-        }
-        $runner->run();
+        kintai_test_migrate();
     }
 
     public function testSeedsAConsistentDemoOnTheCurrentSchema(): void

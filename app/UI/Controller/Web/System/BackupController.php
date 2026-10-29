@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\UI\Controller\Web\System;
 
-use kintai\Core\Database\MigrationRunner;
+use Illuminate\Support\Facades\Artisan;
 use kintai\Core\Exceptions\ForbiddenException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +27,6 @@ final class BackupController
         private readonly BackupService $backup,
         private readonly UpdateService $update,
         private readonly GithubUpdateService $githubUpdate,
-        private readonly MigrationRunner $migrator,
         private readonly AppSettingsService $settings,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -328,7 +327,8 @@ final class BackupController
 
         try {
             try {
-                $count = $this->migrator->run();
+                $count = count($this->update->getPendingMigrations());
+                Artisan::call('migrate', ['--force' => true]);
                 $this->auditLogger->log($request, 'system.migration_applied', 'system', null, ['migrations_applied' => $count]);
                 return redirect()->away($this->base() . '/admin/update?success=migrated');
             } catch (\Throwable $e) {

@@ -21,7 +21,6 @@ final class KintaiScriptCommand extends Command
     public const SCRIPTS = [
         'kintai:cron'               => ['cron.php', 'Lance une tâche planifiée (sans argument : liste des tâches)'],
         'kintai:cron-token'         => ['create-cron-token.php', 'Crée un jeton pour /cron/run/{tâche}'],
-        'kintai:migrate'            => ['db-migrate.php', 'Applique les migrations Kintai en attente (--dry-run : les liste)'],
         'kintai:provision'          => ['provision.php', 'Installe une instance en ligne de commande (comme l\'installateur web)'],
         'kintai:seed-demo'          => ['seed-demo-data.php', 'Ajoute des données de démonstration'],
         'kintai:clean-orphans'      => ['clean-orphaned-data.php', 'Nettoie les lignes orphelines d\'une base importée'],

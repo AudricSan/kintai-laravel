@@ -6,7 +6,7 @@ namespace kintai\Core\Services\BundleInstaller;
 
 use kintai\Core\InstalledBundleAutoloader;
 use kintai\Core\BundleContract\BundleManifest;
-use kintai\Core\Database\BundleMigrationRunner;
+use Illuminate\Database\Migrations\Migrator;
 use kintai\Core\InstalledBundleManifestStore;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Services\HttpFetcher;
@@ -46,7 +46,7 @@ final class BundleInstallerService
         private readonly ?\Closure $releaseFetcher = null,
         private readonly ?\Closure $zipDownloader = null,
         private readonly HttpFetcher $http = new HttpFetcher(),
-        private readonly ?BundleMigrationRunner $migrationRunner = null,
+        private readonly ?Migrator $migrator = null,
         // Droits du rôle Manager pour les catégories déclarées, à la première installation d'un bundle.
         private readonly ?BundlePermissionGranter $permissionGranter = null,
     ) {
@@ -118,10 +118,10 @@ final class BundleInstallerService
             return false;
         }
 
+        $this->forgetMigrations($slug);
         $this->removeDirIfExists($this->bundlesDir() . "/{$slug}");
         $this->manifestStore->remove($slug);
         $this->installedBundles->delete($slug);
-        $this->migrationRunner?->forgetBundle($slug);
 
         Log::info('bundle_uninstalled', ['slug' => $slug]);
 
@@ -360,9 +360,9 @@ final class BundleInstallerService
         rename($extractedRoot, $finalDir);
 
         $migrationsPath = $finalDir . '/database/migrations';
-        if ($this->migrationRunner !== null && is_dir($migrationsPath)) {
+        if ($this->migrator !== null && is_dir($migrationsPath)) {
             try {
-                $this->migrationRunner->runPendingFor($slug, $migrationsPath);
+                $this->runMigrations($migrationsPath);
             } catch (\Throwable $e) {
                 // Schéma incomplet : on n'active pas un bundle dont les migrations ont échoué.
                 $this->removeDirIfExists($finalDir);
@@ -406,6 +406,31 @@ final class BundleInstallerService
         }
 
         return $dirs[0];
+    }
+
+    /** Applique les migrations en attente d'un bundle (`php artisan migrate --path=…`). */
+    private function runMigrations(string $migrationsPath): void
+    {
+        $repository = $this->migrator->getRepository();
+        if (!$repository->repositoryExists()) {
+            $repository->createRepository();
+        }
+        $this->migrator->run([$migrationsPath]);
+    }
+
+    /**
+     * Retire le suivi des migrations d'un bundle désinstallé. Aucune table n'est supprimée : les migrations restent
+     * gardées par hasTable()/hasColumn(), une réinstallation les rejoue sans risque.
+     */
+    private function forgetMigrations(string $slug): void
+    {
+        if ($this->migrator === null) {
+            return;
+        }
+        $paths = glob($this->bundlesDir() . "/{$slug}/*/database/migrations", GLOB_ONLYDIR) ?: [];
+        foreach ($this->migrator->getMigrationFiles($paths) as $name => $file) {
+            $this->migrator->getRepository()->delete((object) ['migration' => $name]);
+        }
     }
 
     private function removeDirIfExists(string $dir): void

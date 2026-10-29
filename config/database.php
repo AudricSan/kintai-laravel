@@ -20,10 +20,8 @@ return [
         $driver => $connection,
     ],
 
-    // Kintai suit ses propres migrations dans la table « migrations » (MigrationRunner) : celles de Laravel, s'il y en
-    // a un jour, sont suivies à part.
     'migrations' => [
-        'table' => 'laravel_migrations',
+        'table' => 'migrations',
         'update_date_on_publish' => true,
     ],
 ];

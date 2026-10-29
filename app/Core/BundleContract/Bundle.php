@@ -293,6 +293,17 @@ abstract class Bundle extends ServiceProvider
     }
 
     /**
+     * Migrations du bundle (dossier `database/migrations`), appliquées par `php artisan migrate` avec celles du Cœur.
+     */
+    public function registerMigrations(): void
+    {
+        $directory = rtrim($this->getPath(), '/\\') . '/database/migrations';
+        if (is_dir($directory)) {
+            $this->loadMigrationsFrom($directory);
+        }
+    }
+
+    /**
      * Boot du bundle, une fois tous les bundles enregistrés.
      */
     public function boot(): void

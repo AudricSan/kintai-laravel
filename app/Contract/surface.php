@@ -45,7 +45,6 @@ return [
     'kintai\\Contract\\Data\\ShiftTypeRepositoryInterface' => ['target' => 'kintai\\Core\\Repositories\\ShiftTypeRepositoryInterface', 'status' => 'stable', 'role' => 'Types de shift.'],
     'kintai\\Contract\\Data\\UserShiftTypeRateRepositoryInterface' => ['target' => 'kintai\\Core\\Repositories\\UserShiftTypeRateRepositoryInterface', 'status' => 'stable', 'role' => 'Taux horaires individuels.'],
     'kintai\\Contract\\Data\\AppSettingsRepositoryInterface' => ['target' => 'kintai\\Core\\Repositories\\AppSettingsRepositoryInterface', 'status' => 'stable', 'role' => 'Paramètres de l\'instance.'],
-    'kintai\\Contract\\Database\\Migration' => ['target' => 'kintai\\Core\\Database\\Migration', 'status' => 'stable', 'role' => 'Classe de base des migrations du bundle.'],
     'kintai\\Contract\\Services\\AuditLogger' => ['target' => 'kintai\\Core\\Services\\AuditLogger', 'status' => 'stable', 'role' => 'Journal d\'activité.'],
     'kintai\\Contract\\Services\\NotificationService' => ['target' => 'kintai\\Core\\Services\\NotificationService', 'status' => 'stable', 'role' => 'Notifications (et push).'],
     'kintai\\Contract\\Services\\TranslationService' => ['target' => 'kintai\\Core\\Services\\TranslationService', 'status' => 'stable', 'role' => 'Traductions.'],

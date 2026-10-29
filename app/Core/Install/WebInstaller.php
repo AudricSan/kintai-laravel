@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace kintai\Core\Install;
 
 use Closure;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use kintai\Core\Auth\PasswordHasher;
-use kintai\Core\Database\BundleMigrationRunner;
 use kintai\Core\InstalledBundleManifestStore;
 use kintai\Core\Database\DemoDataSeeder;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
@@ -76,7 +77,7 @@ final class WebInstaller
             $this->writeFile('config/database.local.php', '<?php return ' . var_export($this->databaseConfig($in), true) . ';' . PHP_EOL);
 
             $app = require $this->basePath . '/bootstrap/boot.php';
-            (new MigrationRunner($app))->run();
+            $this->migrate($app);
 
             if ($in->demoData) {
                 // Données de démonstration du Core, écrites par les modèles (indépendantes du pilote et du schéma).
@@ -103,6 +104,41 @@ final class WebInstaller
             $this->log($e);
             $this->rollback();
             throw InstallFailure::from($e);
+        }
+    }
+
+    /**
+     * `php artisan migrate` puis `php artisan db:seed` : le schéma du Cœur et des bundles installés, puis les données de
+     * départ (rôles, registre officiel, clés du web push).
+     *
+     * @return int nombre de migrations appliquées
+     */
+    private function migrate(Application $app): int
+    {
+        $before = Schema::hasTable('migrations') ? DB::table('migrations')->count() : 0;
+
+        $kernel = $app->make(Kernel::class);
+        $kernel->call('migrate', ['--force' => true]);
+        $kernel->call('db:seed', ['--force' => true]);
+
+        return DB::table('migrations')->count() - $before;
+    }
+
+    /**
+     * Une instance importée d'avant les migrations Laravel garde son schéma : son journal de migrations (sans numéro de
+     * lot) est remplacé par celui de Laravel, où les migrations de création sont marquées appliquées.
+     */
+    private function adoptLegacyMigrationLog(Application $app): void
+    {
+        if (!Schema::hasTable('migrations') || Schema::hasColumn('migrations', 'batch')) {
+            return;
+        }
+
+        Schema::dropIfExists('migrations');
+        Schema::dropIfExists('bundle_migrations');
+        $app->make(Kernel::class)->call('migrate:install');
+        foreach (glob($this->basePath . '/database/migrations/*.php') as $file) {
+            DB::table('migrations')->insert(['migration' => basename($file, '.php'), 'batch' => 1]);
         }
     }
 
@@ -143,14 +179,8 @@ final class WebInstaller
             $this->writeFile('config/database.local.php', '<?php return ' . var_export($database, true) . ';' . PHP_EOL);
 
             $app = require $this->basePath . '/bootstrap/boot.php';
-            $migrations = (new MigrationRunner($app))->run();
-
-            // Comme scripts/db-migrate.php : migrations en attente des bundles installés dynamiquement.
-            $bundleRunner = new BundleMigrationRunner($app);
-            foreach ($app->make(InstalledBundleRepositoryInterface::class)->all() as $bundle) {
-                $path = $this->basePath . "/storage/bundles/{$bundle['slug']}/{$bundle['active_version']}/database/migrations";
-                $migrations += count($bundleRunner->runPendingFor((string) $bundle['slug'], $path));
-            }
+            $this->adoptLegacyMigrationLog($app);
+            $migrations = $this->migrate($app);
             $bundles = [];
             foreach ((new InstalledBundleManifestStore($this->basePath . '/storage/bundles/installed.json'))->all() as $slug => $entry) {
                 $bundles[] = ['slug' => (string) $slug, 'version' => (string) ($entry['active_version'] ?? '')];

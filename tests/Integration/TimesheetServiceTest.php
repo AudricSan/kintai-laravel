@@ -7,7 +7,6 @@ namespace kintai\Tests\Integration;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\BundleManager;
 use Illuminate\Container\Container;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Extension\Attendances;
 use kintai\Core\Extension\ExtensionRegistry;
 use kintai\Core\Repositories\DatabaseShiftRepository;
@@ -37,15 +36,9 @@ final class TimesheetServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty($runner, 'capsule'))->setValue($runner, $this->capsule);
-        (new \ReflectionProperty($runner, 'migrationsPath'))->setValue($runner, BASE_PATH . '/database/migrations/php');
-        $runner->run();
+        kintai_test_migrate();
 
         $now = date('Y-m-d H:i:s');
         $this->capsule->table('stores')->insert(['name' => 'Shibuya', 'code' => 'SHB', 'timezone' => 'Asia/Tokyo', 'created_at' => $now, 'updated_at' => $now]);

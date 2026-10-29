@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\DatabaseLogRepository;
 use kintai\Core\Repositories\LogRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
@@ -23,15 +22,9 @@ final class ActivityLogPurgeTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty($runner, 'capsule'))->setValue($runner, $this->capsule);
-        (new \ReflectionProperty($runner, 'migrationsPath'))->setValue($runner, dirname(__DIR__, 2) . '/database/migrations/php');
-        $runner->run();
+        kintai_test_migrate();
 
         $this->logs = new DatabaseLogRepository();
         foreach (['-400 days', '-100 days', '-10 days', '-1 day'] as $age) {
@@ -43,7 +36,8 @@ final class ActivityLogPurgeTest extends TestCase
 
     private function rowCount(): int
     {
-        return (int) $this->capsule->getConnection()->table('activity_log')->count();
+        // Les entrées de test seulement : la purge écrit aussi sa propre entrée d'audit.
+        return (int) $this->capsule->getConnection()->table('activity_log')->where('action', 'test.action')->count();
     }
 
     private function controller(): ActivityController
@@ -79,7 +73,7 @@ final class ActivityLogPurgeTest extends TestCase
     {
         $response = $this->controller()->purge($this->purgeRequest('30'));
 
-        // Deux entrées de plus de 30 jours supprimées ; Log n'est pas branché ici, donc pas d'entrée d'audit.
+        // Deux entrées de plus de 30 jours supprimées.
         $this->assertSame(2, $this->rowCount());
         $this->assertStringContainsString('purged=2', ($response->headers->get('Location') ?? ''));
     }

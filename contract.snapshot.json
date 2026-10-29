@@ -57,10 +57,6 @@
             "status": "stable",
             "target": "kintai\\Core\\Repositories\\UserShiftTypeRateRepositoryInterface"
         },
-        "kintai\\Contract\\Database\\Migration": {
-            "status": "stable",
-            "target": "kintai\\Core\\Database\\Migration"
-        },
         "kintai\\Contract\\Exceptions\\ConflictException": {
             "status": "stable",
             "target": "kintai\\Core\\Exceptions\\ConflictException"
@@ -546,6 +542,7 @@
         "profileSections": "(): array",
         "provides": "(): mixed",
         "register": "(): void",
+        "registerMigrations": "(): void",
         "salesProviders": "(): array",
         "shiftFormSections": "(): array",
         "storeFeatures": "(): array",

@@ -14,8 +14,6 @@ use kintai\Core\Cron\CalendarSyncJob;
 use kintai\Core\Cron\NotificationPurgeJob;
 use kintai\Core\Services\Calendar\CurlHttpTransport;
 use kintai\Core\Services\Calendar\HttpTransportInterface;
-use kintai\Core\Database\BundleMigrationRunner;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\CronTokenRepositoryInterface;
 use kintai\Core\Mail\MailerService;
 use kintai\Core\Repositories\StoreRepositoryInterface;
@@ -238,7 +236,6 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(AppResetService::class, fn(Container $c) => new AppResetService(
             $c->make(Capsule::class),
-            $c->make(MigrationRunner::class),
         ));
 
         $this->app->singleton(UpdateService::class, fn() => new UpdateService());
@@ -246,7 +243,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(GithubUpdateService::class, fn(Container $c) => new GithubUpdateService(
             $c->make(UpdateService::class),
             $c->make(BackupService::class),
-            $c->make(MigrationRunner::class),
             $c->make(AppSettingsService::class),
         ));
 
@@ -294,7 +290,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(BundleInstallerService::class, fn(Container $c) => new BundleInstallerService(
             $c->make(UpdateService::class),
             $c->make(InstalledBundleRepositoryInterface::class),
-            migrationRunner: $c->make(BundleMigrationRunner::class),
+            migrator: $c->make('migrator'),
             permissionGranter: $c->make(BundleInstaller\BundlePermissionGranter::class),
         ));
 

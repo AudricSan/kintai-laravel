@@ -19,7 +19,8 @@
     },
     "autoload": {
         "psr-4": {
-            "kintai\\": "app/"
+            "kintai\\": "app/",
+            "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
             "app/Core/helpers.php",

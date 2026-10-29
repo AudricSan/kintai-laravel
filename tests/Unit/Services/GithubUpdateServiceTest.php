@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Services\AppSettingsService;
 use kintai\Core\Services\BackupService;
@@ -22,7 +21,6 @@ final class GithubUpdateServiceTest extends TestCase
     private string $tmpDir;
     private UpdateService $updateService;
     private BackupService $backup;
-    private MigrationRunner $migrator;
 
     protected function setUp(): void
     {
@@ -36,15 +34,7 @@ final class GithubUpdateServiceTest extends TestCase
 
         putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
 
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        mkdir($this->tmpDir . '/no-migrations', 0775, true);
-        $this->migrator = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        $this->setPrivate($this->migrator, 'capsule', $capsule);
-        $this->setPrivate($this->migrator, 'migrationsPath', $this->tmpDir . '/no-migrations');
+        $capsule = kintai_test_database();
 
         $this->updateService = new UpdateService($this->tmpDir);
 
@@ -140,7 +130,6 @@ final class GithubUpdateServiceTest extends TestCase
         return new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings($channel),
             $this->tmpDir,
             $releaseFetcher,
@@ -157,7 +146,6 @@ final class GithubUpdateServiceTest extends TestCase
             return new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fileFetcher: function (string $repo, string $token, string $tag, string $path) use (&$asked, $source): ?string {
@@ -178,7 +166,6 @@ final class GithubUpdateServiceTest extends TestCase
         $service = new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fn(string $repo, string $token): ?array => null,
@@ -327,7 +314,6 @@ final class GithubUpdateServiceTest extends TestCase
         $service = new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings('release'),
             $this->tmpDir,
             $releaseFetcher,
@@ -355,7 +341,6 @@ final class GithubUpdateServiceTest extends TestCase
         $service = new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fn(string $repo, string $token): ?array => $this->withAssets([
@@ -551,7 +536,6 @@ final class GithubUpdateServiceTest extends TestCase
         $service = new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fn(string $repo, string $token): ?array => null,
@@ -567,7 +551,6 @@ final class GithubUpdateServiceTest extends TestCase
         $service = new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fn(string $repo, string $token): ?array => [['tag_name' => 'v1.0.0', 'zipball_url' => 'z']],
@@ -663,7 +646,6 @@ final class GithubUpdateServiceTest extends TestCase
         $service = new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fn(string $repo, string $token): ?array => null,
@@ -705,7 +687,6 @@ final class GithubUpdateServiceTest extends TestCase
         return new GithubUpdateService(
             $this->updateService,
             $this->backup,
-            $this->migrator,
             $this->makeSettings(),
             $this->tmpDir,
             fn(string $repo, string $token): ?array => $releases,

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Domain\Eloquent\RememberToken;
 use kintai\Domain\Eloquent\User;
 use PHPUnit\Framework\TestCase;
@@ -22,20 +21,9 @@ final class RememberTokensTableTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        $capsuleProp = new \ReflectionProperty($runner, 'capsule');
-        $capsuleProp->setAccessible(true);
-        $capsuleProp->setValue($runner, $this->capsule);
-        $pathProp = new \ReflectionProperty($runner, 'migrationsPath');
-        $pathProp->setAccessible(true);
-        $pathProp->setValue($runner, dirname(__DIR__, 2) . '/database/migrations/php');
-
-        $runner->run();
+        kintai_test_migrate();
     }
 
     public function testFreshInstallCreatesTableWithExpectedColumns(): void

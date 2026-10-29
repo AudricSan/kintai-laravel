@@ -6,7 +6,6 @@ namespace kintai\Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\Auth\AuthService;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\RememberTokenRepositoryInterface;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
@@ -46,14 +45,8 @@ final class AppResetControllerTest extends TestCase
         file_put_contents($this->tmpDir . '/storage/installed.lock', 'x');
         putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
 
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        $this->setPrivate($runner, 'capsule', $capsule);
-        $this->setPrivate($runner, 'migrationsPath', dirname(__DIR__, 5) . '/database/migrations/php');
-        $runner->run();
+        $capsule = kintai_test_database();
+        kintai_test_migrate();
         $capsule->table('users')->insert([
             'first_name' => 'Owner', 'last_name' => 'Test', 'display_name' => 'Owner Test',
             'email' => 'owner@test.com', 'password_hash' => 'x', 'is_active' => 1,
@@ -63,7 +56,7 @@ final class AppResetControllerTest extends TestCase
         $this->backup = new BackupService($capsule);
         $this->setPrivate($this->backup, 'backupDir', $this->tmpDir . '/storage/backups');
 
-        $this->reset = new AppResetService($capsule, $runner);
+        $this->reset = new AppResetService($capsule);
 
         $this->auth = new AuthService(
             $this->createStub(UserRepositoryInterface::class),

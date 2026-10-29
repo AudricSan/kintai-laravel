@@ -45,37 +45,18 @@ final class UpdateService
         file_put_contents($configFile, $updated);
     }
 
+    /** @return string[] Noms des migrations (Cœur et bundles installés) pas encore appliquées. */
     public function getPendingMigrations(): array
     {
-        $migrated = $this->getExecutedMigrations();
-        $all = $this->getAvailableMigrations();
-        return array_values(array_diff($all, $migrated));
-    }
+        $migrator = app('migrator');
+        $files = $migrator->getMigrationFiles(array_merge([database_path('migrations')], $migrator->paths()));
 
-    private function getExecutedMigrations(): array
-    {
         try {
-            return \Illuminate\Database\Capsule\Manager::table('migrations')
-                ->pluck('migration')
-                ->toArray();
+            $ran = $migrator->getRepository()->repositoryExists() ? $migrator->getRepository()->getRan() : [];
         } catch (\Throwable) {
-            return [];
+            $ran = [];
         }
-    }
 
-    private function getAvailableMigrations(): array
-    {
-        $path = BASE_PATH . '/database/migrations/php';
-        if (!is_dir($path)) {
-            return [];
-        }
-        $files = glob($path . '/*.php');
-        if ($files === false) {
-            return [];
-        }
-        sort($files);
-        return array_map(function (string $f): string {
-            return basename($f, '.php');
-        }, $files);
+        return array_values(array_diff(array_keys($files), $ran));
     }
 }

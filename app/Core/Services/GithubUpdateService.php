@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Core\Services;
 
-use kintai\Core\Database\MigrationRunner;
+use Illuminate\Support\Facades\Artisan;
 
 /**
  * Met à jour l'application depuis une Release GitHub taguée : télécharge l'archive construite par la release
@@ -62,7 +62,6 @@ final class GithubUpdateService
     public function __construct(
         private readonly UpdateService $updateService,
         private readonly BackupService $backup,
-        private readonly MigrationRunner $migrator,
         private readonly AppSettingsService $settings,
         ?string $basePath = null,
         private readonly ?\Closure $releaseFetcher = null,
@@ -320,7 +319,8 @@ final class GithubUpdateService
             });
 
             $progress(80, __('backup_update_step_migrate'));
-            $migrationsApplied = $this->migrator->run();
+            $migrationsApplied = count($this->updateService->getPendingMigrations());
+            Artisan::call('migrate', ['--force' => true]);
 
             $this->updateService->setCurrentVersion($release['latest_version']);
 

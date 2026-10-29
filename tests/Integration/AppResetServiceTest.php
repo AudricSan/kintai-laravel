@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Services\AppResetService;
 use PHPUnit\Framework\TestCase;
 
@@ -13,7 +12,6 @@ final class AppResetServiceTest extends TestCase
 {
     private string $tmpDir;
     private Capsule $capsule;
-    private MigrationRunner $runner;
     private AppResetService $service;
 
     protected function setUp(): void
@@ -24,23 +22,13 @@ final class AppResetServiceTest extends TestCase
         file_put_contents($this->tmpDir . '/storage/installed.lock', bin2hex(random_bytes(8)));
         putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
 
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $this->runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        $capsuleProp = new \ReflectionProperty($this->runner, 'capsule');
-        $capsuleProp->setAccessible(true);
-        $capsuleProp->setValue($this->runner, $this->capsule);
-        $pathProp = new \ReflectionProperty($this->runner, 'migrationsPath');
-        $pathProp->setAccessible(true);
-        $pathProp->setValue($this->runner, dirname(__DIR__, 2) . '/database/migrations/php');
-        $this->runner->run();
+        kintai_test_migrate();
 
         $this->seedMinimalData();
 
-        $this->service = new AppResetService($this->capsule, $this->runner);
+        $this->service = new AppResetService($this->capsule);
     }
 
     protected function tearDown(): void
@@ -129,17 +117,16 @@ final class AppResetServiceTest extends TestCase
      * Régression : après un resetFactory(), la table roles restait vide pour
      * toujours, car la migration de seed des rôles par défaut était trackée comme
      * déjà appliquée (table migrations préservée) alors que ses données avaient été
-     * vidées — sa garde d'idempotence bloquait tout reseed. Ce test rejoue la vraie
-     * migration via MigrationRunner (pas seulement la suppression de sa ligne de
-     * tracking) pour vérifier que le reseed complet fonctionne réellement de bout
-     * en bout, comme après la réinstallation qui suit un reset usine.
+     * vidées. Les rôles sont désormais posés par `db:seed` : ce test le rejoue pour
+     * vérifier que le reseed complet fonctionne de bout en bout, comme après la
+     * réinstallation qui suit un reset usine.
      */
-    public function testResetFactoryThenReplayingMigrationsReseedsDefaultRolesAndManagerPermissions(): void
+    public function testResetFactoryThenReseedingRestoresDefaultRolesAndManagerPermissions(): void
     {
         $this->service->resetFactory();
         $this->assertSame(0, $this->capsule->table('roles')->count(), 'roles doit être vidé par le reset');
 
-        $this->runner->run();
+        kintai_test_migrate();
 
         $roles = $this->capsule->table('roles')->pluck('slug')->all();
         sort($roles);

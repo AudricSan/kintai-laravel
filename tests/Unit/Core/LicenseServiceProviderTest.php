@@ -51,7 +51,7 @@ final class LicenseServiceProviderTest extends TestCase
     public function testANotYetMigratedDatabaseFallsBackToTheConfigFileInsteadOfCrashing(): void
     {
         // Ce fournisseur tourne dans le constructeur d'Application, avant toute migration (installateur web,
-        // `php scripts/db-migrate.php` sur base neuve). La table app_settings n'existe pas encore : sans
+        // `php artisan migrate` sur base neuve). La table app_settings n'existe pas encore : sans
         // repli, « no such table » empêchait toute installation neuve.
         $container = new \kintai\Tests\Support\TestContainer();
         $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);

@@ -17,21 +17,8 @@ final class DashboardLayoutRepositoriesTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        // Les migrations lisent $this->capsule : on les charge depuis un objet qui le porte, comme MigrationRunner.
-        $loader = new class($capsule) {
-            public function __construct(public Capsule $capsule) {}
-
-            public function load(string $file): object
-            {
-                return require $file;
-            }
-        };
-        $loader->load(dirname(__DIR__, 3) . '/database/migrations/php/2026_11_01_000003_create_application_tables.php')->up();
+        kintai_test_database();
+        (require dirname(__DIR__, 3) . '/database/migrations/2026_11_01_000003_create_application_tables.php')->up();
 
         $this->named = new DatabaseUserDashboardLayoutRepository();
         $this->roles = new DatabaseRoleDashboardLayoutRepository();

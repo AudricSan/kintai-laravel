@@ -37,7 +37,6 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Core\Auth\PasswordHasher;
 use kintai\Core\Auth\PasswordPolicy;
 use kintai\Core\Database\DemoDataSeeder;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
@@ -217,8 +216,9 @@ try {
 
     $app = require BASE_PATH . '/bootstrap/boot.php';
 
-    $runner = new MigrationRunner($app);
-    $runner->run();
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->call('migrate', ['--force' => true]);
+    $kernel->call('db:seed', ['--force' => true]);
     echo "[Kintai] Migrations exécutées.\n";
 
     // ─── Step 5 : Seeders ────────────────────────────────────────────────────

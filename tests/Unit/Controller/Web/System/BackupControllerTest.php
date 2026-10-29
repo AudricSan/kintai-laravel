@@ -6,7 +6,6 @@ namespace kintai\Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\AppSettingsRepositoryInterface;
 use kintai\Core\Repositories\JsonLanguageRepository;
 use kintai\Core\Repositories\JsonTranslationRepository;
@@ -28,8 +27,7 @@ final class BackupControllerTest extends TestCase
 
     private string $tmpDir;
     private UpdateService $updateService;
-    private BackupService $backup;
-    private MigrationRunner $migrator;
+    private BackupService $backup;
     private AppSettingsService $settings;
     private ViewRenderer $view;
 
@@ -43,15 +41,7 @@ final class BackupControllerTest extends TestCase
 
         putenv('KINTAI_STORAGE_PATH=' . $this->tmpDir . '/storage');
 
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        mkdir($this->tmpDir . '/no-migrations', 0775, true);
-        $this->migrator = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        $this->setPrivate($this->migrator, 'capsule', $capsule);
-        $this->setPrivate($this->migrator, 'migrationsPath', $this->tmpDir . '/no-migrations');
+        $capsule = kintai_test_database();
 
         $this->updateService = new UpdateService($this->tmpDir);
 
@@ -136,8 +126,7 @@ final class BackupControllerTest extends TestCase
     {
         $githubUpdate = new GithubUpdateService(
             $this->updateService,
-            $this->backup,
-            $this->migrator,
+            $this->backup,
             $this->settings,
             $this->tmpDir,
             // Releases publiées comme par release.yml : archive vérifiable + SHA256SUMS (audit M10).
@@ -149,7 +138,7 @@ final class BackupControllerTest extends TestCase
             $this->commitResolver(),
         );
 
-        return new BackupController($this->view, $this->backup, $this->updateService, $githubUpdate, $this->migrator, $this->settings, new AuditLogger());
+        return new BackupController($this->view, $this->backup, $this->updateService, $githubUpdate, $this->settings, new AuditLogger());
     }
 
     private function requestAs(bool $isAdmin): Request

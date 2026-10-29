@@ -63,7 +63,7 @@ tables=$(sql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=
 [ "$(sql "SELECT COUNT(*) FROM shifts")" -gt 0 ] || fail "--seed : aucun shift créé"
 
 # Migrations rejouées : rien ne doit rester en attente ni échouer.
-php scripts/db-migrate.php > "$WORK/out.txt" 2>&1 || fail "db-migrate.php a échoué sur une base à jour"
+php artisan migrate --force > "$WORK/out.txt" 2>&1 || fail "artisan migrate a échoué sur une base à jour"
 
 # ─── Connexion et pages principales ──────────────────────────────────────
 php -S "127.0.0.1:$PORT" -t public > "$WORK/server.log" 2>&1 &

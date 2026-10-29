@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace kintai\Core\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
-use kintai\Core\Database\SqliteForeignKeys;
 
 /**
  * Réinitialisation de l'application depuis /admin/backup (bouton "Danger zone").
@@ -29,7 +27,6 @@ final class AppResetService
 
     public function __construct(
         private readonly Capsule $capsule,
-        private readonly MigrationRunner $migrationRunner,
     ) {
     }
 
@@ -64,16 +61,8 @@ final class AppResetService
      */
     public function resetFactory(): array
     {
-        // Retrait du tracking *avant* le vidage des tables : si le process s'arrête
-        // entre les deux, on obtient au pire "migration à rejouer, données encore
-        // présentes" — inoffensif (la garde d'idempotence de la migration la rend
-        // no-op, ou executeMigration() absorbe l'éventuelle contrainte unique déjà
-        // en place) — plutôt que "données vidées, migration jamais rejouée", qui
-        // reproduirait le bug que ce mécanisme corrige.
-        $this->capsule->table('migrations')
-            ->whereIn('migration', $this->migrationRunner->getSeedMigrationNames())
-            ->delete();
-
+        // Les données de départ (rôles, registre officiel, clés du web push) sont rejouées par `db:seed` lors de la
+        // réinstallation.
         $toWipe = array_values(array_diff($this->allTableNames(), ['migrations']));
         $this->truncateTables($toWipe);
 
@@ -103,23 +92,12 @@ final class AppResetService
 
     private function truncateTables(array $tables): void
     {
-        $conn = $this->capsule->getConnection();
-        $isMysql = $conn->getDriverName() === 'mysql';
-
-        if ($isMysql) {
-            $conn->statement('SET FOREIGN_KEY_CHECKS = 0');
-        }
-
-        // Sous SQLite aussi les clés étrangères sont actives : vidage dans un ordre quelconque sans elles.
-        SqliteForeignKeys::without($conn, function () use ($tables): void {
+        // Vidage dans un ordre quelconque, clés étrangères suspendues (MySQL comme SQLite).
+        $this->capsule->getConnection()->getSchemaBuilder()->withoutForeignKeyConstraints(function () use ($tables): void {
             foreach ($tables as $table) {
                 $this->capsule->table($table)->truncate();
             }
         });
-
-        if ($isMysql) {
-            $conn->statement('SET FOREIGN_KEY_CHECKS = 1');
-        }
     }
 
     private function removeInstalledLock(): void

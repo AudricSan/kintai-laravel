@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace kintai\Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\MigrationRunner;
 use kintai\Core\Repositories\DatabaseShiftRepository;
 use kintai\Core\Repositories\DatabaseStoreRepository;
 use kintai\Core\Services\NotificationService;
@@ -35,15 +34,9 @@ final class SchedulePublicationTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->capsule = new Capsule();
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+        $this->capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(MigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty($runner, 'capsule'))->setValue($runner, $this->capsule);
-        (new \ReflectionProperty($runner, 'migrationsPath'))->setValue($runner, BASE_PATH . '/database/migrations/php');
-        $runner->run();
+        kintai_test_migrate();
 
         // Les écritures de shifts n'annoncent rien ici (pas d'agenda externe à synchroniser).
         ShiftChangeNotifier::override(new ShiftChangeNotifier(new \kintai\Core\Extension\Events(), static function (): void {}));

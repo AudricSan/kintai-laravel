@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Tests\Unit\Core\Services\BundleInstaller;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Core\Database\BundleMigrationRunner;
+use Illuminate\Database\Migrations\Migrator;
 use kintai\Core\InstalledBundleManifestStore;
 use kintai\Core\Repositories\InstalledBundleRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
@@ -43,7 +43,7 @@ final class BundleInstallerServiceTest extends TestCase
     private function makeService(
         ?\Closure $releaseFetcher,
         ?\Closure $zipDownloader,
-        ?BundleMigrationRunner $migrationRunner = null,
+        ?Migrator $migrator = null,
         ?BundlePermissionGranter $permissionGranter = null,
     ): BundleInstallerService {
         return new BundleInstallerService(
@@ -53,31 +53,22 @@ final class BundleInstallerServiceTest extends TestCase
             $this->bundlesDir,
             $releaseFetcher,
             $zipDownloader,
-            migrationRunner: $migrationRunner,
+            migrator: $migrator,
             permissionGranter: $permissionGranter,
         );
     }
 
     /**
-     * Runner adossé à une base SQLite en mémoire, via la même astuce de réflexion
-     * que BundleMigrationRunnerTest. Retourne aussi la Capsule pour permettre au
-     * test d'inspecter directement l'état de la base (table créée, etc.).
+     * Migrateur de Laravel adossé à une base SQLite en mémoire. Retourne aussi la Capsule pour permettre au test
+     * d'inspecter directement l'état de la base (table créée, etc.).
      *
-     * @return array{0: BundleMigrationRunner, 1: Capsule}
+     * @return array{0: Migrator, 1: Capsule}
      */
-    private function makeMigrationRunner(): array
+    private function makeMigrator(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        $capsuleProp = new \ReflectionProperty(BundleMigrationRunner::class, 'capsule');
-        $capsuleProp->setAccessible(true);
-        $capsuleProp->setValue($runner, $capsule);
-
-        return [$runner, $capsule];
+        return [$GLOBALS['kintai_test_app']->make('migrator'), $capsule];
     }
 
     /**
@@ -328,28 +319,29 @@ final class BundleInstallerServiceTest extends TestCase
     public function testInstallRunsTheBundlesMigrationsBeforeActivating(): void
     {
         $zipPath = $this->buildFixtureZip([], true, <<<'PHP'
-use kintai\Core\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class($this->capsule) extends Migration {
+return new class extends Migration {
     public function up(): void
     {
-        $this->schema()->create('fake_table', function (Blueprint $table) {
+        Schema::create('fake_table', function (Blueprint $table) {
             $table->increments('id');
         });
     }
 
     public function down(): void
     {
-        $this->schema()->dropIfExists('fake_table');
+        Schema::dropIfExists('fake_table');
     }
 };
 PHP);
-        [$migrationRunner, $capsule] = $this->makeMigrationRunner();
+        [$migrator, $capsule] = $this->makeMigrator();
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
-            $migrationRunner,
+            $migrator,
         );
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
@@ -357,8 +349,8 @@ PHP);
         $this->assertTrue($result->success);
         $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('fake_table'));
         $this->assertSame(
-            ['fake-bundle'],
-            $capsule->table('bundle_migrations')->pluck('bundle_slug')->toArray(),
+            ['2026_09_25_000001_create_fake_table'],
+            $capsule->table('migrations')->pluck('migration')->toArray(),
         );
     }
 
@@ -366,12 +358,13 @@ PHP);
     {
         $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip([], true, <<<'PHP'
-use kintai\Core\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
 
-return new class($this->capsule) extends Migration {
+return new class extends Migration {
     public function up(): void
     {
-        $this->schema()->table('table_that_does_not_exist', function ($table) {
+        Schema::table('table_that_does_not_exist', function ($table) {
             $table->string('foo')->nullable();
         });
     }
@@ -381,11 +374,11 @@ return new class($this->capsule) extends Migration {
     }
 };
 PHP);
-        [$migrationRunner, ] = $this->makeMigrationRunner();
+        [$migrator, ] = $this->makeMigrator();
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
-            $migrationRunner,
+            $migrator,
         );
 
         $this->installedBundles->expects($this->never())->method('upsert');
@@ -399,29 +392,37 @@ PHP);
 
     public function testUninstallForgetsTheBundlesMigrationTracking(): void
     {
-        mkdir($this->bundlesDir . '/fake-bundle/1.0.0', 0777, true);
+        $migrations = $this->bundlesDir . '/fake-bundle/1.0.0/database/migrations';
+        mkdir($migrations, 0777, true);
         file_put_contents($this->bundlesDir . '/fake-bundle/1.0.0/bundle.json', '{}');
+        file_put_contents($migrations . '/2026_09_25_000001_create_other_table.php', '<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create("other_table", fn ($table) => $table->integer("id", true));
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists("other_table");
+    }
+};');
         $this->manifestStore->setActiveVersion('fake-bundle', '1.0.0');
         $this->installedBundles->method('find')->willReturn(['slug' => 'fake-bundle', 'active_version' => '1.0.0', 'source_registry_url' => null]);
 
-        [$migrationRunner, $capsule] = $this->makeMigrationRunner();
-        $migrationRunner->runPendingFor('fake-bundle', $this->migrationsPathWithNoFiles());
+        [$migrator, $capsule] = $this->makeMigrator();
+        $migrator->getRepository()->createRepository();
+        $migrator->run([$migrations]);
+        $capsule->table('migrations')->insert(['migration' => '2026_01_01_000000_core', 'batch' => 9]);
 
-        $service = $this->makeService(null, null, $migrationRunner);
+        $this->assertTrue($this->makeService(null, null, $migrator)->uninstall('fake-bundle'));
 
-        $this->assertTrue($service->uninstall('fake-bundle'));
-
-        // forgetBundle() est appelé même s'il n'y avait rien à oublier : pas d'exception,
-        // et surtout aucune ligne d'un autre bundle ne serait affectée (couvert par
-        // BundleMigrationRunnerTest::testForgetBundleRemovesOnlyThatBundlesTrackingRows).
-        $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('bundle_migrations'));
-    }
-
-    private function migrationsPathWithNoFiles(): string
-    {
-        $dir = sys_get_temp_dir() . '/kintai-no-migrations-' . uniqid();
-        mkdir($dir, 0777, true);
-        return $dir;
+        // Seul le suivi du bundle disparaît : celui des autres migrations et les tables restent.
+        $this->assertSame(['2026_01_01_000000_core'], $capsule->table('migrations')->pluck('migration')->toArray());
+        $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('other_table'));
     }
 
     /**
