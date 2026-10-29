@@ -25,7 +25,7 @@ use kintai\Contract\Extension\StoreFeature;
 use kintai\Contract\Services\Mailer;
 use kintai\Contract\Services\TranslationService;
 use kintai\Contract\Services\UserSelection;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 
 /**
@@ -71,7 +71,7 @@ final class DailyReportBundle extends Bundle
             $c->make(PermissionService::class),
         ));
         $container->singleton(DailyReportPdfService::class, fn(Container $c) => new DailyReportPdfService(
-            $c->make(ViewRenderer::class),
+            $c->make(ViewFactory::class),
             $c->make(TranslationService::class),
             $c->make(ShiftRepositoryInterface::class),
             $c->make(ShiftTypeRepositoryInterface::class),

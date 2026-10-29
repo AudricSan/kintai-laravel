@@ -25,7 +25,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Services\NotificationService;
 use App\Services\TranslationService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -75,7 +75,7 @@ final class DailyReportControllerTest extends TestCase
             $permissionService = new PermissionService($this->assignments, $this->roles);
             $permissions = new DailyReportPermissionService($permissionService);
             $pdfService = new DailyReportPdfService(
-                new ViewRenderer(sys_get_temp_dir()),
+                kintai_test_views(sys_get_temp_dir()),
                 $translations,
                 $this->shifts,
                 $this->shiftTypes,
@@ -88,7 +88,7 @@ final class DailyReportControllerTest extends TestCase
                 new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
             );
             $this->controller = new DailyReportController(
-                new ViewRenderer(sys_get_temp_dir()),
+                kintai_test_views(sys_get_temp_dir()),
                 $this->reports,
                 $this->stores,
                 $this->storeUsers,

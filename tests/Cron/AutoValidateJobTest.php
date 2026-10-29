@@ -24,7 +24,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AutoValidateJobTest extends TestCase
 {
@@ -40,7 +40,7 @@ final class AutoValidateJobTest extends TestCase
         $shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $pdfService = new DailyReportPdfService(
-            new ViewRenderer(dirname(__DIR__, 2) . '/Views'),
+            kintai_test_views(dirname(__DIR__, 2) . '/Views'),
             new TranslationService(
                 $this->createStub(TranslationRepositoryInterface::class),
                 $this->createStub(LanguageRepositoryInterface::class),

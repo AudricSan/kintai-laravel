@@ -22,12 +22,12 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Services\TranslationService;
 use kintai\Contract\Services\UserSelection;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class DailyReportController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly DailyReportRepositoryInterface $reports,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -107,7 +107,7 @@ final class DailyReportController
             usort($rows, fn($a, $b) => strcmp($b['report_date'], $a['report_date']));
         }
 
-        $html = $this->view->render('daily-report::daily-reports', [
+        $html = $this->view->make('daily-report::daily-reports', [
             'store'       => $store,
             'reports'     => $rows,
             'status'      => $status,
@@ -117,7 +117,7 @@ final class DailyReportController
             'authUser'    => $authUser,
             'membership'  => $membership,
             'permissions' => $this->permissions,
-        ], 'layout.app');
+        ])->render();
 
         return response($html);
     }
@@ -233,7 +233,7 @@ final class DailyReportController
         }
         unset($rv2);
 
-        $html = $this->view->render('daily-report::daily-reports-all', [
+        $html = $this->view->make('daily-report::daily-reports-all', [
             'grouped'       => $grouped,
             'reportsV2'     => $reportsV2,
             'stores'        => $allStores,
@@ -243,7 +243,7 @@ final class DailyReportController
             'filterMonth'   => $filterMonth,
             'filterYear'    => $filterYear,
             'authUser'      => $authUser,
-        ], 'layout.app');
+        ])->render();
 
         return response($html);
     }
@@ -271,7 +271,7 @@ final class DailyReportController
 
         $settings = $this->permissions->getSettings($store);
 
-        $html = $this->view->render('daily-report::daily-report-form', [
+        $html = $this->view->make('daily-report::daily-report-form', [
             'store'      => $store,
             'report'     => null,
             'existing'   => $existing,
@@ -281,7 +281,7 @@ final class DailyReportController
             'membership' => $membership,
             'shiftRows'  => $this->getFormShiftRows($storeId, $tomorrow),
             'settings'   => $settings,
-        ], 'layout.app');
+        ])->render();
 
         return response($html);
     }
@@ -310,7 +310,7 @@ final class DailyReportController
 
         if (!empty($errors)) {
             $formDate = $data['report_date'] ?? date('Y-m-d');
-            $html = $this->view->render('daily-report::daily-report-form', [
+            $html = $this->view->make('daily-report::daily-report-form', [
                 'store'      => $store,
                 'report'     => null,
                 'existing'   => null,
@@ -321,7 +321,7 @@ final class DailyReportController
                 'membership' => $membership,
                 'shiftRows'  => $this->getFormShiftRows($storeId, $this->getShiftDateForReport($formDate)),
                 'settings'   => $settings,
-            ], 'layout.app');
+            ])->render();
             return response($html, 422);
         }
 
@@ -330,7 +330,7 @@ final class DailyReportController
         // Interdire les dates passées pour tous sauf le super admin
         if (empty($authUser['is_admin']) && $reportDate < date('Y-m-d')) {
             $errors['report_date'] = __('daily_report_error_past_date');
-            $html = $this->view->render('daily-report::daily-report-form', [
+            $html = $this->view->make('daily-report::daily-report-form', [
                 'store'      => $store,
                 'report'     => null,
                 'existing'   => null,
@@ -340,14 +340,14 @@ final class DailyReportController
                 'authUser'   => $authUser,
                 'membership' => $membership,
                 'settings'   => $settings,
-            ], 'layout.app');
+            ])->render();
             return response($html, 422);
         }
 
         // Unicité : un seul rapport actif par store par jour
         if ($this->reports->findByStoreAndDate($storeId, $reportDate) !== null) {
             $errors['report_date'] = 'Un rapport existe déjà pour cette date.';
-            $html = $this->view->render('daily-report::daily-report-form', [
+            $html = $this->view->make('daily-report::daily-report-form', [
                 'store'      => $store,
                 'report'     => null,
                 'existing'   => null,
@@ -357,7 +357,7 @@ final class DailyReportController
                 'authUser'   => $authUser,
                 'membership' => $membership,
                 'settings'   => $settings,
-            ], 'layout.app');
+            ])->render();
             return response($html, 422);
         }
 
@@ -408,7 +408,7 @@ final class DailyReportController
         $validator = $report['validated_by'] ? $this->users->findById((int) $report['validated_by']) : null;
         $settings  = $this->permissions->getSettings($store);
 
-        $html = $this->view->render('daily-report::daily-report-show', [
+        $html = $this->view->make('daily-report::daily-report-show', [
             'store'       => $store,
             'report'      => $report,
             'author'      => $author,
@@ -423,7 +423,7 @@ final class DailyReportController
             'canValidate' => $this->permissions->canValidate($authUser, $store, $report, $membership),
             'canSendMail' => $this->permissions->canSendMail($authUser, $store, $report, $membership),
             'canDelete'   => $this->permissions->canDelete($authUser, $store, $report, $membership),
-        ], 'layout.app');
+        ])->render();
 
         return response($html);
     }
@@ -449,7 +449,7 @@ final class DailyReportController
 
         $settings = $this->permissions->getSettings($store);
 
-        $html = $this->view->render('daily-report::daily-report-form', [
+        $html = $this->view->make('daily-report::daily-report-form', [
             'store'      => $store,
             'report'     => $report,
             'existing'   => null,
@@ -459,7 +459,7 @@ final class DailyReportController
             'membership' => $membership,
             'shiftRows'  => $this->getFormShiftRows($storeId, $this->getShiftDateForReport($report['report_date'])),
             'settings'   => $settings,
-        ], 'layout.app');
+        ])->render();
 
         return response($html);
     }
@@ -489,7 +489,7 @@ final class DailyReportController
         $settings = $this->permissions->getSettings($store);
 
         if (!empty($errors)) {
-            $html = $this->view->render('daily-report::daily-report-form', [
+            $html = $this->view->make('daily-report::daily-report-form', [
                 'store'      => $store,
                 'report'     => $report,
                 'existing'   => null,
@@ -500,7 +500,7 @@ final class DailyReportController
                 'membership' => $membership,
                 'shiftRows'  => $this->getFormShiftRows($storeId, $report['report_date']),
                 'settings'   => $settings,
-            ], 'layout.app');
+            ])->render();
             return response($html, 422);
         }
 
@@ -787,14 +787,14 @@ final class DailyReportController
     /** @param array<string, mixed> $settings @param array<string, string> $errors */
     private function renderSettings(array $store, array $settings, array $authUser, ?array $membership, array $errors): string
     {
-        return $this->view->render('daily-report::daily-report-settings', [
+        return $this->view->make('daily-report::daily-report-settings', [
             'store'      => $store,
             'settings'   => $settings,
             'authUser'   => $authUser,
             'membership' => $membership,
             'errors'     => $errors,
             'candidates' => $this->userSelection->candidates((int) $store['id']),
-        ], 'layout.app');
+        ])->render();
     }
 
     public function saveSettings(Request $request): Response

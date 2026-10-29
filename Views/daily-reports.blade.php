@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Badge;
 
@@ -195,3 +197,5 @@ if ($canCreate && ($settings['enabled'] ?? true) && $_currentTime >= $_reminderT
         </div>
     <?php endif; ?>
 </div>
+
+@endsection

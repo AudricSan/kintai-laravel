@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 use kintai\Contract\View\Components\Badge;
 
@@ -591,3 +593,5 @@ unset($months, $days);
     };
 }());
 </script>
+
+@endsection

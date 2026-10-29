@@ -9,12 +9,12 @@ use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Services\PdfCjkFontResolver;
 use kintai\Contract\Services\TranslationService;
-use kintai\Contract\View\ViewRenderer;
+use kintai\Contract\View\ViewFactory;
 
 final class DailyReportPdfService
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly TranslationService $translations,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
@@ -84,14 +84,14 @@ final class DailyReportPdfService
         $this->translations->setLocale($locale);
 
         try {
-            $html  = $this->view->render('daily-report::daily-report-pdf', [
+            $html  = $this->view->make('daily-report::daily-report-pdf', [
                 'report'      => $report,
                 'store'       => $store,
                 'author'      => $author,
                 'locale'      => $locale,
                 'shiftRows'   => $this->buildShiftRows($store, $report),
                 'downloadUrl' => $downloadUrl,
-            ]);
+            ])->render();
             $title = __('daily_report_title') . ' — ' . ($report['report_date'] ?? '');
         } finally {
             $this->translations->setLocale($previous);

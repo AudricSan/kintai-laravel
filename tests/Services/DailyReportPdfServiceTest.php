@@ -14,7 +14,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class DailyReportPdfServiceTest extends TestCase
 {
@@ -35,7 +35,7 @@ final class DailyReportPdfServiceTest extends TestCase
     {
         if ($this->service === null) {
             $this->service = new DailyReportPdfService(
-                new ViewRenderer('/nonexistent/views'),
+                kintai_test_views('/nonexistent/views'),
                 new TranslationService(
                     $this->createStub(TranslationRepositoryInterface::class),
                     $this->createStub(LanguageRepositoryInterface::class),

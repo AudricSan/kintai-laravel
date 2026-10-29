@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /**
  * @var array  $store
@@ -236,3 +238,5 @@ $noReportTime      = $settings['no_report_time']     ?? '18:00';
     });
 })();
 </script>
+
+@endsection

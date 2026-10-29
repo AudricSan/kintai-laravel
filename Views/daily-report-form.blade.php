@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 <?php
 /**
  * @var array       $store
@@ -204,3 +206,5 @@ $backUrl   = back_url($isEdit
 <?php if ($numericInputJs = bundle_asset('daily-report', 'js/numeric-input.js')): ?>
 <script src="<?= $numericInputJs ?>"></script>
 <?php endif; ?>
+
+@endsection
