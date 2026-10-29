@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\StorePhoto\Services;
+namespace Tests\Bundles\StorePhoto\Services;
 
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Bundles\Installed\StorePhoto\Services\PhotoRetentionService;
@@ -10,8 +10,8 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\AppSettingsRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

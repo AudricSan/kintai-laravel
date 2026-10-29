@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\StorePhoto;
+namespace Tests\Bundles\StorePhoto;
 
-use kintai\Tests\Support\ContractUsageScanner;
+use Tests\Support\ContractUsageScanner;
 use PHPUnit\Framework\TestCase;
 
 /**

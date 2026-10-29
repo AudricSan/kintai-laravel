@@ -14,7 +14,7 @@ installer).
 
 There is no build or test suite in this repo (no `composer.json`, no
 PHPUnit). The code is not runnable or functionally testable standalone: every
-class under `src/` depends on `kintai\Core\*` (repositories, middleware,
+class under `src/` depends on `App\*` (repositories, middleware,
 `Request`/`Response`, `ViewRenderer`, `ImageCompressionService`, etc.) that
 only exist inside a running Kintai instance. Verifying a behavior change
 means installing the bundle into a real Kintai instance, not running
@@ -70,7 +70,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   `kintai_core` compatibility range, `entry_class`.
 - `src/StorePhotoBundle.php` — the entry point
   (`kintai\Bundles\Installed\StorePhoto\StorePhotoBundle`, extends
-  `kintai\Core\BundleContract\Bundle`). **Unlike most bundles, `register()`
+  `App\Bundles\Bundle`). **Unlike most bundles, `register()`
   does not bind any repository**: `StorePhotoRepositoryInterface` stays bound
   in Kintai Core's own `RepositoryServiceProvider`, because
   `GithubUpdateService` (constructor-injected, unconditional) and the CLI
@@ -78,7 +78,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   directly — they must keep working even if this bundle is disabled or
   uninstalled entirely. `register()` only wires up `Views/` and `routes.php`.
 - `StorePhotoConsolidationService` (merges same-day photo submissions
-  retroactively) also lives in Kintai Core (`kintai\Core\Services`), not in
+  retroactively) also lives in Kintai Core (`App\Services`), not in
   this repo — its only two callers (`GithubUpdateService`'s one-time
   best-effort catch-up on every self-update, and the CLI script above) are
   both Core-resident; `StorePhotoController` never uses it. Don't move it

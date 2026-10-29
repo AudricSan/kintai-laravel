@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\StorePhoto\Controllers\Web;
+namespace Tests\Bundles\StorePhoto\Controllers\Web;
 
 
 use kintai\Bundles\Installed\StorePhoto\Controllers\Web\StorePhotoController;
-use kintai\Core\Exceptions\ForbiddenException;
-use kintai\Core\Repositories\AppSettingsRepositoryInterface;
+use App\Exceptions\ForbiddenException;
+use App\Repositories\AppSettingsRepositoryInterface;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\ImageCompressionService;
-use kintai\Core\Services\NotificationService;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\ImageCompressionService;
+use App\Services\NotificationService;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;

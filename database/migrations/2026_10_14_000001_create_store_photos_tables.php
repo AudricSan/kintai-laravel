@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Tables des envois de photos, créées si absentes (installation neuve). Reprise à l'identique de la migration du Core
  * 2026_06_09_000038 lors de l'extraction (étape 4 du plan du contrat) : sur une instance existante, les tables sont
  * déjà là et ne sont pas touchées ; leurs évolutions futures se font ici.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if (!$this->schema()->hasTable('store_photo_submissions')) {
-            $this->schema()->create('store_photo_submissions', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('store_photo_submissions')) {
+            Schema::create('store_photo_submissions', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->integer('store_id');
                 $table->string('week_label', 10);
                 $table->text('notes')->nullable();
@@ -38,9 +38,9 @@ return new class($this->capsule) extends Migration {
             });
         }
 
-        if (!$this->schema()->hasTable('store_photo_images')) {
-            $this->schema()->create('store_photo_images', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('store_photo_images')) {
+            Schema::create('store_photo_images', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->integer('submission_id');
                 $table->string('filename', 255);
                 $table->string('filepath', 512);

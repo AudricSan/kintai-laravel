@@ -30,7 +30,7 @@ Unlike most other bundles, this one does **not** bind its own repository:
 best-effort catch-up on every self-update) and the CLI maintenance script
 `scripts/consolidate-daily-photo-reports.php` both depend on it directly.
 `StorePhotoConsolidationService` itself lives in Kintai Core
-(`kintai\Core\Services`) for the same reason — its only two callers are
+(`App\Services`) for the same reason — its only two callers are
 Core-resident, this bundle's own controller never uses it. Disabling
 "store-photos" only removes the submission/consultation UI, not the
 underlying data or that consolidation catch-up.
@@ -66,7 +66,7 @@ Depuis une instance Kintai en cours d'exécution, en tant qu'Owner : `/admin/bun
 
 L'installation manuelle n'est pas prise en charge : Kintai ne fait jamais de `git clone`/`pull` pour ses bundles (de nombreux hébergements mutualisés n'exposent pas le CLI `git` à PHP) — il télécharge toujours le zipball d'une release GitHub taguée via `BundleInstallerService`.
 
-Contrairement à la plupart des autres bundles, celui-ci ne lie **pas** son propre repository : `StorePhotoRepositoryInterface` reste lié dans le `RepositoryServiceProvider` du Core de Kintai, car `GithubUpdateService` (un rattrapage ponctuel à chaque auto-mise-à-jour) et le script CLI de maintenance `scripts/consolidate-daily-photo-reports.php` en dépendent directement. `StorePhotoConsolidationService` lui-même vit dans le Core de Kintai (`kintai\Core\Services`) pour la même raison — ses deux seuls appelants sont Core-résidents, le contrôleur de ce bundle ne l'utilise jamais. Désactiver "store-photos" retire uniquement l'UI d'envoi/consultation, pas les données elles-mêmes ni ce rattrapage de consolidation.
+Contrairement à la plupart des autres bundles, celui-ci ne lie **pas** son propre repository : `StorePhotoRepositoryInterface` reste lié dans le `RepositoryServiceProvider` du Core de Kintai, car `GithubUpdateService` (un rattrapage ponctuel à chaque auto-mise-à-jour) et le script CLI de maintenance `scripts/consolidate-daily-photo-reports.php` en dépendent directement. `StorePhotoConsolidationService` lui-même vit dans le Core de Kintai (`App\Services`) pour la même raison — ses deux seuls appelants sont Core-résidents, le contrôleur de ce bundle ne l'utilise jamais. Désactiver "store-photos" retire uniquement l'UI d'envoi/consultation, pas les données elles-mêmes ni ce rattrapage de consolidation.
 
 ### Publier une nouvelle version
 

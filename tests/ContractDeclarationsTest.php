@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\StorePhoto;
+namespace Tests\Bundles\StorePhoto;
 
 use kintai\Bundles\Installed\StorePhoto\Cron\PhotoRetentionJob;
 use kintai\Contract\Extension\NavItem;
