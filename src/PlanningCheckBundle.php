@@ -14,7 +14,7 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningPdfService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
@@ -41,10 +41,6 @@ final class PlanningCheckBundle extends Bundle
         return 'planning-check';
     }
 
-    public function getVersion(): string
-    {
-        return '0.1.0';
-    }
 
     public function getLabel(): string
     {
@@ -66,7 +62,7 @@ final class PlanningCheckBundle extends Bundle
 
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(PlanningCheckRepositoryInterface::class, fn() => new DatabasePlanningCheckRepository());
         $container->singleton(PlanningShiftRows::class, fn(Container $c) => new PlanningShiftRows(

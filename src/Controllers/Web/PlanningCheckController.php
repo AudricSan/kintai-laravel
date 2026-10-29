@@ -17,8 +17,8 @@ use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Services\UserSelection;
@@ -53,8 +53,8 @@ final class PlanningCheckController
     /** GET /admin/planning-check — les magasins dont l'utilisateur peut consulter la validation. */
     public function index(Request $request): Response
     {
-        $user = $request->getAttribute('auth_user');
-        $managedIds = $request->getAttribute('managed_store_ids');
+        $user = $request->attributes->get('auth_user');
+        $managedIds = $request->attributes->get('managed_store_ids');
         $visible = [];
         foreach ($this->stores->findAll() as $store) {
             $id = (int) $store['id'];
@@ -64,10 +64,10 @@ final class PlanningCheckController
         }
         // Un seul magasin : on ouvre directement son historique.
         if (count($visible) === 1) {
-            return Response::redirect($this->base() . '/admin/stores/' . (int) $visible[0]['id'] . '/planning-check');
+            return redirect()->away($this->base() . '/admin/stores/' . (int) $visible[0]['id'] . '/planning-check');
         }
 
-        return Response::html($this->view->render('planning-check::index', [
+        return response($this->view->render('planning-check::index', [
             'title'  => __('planning_check_title'),
             'stores' => $visible,
         ], 'layout.app'));
@@ -77,7 +77,7 @@ final class PlanningCheckController
     public function history(Request $request): Response
     {
         $store = $this->requireStore($request);
-        $user  = $request->getAttribute('auth_user');
+        $user  = $request->attributes->get('auth_user');
         $storeId = (int) $store['id'];
 
         $checks = $this->repo->recentForStore($storeId, 40);
@@ -101,7 +101,7 @@ final class PlanningCheckController
         }
         unset($check);
 
-        return Response::html($this->view->render('planning-check::history', [
+        return response($this->view->render('planning-check::history', [
             'title'        => __('planning_check_history_title'),
             'store'        => $store,
             'checks'       => $checks,
@@ -126,7 +126,7 @@ final class PlanningCheckController
     {
         $store = $this->requireStore($request);
         $date = $this->requireTargetDate($request, $store);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
         $result = $this->service->submit((int) $store['id'], $date, (int) $user['id'], $request->post('confirm_empty', '') === '1', new \DateTimeImmutable('now'));
         if ($result['ok']) {
@@ -160,11 +160,11 @@ final class PlanningCheckController
     {
         $store = $this->requireStore($request);
         $date = $this->requireTargetDate($request, $store);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
         $this->service->startEditing((int) $store['id'], $date, (int) $user['id'], new \DateTimeImmutable('now'));
 
-        return Response::redirect($this->base() . '/admin/shifts/timeline?store_id=' . (int) $store['id'] . '&start=' . $date . '&view=3days');
+        return redirect()->away($this->base() . '/admin/shifts/timeline?store_id=' . (int) $store['id'] . '&start=' . $date . '&view=3days');
     }
 
     /** POST /admin/stores/{id}/planning-check/resume — « Revenir à la validation » depuis la barre de correction. */
@@ -174,7 +174,7 @@ final class PlanningCheckController
         $date = $this->requireTargetDate($request, $store);
         $this->service->resumeValidation((int) $store['id'], $date);
 
-        return Response::redirect(back_url($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check'));
+        return redirect()->away(back_url($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check'));
     }
 
     // ── Valider / refuser / renvoyer ────────────────────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ final class PlanningCheckController
     public function approve(Request $request): Response
     {
         [$store, $check] = $this->requireCheck($request);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
         $result = $this->service->approve((int) $check['id'], (int) $user['id'], new \DateTimeImmutable('now'));
         if ($result['ok']) {
@@ -198,7 +198,7 @@ final class PlanningCheckController
     public function reject(Request $request): Response
     {
         [$store, $check] = $this->requireCheck($request);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
         $result = $this->service->reject((int) $check['id'], (int) $user['id'], (string) $request->post('reason', ''), new \DateTimeImmutable('now'));
         if ($result['ok']) {
@@ -211,7 +211,7 @@ final class PlanningCheckController
     public function resend(Request $request): Response
     {
         [$store, $check] = $this->requireCheck($request);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
         $result = $this->service->resend((int) $check['id'], (int) $user['id'], new \DateTimeImmutable('now'));
         if ($result['ok']) {
@@ -225,7 +225,7 @@ final class PlanningCheckController
     {
         $store = $this->requireStore($request);
         $date = $this->requireTargetDate($request, $store);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
 
         $result = $this->service->sendNow((int) $store['id'], $date, (int) $user['id'], $request->post('confirm_empty', '') === '1', new \DateTimeImmutable('now'));
         if ($result['ok']) {
@@ -246,7 +246,7 @@ final class PlanningCheckController
         if ($bytes === null) {
             throw new NotFoundException(__('planning_check_err_pdf_failed'));
         }
-        return Response::pdf($bytes, 'planning_' . str_replace('-', '', (string) $check['target_date']) . '_store' . (int) $store['id'] . '.pdf');
+        return response()->pdf($bytes, 'planning_' . str_replace('-', '', (string) $check['target_date']) . '_store' . (int) $store['id'] . '.pdf');
     }
 
     // ── Réglages ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ final class PlanningCheckController
     {
         $store = $this->requireStore($request);
 
-        return Response::html($this->view->render('planning-check::settings', [
+        return response($this->view->render('planning-check::settings', [
             'title'      => __('planning_check_settings_title'),
             'store'      => $store,
             'settings'   => $this->repo->settings((int) $store['id']),
@@ -270,7 +270,7 @@ final class PlanningCheckController
     {
         $store = $this->requireStore($request);
         $before = $this->repo->settings((int) $store['id']);
-        [$settings, $errors] = self::parseSettings($request->allPost(), $before);
+        [$settings, $errors] = self::parseSettings($request->request->all(), $before);
 
         // Chaque employé coché doit être un membre actif du magasin.
         if ($this->selection->validate((int) $store['id'], $settings['mail_recipient_ids'])['error'] === 'unknown') {
@@ -278,7 +278,7 @@ final class PlanningCheckController
         }
 
         if ($errors !== []) {
-            return Response::html($this->view->render('planning-check::settings', [
+            return response($this->view->render('planning-check::settings', [
                 'title'      => __('planning_check_settings_title'),
                 'store'      => $store,
                 'settings'   => $settings,
@@ -290,18 +290,18 @@ final class PlanningCheckController
         $this->repo->saveSettings((int) $store['id'], $settings);
         $this->auditLogger->logUpdate($request, 'planning_check.settings_saved', 'planning_check_settings', (int) $store['id'], $before, $settings, ['store_id' => (int) $store['id']], (int) $store['id']);
 
-        return Response::redirect($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings?success=saved');
+        return redirect()->away($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings?success=saved');
     }
 
     /** POST /admin/stores/{id}/planning-check/test — envoie un PDF d'essai (planning de demain tel qu'il est) à l'utilisateur. */
     public function sendTest(Request $request): Response
     {
         $store = $this->requireStore($request);
-        $user = $request->getAttribute('auth_user');
+        $user = $request->attributes->get('auth_user');
         $email = (string) ($user['email'] ?? '');
         $url = $this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings';
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            return Response::redirect($url . '?error=test_no_email');
+            return redirect()->away($url . '?error=test_no_email');
         }
 
         $now = new \DateTimeImmutable('now');
@@ -312,7 +312,7 @@ final class PlanningCheckController
         $bytes = $this->pdf->generateBytes($store, $check, $day, ['validated_by' => '', 'generated_at' => $now->format('H:i')]);
         $result = $this->mail->send($store, $check, ['mail_recipients' => [$email]], $bytes, []);
 
-        return Response::redirect($url . ($result['ok'] ? '?success=test_sent' : '?error=test_failed'));
+        return redirect()->away($url . ($result['ok'] ? '?success=test_sent' : '?error=test_failed'));
     }
 
     /**
@@ -385,12 +385,12 @@ final class PlanningCheckController
     /** @return array<string, mixed> */
     private function requireStore(Request $request): array
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store = $this->stores->findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
-        $managedIds = $request->getAttribute('managed_store_ids');
+        $managedIds = $request->attributes->get('managed_store_ids');
         if ($managedIds !== null && !in_array($storeId, $managedIds, true)) {
             throw new ForbiddenException(__('error_not_store_manager'));
         }
@@ -401,7 +401,7 @@ final class PlanningCheckController
     private function requireCheck(Request $request): array
     {
         $store = $this->requireStore($request);
-        $check = $this->repo->find((int) $request->param('cid'));
+        $check = $this->repo->find((int) $request->route('cid'));
         if ($check === null || $check['store_id'] !== (int) $store['id']) {
             throw new NotFoundException(__('planning_check_err_not_found'));
         }
@@ -429,6 +429,6 @@ final class PlanningCheckController
         $target = back_url($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check');
         $path = strtok($target, '?');
         $query = $result['ok'] ? 'pc=' . $success : 'pc_error=' . urlencode((string) $result['error']);
-        return Response::redirect($path . '?' . $query);
+        return redirect()->away($path . '?' . $query);
     }
 }

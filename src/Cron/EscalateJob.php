@@ -6,8 +6,8 @@ namespace kintai\Bundles\Installed\PlanningCheck\Cron;
 
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;
 use kintai\Contract\Cron\CronJob;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**
@@ -36,6 +36,6 @@ final class EscalateJob implements CronJob
             $this->auditLogger->log($request, 'cron.planning_check_escalated', 'system', null, ['checks' => $escalated]);
         }
 
-        return Response::json(['ok' => true, 'escalated' => count($escalated)]);
+        return response()->json(['ok' => true, 'escalated' => count($escalated)]);
     }
 }
