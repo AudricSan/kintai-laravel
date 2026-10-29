@@ -34,14 +34,5 @@ final class DatabaseServiceProvider extends ServiceProvider
             return;
         }
 
-        [, $eloquentConfig] = DatabaseConfig::resolve(dirname(dirname(__DIR__)) . '/config');
-
-        $capsule = new Capsule();
-        $capsule->addConnection($eloquentConfig);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        // created_at dans le fuseau de l'instance plutôt que l'UTC de CURRENT_TIMESTAMP (voir InstanceTimestamps).
-        \Illuminate\Database\Eloquent\Model::setEventDispatcher(new InstanceTimestamps());
-        $this->app->instance(Capsule::class, $capsule);
     }
 }

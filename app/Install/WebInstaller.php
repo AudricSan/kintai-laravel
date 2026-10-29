@@ -75,7 +75,7 @@ final class WebInstaller
 
             $in->driver === 'mysql' ? $this->prepareMysql($in) : $this->prepareSqlite();
 
-            $this->writeFile('config/database.local.php', '<?php return ' . var_export($this->databaseConfig($in), true) . ';' . PHP_EOL);
+            $this->writeDatabaseEnv($this->databaseEnv($in));
 
             $app = require $this->basePath . '/bootstrap/boot.php';
             $this->migrate($app);
@@ -175,10 +175,9 @@ final class WebInstaller
 
             if ($database['driver'] === 'sqlite') {
                 $this->importSqlite($this->sqliteSource($source, $database));
-                unset($database['connections']['sqlite']['path']);
             }
             $this->copyTree($source . '/storage', $this->basePath . '/storage', '');
-            $this->writeFile('config/database.local.php', '<?php return ' . var_export($database, true) . ';' . PHP_EOL);
+            $this->writeDatabaseEnv($this->importedDatabaseEnv($database));
 
             $app = require $this->basePath . '/bootstrap/boot.php';
             $this->adoptLegacyMigrationLog($app);
@@ -468,23 +467,59 @@ final class WebInstaller
 
     // ─── Outils ───────────────────────────────────────────────────────────────
 
-    /** @return array<string, mixed> contenu de config/database.local.php */
-    private function databaseConfig(InstallInput $in): array
+    /** @return array<string, string> variables DB_* du fichier .env */
+    private function databaseEnv(InstallInput $in): array
     {
-        $config = ['driver' => $in->driver, 'connections' => []];
+        $env = ['DB_CONNECTION' => $in->driver];
         if ($in->driver === 'mysql') {
-            $config['connections']['mysql'] = [
-                'host'      => $in->mysqlHost,
-                'port'      => $in->mysqlPort,
-                'database'  => $in->mysqlDatabase,
-                'username'  => $in->mysqlUsername,
-                'password'  => $in->mysqlPassword,
-                'charset'   => 'utf8mb4',
-                'collation' => 'utf8mb4_unicode_ci',
-                'prefix'    => '',
+            $env += [
+                'DB_HOST'     => $in->mysqlHost,
+                'DB_PORT'     => (string) $in->mysqlPort,
+                'DB_DATABASE' => $in->mysqlDatabase,
+                'DB_USERNAME' => $in->mysqlUsername,
+                'DB_PASSWORD' => $in->mysqlPassword,
             ];
         }
-        return $config;
+        return $env;
+    }
+
+    /**
+     * Variables DB_* d'une instance importée, d'après son ancien config/database.local.php.
+     *
+     * @param array{driver:string, connections:array<string, mixed>} $database
+     * @return array<string, string>
+     */
+    private function importedDatabaseEnv(array $database): array
+    {
+        $env = ['DB_CONNECTION' => $database['driver']];
+        if ($database['driver'] === 'mysql') {
+            $mysql = $database['connections']['mysql'] ?? [];
+            $env += [
+                'DB_HOST'     => (string) ($mysql['host'] ?? '127.0.0.1'),
+                'DB_PORT'     => (string) ($mysql['port'] ?? 3306),
+                'DB_DATABASE' => (string) ($mysql['database'] ?? 'kintai'),
+                'DB_USERNAME' => (string) ($mysql['username'] ?? 'root'),
+                'DB_PASSWORD' => (string) ($mysql['password'] ?? ''),
+            ];
+            if ((string) ($mysql['prefix'] ?? '') !== '') {
+                $env['DB_PREFIX'] = (string) $mysql['prefix'];
+            }
+        }
+        return $env;
+    }
+
+    /** Écrit les variables DB_* dans le fichier d'environnement (restauré si l'installation échoue). */
+    private function writeDatabaseEnv(array $variables): void
+    {
+        $env = new EnvFileWriter($this->basePath);
+        $this->rememberFile($env->path());
+        try {
+            foreach ($variables as $key => $value) {
+                $env->set($key, $value);
+            }
+        } catch (\RuntimeException | \InvalidArgumentException $e) {
+            throw new InstallFailure('install_error_not_writable', ['name' => basename($env->path())], $e);
+        }
     }
 
     /** Connexion au serveur MySQL, sans base sélectionnée. */

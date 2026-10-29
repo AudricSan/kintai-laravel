@@ -189,28 +189,19 @@ try {
         }
     }
 
-    // ─── Step 3 : Write config/database.local.php ────────────────────────────
+    // ─── Step 3 : Variables DB_* du fichier .env ─────────────────────────────
 
-    $localCfg = ['driver' => $dbDriver, 'connections' => []];
-
+    $dotenv = new EnvFileWriter(BASE_PATH);
+    $dotenv->set('DB_CONNECTION', $dbDriver);
     if ($dbDriver === 'mysql') {
-        $localCfg['connections']['mysql'] = [
-            'host'      => $dbHost,
-            'port'      => $dbPort,
-            'database'  => $dbName,
-            'username'  => $dbUser,
-            'password'  => $dbPass,
-            'charset'   => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix'    => $dbPrefix,
-        ];
+        $dotenv->set('DB_HOST', $dbHost);
+        $dotenv->set('DB_PORT', (string) $dbPort);
+        $dotenv->set('DB_DATABASE', $dbName);
+        $dotenv->set('DB_USERNAME', $dbUser);
+        $dotenv->set('DB_PASSWORD', $dbPass);
+        $dotenv->set('DB_PREFIX', $dbPrefix);
     }
-
-    file_put_contents(
-        BASE_PATH . '/config/database.local.php',
-        '<?php return ' . var_export($localCfg, true) . ';' . PHP_EOL
-    );
-    echo "[Kintai] config/database.local.php écrit.\n";
+    echo "[Kintai] Variables DB_* écrites dans .env.\n";
 
     // ─── Step 4 : Boot framework, run migrations ────────────────────────────
 

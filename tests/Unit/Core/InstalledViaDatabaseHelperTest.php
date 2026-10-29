@@ -43,12 +43,14 @@ final class InstalledViaDatabaseHelperTest extends TestCase
         rmdir($dir);
     }
 
-    private function writeConfig(array $config): void
+    /** @param array<string, string> $env variables DB_* du fichier .env */
+    private function writeConfig(array $env): void
     {
-        file_put_contents(
-            $this->tmpDir . '/config/database.local.php',
-            '<?php return ' . var_export($config, true) . ';' . PHP_EOL
-        );
+        $lines = '';
+        foreach ($env as $key => $value) {
+            $lines .= $key . '=' . $value . "\n";
+        }
+        file_put_contents($this->tmpDir . '/.env', $lines);
     }
 
     public function testReturnsFalseWhenConfigFileMissing(): void
@@ -58,13 +60,13 @@ final class InstalledViaDatabaseHelperTest extends TestCase
 
     public function testReturnsFalseWhenSqliteFileMissing(): void
     {
-        $this->writeConfig(['driver' => 'sqlite', 'connections' => []]);
+        $this->writeConfig(['DB_CONNECTION' => 'sqlite']);
         $this->assertFalse(kintai_installed_via_database($this->tmpDir));
     }
 
     public function testReturnsFalseWhenUsersTableEmpty(): void
     {
-        $this->writeConfig(['driver' => 'sqlite', 'connections' => []]);
+        $this->writeConfig(['DB_CONNECTION' => 'sqlite']);
         $sqlitePath = $this->tmpDir . '/storage/app/database.sqlite';
         touch($sqlitePath);
         $pdo = new \PDO('sqlite:' . $sqlitePath);
@@ -75,7 +77,7 @@ final class InstalledViaDatabaseHelperTest extends TestCase
 
     public function testReturnsTrueWhenUsersTableHasARow(): void
     {
-        $this->writeConfig(['driver' => 'sqlite', 'connections' => []]);
+        $this->writeConfig(['DB_CONNECTION' => 'sqlite']);
         $sqlitePath = $this->tmpDir . '/storage/app/database.sqlite';
         touch($sqlitePath);
         $pdo = new \PDO('sqlite:' . $sqlitePath);
@@ -87,13 +89,13 @@ final class InstalledViaDatabaseHelperTest extends TestCase
 
     public function testReturnsFalseForUnknownDriver(): void
     {
-        $this->writeConfig(['driver' => 'postgres', 'connections' => []]);
+        $this->writeConfig(['DB_CONNECTION' => 'postgres']);
         $this->assertFalse(kintai_installed_via_database($this->tmpDir));
     }
 
-    public function testReturnsFalseForMysqlWithoutConnectionConfig(): void
+    public function testReturnsFalseWhenMysqlIsUnreachable(): void
     {
-        $this->writeConfig(['driver' => 'mysql', 'connections' => []]);
+        $this->writeConfig(['DB_CONNECTION' => 'mysql', 'DB_HOST' => '127.0.0.1', 'DB_PORT' => '1', 'DB_DATABASE' => 'kintai']);
         $this->assertFalse(kintai_installed_via_database($this->tmpDir));
     }
 }

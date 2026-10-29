@@ -97,14 +97,10 @@ final class WebInstallerTest extends TestCase
 
     public function testFailureAfterCreatingTheDatabaseRemovesEverythingItWrote(): void
     {
-        // config/ remplacé par un fichier : l'écriture de config/database.local.php échoue, après la création de la base.
-        rmdir($this->base . '/config');
-        file_put_contents($this->base . '/config', '');
-
+        // Pas de bootstrap/boot.php dans ce dossier d'essai : l'installation échoue après la création de la base.
         $failure = $this->install();
 
-        $this->assertSame('install_error_not_writable', $failure->messageKey);
-        $this->assertSame(['name' => 'config/database.local.php'], $failure->replace);
+        $this->assertSame('install_error_generic', $failure->messageKey);
         $this->assertFileDoesNotExist($this->base . '/' . WebInstaller::SQLITE_PATH);
         $this->assertFileDoesNotExist($this->base . '/.env');
         $this->assertFileDoesNotExist($this->base . '/storage/installed.lock');
@@ -114,8 +110,6 @@ final class WebInstallerTest extends TestCase
     {
         $sqlite = $this->base . '/' . WebInstaller::SQLITE_PATH;
         touch($sqlite);
-        rmdir($this->base . '/config');
-        file_put_contents($this->base . '/config', '');
 
         $this->install();
 
@@ -125,14 +119,12 @@ final class WebInstallerTest extends TestCase
 
     public function testFailureIsLoggedWithTheTechnicalDetail(): void
     {
-        rmdir($this->base . '/config');
-        file_put_contents($this->base . '/config', '');
 
         $this->install();
 
         $log = (string) file_get_contents($this->base . '/storage/logs/error.log');
         $this->assertStringContainsString('Installation —', $log);
-        $this->assertStringContainsString('install_error_not_writable', $log);
+        $this->assertStringContainsString('bootstrap/boot.php', $log);
     }
 
     // ─── Importation ──────────────────────────────────────────────────────────
@@ -227,16 +219,14 @@ final class WebInstallerTest extends TestCase
         $source = $this->legacySource();
         $sourceDb = (string) file_get_contents($source . '/storage/app/database.sqlite');
         file_put_contents($this->base . '/.env', "APP_LOCALE=fr\n");
-        // config/ remplacé par un fichier : l'écriture de config/database.local.php échoue, après la copie de la base,
-        // de storage/ et du .env.
-        rmdir($this->base . '/config');
-        file_put_contents($this->base . '/config', '');
+        // Pas de bootstrap/boot.php dans ce dossier d'essai : l'importation échoue après la copie de la base, de storage/
+        // et du .env.
 
         try {
             (new WebInstaller($this->base))->import($source, 'en');
             $this->fail('L\'importation aurait dû échouer');
         } catch (InstallFailure $e) {
-            $this->assertSame('install_error_not_writable', $e->messageKey);
+            $this->assertSame('install_error_generic', $e->messageKey);
         }
 
         $this->assertFileDoesNotExist($this->base . '/' . WebInstaller::SQLITE_PATH);

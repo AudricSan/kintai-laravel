@@ -18,34 +18,32 @@ if (!function_exists('kintai_installed_via_database')) {
      */
     function kintai_installed_via_database(string $basePath): bool
     {
-        $dbConfigFile = $basePath . '/config/database.local.php';
-        if (!file_exists($dbConfigFile)) {
-            return false;
+        $env = [];
+        foreach (['.env.local', '.env.ovh', '.env'] as $file) {
+            if (is_file($basePath . '/' . $file)) {
+                $env = \Dotenv\Dotenv::parse((string) file_get_contents($basePath . '/' . $file));
+                break;
+            }
         }
 
         try {
-            $config = require $dbConfigFile;
-            $driver = $config['driver'] ?? null;
+            $driver = $env['DB_CONNECTION'] ?? 'sqlite';
 
             if ($driver === 'sqlite') {
-                $sqlitePath = $basePath . '/storage/app/database.sqlite';
+                $sqlitePath = $env['DB_DATABASE'] ?? $basePath . '/storage/app/database.sqlite';
                 if (!file_exists($sqlitePath)) {
                     return false;
                 }
                 $pdo = new PDO('sqlite:' . $sqlitePath);
             } elseif ($driver === 'mysql') {
-                $cfg = $config['connections']['mysql'] ?? null;
-                if ($cfg === null) {
-                    return false;
-                }
                 $dsn = sprintf(
                     'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                    $cfg['host'] ?? '127.0.0.1',
-                    (int) ($cfg['port'] ?? 3306),
-                    $cfg['database'] ?? '',
-                    $cfg['charset'] ?? 'utf8mb4'
+                    $env['DB_HOST'] ?? '127.0.0.1',
+                    (int) ($env['DB_PORT'] ?? 3306),
+                    $env['DB_DATABASE'] ?? 'kintai',
+                    $env['DB_CHARSET'] ?? 'utf8mb4'
                 );
-                $pdo = new PDO($dsn, $cfg['username'] ?? '', $cfg['password'] ?? '');
+                $pdo = new PDO($dsn, $env['DB_USERNAME'] ?? 'root', $env['DB_PASSWORD'] ?? '');
             } else {
                 return false;
             }

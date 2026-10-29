@@ -24,7 +24,6 @@ final class GithubUpdateService
     private const EXCLUDED_PREFIXES = [
         'storage/',
         '.git/',
-        'config/database.local.php',
         '.env',
     ];
 
