@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
 use Illuminate\Database\Schema\Blueprint;
-use kintai\Contract\Database\Migration;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Migrations\Migration;
 
 /**
  * Tables du bundle, créées si absentes avec le schéma qu'utilise son code.
@@ -18,11 +17,12 @@ use kintai\Contract\Database\Migration;
  * Pas de clés étrangères : SQLite n'applique pas les suppressions en cascade ici, et l'historique doit survivre à la
  * suppression d'un compte (les identifiants d'utilisateur ne sont que des références).
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if (!$this->schema()->hasTable('planning_check_settings')) {
-            $this->schema()->create('planning_check_settings', function (Blueprint $table) {
+        if (!Schema::hasTable('planning_check_settings')) {
+            Schema::create('planning_check_settings', function (Blueprint $table) {
                 $table->unsignedInteger('store_id')->primary();
                 $table->boolean('enabled')->default(false);
                 $table->string('deadline_time', 5)->default('12:00');
@@ -34,9 +34,9 @@ return new class($this->capsule) extends Migration {
             });
         }
 
-        if (!$this->schema()->hasTable('planning_checks')) {
-            $this->schema()->create('planning_checks', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('planning_checks')) {
+            Schema::create('planning_checks', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->unsignedInteger('store_id');
                 $table->string('target_date', 10);
                 $table->string('status', 20)->default('pending');
@@ -62,9 +62,9 @@ return new class($this->capsule) extends Migration {
             });
         }
 
-        if (!$this->schema()->hasTable('planning_check_sends')) {
-            $this->schema()->create('planning_check_sends', function (Blueprint $table) {
-                $table->increments('id');
+        if (!Schema::hasTable('planning_check_sends')) {
+            Schema::create('planning_check_sends', function (Blueprint $table) {
+                $table->integer('id', true);
                 $table->unsignedInteger('check_id')->index();
                 $table->unsignedInteger('sent_by')->nullable();
                 $table->string('status', 10);

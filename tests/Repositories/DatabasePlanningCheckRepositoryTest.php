@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\PlanningCheck\Repositories;
+namespace Tests\Bundles\PlanningCheck\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\PlanningCheck\Repositories\DatabasePlanningCheckRepository;

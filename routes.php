@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use kintai\Bundles\Installed\PlanningCheck\Controllers\Web\PlanningCheckController;
-use kintai\Core\Middleware\AuthMiddleware;
-use kintai\Core\Middleware\PermissionMiddleware;
+use App\Http\Middleware\AuthMiddleware;
+use App\Http\Middleware\PermissionMiddleware;
 
 
 // =============================================================================

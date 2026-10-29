@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\PlanningCheck;
+namespace Tests\Bundles\PlanningCheck;
 
 use kintai\Bundles\Installed\PlanningCheck\PlanningCheckBundle;
-use kintai\Core\BundleContract\BundleManifest;
-use kintai\Tests\Support\ContractUsageScanner;
-use kintai\Tests\Support\TranslationContractChecker;
+use App\Bundles\BundleManifest;
+use Tests\Support\ContractUsageScanner;
+use Tests\Support\TranslationContractChecker;
 use PHPUnit\Framework\TestCase;
 
 /**

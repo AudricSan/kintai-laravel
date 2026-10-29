@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\PlanningCheck\Services;
+namespace Tests\Bundles\PlanningCheck\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\PlanningCheck\Repositories\DatabasePlanningCheckRepository;
@@ -12,21 +12,21 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningMailService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningPdfService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Mail\MailTransportInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\TranslationService;
-use kintai\UI\ViewRenderer;
+use App\Auth\PermissionService;
+use App\Mail\MailerService;
+use App\Mail\MailTransportInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\NotificationService;
+use App\Services\TranslationService;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
@@ -145,7 +145,7 @@ final class PlanningCheckServiceTest extends TestCase
             new MailerService(['driver' => 'native', 'from' => ['address' => 'noreply@kintai.test']], $transport),
             $translations,
             $pdf,
-            new \kintai\Core\Services\UserSelection($members, $users, $permissions),
+            new \App\Services\UserSelection($members, $users, $permissions),
         );
         $rows = new PlanningShiftRows($shiftsRepo, $types, $users);
         $this->service = new PlanningCheckService($this->repo, $stores, $members, $users, $permissions, $notifications, $rows, $pdf, $mail);

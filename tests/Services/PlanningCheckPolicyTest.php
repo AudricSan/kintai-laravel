@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\PlanningCheck\Services;
+namespace Tests\Bundles\PlanningCheck\Services;
 
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckPolicy;
 use PHPUnit\Framework\TestCase;

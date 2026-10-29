@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\PlanningCheck\Controllers;
+namespace Tests\Bundles\PlanningCheck\Controllers;
 
 use kintai\Bundles\Installed\PlanningCheck\Controllers\Web\PlanningCheckController;
 use PHPUnit\Framework\TestCase;

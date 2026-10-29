@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\PlanningCheck\Views;
+namespace Tests\Bundles\PlanningCheck\Views;
 
-use kintai\Core\Container;
-use kintai\Core\Router;
-use kintai\UI\ViewRenderer;
+use App\Container;
+use App\Router;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
