@@ -10,7 +10,7 @@ use kintai\Core\Exceptions\ForbiddenException;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\UI\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -77,12 +77,12 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn([]);
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findByUser')->with(9)->willReturn([]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller()->timeoff($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     /** Ouvrir la liste marque comme lues les notifications des demandes affichées. */
@@ -99,10 +99,10 @@ final class EmployeeTimeoffControllerTest extends TestCase
         ]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(9, 'timeoff', [7, 4]);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->assertSame(200, $this->controller()->timeoff($req)->status());
+        $this->assertSame(200, $this->controller()->timeoff($req)->getStatusCode());
     }
 
     public function testTimeoffRedirectsWhenFeatureDisabledForStore(): void
@@ -112,12 +112,12 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(9)->willReturn([['store_id' => 1, 'user_id' => 9]]);
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $response = $this->controller()->timeoff($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testStoreTimeoffCreatesPendingRequest(): void
@@ -128,8 +128,8 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn([]);
 
         $_POST = ['type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-02', 'reason' => 'Grippe'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $captured = null;
         $this->timeoffRequests->method('save')->willReturnCallback(function (array $d) use (&$captured) {
@@ -139,7 +139,7 @@ final class EmployeeTimeoffControllerTest extends TestCase
 
         $response = $this->controller()->storeTimeoff($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
         $this->assertSame('pending', $captured['status']);
         $this->assertSame(9, $captured['user_id']);
@@ -157,8 +157,8 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->timeoffRequests->expects($this->never())->method('save');
 
         $_POST = ['type' => 'sick', 'start_date' => 'pas-une-date', 'end_date' => ''];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoff($req);
@@ -174,8 +174,8 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->timeoffRequests->expects($this->never())->method('save');
 
         $_POST = ['type' => 'sick', 'start_date' => '2026-08-05', 'end_date' => '2026-08-01'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoff($req);
@@ -191,14 +191,14 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->stores->method('getFeatures')->willReturn([]);
 
         $_POST = ['type' => 'sick', 'start_date' => '2026-08-01', 'store_id' => '4'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $this->timeoffRequests->expects($this->once())->method('save')->with($this->callback(
             fn(array $d) => $d['store_id'] === 4 && $d['end_date'] === '2026-08-01'
         ))->willReturn(['id' => 7]);
 
-        $this->assertSame(302, $this->controller()->storeTimeoff($req)->status());
+        $this->assertSame(302, $this->controller()->storeTimeoff($req)->getStatusCode());
     }
 
     public function testStoreTimeoffRefusesAStoreTheEmployeeDoesNotBelongTo(): void
@@ -210,8 +210,8 @@ final class EmployeeTimeoffControllerTest extends TestCase
         $this->timeoffRequests->expects($this->never())->method('save');
 
         $_POST = ['type' => 'sick', 'start_date' => '2026-08-01', 'store_id' => '99'];
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
 
         $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoff($req);
@@ -220,8 +220,8 @@ final class EmployeeTimeoffControllerTest extends TestCase
     public function testCancelTimeoffOnlyAllowsOwnerOfPendingRequest(): void
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '5']);
 
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn([
@@ -231,14 +231,14 @@ final class EmployeeTimeoffControllerTest extends TestCase
 
         $response = $this->controller()->cancelTimeoff($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testCancelTimeoffForbiddenForAnotherUsersRequest(): void
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '5']);
 
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn([

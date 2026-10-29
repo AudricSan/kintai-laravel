@@ -11,8 +11,8 @@ use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
@@ -40,7 +40,7 @@ final class EmployeeTimeoffController
         if (($resp = $this->assertFeature($request, 'timeoff')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $requests = $this->timeoffRequests->findByUser($userId);
@@ -59,7 +59,7 @@ final class EmployeeTimeoffController
             $this->notifs->markReadFor($userId, 'timeoff', array_map(fn($r) => (int) ($r['id'] ?? 0), $requests));
         }
 
-        return Response::html($this->view->render('timeoff::employee-timeoff', [
+        return response($this->view->render('timeoff::employee-timeoff', [
             'title'    => 'Mes congés',
             'highlight_id' => (int) $request->query('highlight', 0),
             'requests' => $requests,
@@ -72,7 +72,7 @@ final class EmployeeTimeoffController
         if (($resp = $this->assertFeature($request, 'timeoff')) !== null) {
             return $resp;
         }
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
         $storeId = $this->resolveStoreId($request->post('store_id'), $userId);
@@ -106,7 +106,7 @@ final class EmployeeTimeoffController
             $this->notifyManagers($storeId, (int) ($savedTimeoff['id'] ?? 0), $userId, $type, $startDate, $endDate);
         }
 
-        return Response::redirect($this->base() . '/employee/timeoff?success=created');
+        return redirect()->away($this->base() . '/employee/timeoff?success=created');
     }
 
     /** @return int[] Magasins dont l'employé est membre (le premier sert de défaut). */
@@ -196,20 +196,20 @@ final class EmployeeTimeoffController
 
     public function cancelTimeoff(Request $request): Response
     {
-        $user   = $request->getAttribute('auth_user');
+        $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $req = $this->timeoffRequests->findById((int) $request->param('id'));
+        $req = $this->timeoffRequests->findById((int) $request->route('id'));
         if ($req === null || (int) $req['user_id'] !== $userId) {
             throw new ForbiddenException(__('timeoff_error_request_not_found'));
         }
         if (($req['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/employee/timeoff?error=not_pending');
+            return redirect()->away($this->base() . '/employee/timeoff?error=not_pending');
         }
 
         $cancelledReq = array_merge($req, ['status' => 'cancelled']);
         $this->timeoffRequests->save($cancelledReq);
         $this->auditLogger->logUpdate($request, 'timeoff.cancelled', 'timeoff_request', (int) $req['id'], $req, $cancelledReq, []);
-        return Response::redirect($this->base() . '/employee/timeoff?success=cancelled');
+        return redirect()->away($this->base() . '/employee/timeoff?success=cancelled');
     }
 }

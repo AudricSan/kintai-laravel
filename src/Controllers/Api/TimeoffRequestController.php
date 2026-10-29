@@ -10,8 +10,8 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**
@@ -68,14 +68,14 @@ final class TimeoffRequestController
             fn(array $i): bool => in_array($i['id'] ?? null, $scopedIds, true) || (int) ($i['user_id'] ?? 0) === $authId,
         ));
 
-        return Response::json(Paginator::paginate($items, $page, $limit));
+        return response()->json(Paginator::paginate($items, $page, $limit));
     }
 
     /** GET /api/v1/timeoff-requests/{id} */
     public function show(Request $request): Response
     {
         $item = $this->requireTimeoff($request, 'timeoff.view');
-        return Response::json($item);
+        return response()->json($item);
     }
 
     /** POST /api/v1/timeoff-requests */
@@ -83,7 +83,7 @@ final class TimeoffRequestController
     {
         $authUser = $this->authUser($request);
         $authId   = (int) ($authUser['id'] ?? 0);
-        $body     = $request->json() ?? [];
+        $body     = $request->json()->all() ?? [];
 
         $storeId = (int) ($body['store_id'] ?? 0);
         if ($storeId <= 0) {
@@ -105,7 +105,7 @@ final class TimeoffRequestController
         ];
         $saved = $this->timeoffRequests->save($data);
         $this->auditLogger->log($request, 'timeoff_request.created', 'timeoff_request', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeId);
-        return Response::json($saved, 201);
+        return response()->json($saved, 201);
     }
 
     /** PUT /api/v1/timeoff-requests/{id} */
@@ -113,7 +113,7 @@ final class TimeoffRequestController
     {
         $old = $this->requireTimeoff($request, 'timeoff.update');
         $id  = (int) $old['id'];
-        $data = array_intersect_key($request->json() ?? [], array_flip(self::UPDATE_FIELDS)) + ['id' => $id];
+        $data = array_intersect_key($request->json()->all() ?? [], array_flip(self::UPDATE_FIELDS)) + ['id' => $id];
         // Un changement de statut est un traitement : on enregistre qui l'a fait et quand.
         if (isset($data['status'])) {
             $data['processed_by'] = (int) ($this->authUser($request)['id'] ?? 0);
@@ -122,7 +122,7 @@ final class TimeoffRequestController
         $data['updated_at'] = date('Y-m-d H:i:s');
         $saved = $this->timeoffRequests->save($data);
         $this->auditLogger->logUpdate($request, 'timeoff_request.updated', 'timeoff_request', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: (int) ($old['store_id'] ?? 0) ?: null);
-        return Response::json($saved);
+        return response()->json($saved);
     }
 
     /** DELETE /api/v1/timeoff-requests/{id} */
@@ -132,12 +132,12 @@ final class TimeoffRequestController
         $id   = (int) $item['id'];
         $this->timeoffRequests->delete($id);
         $this->auditLogger->log($request, 'timeoff_request.deleted', 'timeoff_request', resourceId: $id);
-        return Response::empty();
+        return response()->noContent();
     }
 
     private function authUser(Request $request): array
     {
-        return $request->getAttribute('auth_user') ?? [];
+        return $request->attributes->get('auth_user') ?? [];
     }
 
     /** Charge la demande par id et vérifie $permissionKey sur son store réel. */
@@ -146,7 +146,7 @@ final class TimeoffRequestController
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
             fn(int $id) => $this->timeoffRequests->findById($id),
-            (int) $request->param('id'),
+            (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: 'Demande de congé introuvable.',
         );

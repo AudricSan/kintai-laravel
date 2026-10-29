@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\TimeOff\Repositories\DatabaseTimeoffRequestReposito
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Services\PendingTimeoffWidget;
 use kintai\Contract\Bundle;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Extension\DashboardStat;
 use kintai\Contract\Extension\DashboardWidget;
 use kintai\Contract\Extension\NavItem;
@@ -30,10 +30,6 @@ final class TimeOffBundle extends Bundle
         return 'timeoff';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -47,7 +43,7 @@ final class TimeOffBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->container()->singleton(TimeoffRequestRepositoryInterface::class, fn() => new DatabaseTimeoffRequestRepository());
+        $this->app->singleton(TimeoffRequestRepositoryInterface::class, fn() => new DatabaseTimeoffRequestRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'timeoff');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

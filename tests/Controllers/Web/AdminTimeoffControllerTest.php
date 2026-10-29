@@ -11,7 +11,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Core\Services\NotificationService;
 use kintai\UI\ViewRenderer;
@@ -75,12 +75,12 @@ final class AdminTimeoffControllerTest extends TestCase
             ['id' => 1, 'last_name' => 'Dupont', 'first_name' => 'Jean'],
         ]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->createTimeoff($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testStoreTimeoffForEmployeeCreatesApprovedRequestVisibleOnCalendar(): void
@@ -95,9 +95,9 @@ final class AdminTimeoffControllerTest extends TestCase
             'end_date'   => '2026-08-03',
             'reason'     => 'Congés imposés',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'display_name' => 'Alice']);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 3, 'user_id' => 5]]);
@@ -113,7 +113,7 @@ final class AdminTimeoffControllerTest extends TestCase
 
         $response = $this->controller()->storeTimeoffForEmployee($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
         $this->assertSame('approved', $captured['status']);
         $this->assertSame(5, $captured['user_id']);
@@ -135,9 +135,9 @@ final class AdminTimeoffControllerTest extends TestCase
             'start_date' => '2026-08-01',
             'end_date'   => '2026-08-01',
         ];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [1, 2]);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [1, 2]);
+        $req->attributes->set('auth_user', ['id' => 1]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5]);
         $this->storeUsers->method('findByStore')->willReturn([]);
@@ -151,8 +151,8 @@ final class AdminTimeoffControllerTest extends TestCase
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'cancelled']);
         $this->timeoffRequests->expects($this->never())->method('save');
@@ -160,15 +160,15 @@ final class AdminTimeoffControllerTest extends TestCase
 
         $response = $this->controller()->approveTimeoff($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('error=invalid_state', $this->location($response));
     }
 
     public function testRefuseTimeoffIgnoresARequestThatIsNotPending(): void
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'approved']);
         $this->timeoffRequests->expects($this->never())->method('save');
@@ -180,8 +180,8 @@ final class AdminTimeoffControllerTest extends TestCase
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'pending', 'type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-01']);
         $this->timeoffRequests->expects($this->once())->method('save')->with($this->callback(fn(array $d) => $d['status'] === 'approved'));
@@ -196,9 +196,9 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST = ['user_id' => '5', 'type' => 'vacation', 'start_date' => '2026-08-05', 'end_date' => '2026-08-01'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5]);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 3, 'user_id' => 5]]);
         $this->timeoffRequests->expects($this->never())->method('save');
@@ -214,9 +214,9 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST = ['user_id' => '5', 'type' => 'vacation', 'start_date' => '2026-08-01'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', [4]);
-        $req->setAttribute('auth_user', ['id' => 1]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', [4]);
+        $req->attributes->set('auth_user', ['id' => 1]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5]);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([
             ['store_id' => 3, 'user_id' => 5], ['store_id' => 4, 'user_id' => 5],
@@ -226,7 +226,7 @@ final class AdminTimeoffControllerTest extends TestCase
             fn(array $d) => $d['store_id'] === 4
         ))->willReturn(['id' => 12]);
 
-        $this->assertSame(302, $this->controller()->storeTimeoffForEmployee($req)->status());
+        $this->assertSame(302, $this->controller()->storeTimeoffForEmployee($req)->getStatusCode());
     }
 
     private function location(\kintai\Core\Response $response): string
@@ -239,8 +239,8 @@ final class AdminTimeoffControllerTest extends TestCase
     public function testDeleteTimeoffRemovesRecordRegardlessOfStatus(): void
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '42']);
 
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
@@ -250,7 +250,7 @@ final class AdminTimeoffControllerTest extends TestCase
 
         $response = $this->controller()->deleteTimeoff($req);
 
-        $this->assertSame(302, $response->status());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     public function testTimeoffFiltersByTypeAndStatus(): void
@@ -266,11 +266,11 @@ final class AdminTimeoffControllerTest extends TestCase
         ]);
 
         $_GET = ['type' => 'vacation', 'status' => 'approved'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->timeoff($req);
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         $this->assertSame([3], $ids);
     }
@@ -286,11 +286,11 @@ final class AdminTimeoffControllerTest extends TestCase
             ['id' => 2, 'store_id' => 1, 'user_id' => 1, 'type' => 'sick', 'status' => 'approved', 'start_date' => '2026-08-02'],
         ]);
 
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->timeoff($req);
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         $this->assertCount(2, $ids);
     }
@@ -311,11 +311,11 @@ final class AdminTimeoffControllerTest extends TestCase
         ]);
 
         $_GET = ['sort' => 'store_asc'];
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
 
         $response = $this->controller()->timeoff($req);
-        $ids = json_decode($response->body(), true);
+        $ids = json_decode($response->getContent(), true);
 
         // "Alpha Store" (id 2) doit passer avant "Zoo Store" (id 1) en tri croissant par nom de store.
         $this->assertSame([2, 1], $ids);
@@ -345,9 +345,9 @@ final class AdminTimeoffControllerTest extends TestCase
     private function decide(string $action): ?array
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
-        $req = new Request();
-        $req->setAttribute('managed_store_ids', null);
-        $req->setAttribute('auth_user', ['id' => 3]);
+        $req = Request::capture();
+        $req->attributes->set('managed_store_ids', null);
+        $req->attributes->set('auth_user', ['id' => 3]);
         $req->setRouteParams(['id' => '5']);
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'pending', 'type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-01']);
         $saved = null;

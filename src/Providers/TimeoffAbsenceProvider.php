@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Providers;
 
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Provider\Absence;
 use kintai\Contract\Provider\AbsenceProvider;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;

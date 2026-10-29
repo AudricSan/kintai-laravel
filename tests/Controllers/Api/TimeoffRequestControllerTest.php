@@ -13,7 +13,7 @@ use kintai\Core\Exceptions\NotFoundException;
 use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -60,8 +60,8 @@ final class TimeoffRequestControllerTest extends TestCase
         $this->roles->method('findById')->with(20)->willReturn(['id' => 20, 'is_system' => 0]);
         $this->roles->method('getPermissions')->with(20)->willReturn(['timeoff.view', 'timeoff.update', 'timeoff.delete']);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => $userId]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;
     }
 
@@ -75,7 +75,7 @@ final class TimeoffRequestControllerTest extends TestCase
         ]);
 
         $response = $this->controller->index($this->requestAsStoreManager(2, 5));
-        $body = json_decode($response->body(), true);
+        $body = json_decode($response->getContent(), true);
 
         $this->assertCount(1, $body['data']);
         $this->assertSame(5, $body['data'][0]['store_id']);
@@ -125,7 +125,7 @@ final class TimeoffRequestControllerTest extends TestCase
 
         $response = $this->controller->destroy($req);
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     public function testDestroyRejectsRequestFromAnotherStore(): void

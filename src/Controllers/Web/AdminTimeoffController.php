@@ -11,8 +11,8 @@ use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
@@ -75,12 +75,12 @@ final class AdminTimeoffController
         });
 
         // Le gestionnaire voit les demandes : les notifications « à traiter » correspondantes sont lues.
-        $viewerId = (int) (($request->getAttribute('auth_user')['id'] ?? 0));
+        $viewerId = (int) (($request->attributes->get('auth_user')['id'] ?? 0));
         if ($viewerId > 0 && $requests !== []) {
             $this->notifs->markReadFor($viewerId, 'timeoff', array_map(fn($r) => (int) ($r['id'] ?? 0), $requests));
         }
 
-        return Response::html($this->view->render('timeoff::timeoff', [
+        return response($this->view->render('timeoff::timeoff', [
             'title'         => 'Congés',
             'highlight_id'  => (int) $request->query('highlight', 0),
             'requests'      => $requests,
@@ -109,7 +109,7 @@ final class AdminTimeoffController
             strtolower(trim(($b['last_name'] ?? '') . ' ' . ($b['first_name'] ?? '')))
         ));
 
-        return Response::html($this->view->render('timeoff::timeoff-form', [
+        return response($this->view->render('timeoff::timeoff-form', [
             'title' => __('timeoff_create_timeoff'),
             'users' => $users,
             'today' => date('Y-m-d'),
@@ -143,7 +143,7 @@ final class AdminTimeoffController
         }
         [$startDate, $endDate] = $this->validDates($request->post('start_date', ''), $request->post('end_date', ''));
         $reason   = $request->post('reason', '') ?: null;
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
 
         $saved = $this->timeoffRequests->save([
             'store_id'    => $storeId,
@@ -170,12 +170,12 @@ final class AdminTimeoffController
             '/employee/timeoff?highlight=' . (int) ($saved['id'] ?? 0)
         );
 
-        return Response::redirect($this->base() . '/admin/timeoff?success=created');
+        return redirect()->away($this->base() . '/admin/timeoff?success=created');
     }
 
     public function approveTimeoff(Request $request): Response
     {
-        $req = $this->timeoffRequests->findById((int) $request->param('id'));
+        $req = $this->timeoffRequests->findById((int) $request->route('id'));
         if ($req === null) {
             throw new NotFoundException(__('timeoff_error_request_not_found'));
         }
@@ -183,7 +183,7 @@ final class AdminTimeoffController
         // Seule une demande en attente se décide : sinon un gérant ressuscitait une demande annulée
         // par l'employé, ou ré-approuvait (double notification).
         if (($req['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/admin/timeoff?error=invalid_state');
+            return redirect()->away($this->base() . '/admin/timeoff?error=invalid_state');
         }
         $decided = $this->decision($request, $req, 'approved');
         $this->timeoffRequests->save($decided);
@@ -196,18 +196,18 @@ final class AdminTimeoffController
             (int) $req['id'],
             '/employee/timeoff?highlight=' . (int) $req['id']
         );
-        return Response::redirect($this->base() . '/admin/timeoff?success=approved');
+        return redirect()->away($this->base() . '/admin/timeoff?success=approved');
     }
 
     public function refuseTimeoff(Request $request): Response
     {
-        $req = $this->timeoffRequests->findById((int) $request->param('id'));
+        $req = $this->timeoffRequests->findById((int) $request->route('id'));
         if ($req === null) {
             throw new NotFoundException(__('timeoff_error_request_not_found'));
         }
         $this->assertStoreAccess($request, (int) ($req['store_id'] ?? 0));
         if (($req['status'] ?? '') !== 'pending') {
-            return Response::redirect($this->base() . '/admin/timeoff?error=invalid_state');
+            return redirect()->away($this->base() . '/admin/timeoff?error=invalid_state');
         }
         $decided = $this->decision($request, $req, 'refused');
         $this->timeoffRequests->save($decided);
@@ -220,7 +220,7 @@ final class AdminTimeoffController
             (int) $req['id'],
             '/employee/timeoff?highlight=' . (int) $req['id']
         );
-        return Response::redirect($this->base() . '/admin/timeoff?success=refused');
+        return redirect()->away($this->base() . '/admin/timeoff?success=refused');
     }
 
     /**
@@ -231,7 +231,7 @@ final class AdminTimeoffController
      */
     private function decision(Request $request, array $req, string $status): array
     {
-        $authUser = (array) ($request->getAttribute('auth_user') ?? []);
+        $authUser = (array) ($request->attributes->get('auth_user') ?? []);
         return array_merge($req, [
             'status'       => $status,
             'processed_by' => isset($authUser['id']) ? (int) $authUser['id'] : null,
@@ -245,7 +245,7 @@ final class AdminTimeoffController
      */
     public function deleteTimeoff(Request $request): Response
     {
-        $req = $this->timeoffRequests->findById((int) $request->param('id'));
+        $req = $this->timeoffRequests->findById((int) $request->route('id'));
         if ($req === null) {
             throw new NotFoundException(__('timeoff_error_request_not_found'));
         }
@@ -261,7 +261,7 @@ final class AdminTimeoffController
 
         $this->timeoffRequests->delete((int) $req['id']);
 
-        return Response::redirect($this->base() . '/admin/timeoff?success=deleted');
+        return redirect()->away($this->base() . '/admin/timeoff?success=deleted');
     }
 
     /**
