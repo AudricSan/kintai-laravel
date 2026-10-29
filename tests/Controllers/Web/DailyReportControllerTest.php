@@ -18,7 +18,7 @@ use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
 use kintai\Core\Repositories\TranslationRepositoryInterface;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
@@ -180,9 +180,9 @@ final class DailyReportControllerTest extends TestCase
         $this->notifs->expects($this->once())->method('notifyMany')
             ->with([20], 'daily_report_submitted', $this->anything(), $this->anything(), 10);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->controller()->submit($req);
@@ -211,9 +211,9 @@ final class DailyReportControllerTest extends TestCase
         $this->notifs->expects($this->once())->method('notify')
             ->with(9, 'daily_report_validated', $this->anything(), $this->anything(), 10);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 20]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 20]);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->controller()->validate($req);
@@ -241,9 +241,9 @@ final class DailyReportControllerTest extends TestCase
 
         $this->notifs->expects($this->once())->method('markReadFor')->with(20, 'daily_report', 10);
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 20]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 20]);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         try {
@@ -268,9 +268,9 @@ final class DailyReportControllerTest extends TestCase
 
         $this->notifs->expects($this->never())->method('markReadFor');
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 20]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 20]);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
@@ -299,9 +299,9 @@ final class DailyReportControllerTest extends TestCase
 
         $this->notifs->expects($this->never())->method('notify');
 
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => 9]);
-        $req->setAttribute('managed_store_ids', null);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => 9]);
+        $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->controller()->validate($req);

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\DailyReport\Cron;
 
 use kintai\Contract\Cron\CronJob;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService;
 
@@ -48,7 +48,7 @@ final class AutoValidateJob implements CronJob
             'errors'    => $result['errors'] ?? 0,
         ]);
 
-        return Response::json([
+        return response()->json([
             'ok'        => true,
             'date'      => $targetDate,
             'validated' => $result['validated'],

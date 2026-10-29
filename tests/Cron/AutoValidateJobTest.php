@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use kintai\Core\Auth\PermissionService;
 use kintai\Bundles\Installed\DailyReport\Cron\AutoValidateJob;
 use kintai\Core\Mail\MailerService;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
@@ -90,9 +90,9 @@ final class AutoValidateJobTest extends TestCase
     public function testRunWithDefaultDateUsesYesterday(): void
     {
         $response = $this->job->run($this->makeRequest());
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertTrue($data['ok']);
         $this->assertSame(date('Y-m-d', strtotime('yesterday')), $data['date']);
         $this->assertSame(0, $data['validated']);
@@ -102,7 +102,7 @@ final class AutoValidateJobTest extends TestCase
     public function testRunWithCustomDate(): void
     {
         $response = $this->job->run($this->makeRequest(['date' => '2026-06-01']));
-        $data     = json_decode($response->body(), true);
+        $data     = json_decode($response->getContent(), true);
 
         $this->assertSame('2026-06-01', $data['date']);
     }
@@ -117,7 +117,7 @@ final class AutoValidateJobTest extends TestCase
         $_SERVER  = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => "/cron/auto-validate$queryStr", 'SCRIPT_NAME' => '/index.php'];
         $_GET     = $query;
         $_POST    = $_COOKIE = $_FILES = [];
-        return new Request();
+        return Request::capture();
     }
 
     protected function tearDown(): void

@@ -9,8 +9,8 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 
 /**
@@ -61,7 +61,7 @@ final class DailyReportController
             $items = $this->reports->findAllActive();
         }
 
-        return Response::json(Paginator::paginate($this->visibleTo($request, $items), $page, $limit));
+        return response()->json(Paginator::paginate($this->visibleTo($request, $items), $page, $limit));
     }
 
     /**
@@ -74,7 +74,7 @@ final class DailyReportController
      */
     private function visibleTo(Request $request, array $items): array
     {
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         $userId   = (int) ($authUser['id'] ?? 0);
         $contexts = [];
 
@@ -98,22 +98,22 @@ final class DailyReportController
         $report = $this->requireReport($request);
         [$store, $membership] = $this->storeContext($request, (int) $report['store_id']);
 
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         if (!$this->permissions->canViewReport($authUser, $store, $report, $membership)) {
             return $this->forbidden();
         }
 
-        return Response::json($report);
+        return response()->json($report);
     }
 
     /** POST /api/v1/daily-reports */
     public function store(Request $request): Response
     {
-        $body    = $request->json() ?? [];
+        $body    = $request->json()->all() ?? [];
         $storeId = (int) ($body['store_id'] ?? 0);
         [$store, $membership] = $this->storeContext($request, $storeId);
 
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         if (!$this->permissions->canCreate($authUser, $store, $membership)) {
             return $this->forbidden();
         }
@@ -124,7 +124,7 @@ final class DailyReportController
             'author_id'  => (int) ($authUser['id'] ?? 0),
             'created_at' => date('Y-m-d H:i:s'),
         ];
-        return Response::json($this->reports->save($data), 201);
+        return response()->json($this->reports->save($data), 201);
     }
 
     /** PUT /api/v1/daily-reports/{id} */
@@ -133,12 +133,12 @@ final class DailyReportController
         $report = $this->requireReport($request);
         [$store, $membership] = $this->storeContext($request, (int) $report['store_id']);
 
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         if (!$this->permissions->canEdit($authUser, $store, $report, $membership)) {
             return $this->forbidden();
         }
 
-        return Response::json($this->reports->save(array_intersect_key($request->json() ?? [], array_flip(self::CONTENT_FIELDS)) + [
+        return response()->json($this->reports->save(array_intersect_key($request->json()->all() ?? [], array_flip(self::CONTENT_FIELDS)) + [
             'id'         => (int) $report['id'],
             'updated_at' => date('Y-m-d H:i:s'),
         ]));
@@ -150,13 +150,13 @@ final class DailyReportController
         $report = $this->requireReport($request);
         [$store, $membership] = $this->storeContext($request, (int) $report['store_id']);
 
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         if (!$this->permissions->canDelete($authUser, $store, $report, $membership)) {
             return $this->forbidden();
         }
 
         $this->reports->delete((int) $report['id']);
-        return Response::empty();
+        return response()->noContent();
     }
 
     /** POST /api/v1/daily-reports/{id}/submit */
@@ -165,12 +165,12 @@ final class DailyReportController
         $report = $this->requireReport($request);
         [$store, $membership] = $this->storeContext($request, (int) $report['store_id']);
 
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         if (!$this->permissions->canSubmit($authUser, $store, $report, $membership)) {
             return $this->forbidden();
         }
 
-        return Response::json($this->reports->save(array_merge($report, [
+        return response()->json($this->reports->save(array_merge($report, [
             'status'       => 'submitted',
             'submitted_at' => date('Y-m-d H:i:s'),
             'updated_at'   => date('Y-m-d H:i:s'),
@@ -183,14 +183,14 @@ final class DailyReportController
         $report = $this->requireReport($request);
         [$store, $membership] = $this->storeContext($request, (int) $report['store_id']);
 
-        $authUser = $request->getAttribute('auth_user') ?? [];
+        $authUser = $request->attributes->get('auth_user') ?? [];
         if (!$this->permissions->canValidate($authUser, $store, $report, $membership)) {
             return $this->forbidden();
         }
 
         $now = date('Y-m-d H:i:s');
 
-        return Response::json($this->reports->save(array_merge($report, [
+        return response()->json($this->reports->save(array_merge($report, [
             'status'       => 'validated',
             'validated_by' => (int) ($authUser['id'] ?? 0),
             'validated_at' => $now,
@@ -200,7 +200,7 @@ final class DailyReportController
 
     private function requireReport(Request $request): array
     {
-        $report = $this->reports->findById((int) $request->param('id'));
+        $report = $this->reports->findById((int) $request->route('id'));
         if ($report === null) {
             throw new NotFoundException(__('daily_report_error_report_not_found'));
         }
@@ -214,14 +214,14 @@ final class DailyReportController
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
-        $authUser   = $request->getAttribute('auth_user') ?? [];
+        $authUser   = $request->attributes->get('auth_user') ?? [];
         $membership = $this->storeUsers->findMembership($storeId, (int) ($authUser['id'] ?? 0));
         return [$store, $membership];
     }
 
     private function forbidden(): Response
     {
-        return Response::json([
+        return response()->json([
             'error' => __('daily_report_error_permission_insufficient'),
             'code'  => 'FORBIDDEN',
         ], 403);

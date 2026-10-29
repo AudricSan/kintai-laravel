@@ -13,8 +13,8 @@ use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
@@ -50,8 +50,8 @@ final class DailyReportController
 
     public function index(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
 
@@ -119,7 +119,7 @@ final class DailyReportController
             'permissions' => $this->permissions,
         ], 'layout.app');
 
-        return Response::html($html);
+        return response($html);
     }
 
     // -------------------------------------------------------------------------
@@ -128,7 +128,7 @@ final class DailyReportController
 
     public function indexAll(Request $request): Response
     {
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
 
         // Stores accessibles — is_admin (Owner) et une permission daily_reports.view
         // accordée en portée globale (managed_store_ids === null, ex. rôle store-scope
@@ -137,7 +137,7 @@ final class DailyReportController
         // liste passerait par la convention "aucun filtre" de findAllActive() (donc les
         // rapports resteraient visibles par accident), mais $allStores resterait vide et
         // le sélecteur de magasin n'afficherait plus rien pour cet utilisateur.
-        $managedIds     = $request->getAttribute('managed_store_ids');
+        $managedIds     = $request->attributes->get('managed_store_ids');
         $isUnrestricted = !empty($authUser['is_admin']) || $managedIds === null;
         if ($isUnrestricted) {
             $allStores      = $this->stores->findActive();
@@ -245,7 +245,7 @@ final class DailyReportController
             'authUser'      => $authUser,
         ], 'layout.app');
 
-        return Response::html($html);
+        return response($html);
     }
 
     // -------------------------------------------------------------------------
@@ -254,8 +254,8 @@ final class DailyReportController
 
     public function create(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
 
@@ -283,7 +283,7 @@ final class DailyReportController
             'settings'   => $settings,
         ], 'layout.app');
 
-        return Response::html($html);
+        return response($html);
     }
 
     // -------------------------------------------------------------------------
@@ -292,8 +292,8 @@ final class DailyReportController
 
     public function store(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
 
@@ -303,7 +303,7 @@ final class DailyReportController
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        $data   = $request->allPost();
+        $data   = $request->request->all();
         $errors = $this->validateReportData($data);
 
         $settings = $this->permissions->getSettings($store);
@@ -322,7 +322,7 @@ final class DailyReportController
                 'shiftRows'  => $this->getFormShiftRows($storeId, $this->getShiftDateForReport($formDate)),
                 'settings'   => $settings,
             ], 'layout.app');
-            return Response::html($html, 422);
+            return response($html, 422);
         }
 
         $reportDate = $data['report_date'] ?? date('Y-m-d');
@@ -341,7 +341,7 @@ final class DailyReportController
                 'membership' => $membership,
                 'settings'   => $settings,
             ], 'layout.app');
-            return Response::html($html, 422);
+            return response($html, 422);
         }
 
         // Unicité : un seul rapport actif par store par jour
@@ -358,7 +358,7 @@ final class DailyReportController
                 'membership' => $membership,
                 'settings'   => $settings,
             ], 'layout.app');
-            return Response::html($html, 422);
+            return response($html, 422);
         }
 
         $report = $this->reports->save([
@@ -379,7 +379,7 @@ final class DailyReportController
             'report_date' => $reportDate,
         ], $storeId);
 
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $report['id']);
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $report['id']);
     }
 
     // -------------------------------------------------------------------------
@@ -388,9 +388,9 @@ final class DailyReportController
 
     public function show(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -425,7 +425,7 @@ final class DailyReportController
             'canDelete'   => $this->permissions->canDelete($authUser, $store, $report, $membership),
         ], 'layout.app');
 
-        return Response::html($html);
+        return response($html);
     }
 
     // -------------------------------------------------------------------------
@@ -434,9 +434,9 @@ final class DailyReportController
 
     public function edit(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -461,7 +461,7 @@ final class DailyReportController
             'settings'   => $settings,
         ], 'layout.app');
 
-        return Response::html($html);
+        return response($html);
     }
 
     // -------------------------------------------------------------------------
@@ -470,9 +470,9 @@ final class DailyReportController
 
     public function update(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -483,7 +483,7 @@ final class DailyReportController
             throw new ForbiddenException(__('daily_report_error_report_locked'));
         }
 
-        $data   = $request->allPost();
+        $data   = $request->request->all();
         $errors = $this->validateReportData($data);
 
         $settings = $this->permissions->getSettings($store);
@@ -501,7 +501,7 @@ final class DailyReportController
                 'shiftRows'  => $this->getFormShiftRows($storeId, $report['report_date']),
                 'settings'   => $settings,
             ], 'layout.app');
-            return Response::html($html, 422);
+            return response($html, 422);
         }
 
         $updated = $this->reports->save(array_merge($report, [
@@ -518,7 +518,7 @@ final class DailyReportController
             'report_date' => $report['report_date'],
         ], $storeId);
 
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId);
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId);
     }
 
     // -------------------------------------------------------------------------
@@ -527,9 +527,9 @@ final class DailyReportController
 
     public function submit(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -561,7 +561,7 @@ final class DailyReportController
             '/admin/stores/' . $storeId . '/daily-reports/' . $reportId
         );
 
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId);
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId);
     }
 
     // -------------------------------------------------------------------------
@@ -570,9 +570,9 @@ final class DailyReportController
 
     public function validate(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -622,7 +622,7 @@ final class DailyReportController
             }
         }
 
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId);
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId);
     }
 
     // -------------------------------------------------------------------------
@@ -631,9 +631,9 @@ final class DailyReportController
 
     public function sendMail(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -662,7 +662,7 @@ final class DailyReportController
         }
 
         $redirect = $this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId;
-        return Response::redirect($redirect . ($sent ? '?mail=1' : '?mail=0'));
+        return redirect()->away($redirect . ($sent ? '?mail=1' : '?mail=0'));
     }
 
     // -------------------------------------------------------------------------
@@ -678,9 +678,9 @@ final class DailyReportController
      */
     public function previewPdf(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -695,14 +695,14 @@ final class DailyReportController
         $downloadUrl = $this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId . '/pdf/download';
         $html        = $this->pdfService->generateHtml($report, $store, $pdfAuthor, $this->translations->getLocale(), $downloadUrl);
 
-        return Response::html($html);
+        return response($html);
     }
 
     public function downloadPdf(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -727,7 +727,7 @@ final class DailyReportController
         ], $storeId);
 
         $filename = 'rapport_' . str_replace('-', '', $report['report_date']) . '_store' . $storeId . '.pdf';
-        return Response::pdf($bytes, $filename);
+        return response()->pdf($bytes, $filename);
     }
 
     // -------------------------------------------------------------------------
@@ -736,9 +736,9 @@ final class DailyReportController
 
     public function destroy(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $reportId   = (int) $request->param('rid');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $reportId   = (int) $request->route('rid');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
@@ -759,7 +759,7 @@ final class DailyReportController
             'report_date' => $report['report_date'],
         ], $storeId);
 
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/daily-reports');
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/daily-reports');
     }
 
     // -------------------------------------------------------------------------
@@ -768,8 +768,8 @@ final class DailyReportController
 
     public function editSettings(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
 
@@ -781,7 +781,7 @@ final class DailyReportController
 
         $settings = $this->permissions->getSettings($store);
 
-        return Response::html($this->renderSettings($store, $settings, $authUser, $membership, []));
+        return response($this->renderSettings($store, $settings, $authUser, $membership, []));
     }
 
     /** @param array<string, mixed> $settings @param array<string, string> $errors */
@@ -799,8 +799,8 @@ final class DailyReportController
 
     public function saveSettings(Request $request): Response
     {
-        $storeId    = (int) $request->param('id');
-        $authUser   = $request->getAttribute('auth_user');
+        $storeId    = (int) $request->route('id');
+        $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
 
@@ -810,7 +810,7 @@ final class DailyReportController
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        $data = $request->allPost();
+        $data = $request->request->all();
 
         $rawTime = trim($data['auto_validate_time'] ?? '');
         $autoValidateTime = preg_match('/^\d{2}:\d{2}$/', $rawTime) ? $rawTime : null;
@@ -835,7 +835,7 @@ final class DailyReportController
         $selection = $this->userSelection->validate($storeId, (array) ($data['mail_recipient_ids'] ?? []));
         if ($selection['error'] !== null) {
             $errors = ['mail_recipient_ids' => __('daily_report_error_recipients_' . $selection['error'])];
-            return Response::html($this->renderSettings($store, array_merge($current, $data), $authUser, $membership, $errors), 422);
+            return response($this->renderSettings($store, array_merge($current, $data), $authUser, $membership, $errors), 422);
         }
 
         $settings = [
@@ -859,7 +859,7 @@ final class DailyReportController
             'settings' => $settings,
         ], $storeId);
 
-        return Response::redirect($this->base() . '/admin/stores/' . $storeId . '/daily-reports/settings');
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/daily-reports/settings');
     }
 
     // -------------------------------------------------------------------------
@@ -946,7 +946,7 @@ final class DailyReportController
 
     private function assertStoreAccess(Request $request, int $storeId): void
     {
-        $managedIds = $request->getAttribute('managed_store_ids');
+        $managedIds = $request->attributes->get('managed_store_ids');
         if ($managedIds !== null && !in_array($storeId, $managedIds, true)) {
             throw new ForbiddenException(__('error_not_store_manager'));
         }

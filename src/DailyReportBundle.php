@@ -14,7 +14,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Contract\Auth\AuthService;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
-use kintai\Contract\Container;
+use Illuminate\Container\Container;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Contract\Data\ShiftTypeRepositoryInterface;
@@ -42,10 +42,6 @@ final class DailyReportBundle extends Bundle
         return 'daily-report';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -68,7 +64,7 @@ final class DailyReportBundle extends Bundle
     /** Dépôt et services du bundle (une instance par requête). */
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(DailyReportRepositoryInterface::class, fn() => new DatabaseDailyReportRepository());
         $container->singleton(DailyReportPermissionService::class, fn(Container $c) => new DailyReportPermissionService(

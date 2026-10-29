@@ -13,7 +13,7 @@ use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -64,12 +64,12 @@ final class DailyReportControllerTest extends TestCase
 
     private function requestWithJson(array $json, array $routeParams = [], array $authUser = ['id' => 20]): Request
     {
-        $req = new Request();
+        $req = Request::capture();
         $ref = new \ReflectionProperty(Request::class, 'jsonBody');
         $ref->setAccessible(true);
         $ref->setValue($req, $json);
         $req->setRouteParams($routeParams);
-        $req->setAttribute('auth_user', $authUser);
+        $req->attributes->set('auth_user', $authUser);
         return $req;
     }
 
@@ -105,7 +105,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson(['sales_total' => 100], ['id' => '42']);
         $response = $this->controller()->update($req);
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     public function testMemberCanUpdateOwnDraftReport(): void
@@ -122,7 +122,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson(['sales_total' => 100], ['id' => '42']);
         $response = $this->controller()->update($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testManagerWithPermissionCanUpdateAnyReportInStore(): void
@@ -139,7 +139,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson(['sales_total' => 100], ['id' => '42']);
         $response = $this->controller()->update($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -160,7 +160,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->destroy($req);
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     public function testManagerWithDeletePermissionCanDelete(): void
@@ -177,7 +177,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->destroy($req);
 
-        $this->assertSame(204, $response->status());
+        $this->assertSame(204, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -199,8 +199,8 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->validate($req);
 
-        $this->assertSame(200, $response->status());
-        $body = json_decode($response->body(), true);
+        $this->assertSame(200, $response->getStatusCode());
+        $body = json_decode($response->getContent(), true);
         $this->assertSame('validated', $body['status']);
     }
 
@@ -218,7 +218,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->validate($req);
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -238,7 +238,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->show($req);
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     public function testMemberCanViewOwnReport(): void
@@ -254,7 +254,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->show($req);
 
-        $this->assertSame(200, $response->status());
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     public function testShowThrowsNotFoundForMissingReport(): void
@@ -282,7 +282,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson(['store_id' => 1, 'report_date' => '2026-08-05']);
         $response = $this->controller()->store($req);
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     /**
@@ -301,7 +301,7 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson(['store_id' => 1, 'report_date' => '2026-08-05']);
         $response = $this->controller()->store($req);
 
-        $this->assertSame(403, $response->status());
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     /** daily_reports.create accordé seul (ex. à un employé spécifique) suffit à créer. */
@@ -316,8 +316,8 @@ final class DailyReportControllerTest extends TestCase
         $req = $this->requestWithJson(['store_id' => 1, 'report_date' => '2026-08-05']);
         $response = $this->controller()->store($req);
 
-        $this->assertSame(201, $response->status());
-        $body = json_decode($response->body(), true);
+        $this->assertSame(201, $response->getStatusCode());
+        $body = json_decode($response->getContent(), true);
         $this->assertSame(20, $body['author_id']);
     }
 }

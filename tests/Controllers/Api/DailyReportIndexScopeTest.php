@@ -12,7 +12,7 @@ use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -83,10 +83,10 @@ final class DailyReportIndexScopeTest extends TestCase
     private function listedIds(array $query, int $userId): array
     {
         $_GET = $query;
-        $req = new Request();
+        $req = Request::capture();
         $_GET = [];
-        $req->setAttribute('auth_user', ['id' => $userId]);
-        $body = json_decode($this->controller()->index($req)->body(), true);
+        $req->attributes->set('auth_user', ['id' => $userId]);
+        $body = json_decode($this->controller()->index($req)->getContent(), true);
         return array_map(fn($r) => (int) $r['id'], $body['data']);
     }
 

@@ -12,7 +12,7 @@ use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
 use kintai\Core\Repositories\RoleRepositoryInterface;
 use kintai\Core\Repositories\StoreRepositoryInterface;
 use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\Log;
 use PHPUnit\Framework\TestCase;
 
@@ -59,8 +59,8 @@ final class DailyReportMassAssignmentTest extends TestCase
 
     private function request(array $json): Request
     {
-        $req = new Request();
-        $req->setAttribute('auth_user', ['id' => self::ME]);
+        $req = Request::capture();
+        $req->attributes->set('auth_user', ['id' => self::ME]);
         (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $json);
         return $req;
     }
