@@ -123,7 +123,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   this bundle uses for its own CSS/JS (`public/css/`, `public/js/`).
 - `src/SalaryReportBundle.php` — the entry point
   (`kintai\Bundles\Installed\SalaryReport\SalaryReportBundle`, extends
-  `kintai\Core\BundleContract\Bundle`). Its `register()` binds
+  `App\Bundles\Bundle`). Its `register()` binds
   `SalaryReportRepositoryInterface` to `DatabaseSalaryReportRepository` as a
   singleton in the app container (like `ResignationReportBundle`/
   `ShiftClaimBundle`/`StorePhotoBundle` — no other Core component depends on

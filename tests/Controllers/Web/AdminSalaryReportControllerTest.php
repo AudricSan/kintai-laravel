@@ -2,33 +2,33 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\SalaryReport\Controllers\Web;
+namespace Tests\Bundles\SalaryReport\Controllers\Web;
 
 use kintai\Bundles\Installed\SalaryReport\Controllers\Web\AdminSalaryReportController;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Container;
-use kintai\Core\Exceptions\NotFoundException;
+use App\Auth\PermissionService;
+use App\Container;
+use App\Exceptions\NotFoundException;
 use kintai\Contract\Provider\DailySales;
 use kintai\Contract\Provider\SalesProvider;
-use kintai\Core\BundleContract\Bundle;
-use kintai\Core\BundleManager;
-use kintai\Core\Extension\ExtensionRegistry;
-use kintai\Core\Extension\Sales;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
+use App\Bundles\Bundle;
+use App\BundleManager;
+use App\Extension\ExtensionRegistry;
+use App\Extension\Sales;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\Core\Services\StoreStatsServiceInterface;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\Services\StoreStatsServiceInterface;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -894,7 +894,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->storeUsers->method('findMembership')->willReturn(null);
         $this->salaryReports->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeSalaryReport($req);
     }
 

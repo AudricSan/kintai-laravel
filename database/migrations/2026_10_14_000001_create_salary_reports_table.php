@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Table du bundle, créée si absente (installation neuve), avec le schéma qu'utilise son code. Reprise lors de
@@ -15,14 +14,15 @@ use Illuminate\Database\Schema\Blueprint;
  * 2026_07_17_000001). Sur une instance existante, la table est déjà là et n'est pas touchée ; ses évolutions futures
  * se font ici.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if ($this->schema()->hasTable('salary_reports')) {
+        if (Schema::hasTable('salary_reports')) {
             return;
         }
-        $this->schema()->create('salary_reports', function (Blueprint $table) {
-            $table->increments('id');
+        Schema::create('salary_reports', function (Blueprint $table) {
+            $table->integer('id', true);
             $table->integer('store_id');
             // Rapport d'un seul employé ; null = rapport global du magasin.
             $table->integer('user_id')->nullable();

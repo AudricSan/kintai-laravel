@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\SalaryReport;
+namespace Tests\Bundles\SalaryReport;
 
 use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\NavItem;
