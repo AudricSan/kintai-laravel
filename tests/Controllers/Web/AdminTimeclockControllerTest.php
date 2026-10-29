@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock\Controllers\Web;
+namespace Tests\Bundles\Timeclock\Controllers\Web;
 
 
 use kintai\Bundles\Installed\Timeclock\Controllers\Web\AdminTimeclockController;
-use kintai\Core\Container;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
+use App\Container;
+use App\Exceptions\NotFoundException;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -250,7 +250,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 9]);
         $this->timeclocks->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->timeclocksEdit($req);
     }
 
@@ -264,7 +264,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 9]);
         $this->timeclocks->expects($this->never())->method('delete');
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->timeclocksDelete($req);
     }
 

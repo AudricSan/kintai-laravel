@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock;
+namespace Tests\Bundles\Timeclock;
 
-use kintai\Tests\Support\ContractUsageScanner;
+use Tests\Support\ContractUsageScanner;
 use PHPUnit\Framework\TestCase;
 
 /**

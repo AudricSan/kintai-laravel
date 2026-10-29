@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock;
+namespace Tests\Bundles\Timeclock;
 
 use kintai\Bundles\Installed\Timeclock\Providers\TimeclockAttendanceProvider;
-use kintai\Core\Container;
+use App\Container;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 

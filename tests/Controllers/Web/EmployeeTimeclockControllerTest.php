@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock\Controllers\Web;
+namespace Tests\Bundles\Timeclock\Controllers\Web;
 
 
 use kintai\Bundles\Installed\Timeclock\Controllers\Web\EmployeeTimeclockController;
-use kintai\Core\Container;
-use kintai\Core\Exceptions\ConflictException;
-use kintai\Core\Exceptions\NotFoundException;
-use kintai\Core\Repositories\LogRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Container;
+use App\Exceptions\ConflictException;
+use App\Exceptions\NotFoundException;
+use App\Repositories\LogRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
-use kintai\Core\Services\Log;
-use kintai\UI\ViewRenderer;
+use App\Services\AuditLogger;
+use App\Services\Log;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -152,7 +152,7 @@ final class EmployeeTimeclockControllerTest extends TestCase
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->clockIn($req);
     }
 
@@ -168,7 +168,7 @@ final class EmployeeTimeclockControllerTest extends TestCase
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->expects($this->never())->method('save');
 
-        $this->expectException(\kintai\Core\Exceptions\ValidationException::class);
+        $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->clockIn($req);
     }
 

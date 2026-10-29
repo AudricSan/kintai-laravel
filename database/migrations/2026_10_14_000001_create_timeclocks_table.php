@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace kintai\Database\Migrations;
-
-use kintai\Contract\Database\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Table du bundle, créée si absente (installation neuve). Reprise des migrations du Core 2026_06_09_000007 (table) et
  * 2026_09_30_000001 (index magasin + jour) lors de l'extraction (étape 4 du plan du contrat). Une table existante
  * n'est pas touchée ici : la migration suivante (2026_10_14_000002) complète celles de l'ancien schéma SQL.
  */
-return new class($this->capsule) extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        if ($this->schema()->hasTable('timeclocks')) {
+        if (Schema::hasTable('timeclocks')) {
             return;
         }
-        $this->schema()->create('timeclocks', function (Blueprint $table) {
-            $table->increments('id');
+        Schema::create('timeclocks', function (Blueprint $table) {
+            $table->integer('id', true);
             $table->integer('user_id');
             $table->integer('store_id');
             $table->integer('shift_id')->nullable();

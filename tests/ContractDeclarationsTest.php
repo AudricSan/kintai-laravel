@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock;
+namespace Tests\Bundles\Timeclock;
 
 use kintai\Bundles\Installed\Timeclock\Providers\TimeclockAttendanceProvider;
 use kintai\Bundles\Installed\Timeclock\TimeclockBundle;

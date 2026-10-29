@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock\Services;
+namespace Tests\Bundles\Timeclock\Services;
 
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Services\TimeclockWidget;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

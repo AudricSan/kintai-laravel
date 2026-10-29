@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\Timeclock\Database;
+namespace Tests\Bundles\Timeclock\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
-use kintai\Core\Database\BundleMigrationRunner;
+use App\Database\BundleMigrationRunner;
 use PHPUnit\Framework\TestCase;
 
 /**
