@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Services;
+namespace Tests\Bundles\DailyReport\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\PermissionService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
 
 final class DailyReportPermissionServiceTest extends TestCase
 {

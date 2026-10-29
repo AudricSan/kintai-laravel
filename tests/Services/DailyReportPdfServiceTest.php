@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Services;
+namespace Tests\Bundles\DailyReport\Services;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
-use kintai\Core\Services\TranslationService;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\UI\ViewRenderer;
+use App\Services\TranslationService;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\View\ViewRenderer;
 
 final class DailyReportPdfServiceTest extends TestCase
 {

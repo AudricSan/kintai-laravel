@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Services;
+namespace Tests\Bundles\DailyReport\Services;
 
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Mail\MailerService;
-use kintai\Core\Mail\MailTransportInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Services\TranslationService;
-use kintai\Core\Services\UserSelection;
+use App\Auth\PermissionService;
+use App\Mail\MailerService;
+use App\Mail\MailTransportInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\Services\TranslationService;
+use App\Services\UserSelection;
 use PHPUnit\Framework\TestCase;
 
 /**

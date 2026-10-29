@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Database;
+namespace Tests\Bundles\DailyReport\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;
-use kintai\Core\Database\BundleMigrationRunner;
+use App\Database\BundleMigrationRunner;
 use PHPUnit\Framework\TestCase;
 
 /**

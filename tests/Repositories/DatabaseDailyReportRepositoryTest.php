@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Repositories;
+namespace Tests\Bundles\DailyReport\Repositories;
 
 use PHPUnit\Framework\TestCase;
 use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport;
+namespace Tests\Bundles\DailyReport;
 
 use kintai\Bundles\Installed\DailyReport\Cron\AutoValidateJob;
 use kintai\Bundles\Installed\DailyReport\DailyReportBundle;
@@ -11,7 +11,7 @@ use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInter
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
-use kintai\Core\Container;
+use App\Container;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Providers;
+namespace Tests\Bundles\DailyReport\Providers;
 
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;

@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Controllers\Web;
+namespace Tests\Bundles\DailyReport\Controllers\Web;
 
 
 use kintai\Bundles\Installed\DailyReport\Controllers\Web\DailyReportController;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Mail\MailerService;
+use App\Auth\PermissionService;
+use App\Mail\MailerService;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
+use App\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Core\Services\NotificationService;
-use kintai\Core\Services\TranslationService;
-use kintai\UI\ViewRenderer;
+use App\Services\NotificationService;
+use App\Services\TranslationService;
+use App\View\ViewRenderer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -85,7 +85,7 @@ final class DailyReportControllerTest extends TestCase
                 $permissions,
                 new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
                 $translations,
-                new \kintai\Core\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
+                new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
             );
             $this->controller = new DailyReportController(
                 new ViewRenderer(sys_get_temp_dir()),
@@ -102,7 +102,7 @@ final class DailyReportControllerTest extends TestCase
                 $this->shiftTypes,
                 $this->notifs,
                 $permissionService,
-                new \kintai\Core\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
+                new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
             );
         }
 
@@ -273,7 +273,7 @@ final class DailyReportControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->expectException(\kintai\Core\Exceptions\ForbiddenException::class);
+        $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->show($req);
     }
 

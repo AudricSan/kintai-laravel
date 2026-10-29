@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Services;
+namespace Tests\Bundles\DailyReport\Services;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Mail\MailerService;
+use App\Auth\PermissionService;
+use App\Mail\MailerService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Core\Services\TranslationService;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
+use App\Services\TranslationService;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
 
 final class DailyReportMailServiceTest extends TestCase
 {
@@ -33,9 +33,9 @@ final class DailyReportMailServiceTest extends TestCase
             $this->createStub(TranslationRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
         );
-        $this->service     = new DailyReportMailService($this->permissions, $mailer, $translations, new \kintai\Core\Services\UserSelection(
-            $this->createStub(\kintai\Core\Repositories\StoreUserRepositoryInterface::class),
-            $this->createStub(\kintai\Core\Repositories\UserRepositoryInterface::class),
+        $this->service     = new DailyReportMailService($this->permissions, $mailer, $translations, new \App\Services\UserSelection(
+            $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
+            $this->createStub(\App\Repositories\UserRepositoryInterface::class),
             new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
         ));
     }

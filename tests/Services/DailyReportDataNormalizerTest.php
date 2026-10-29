@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Services;
+namespace Tests\Bundles\DailyReport\Services;
 
 use PHPUnit\Framework\TestCase;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportDataNormalizer;

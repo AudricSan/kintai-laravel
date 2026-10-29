@@ -14,7 +14,7 @@ installer).
 
 There is no build or test suite in this repo (no `composer.json`, no
 PHPUnit). The code is not runnable or functionally testable standalone: every
-class under `src/` depends on `kintai\Core\*` (repositories, middleware,
+class under `src/` depends on `App\*` (repositories, middleware,
 `Request`/`Response`, `ViewRenderer`, `PermissionService`, mail/PDF services,
 etc.) that only exist inside a running Kintai instance. Verifying a behavior
 change means installing the bundle into a real Kintai instance, not running
@@ -69,7 +69,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   version, `kintai_core` compatibility range, `entry_class`.
 - `src/DailyReportBundle.php` — the entry point
   (`kintai\Bundles\Installed\DailyReport\DailyReportBundle`, extends
-  `kintai\Core\BundleContract\Bundle`). `register()` binds
+  `App\Bundles\Bundle`). `register()` binds
   `DailyReportRepositoryInterface` to `DatabaseDailyReportRepository` as a
   singleton, then wires four Kintai Core services this bundle depends on but
   doesn't own — `DailyReportPermissionService`, `DailyReportPdfService`
@@ -77,7 +77,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   `DailyReportAutoValidateService` (the cron auto-validate job) — before
   calling `loadViewsFrom(..., 'daily-report')` and `loadRoutesFrom(routes.php)`.
   Only `DailyReportRepositoryInterface` is owned by this bundle; the four
-  services above stay in Kintai Core (`kintai\Core\Services\*`) because
+  services above stay in Kintai Core (`App\Services\*`) because
   nothing else currently depends on them, but they're still Core-resident —
   don't assume the whole feature moves with this repo.
 - `routes.php` — three groups: `/admin/stores/{id}/daily-reports*` (create,

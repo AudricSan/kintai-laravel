@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Cron;
+namespace Tests\Bundles\DailyReport\Cron;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Core\Auth\PermissionService;
+use App\Auth\PermissionService;
 use kintai\Bundles\Installed\DailyReport\Cron\AutoValidateJob;
-use kintai\Core\Mail\MailerService;
+use App\Mail\MailerService;
 use Illuminate\Http\Request;
-use kintai\Core\Services\AuditLogger;
+use App\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Core\Services\TranslationService;
+use App\Services\TranslationService;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Core\Repositories\LanguageRepositoryInterface;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\ShiftRepositoryInterface;
-use kintai\Core\Repositories\ShiftTypeRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\TranslationRepositoryInterface;
-use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\UI\ViewRenderer;
+use App\Repositories\LanguageRepositoryInterface;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\ShiftRepositoryInterface;
+use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\TranslationRepositoryInterface;
+use App\Repositories\UserRepositoryInterface;
+use App\View\ViewRenderer;
 
 final class AutoValidateJobTest extends TestCase
 {
@@ -61,8 +61,8 @@ final class AutoValidateJobTest extends TestCase
                 $this->createStub(TranslationRepositoryInterface::class),
                 $this->createStub(LanguageRepositoryInterface::class),
             ),
-            new \kintai\Core\Services\UserSelection(
-                $this->createStub(\kintai\Core\Repositories\StoreUserRepositoryInterface::class),
+            new \App\Services\UserSelection(
+                $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
                 $users,
                 new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
             ),

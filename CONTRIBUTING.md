@@ -30,7 +30,7 @@ same terms.
 - Persistence goes through `DailyReportRepositoryInterface` (bound in
   `DailyReportBundle::registerServices()`) — controllers never touch storage
   directly. PDF/mail/permission/auto-validate logic lives in Kintai Core
-  services (`kintai\Core\Services\DailyReport*`), not in this repo — see
+  services (`App\Services\DailyReport*`), not in this repo — see
   [CLAUDE.md](CLAUDE.md#architecture)
 - Comments in code are written in French; everything else (commit messages,
   PR descriptions, docs) in English

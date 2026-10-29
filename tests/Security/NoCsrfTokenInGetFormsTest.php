@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Security;
+namespace Tests\Bundles\DailyReport\Security;
 
 use PHPUnit\Framework\TestCase;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Views;
+namespace Tests\Bundles\DailyReport\Views;
 
 use PHPUnit\Framework\TestCase;
 

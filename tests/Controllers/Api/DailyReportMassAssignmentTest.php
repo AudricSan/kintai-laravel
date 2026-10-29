@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\DailyReport\Controllers\Api;
+namespace Tests\Bundles\DailyReport\Controllers\Api;
 
 use kintai\Bundles\Installed\DailyReport\Controllers\Api\DailyReportController;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Core\Auth\PermissionService;
-use kintai\Core\Repositories\RoleAssignmentRepositoryInterface;
-use kintai\Core\Repositories\RoleRepositoryInterface;
-use kintai\Core\Repositories\StoreRepositoryInterface;
-use kintai\Core\Repositories\StoreUserRepositoryInterface;
+use App\Auth\PermissionService;
+use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Repositories\RoleRepositoryInterface;
+use App\Repositories\StoreRepositoryInterface;
+use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
-use kintai\Core\Services\Log;
+use App\Services\Log;
 use PHPUnit\Framework\TestCase;
 
 /**
