@@ -23,7 +23,7 @@ use Tests\Support\FakeBundleManagerFactory;
 use Tests\Support\FakeClaimsProvider;
 use Tests\Support\FakePendingTimeoffProvider;
 use App\Http\Controllers\HomeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,8 +36,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
 {
     protected function setUp(): void
     {
-        $this->ensureViewFile('dashboard.index', '<?php ?>');
-        $this->ensureViewFile('layout.app', "<?php echo json_encode(['stats' => \$stats]);");
+        $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['stats' => \$stats]);");
     }
 
     protected function tearDown(): void
@@ -83,7 +82,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
         $container->instance(StoreRepositoryInterface::class, $storesRepo);
 
         return new HomeController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
             $shiftsRepo,

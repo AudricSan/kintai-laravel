@@ -11,14 +11,14 @@ use App\Services\AuditLogger;
 use App\Services\InstanceLocale;
 use App\Services\TranslationManagementService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class LanguageController
 {
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly LanguageRepositoryInterface $languages,
         private readonly TranslationManagementService $translationManagement,
         private readonly AuditLogger $auditLogger,
@@ -28,14 +28,14 @@ final class LanguageController
     public function index(Request $request): Response
     {
 
-        return response($this->view->render('system.languages', [
+        return response($this->view->make('system.languages', [
             'title'     => __('languages'),
             'languages' => $this->languages->findAll(),
             // Langue de l'instance (APP_LOCALE) : choisie dans les paramètres de l'instance, plus ici.
             'instance_locale' => InstanceLocale::resolve($this->languages),
             'error'     => $request->query('error'),
             'success'   => $request->query('success'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/languages */
@@ -121,7 +121,7 @@ final class LanguageController
         $code = (string) $request->route('code');
         $lang = $this->languages->findByCode($code);
         if (!$lang) {
-            return response($this->view->render('errors.404', ['title' => '404'], 'layout.app'), 404);
+            return response($this->view->make('errors.404', ['title' => '404'])->render(), 404);
         }
 
         $search  = trim((string) $request->query('q', ''));
@@ -130,7 +130,7 @@ final class LanguageController
 
         $result = $this->translationManagement->browseKeys($code, $search, $page, $perPage);
 
-        return response($this->view->render('system.language-edit', [
+        return response($this->view->make('system.language-edit', [
             'title'    => __('edit_translations') . ' — ' . $lang['name'],
             'language' => $lang,
             'items'    => $result['items'],
@@ -140,7 +140,7 @@ final class LanguageController
             'perPage'  => $perPage,
             'error'    => $request->query('error'),
             'success'  => $request->query('success'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/languages/{code}/edit/save (AJAX) — upsert d'une clé (ajout ou modification). */

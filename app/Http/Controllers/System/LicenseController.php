@@ -15,14 +15,14 @@ use App\Services\SetupWizard;
 use App\SessionFlash;
 use App\Services\PlanLimitService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class LicenseController
 {
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly LicenseClientService $license,
         private readonly AuditLogger $auditLogger,
         private readonly PlanLimitService $planLimits,
@@ -43,7 +43,7 @@ final class LicenseController
             fn(string $slug) => $this->features->isEnabled($slug),
         ));
 
-        return response($this->view->render('system.license', [
+        return response($this->view->make('system.license', [
             'title'            => __('license'),
             'configured'       => $this->license->isConfigured(),
             'licenseKey'       => $this->license->licenseKey(),
@@ -57,7 +57,7 @@ final class LicenseController
             'currentEmployees' => $this->planLimits->currentEmployeeCount(),
             'maxBundles'       => $this->planLimits->maxActiveBundles(),
             'currentBundles'   => $activeBundleCount,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/license/activate */

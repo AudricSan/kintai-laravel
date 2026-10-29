@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Routing\Routes;
 use App\Services\EmployeeStatsService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Middleware d'authentification.
@@ -44,7 +44,7 @@ final class AuthMiddleware
         $request->attributes->set('auth_user', $user);
 
         // Partage avec toutes les vues (pour le layout)
-        $view = $this->container->make(ViewRenderer::class);
+        $view = $this->container->make(ViewFactory::class);
         $view->share('auth_user', $user);
         $view->share('auth_is_manager', $auth->isManager());
 

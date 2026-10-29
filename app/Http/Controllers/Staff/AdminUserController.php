@@ -28,7 +28,7 @@ use App\Services\PdfCjkFontResolver;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Validation\ColorRule;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use App\Http\Controllers\HasAdminAccess;
 use App\Routing\EmployeeRouteBinder;
 
@@ -36,7 +36,7 @@ final class AdminUserController
 {
     use HasAdminAccess;
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
@@ -219,7 +219,7 @@ final class AdminUserController
             };
         });
 
-        return response($this->view->render('staff.users', [
+        return response($this->view->make('staff.users', [
             'title'            => 'Personnel',
             'users'            => $users,
             'user_stats'       => $userStats,
@@ -233,7 +233,7 @@ final class AdminUserController
             'user_store_map'   => $userStoreMap,
             'filter_store_id'  => $filterStoreId,
             'filter_search'    => $search,
-        ], 'layout.app'));
+        ])->render());
     }
 
     // -------------------------------------------------------------------------
@@ -263,11 +263,11 @@ final class AdminUserController
         $storeId = (int) ($request->query('store_id') ?? 0);
         $downloadUrl = $this->base() . '/admin/users/export/pdf/download' . ($storeId !== 0 ? '?store_id=' . $storeId : '');
 
-        $html = $this->view->render('staff.users-export-pdf', [
+        $html = $this->view->make('staff.users-export-pdf', [
             'rows'         => $rows,
             'generated_at' => date('Y-m-d H:i'),
             'downloadUrl'  => $downloadUrl,
-        ]);
+        ])->render();
 
         return response($html);
     }
@@ -276,10 +276,10 @@ final class AdminUserController
     {
         $rows = $this->usersForExport($request);
 
-        $html = $this->view->render('staff.users-export-pdf', [
+        $html = $this->view->make('staff.users-export-pdf', [
             'rows'         => $rows,
             'generated_at' => date('Y-m-d H:i'),
-        ]);
+        ])->render();
 
         $tmpDir = storage_path('app/mpdf');
         if (!is_dir($tmpDir)) {
@@ -411,14 +411,14 @@ final class AdminUserController
 
     public function createUser(Request $request): Response
     {
-        return response($this->view->render('staff.users-form', [
+        return response($this->view->make('staff.users-form', [
             'title'                 => 'Nouvel utilisateur',
             'mode'                  => 'create',
             'user'                  => [],
             'all_stores'            => $this->availableStores($this->managedIds($request)),
             'all_roles'             => $this->roleSync->allRoles(),
             'default_store_role_id' => (int) ($this->roleSync->defaultStoreRole()['id'] ?? 0),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeUser(Request $request): Response
@@ -752,7 +752,7 @@ final class AdminUserController
 
         $this->auditLogger->log($request, 'user.viewed', 'user', $userId, [], $userStoreIds[0] ?? null);
 
-        return response($this->view->render('staff.users-form', [
+        return response($this->view->make('staff.users-form', [
             'title'            => 'Modifier ' . htmlspecialchars($user['display_name'] ?? ''),
             'mode'             => 'edit',
             'user'             => $user,
@@ -767,7 +767,7 @@ final class AdminUserController
             'assignable_roles'      => $this->roleSync->assignableStoreRoles(),
             'default_store_role_id' => (int) ($this->roleSync->defaultStoreRole()['id'] ?? 0),
             'owner_role_name'       => (string) ($this->roleSync->ownerRole()['name'] ?? __('admin')),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function updateUser(Request $request): Response

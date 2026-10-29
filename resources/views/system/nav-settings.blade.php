@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -126,3 +128,5 @@ echo Flash::fromQuery('success', ['default' => __('operation_success'), '1' => _
 
 <script src="{!! $BASE_URL !!}/assets/js/modules/nav-order.js"></script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/bottom-nav-config.js"></script>
+
+@endsection

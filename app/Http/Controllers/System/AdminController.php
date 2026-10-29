@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AdminController
 {
@@ -20,7 +20,7 @@ final class AdminController
 
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserNavPrefsRepositoryInterface $navPrefs,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -43,14 +43,14 @@ final class AdminController
         $bottomNavSaved   = \App\Extension\Navigation::migrateLegacyMobileKeys($this->navPrefs->getBottomNavItems($userId));
         $bottomNavItems   = !empty($bottomNavSaved) ? $bottomNavSaved : \App\Extension\Navigation::MOBILE_DEFAULT_MANAGER;
 
-        return response($this->view->render('system.nav-settings', [
+        return response($this->view->make('system.nav-settings', [
             'hidden'          => $hidden,
             'isOwner'         => $isOwner,
             'sectionOrder'    => $sectionOrder,
             'defaultSections' => $defaultSections,
             'bottomNavItems'  => $bottomNavItems,
             'title'           => __('nav_settings'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function saveNavSettings(Request $request): Response

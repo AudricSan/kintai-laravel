@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Flash;
 use App\View\Components\Badge;
@@ -20,8 +22,8 @@ echo Flash::fromQuery('error', [
     <h2 class="page-header__title">{!! __('bundle_registries') !!} <span class="page-count">({!! count($registries) !!})</span></h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
-@includeInScope('system._bundle-tabs')
+@include('_partials._settings-tabs')
+@include('system._bundle-tabs')
 
 <div class="card card--mb">
     <div class="card-body">
@@ -80,3 +82,5 @@ echo Flash::fromQuery('error', [
         </form>
     </div>
 </div>
+
+@endsection

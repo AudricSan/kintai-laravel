@@ -7,7 +7,7 @@ namespace App\Extension;
 use kintai\Contract\Extension\ShiftFormSection;
 use Illuminate\Container\Container;
 use App\Services\Log;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Sections du formulaire de shift apportées par les bundles actifs (point d'extension Bundle::shiftFormSections(),
@@ -82,7 +82,7 @@ final class ShiftFormSections
      * @param array<string, mixed>   $shift
      * @param callable(string): bool $feat  Fonctionnalité par magasin active ?
      */
-    public function renderFields(array $shift, string $mode, callable $feat, ?ViewRenderer $view = null): string
+    public function renderFields(array $shift, string $mode, callable $feat, ?ViewFactory $view = null): string
     {
         return $this->render('view', $shift, $mode, $feat, $view);
     }
@@ -93,15 +93,15 @@ final class ShiftFormSections
      * @param array<string, mixed>   $shift
      * @param callable(string): bool $feat
      */
-    public function renderActions(array $shift, callable $feat, ?ViewRenderer $view = null): string
+    public function renderActions(array $shift, callable $feat, ?ViewFactory $view = null): string
     {
         return $this->render('actionsView', $shift, 'edit', $feat, $view);
     }
 
-    private function render(string $which, array $shift, string $mode, callable $feat, ?ViewRenderer $view): string
+    private function render(string $which, array $shift, string $mode, callable $feat, ?ViewFactory $view): string
     {
         try {
-            $view ??= Container::getInstance()->make(ViewRenderer::class);
+            $view ??= Container::getInstance()->make(ViewFactory::class);
         } catch (\Throwable) {
             return '';
         }
@@ -113,7 +113,7 @@ final class ShiftFormSections
             }
             $level = ob_get_level();
             try {
-                $html .= $view->renderPartial($name, ['shift' => $shift, 'mode' => $mode, 'BASE_URL' => base_url()]);
+                $html .= $view->make($name, ['shift' => $shift, 'mode' => $mode, 'BASE_URL' => base_url()])->render();
             } catch (\Throwable $e) {
                 // Une vue qui lève une exception laisse ouvert le tampon de sortie de renderPartial.
                 while (ob_get_level() > $level) {

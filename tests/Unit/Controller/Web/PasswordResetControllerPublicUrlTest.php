@@ -13,7 +13,7 @@ use App\Services\AppSettingsService;
 use App\Services\PasswordResetService;
 use App\Services\PublicUrlResolver;
 use App\Http\Controllers\PasswordResetController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -63,7 +63,7 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
             new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
         );
 
-        return new PasswordResetController(new ViewRenderer($this->viewDir), $service, new PublicUrlResolver(new AppSettingsService($repo), $env));
+        return new PasswordResetController(kintai_test_views($this->viewDir), $service, new PublicUrlResolver(new AppSettingsService($repo), $env));
     }
 
     private function request(): Request

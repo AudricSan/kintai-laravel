@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\TimesheetService;
 use App\Http\Controllers\HasAdminAccess;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Feuilles de temps : pour un magasin et une semaine, les shifts prévus comparés aux pointages (TimesheetService),
@@ -28,7 +28,7 @@ final class AdminTimesheetController
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -63,7 +63,7 @@ final class AdminTimesheetController
             $canApprove = $this->permissions->can($user, 'shifts.update', $storeId);
         }
 
-        return response($this->view->render('scheduling.timesheets', [
+        return response($this->view->make('scheduling.timesheets', [
             'title'          => __('timesheets'),
             'stores_map'     => array_column(array_map(static fn(array $s): array => ['id' => (int) $s['id'], 'name' => (string) ($s['name'] ?? '#' . $s['id'])], $stores), 'name', 'id'),
             'store_id'       => $storeId,
@@ -74,7 +74,7 @@ final class AdminTimesheetController
             'can_approve'    => $canApprove,
             'users_map'      => $this->buildUsersMap(),
             'has_attendance' => $this->hasAttendanceProvider(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** GET /admin/timesheets/export?store_id=&week= — la semaine en CSV (une ligne par shift ou pointage). */

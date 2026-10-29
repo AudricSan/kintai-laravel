@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -594,7 +596,7 @@ ob_start();
             @php $shift ??= []; $all_stores ??= $available_stores ?? []; @endphp
             <form id="qc-form" method="POST" action="{!! route_url('admin.shifts.create') !!}">
                 {!! csrf_field() !!}                <input type="hidden" name="redirect_to" value="{{ $_SERVER['REQUEST_URI'] ?? '' }}">
-                @includeInScope('_partials._form-shift')
+                @include('_partials._form-shift')
                 <div class="form-actions">
                     {!! Button::make(__('create'))->primary()->attrs(['type' => 'submit', 'id' => 'qc-submit'])->render() !!}                    {!! Button::make(__('cancel'))->ghost()->attrs(['data-on-click' => 'sdQcClose'])->render() !!}                </div>
             </form>
@@ -649,3 +651,5 @@ ob_start();
 <script src="{!! $BASE_URL !!}/assets/js/modules/timeline-diag.js"></script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/timeline-drag.js"></script>
 @endif
+
+@endsection

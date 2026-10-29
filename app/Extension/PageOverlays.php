@@ -7,7 +7,7 @@ namespace App\Extension;
 use kintai\Contract\Extension\PageOverlay;
 use Illuminate\Container\Container;
 use App\Services\WidgetGuard;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Fenêtres par-dessus les pages, déclarées par les bundles actifs (Bundle::pageOverlays(), contrat 1.27). Une seule est
@@ -76,7 +76,7 @@ final class PageOverlays
      * @param callable(?string): bool  $feat    Fonctionnalité par magasin active ?
      * @return array{key: string, html: string, dismissible: bool, session_only: bool, placement: string}|null
      */
-    public function render(array $context, ViewRenderer $view, callable $can, callable $feat): ?array
+    public function render(array $context, ViewFactory $view, callable $can, callable $feat): ?array
     {
         if (!self::allowedOn((string) ($context['path'] ?? ''))) {
             return null;
@@ -97,10 +97,10 @@ final class PageOverlays
                 }
                 $level = ob_get_level();
                 try {
-                    return $view->renderPartial($overlay->view, $data + [
+                    return $view->make($overlay->view, $data + [
                         'overlay_key'      => $overlay->key,
                         'overlay_title_id' => 'page-overlay-' . $overlay->key . '-title',
-                    ]);
+                    ])->render();
                 } finally {
                     // Une vue qui lève une exception laisse son tampon ouvert : on le referme sans l'afficher.
                     while (ob_get_level() > $level) {

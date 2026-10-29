@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Button;
@@ -374,3 +376,5 @@ $dowLabels ??= [__('mon_abbr'), __('tue_abbr'), __('wed_abbr'), __('thu_abbr'), 
 
 @endif
 <script src="{!! $BASE_URL !!}/assets/js/modules/stats-charts.js"></script>
+
+@endsection

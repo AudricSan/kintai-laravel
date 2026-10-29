@@ -25,14 +25,14 @@ use App\Services\SchedulePublication;
 use App\Services\StoreServiceInterface;
 use App\Services\StoreStatsServiceInterface;
 use App\Routing\RouteSlugService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AdminStoreController
 {
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -67,11 +67,11 @@ final class AdminStoreController
         $sort   = $request->query('sort') ?? 'name_asc';
         $stores = $this->storeService->getStoresForAdmin($this->managedIds($request), $sort);
 
-        return response($this->view->render('staff.stores', [
+        return response($this->view->make('staff.stores', [
             'title'  => 'Stores',
             'stores' => $stores,
             'sort'   => $sort,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function createStore(Request $request): Response
@@ -80,12 +80,12 @@ final class AdminStoreController
             throw new ForbiddenException(__('error_owner_only_create_store'));
         }
 
-        return response($this->view->render('staff.stores-form', [
+        return response($this->view->make('staff.stores-form', [
             'title'                 => 'Nouveau store',
             'mode'                  => 'create',
             'store'                 => [],
             'featureCards'          => $this->storeFeatureCards(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeStore(Request $request): Response
@@ -155,7 +155,7 @@ final class AdminStoreController
             fn($u) => !in_array((int) $u['id'], $memberUserIds, true) && !empty($u['is_active'])
         ));
 
-        return response($this->view->render('staff.stores-form', [
+        return response($this->view->make('staff.stores-form', [
             'title'             => 'Modifier ' . htmlspecialchars($store['name'] ?? ''),
             'mode'              => 'edit',
             'store'             => $store,
@@ -169,7 +169,7 @@ final class AdminStoreController
             'importSettings'    => $this->stores->getImportSettings($storeId),
             'routeSlug'         => $this->routeSlugs?->currentStoreSlug($storeId),
             'featureCards'          => $this->storeFeatureCards(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function updateStore(Request $request): Response
@@ -419,14 +419,14 @@ final class AdminStoreController
         $user = $this->users->findById((int) $membership['user_id']);
         if ($user === null) throw new NotFoundException(__('error_user_not_found'));
 
-        return response($this->view->render('staff.member-deductions', [
+        return response($this->view->make('staff.member-deductions', [
             'title'              => 'Cotisations — ' . ($user['display_name'] ?? $user['email'] ?? ''),
             'store'              => $store,
             'membership'         => $membership,
             'user'               => $user,
             'deductionSettings'  => $this->storeService->getDeductionSettings($storeId),
             'deductionOverrides' => $this->storeService->getDeductionOverrides($mid),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function saveMemberDeductions(Request $request): Response
@@ -475,13 +475,13 @@ final class AdminStoreController
 
         $stats = $this->storeStatsService->storeStats($storeId, $period, $minShiftMin, $maxShiftMin);
 
-        return response($this->view->render('analytics.store-stats', array_merge($stats, [
+        return response($this->view->make('analytics.store-stats', array_merge($stats, [
             'title'        => 'Statistiques — ' . ($store['name'] ?? ''),
             'store'        => $store,
             'currency'     => $store['currency'] ?? 'EUR',
             'minShiftMin'  => $minShiftMin,
             'maxShiftMin'  => $maxShiftMin,
-        ]), 'layout.app'));
+        ]))->render());
     }
 
     public function storeStatsExport(Request $request): Response
@@ -594,7 +594,7 @@ final class AdminStoreController
         $data     = $this->storeStatsService->storeProfitability($storeId, $from, $to);
         $currency = currency_symbol($store['currency'] ?? 'EUR', store_currency_style($store));
 
-        return response($this->view->render('analytics.store-profitability', array_merge($data, [
+        return response($this->view->make('analytics.store-profitability', array_merge($data, [
             'title'    => 'Rentabilité — ' . ($store['name'] ?? ''),
             'store'    => $store,
             'currency' => $currency,
@@ -604,7 +604,7 @@ final class AdminStoreController
             // Lien vers les rapports journaliers du magasin, si le bundle qui les fournit est là.
             'daily_reports_url' => \App\Http\Routing\Routes::byName('admin.daily_reports.index') !== null
                 ? $this->base() . '/admin/stores/' . $storeId . '/daily-reports' : null,
-        ]), 'layout.app'));
+        ]))->render());
     }
 
     public function employeeStats(Request $request): Response
@@ -634,13 +634,13 @@ final class AdminStoreController
 
         $empName        = trim(($user['last_name'] ?? '') . ' ' . ($user['first_name'] ?? '')) ?: ($user['email'] ?? '');
 
-        return response($this->view->render('staff.employee-stats', array_merge($data, [
+        return response($this->view->make('staff.employee-stats', array_merge($data, [
             'title'           => 'Statistiques — ' . $empName,
             'store'           => $store,
             'user'            => $user,
             'membership'      => $membership,
             'currency'        => $store['currency'] ?? 'EUR',
-        ]), 'layout.app'));
+        ]))->render());
     }
 
     public function employeeReport(Request $request): Response
@@ -656,11 +656,11 @@ final class AdminStoreController
         $period = max(7, min(365, (int) ($request->query('period') ?? 30)));
         $data   = $this->storeStatsService->employeeReport($storeId, $period);
 
-        return response($this->view->render('staff.employee-report', array_merge($data, [
+        return response($this->view->make('staff.employee-report', array_merge($data, [
             'title'    => 'Rapport employés — ' . ($store['name'] ?? ''),
             'store'    => $store,
             'currency' => $store['currency'] ?? 'EUR',
-        ]), 'layout.app'));
+        ]))->render());
     }
 
 }

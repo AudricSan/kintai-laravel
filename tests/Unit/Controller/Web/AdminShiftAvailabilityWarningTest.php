@@ -20,7 +20,7 @@ use App\Services\AvailabilityGuard;
 use App\Services\NotificationService;
 use App\Services\ShiftServiceInterface;
 use App\Http\Controllers\Scheduling\AdminShiftController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -61,7 +61,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
         $this->shifts->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 1]);
 
         $this->controller = new AdminShiftController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->shifts,

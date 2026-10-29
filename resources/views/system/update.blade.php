@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -31,7 +33,7 @@ $channels = ['release' => __('update_channel_release'), 'beta' => __('update_cha
     <h2 class="page-header__title">{!! __('update_title') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 @php
 ob_start();
@@ -181,3 +183,5 @@ ob_start();
 @endif
 
 <script src="{!! $BASE_URL !!}/assets/js/modules/backup-update.js"></script>
+
+@endsection

@@ -9,7 +9,7 @@ use App\Auth\AuthService;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Rappelle de changer le mot de passe par défaut « 0000 » (ou un mot de passe trop court), sans bloquer
@@ -48,7 +48,7 @@ final class PasswordReminderMiddleware
             // La fenêtre est réservée à une vraie page : un appel AJAX (notifications…) ne doit pas la consommer.
             $popup = $request->method() === 'GET' && !$request->wantsJsonResponse() && $auth->consumePasswordReminder();
 
-            $view = $this->container->make(ViewRenderer::class);
+            $view = $this->container->make(ViewFactory::class);
             $view->share('password_change_recommended', $recommended);
             $view->share('password_reminder_popup', $popup);
         } catch (\Throwable) {

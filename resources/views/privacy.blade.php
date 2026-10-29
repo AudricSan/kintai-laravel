@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /**
  * @var string $BASE_URL
@@ -42,3 +44,5 @@
         <p>{!! __('privacy_contact_body') !!}</p>
     </div>
 </div>
+
+@endsection

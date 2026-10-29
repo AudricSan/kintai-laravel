@@ -23,7 +23,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
 use App\Http\Controllers\AuthController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -105,7 +105,7 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $languages->method('findDefault')->willReturn(['code' => 'fr']);
 
         $this->controller = new AuthController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $this->users,

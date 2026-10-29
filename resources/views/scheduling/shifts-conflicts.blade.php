@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -250,3 +252,5 @@ echo $tsTable->render();
 @endif
 
 <script src="{!! $BASE_URL !!}/assets/js/modules/type-badges.js"></script>
+
+@endsection

@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class ActivityController
 {
@@ -23,7 +23,7 @@ final class ActivityController
     private const PURGE_KEEP_DAYS = ['0', '7', '30', '90', '180', '365'];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly LogRepositoryInterface $logs,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
@@ -65,7 +65,7 @@ final class ActivityController
 
         $totalPages = (int) ceil($total / $perPage);
 
-        return response($this->view->render('system.activity-log', [
+        return response($this->view->make('system.activity-log', [
             'title'          => 'Journal d\'activité',
             'tab'            => 'activity',
             'rows'           => $rows,
@@ -83,7 +83,7 @@ final class ActivityController
             'purged'         => $request->query('purged') !== null ? max(0, (int) $request->query('purged')) : null,
             'purge_error'    => $request->query('purge_error') !== null,
             'purge_options'  => array_map('intval', self::PURGE_KEEP_DAYS),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -194,13 +194,13 @@ final class ActivityController
             }
         }
 
-        return response($this->view->render('system.activity-log', [
+        return response($this->view->make('system.activity-log', [
             'title'      => 'Fichier error.log',
             'tab'        => 'error-file',
             'err_content' => $content,
             'err_lines'  => $lines,
             'err_path'   => $path,
             'err_size'   => file_exists($path) ? filesize($path) : 0,
-        ], 'layout.app'));
+        ])->render());
     }
 }

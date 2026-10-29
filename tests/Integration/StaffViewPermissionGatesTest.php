@@ -9,7 +9,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use Illuminate\Container\Container;
 use Tests\Support\FakeBundleManagerFactory;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -22,11 +22,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class StaffViewPermissionGatesTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
+        $this->view = kintai_test_views(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         $router->get('/admin/users', [\stdClass::class, 'x'], name: 'admin.users');
@@ -48,7 +48,7 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testUsersListHidesCreateButtonAndRowActionsWithoutPermissions(): void
     {
-        $html = $this->view->renderPartial('staff.users', [
+        $html = $this->view->make('staff.users', [
             'BASE_URL'         => '',
             'users'            => [['id' => 5, 'display_name' => 'Jean Dupont', 'email' => 'j@d.com', 'is_admin' => 0, 'is_active' => 1]],
             'user_stats'       => [],
@@ -57,7 +57,7 @@ final class StaffViewPermissionGatesTest extends TestCase
             'user_store_ids'   => [],
             'user_store_map'   => [5 => 1],
             'user_can'         => $this->canFn([]),
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('/admin/users/create', $html);
         $this->assertStringNotContainsString('employee-report/5/stats', $html);
@@ -101,7 +101,7 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     private function renderUsersWithAllPermissions(): string
     {
-        return $this->view->renderPartial('staff.users', [
+        return $this->view->make('staff.users', [
             'BASE_URL'         => '',
             'users'            => [['id' => 5, 'display_name' => 'Jean Dupont', 'email' => 'j@d.com', 'is_admin' => 0, 'is_active' => 1]],
             'user_stats'       => [],
@@ -110,7 +110,7 @@ final class StaffViewPermissionGatesTest extends TestCase
             'user_store_ids'   => [],
             'user_store_map'   => [5 => 1],
             'user_can'         => $this->canFn(['employees.create', 'payroll.view', 'payroll.generate', 'resignation_reports.create']),
-        ]);
+        ])->render();
     }
 
     // -------------------------------------------------------------------------
@@ -119,11 +119,11 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testStoresListHidesCreateButtonAndActionsWithoutPermissions(): void
     {
-        $html = $this->view->renderPartial('staff.stores', [
+        $html = $this->view->make('staff.stores', [
             'BASE_URL' => '',
             'stores'   => [['id' => 1, 'name' => 'Store A', 'code' => 'A', 'is_active' => 1]],
             'user_can' => $this->canFn([]),
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('/admin/stores/create', $html);
         $this->assertStringNotContainsString('/admin/stores/1/stats', $html);
@@ -133,11 +133,11 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testStoresListShowsCreateAndDeleteWhenGranted(): void
     {
-        $html = $this->view->renderPartial('staff.stores', [
+        $html = $this->view->make('staff.stores', [
             'BASE_URL' => '',
             'stores'   => [['id' => 1, 'name' => 'Store A', 'code' => 'A', 'is_active' => 1]],
             'user_can' => $this->canFn(['stores.create', 'stores.delete', 'payroll.view']),
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('/admin/stores/create', $html);
         $this->assertStringContainsString('/admin/stores/1/stats', $html);
@@ -150,7 +150,7 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testStoresFormHidesMemberManagementFormsWithoutPermissions(): void
     {
-        $html = $this->view->renderPartial('staff.stores-form', [
+        $html = $this->view->make('staff.stores-form', [
             'BASE_URL' => '',
             'mode'     => 'edit',
             'store'    => ['id' => 1, 'name' => 'Store A'],
@@ -158,7 +158,7 @@ final class StaffViewPermissionGatesTest extends TestCase
             'available' => [['id' => 20, 'first_name' => 'Paul', 'last_name' => 'Martin', 'email' => 'p@m.com']],
             'assignable_roles' => [['id' => 2, 'name' => 'Manager']],
             'user_can' => $this->canFn([]),
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('/members/10/role', $html);
         $this->assertStringNotContainsString('/members/10/deductions', $html);
@@ -168,7 +168,7 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testStoresFormShowsMemberManagementFormsWhenGranted(): void
     {
-        $html = $this->view->renderPartial('staff.stores-form', [
+        $html = $this->view->make('staff.stores-form', [
             'BASE_URL' => '',
             'mode'     => 'edit',
             'store'    => ['id' => 1, 'name' => 'Store A'],
@@ -176,7 +176,7 @@ final class StaffViewPermissionGatesTest extends TestCase
             'available' => [['id' => 20, 'first_name' => 'Paul', 'last_name' => 'Martin', 'email' => 'p@m.com']],
             'assignable_roles' => [['id' => 2, 'name' => 'Manager']],
             'user_can' => $this->canFn(['employees.update', 'payroll.view']),
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('/members/10/role', $html);
         $this->assertStringContainsString('/members/10/deductions', $html);
@@ -189,13 +189,13 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testUsersFormIsReadOnlyWithoutUpdatePermission(): void
     {
-        $html = $this->view->renderPartial('staff.users-form', [
+        $html = $this->view->make('staff.users-form', [
             'BASE_URL' => '',
             'mode'     => 'edit',
             'user'     => ['id' => 5, 'display_name' => 'Jean Dupont'],
             'user_memberships' => [],
             'user_can' => $this->canFn(['employees.view']),
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('readonly_no_permission_notice', $html);
         $this->assertStringContainsString('<fieldset disabled', $html);
@@ -203,13 +203,13 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     public function testUsersFormIsEditableWithUpdatePermission(): void
     {
-        $html = $this->view->renderPartial('staff.users-form', [
+        $html = $this->view->make('staff.users-form', [
             'BASE_URL' => '',
             'mode'     => 'edit',
             'user'     => ['id' => 5, 'display_name' => 'Jean Dupont'],
             'user_memberships' => [],
             'user_can' => $this->canFn(['employees.view', 'employees.update']),
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('readonly_no_permission_notice', $html);
         $this->assertStringNotContainsString('<fieldset disabled', $html);
@@ -219,13 +219,13 @@ final class StaffViewPermissionGatesTest extends TestCase
     {
         // En création, aucune permission d'update préexistante à vérifier :
         // employees.create a déjà été validé par PermissionMiddleware pour atteindre la page.
-        $html = $this->view->renderPartial('staff.users-form', [
+        $html = $this->view->make('staff.users-form', [
             'BASE_URL' => '',
             'mode'     => 'create',
             'user'     => [],
             'user_memberships' => [],
             'user_can' => $this->canFn([]),
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('readonly_no_permission_notice', $html);
         $this->assertStringNotContainsString('<fieldset disabled', $html);
@@ -270,12 +270,12 @@ final class StaffViewPermissionGatesTest extends TestCase
 
     private function renderEmployeeStats(): string
     {
-        return $this->view->renderPartial('staff.employee-stats', [
+        return $this->view->make('staff.employee-stats', [
             'BASE_URL' => '', 'store' => ['id' => 4, 'name' => 'Shibuya'], 'user' => ['id' => 9, 'last_name' => 'Sato', 'first_name' => 'Hanako'],
             'membership' => ['role_name' => 'Staff', 'role_is_managing' => false], 'period' => 30, 'since' => '2026-09-14',
             'today' => '2026-10-14', 'currency' => 'JPY', 'totalShifts' => 0, 'grossHours' => 0.0, 'netHours' => 0.0, 'cost' => 0.0,
             'anyRate' => false, 'workDays' => 0, 'absDays' => 0, 'maxConsec' => 0, 'swapCount' => 0, 'monthlyHours' => [],
             'typeHours' => [], 'dowChart' => [], 'recentShifts' => [], 'storeTypesMap' => [], 'user_can' => $this->canFn([]),
-        ]);
+        ])->render();
     }
 }

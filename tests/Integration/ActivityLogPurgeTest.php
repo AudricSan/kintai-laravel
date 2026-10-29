@@ -11,7 +11,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\System\ActivityController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /** Purge manuelle du journal d'activité : par ancienneté ou totale, sur une vraie base SQLite en mémoire. */
@@ -44,7 +44,7 @@ final class ActivityLogPurgeTest extends TestCase
     {
         $users = $this->createStub(UserRepositoryInterface::class);
 
-        return new ActivityController(new ViewRenderer(sys_get_temp_dir()), $this->logs, $users, new AuditLogger());
+        return new ActivityController(kintai_test_views(sys_get_temp_dir()), $this->logs, $users, new AuditLogger());
     }
 
     private function purgeRequest(string $keepDays): Request

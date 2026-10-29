@@ -16,7 +16,7 @@ use App\Services\EnvFileWriter;
 use App\Services\InstanceLocale;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Http\Controllers\System\OwnerSettingsController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 final class OwnerSettingsControllerTest extends TestCase
@@ -65,7 +65,7 @@ final class OwnerSettingsControllerTest extends TestCase
             }
         });
 
-        $view = new ViewRenderer(sys_get_temp_dir());
+        $view = kintai_test_views(sys_get_temp_dir());
 
         $settings = new AppSettingsService($repo);
 
@@ -292,7 +292,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $settings = (new \ReflectionProperty($base, 'settings'))->getValue($base);
 
         return new OwnerSettingsController(
-            new ViewRenderer(sys_get_temp_dir()), $settings, new AuditLogger(), new PublicUrlResolver($settings, ''),
+            kintai_test_views(sys_get_temp_dir()), $settings, new AuditLogger(), new PublicUrlResolver($settings, ''),
             new InstanceLocale($languages, new EnvFileWriter($envDir)), $languages,
         );
     }

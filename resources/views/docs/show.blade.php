@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /** @var string      $lang           Langue courante ('fr'|'en'|'ja') */
 /** @var string      $page           Slug de la page courante (sans extension) */
@@ -127,3 +129,5 @@ function syncWiki() {
 }
 </script>
 @endif
+
+@endsection

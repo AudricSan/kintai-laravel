@@ -15,7 +15,7 @@ use App\Setup\MailStep;
 use App\Setup\SetupQuestionnaire;
 use App\Setup\SetupSteps;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Assistant de configuration (/admin/setup), ouvert par l'installateur : Organisation, Premier magasin, E-mail,
@@ -27,7 +27,7 @@ final class SetupWizardController
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly SetupWizard $wizard,
         private readonly LicenseClientService $license,
         private readonly AppSettingsService $settings,
@@ -210,6 +210,6 @@ final class SetupWizardController
             $data['summaries'] = $summaries;
         }
 
-        return response($this->view->render('system.setup', $data, 'layout.app'));
+        return response($this->view->make('system.setup', $data)->render());
     }
 }

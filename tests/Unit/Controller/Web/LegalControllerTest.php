@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\LegalController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 final class LegalControllerTest extends TestCase
@@ -25,7 +25,7 @@ final class LegalControllerTest extends TestCase
         file_put_contents($this->tmpViews . '/legal/license.php', 'LICENSE');
         file_put_contents($this->tmpViews . '/layout/app.php', '<?= $content ?>');
 
-        $view = new ViewRenderer($this->tmpViews);
+        $view = kintai_test_views($this->tmpViews);
         $this->controller = new LegalController($view);
     }
 

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Card;
@@ -46,3 +48,5 @@ ob_start();
 @php echo Card::make()->header(__('reset_confirm_card_title'))->body(ob_get_clean())->render(); @endphp
 
 <script nonce="{!! csp_nonce() !!}">document.getElementById('reset-download-link').click();</script>
+
+@endsection

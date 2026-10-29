@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
 use App\Http\Controllers\AuthController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -65,7 +65,7 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
         );
 
         $this->controller = new AuthController(
-            new ViewRenderer($this->viewDir),
+            kintai_test_views($this->viewDir),
             $auth,
             new AuditLogger(),
             $this->users,

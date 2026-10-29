@@ -6,17 +6,17 @@ namespace Tests\Integration;
 
 use Illuminate\Container\Container;
 use App\Http\Controllers\HomeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /** Tableaux de bord : widgets rendus dans l'ordre et la largeur de la disposition de l'utilisateur. */
 final class DashboardGridRenderTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
+        $this->view = kintai_test_views(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         foreach (['admin.dashboard.widgets', 'admin.dashboard.layout', 'admin.requests', 'admin.users', 'admin.stores', 'admin.shifts', 'admin.shift_types',
@@ -34,7 +34,7 @@ final class DashboardGridRenderTest extends TestCase
 
     public function testManagerWidgetsFollowTheLayout(): void
     {
-        $html = $this->view->renderPartial('dashboard.index', [
+        $html = $this->view->make('dashboard.index', [
             'BASE_URL'        => '',
             'stats'           => ['users' => 1, 'stores' => 1, 'shifts_today' => 0],
             'shifts_today'    => [],
@@ -45,7 +45,7 @@ final class DashboardGridRenderTest extends TestCase
                 'order'  => ['pending_timeoff', 'shifts_today', 'kpi_counters'],
                 'widths' => ['pending_timeoff' => 'half', 'shifts_today' => 'half', 'kpi_counters' => 'full'],
             ],
-        ]);
+        ])->render();
 
         $this->assertSame([['pending_timeoff', 'half'], ['shifts_today', 'half'], ['kpi_counters', 'full']], self::items($html));
         $this->assertStringContainsString('data-dash-reset', $html);
@@ -53,7 +53,7 @@ final class DashboardGridRenderTest extends TestCase
 
     public function testManagerDashboardOffersAndRendersHisEmployeeWidgets(): void
     {
-        $html = $this->view->renderPartial('dashboard.index', [
+        $html = $this->view->make('dashboard.index', [
             'BASE_URL'            => '',
             'stats'               => ['users' => 1, 'stores' => 1, 'shifts_today' => 0],
             'shifts_today'        => [],
@@ -67,7 +67,7 @@ final class DashboardGridRenderTest extends TestCase
                 'bundle'       => [],
             ],
             'widget_layout'       => ['order' => ['kpi_counters', 'emp_upcoming'], 'widths' => []],
-        ]);
+        ])->render();
 
         $this->assertSame([['kpi_counters', 'full'], ['emp_upcoming', 'full']], self::items($html));
         $this->assertStringContainsString('Shibuya', $html);
@@ -78,14 +78,14 @@ final class DashboardGridRenderTest extends TestCase
 
     public function testHiddenWidgetsAreOfferedInTheAddMenuAndShownOnesCanBeRemoved(): void
     {
-        $html = $this->view->renderPartial('employee.dashboard', [
+        $html = $this->view->make('employee.dashboard', [
             'BASE_URL'            => '',
             'shifts_today'        => [],
             'upcoming'            => [],
             'enabled_widgets'     => array_flip(['shifts_today']),
             'all_widgets'         => ['shifts_today', 'upcoming', 'monthly_stats'],
             'widget_layout'       => ['order' => ['shifts_today', 'upcoming', 'monthly_stats'], 'widths' => []],
-        ]);
+        ])->render();
 
         preg_match_all('/data-dash-add="([a-z_]+)"/', $html, $m);
         $this->assertSame(['upcoming', 'monthly_stats'], $m[1]);
@@ -96,7 +96,7 @@ final class DashboardGridRenderTest extends TestCase
 
     public function testFinancialAndHrWidgetsAreIndependentHalfWidthWidgetsByDefault(): void
     {
-        $html = $this->view->renderPartial('dashboard.index', [
+        $html = $this->view->make('dashboard.index', [
             'BASE_URL'           => '',
             'stats'              => [],
             'enabled_widgets'    => array_flip(['financial_overview', 'hr_absenteeism']),
@@ -104,7 +104,7 @@ final class DashboardGridRenderTest extends TestCase
             'financial_overview' => ['current_month' => 1.0, 'previous_month' => 1.0, 'delta_pct' => null, 'currency' => 'EUR', 'currency_style' => 'symbol', 'trend_by_month' => []],
             'hr_stats'           => ['abs_rate' => 0.0, 'timeoff_taken' => 0, 'late_count' => 0, 'overtime_weeks' => 0],
             'widget_layout'      => ['order' => HomeController::ADMIN_WIDGETS, 'widths' => HomeController::ADMIN_WIDGET_WIDTHS],
-        ]);
+        ])->render();
 
         $this->assertSame([['financial_overview', 'half'], ['hr_absenteeism', 'half']], self::items($html));
         $this->assertStringNotContainsString('dash-two-col', $html);
@@ -112,7 +112,7 @@ final class DashboardGridRenderTest extends TestCase
 
     public function testEmployeeWidgetsFollowTheLayout(): void
     {
-        $html = $this->view->renderPartial('employee.dashboard', [
+        $html = $this->view->make('employee.dashboard', [
             'BASE_URL'        => '',
             'shifts_today'    => [],
             'upcoming'        => [],
@@ -120,7 +120,7 @@ final class DashboardGridRenderTest extends TestCase
             'all_widgets'     => ['shifts_today', 'upcoming', 'monthly_stats', 'timeclock'],
             'bundle_widgets'  => [['key' => 'timeclock', 'html' => '<div class="card">pointage</div>']],
             'widget_layout'   => ['order' => ['timeclock', 'upcoming', 'shifts_today', 'monthly_stats'], 'widths' => ['upcoming' => 'half']],
-        ]);
+        ])->render();
 
         $this->assertSame([['timeclock', 'full'], ['upcoming', 'half'], ['shifts_today', 'full']], self::items($html));
     }
@@ -128,7 +128,7 @@ final class DashboardGridRenderTest extends TestCase
     /** Grille 12 colonnes : largeur et hauteur sont des classes, jamais un style en ligne ; repli et densité aussi. */
     public function testWidgetSizeFoldingAndDensityAreRenderedAsClasses(): void
     {
-        $html = $this->view->renderPartial('employee.dashboard', [
+        $html = $this->view->make('employee.dashboard', [
             'BASE_URL'        => '',
             'shifts_today'    => [],
             'upcoming'        => [],
@@ -143,7 +143,7 @@ final class DashboardGridRenderTest extends TestCase
                 'collapsed' => ['shifts_today'],
                 'density'   => 'compact',
             ],
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('class="dash-grid dash-grid--compact"', $html);
         $this->assertSame([['timeclock', '8'], ['upcoming', '4'], ['shifts_today', 'half']], self::items($html), 'la largeur est bornée par le widget (3–8)');
@@ -158,7 +158,7 @@ final class DashboardGridRenderTest extends TestCase
     /** Une ancienne disposition (« half » / « full » seulement) s'affiche comme avant. */
     public function testOldHalfAndFullLayoutsRenderAsSixAndTwelveColumns(): void
     {
-        $html = $this->view->renderPartial('employee.dashboard', [
+        $html = $this->view->make('employee.dashboard', [
             'BASE_URL'        => '',
             'shifts_today'    => [],
             'upcoming'        => [],
@@ -166,7 +166,7 @@ final class DashboardGridRenderTest extends TestCase
             'all_widgets'     => ['shifts_today', 'upcoming'],
             'bundle_widgets'  => [],
             'widget_layout'   => ['order' => ['upcoming', 'shifts_today'], 'widths' => ['upcoming' => 'half']],
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('dash-w-6 dash-h-1', $html);
         $this->assertStringContainsString('dash-w-12 dash-h-1', $html);
@@ -176,7 +176,7 @@ final class DashboardGridRenderTest extends TestCase
     /** Rafraîchissement : intervalle par widget (Core par défaut, bundle déclaré), actions d'en-tête et mode mural. */
     public function testRefreshIntervalsAndHeaderActionsAreRendered(): void
     {
-        $html = $this->view->renderPartial('employee.dashboard', [
+        $html = $this->view->make('employee.dashboard', [
             'BASE_URL'        => '',
             'shifts_today'    => [],
             'upcoming'        => [],
@@ -185,7 +185,7 @@ final class DashboardGridRenderTest extends TestCase
             'bundle_widgets'  => [['key' => 'timeclock', 'html' => '<div class="card">pointage</div>']],
             'widget_refresh'  => ['timeclock' => 45],
             'widget_layout'   => ['order' => ['shifts_today', 'monthly_stats', 'timeclock'], 'widths' => []],
-        ]);
+        ])->render();
 
         $this->assertMatchesRegularExpression('/data-widget-key="shifts_today"[^>]*data-widget-refresh="120"/s', $html);
         $this->assertMatchesRegularExpression('/data-widget-key="timeclock"[^>]*data-widget-refresh="45"/s', $html);

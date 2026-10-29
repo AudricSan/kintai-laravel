@@ -9,7 +9,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Extension\ProfileSections;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -137,7 +137,7 @@ final class ProfileSectionsTest extends TestCase
             new ProfileSection('missing', 'acme.nowhere', order: 3),
         ]]);
 
-        $html = $sections->render(['id' => 42], new ViewRenderer($this->viewDir));
+        $html = $sections->render(['id' => 42], kintai_test_views($this->viewDir));
 
         $this->assertSame(['<p>acme 42</p>'], $html);
     }

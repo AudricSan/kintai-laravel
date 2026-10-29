@@ -10,7 +10,7 @@ use App\Exceptions\ForbiddenException;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Contrôle d'accès admin + permissions fines du RBAC, en un seul middleware
@@ -56,7 +56,7 @@ final class PermissionMiddleware
 {
     public function __construct(
         private readonly PermissionService $permissions,
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 

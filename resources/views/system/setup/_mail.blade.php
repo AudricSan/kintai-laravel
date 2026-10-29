@@ -71,5 +71,5 @@ ob_start();
         {!! Button::make(__('setup_save_next'))->primary()->submit()->render() !!}        <button type="submit" name="action" value="test" class="btn btn--ghost">{!! __('setup_mail_test_send') !!}</button>
     </div>
 </form>
-@includeInScope('system.setup._skip')
+@include('system.setup._skip')
 @php echo Card::make()->header(__('setup_step_mail'))->body(ob_get_clean())->render(); @endphp

@@ -29,7 +29,7 @@ use App\Services\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -102,7 +102,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
         $permissions = new PermissionService($roleAssignments, $roles);
 
         return new AdminUserController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $users,
             $stores,
             $this->createStub(ShiftRepositoryInterface::class),

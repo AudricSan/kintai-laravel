@@ -14,7 +14,6 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\RouteBinderRegistry;
 use App\Routing\StoreRouteBinder;
-use App\View\ViewRenderer;
 use App\Foundation\Auth\KintaiGate;
 
 /**
@@ -39,16 +38,6 @@ final class KintaiServiceProvider extends ServiceProvider
 
         $this->app->singleton(BundleManager::class);
 
-        // Le moteur de vues de l'application est celui de Kintai (Blade, directive @includeInScope, vues .php) : les
-        // vues des bundles (loadViewsFrom) et view() passent par lui.
-        $this->app->extend('view', fn($view, $app) => $app->make(ViewRenderer::class)->factory());
-
-        $this->app->singleton(ViewRenderer::class, function (): ViewRenderer {
-            $views = new ViewRenderer(BASE_PATH . '/resources/views');
-            $views->share('BASE_URL', base_url());
-            return $views;
-        });
-
         // Contrôleurs : la redirection ou la 404 d'un paramètre typé est rendue juste avant l'action.
         $this->app->bind(
             \Illuminate\Routing\Contracts\ControllerDispatcher::class,
@@ -59,6 +48,9 @@ final class KintaiServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Http\Macros::register();
+
+        // Racine de l'application (sous-dossier compris), pour les liens des vues.
+        \Illuminate\Support\Facades\View::share('BASE_URL', base_url());
 
         if (config('session.driver') === 'file') {
             \Illuminate\Support\Facades\File::ensureDirectoryExists((string) config('session.files'));

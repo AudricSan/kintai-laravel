@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use App\Services\ExcelShiftImport\ExcelShiftImportService;
 use App\Services\ShiftWageCalculator;
 
@@ -25,7 +25,7 @@ final class AdminShiftImportController
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
@@ -39,11 +39,11 @@ final class AdminShiftImportController
     public function importShifts(Request $request): Response
     {
         $managedIds = $this->managedIds($request);
-        return response($this->view->render('scheduling.shifts-import', [
+        return response($this->view->make('scheduling.shifts-import', [
             'title'      => 'Importer des shifts Excel',
             'all_stores' => $this->availableStores($managedIds),
             'error'      => $request->query('error'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function processImport(Request $request): Response
@@ -159,7 +159,7 @@ final class AdminShiftImportController
         $importMonths = array_unique(array_filter(array_map(fn($e) => substr($e['date'] ?? '', 0, 7), $entries)));
         $importMonth = count($importMonths) === 1 ? reset($importMonths) : '';
 
-        return response($this->view->render('scheduling.shifts-import-preview', [
+        return response($this->view->make('scheduling.shifts-import-preview', [
             'title'        => 'Prévisualisation — Import shifts',
             'entries'      => $entries,
             'store_id'     => $storeId,
@@ -168,7 +168,7 @@ final class AdminShiftImportController
             // Modale de création rapide : sélecteur de rôle dynamique (table roles)
             'assignable_roles'      => $this->roleSync->assignableStoreRoles(),
             'default_store_role_id' => (int) ($this->roleSync->defaultStoreRole()['id'] ?? 0),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function confirmImport(Request $request): Response

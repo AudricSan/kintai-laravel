@@ -20,7 +20,7 @@ use App\Services\PublicUrlResolver;
 use App\SessionFlash;
 use Tests\Support\CalendarSyncFixture;
 use App\Http\Controllers\CalendarLinkController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -284,10 +284,10 @@ final class CalendarLinkControllerTest extends TestCase
         foreach (['profile.calendar.connect', 'profile.calendar.options', 'profile.calendar.resync', 'profile.calendar.disconnect'] as $i => $name) {
             $router->post('/p' . $i, ['X', 'y'], name: $name);
         }
-        $view = new ViewRenderer(BASE_PATH . '/resources/views');
+        $view = kintai_test_views(BASE_PATH . '/resources/views');
         $view->share('BASE_URL', '');
 
-        return $view->render('auth._profile-google-calendar', ['calendar' => $calendar, 'stores' => [1 => ['id' => 1, 'name' => 'Shibuya']]]);
+        return $view->make('auth._profile-google-calendar', ['calendar' => $calendar, 'stores' => [1 => ['id' => 1, 'name' => 'Shibuya']]])->render();
     }
 
     public function testThePanelIsHiddenUntilTheOwnerEnablesTheFeature(): void

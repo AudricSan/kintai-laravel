@@ -38,5 +38,5 @@ ob_start();
 <pre class="setup-cron__code"><code>{{ (string) $stepData['cron_url'] }}?token=…</code></pre>
 <p class="text-sm text-muted">{!! __('setup_ops_cron_token') !!}</p>
 <pre class="setup-cron__code"><code>{{ (string) $stepData['cron_token_command'] }}</code></pre>
-@includeInScope('system.setup._skip')
+@include('system.setup._skip')
 @php echo Card::make()->header(__('setup_step_operations'))->body(ob_get_clean())->render(); @endphp

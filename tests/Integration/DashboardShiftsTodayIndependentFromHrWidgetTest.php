@@ -8,7 +8,7 @@ use DOMDocument;
 use DOMXPath;
 use Illuminate\Container\Container;
 use App\Http\Controllers\HomeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,11 +23,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class DashboardShiftsTodayIndependentFromHrWidgetTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
+        $this->view = kintai_test_views(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         $router->get('/admin/dashboard/widgets', [\stdClass::class, 'x'], name: 'admin.dashboard.widgets');
@@ -37,7 +37,7 @@ final class DashboardShiftsTodayIndependentFromHrWidgetTest extends TestCase
 
     public function testShiftsTodayCardIsNotNestedInsideHrAbsenteeismCard(): void
     {
-        $html = $this->view->renderPartial('dashboard.index', [
+        $html = $this->view->make('dashboard.index', [
             'BASE_URL'           => '',
             'stats'              => [],
             'shifts_today'       => [
@@ -57,7 +57,7 @@ final class DashboardShiftsTodayIndependentFromHrWidgetTest extends TestCase
             'hr_stats'           => ['abs_rate' => 0.0, 'timeoff_taken' => 0, 'late_count' => 0, 'overtime_weeks' => 0, 'timeoff_by_type' => []],
             'enabled_widgets'    => array_flip(['hr_absenteeism', 'shifts_today']),
             'all_widgets'        => HomeController::ADMIN_WIDGETS,
-        ]);
+        ])->render();
 
         // libxml's HTML parser is more forgiving than a real browser about an
         // unterminated "<!--" (it doesn't swallow everything up to the next

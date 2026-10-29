@@ -14,13 +14,13 @@ use App\Services\InstanceLocale;
 use App\Services\PublicUrlResolver;
 use App\Services\ThemeColorPalette;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class OwnerSettingsController
 {
     use HasBaseUrl;
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly AppSettingsService $settings,
         private readonly AuditLogger $auditLogger,
         private readonly PublicUrlResolver $publicUrl,
@@ -45,7 +45,7 @@ final class OwnerSettingsController
             $themeColorsDark[$group] = $storedDark !== '' ? $storedDark : ThemeColorPalette::autoDarkBase($themeColors[$group]);
         }
 
-        return response($this->view->render('system.owner-settings', [
+        return response($this->view->make('system.owner-settings', [
             'title'    => __('owner_settings'),
             'settings' => [
                 'app_subtitle'      => $this->settings->subtitle(),
@@ -75,7 +75,7 @@ final class OwnerSettingsController
             'instance_languages' => $this->languages?->findAllActive() ?? [],
             'success' => isset($_GET['success']),
             'error'   => in_array($request->query('error'), ['public_url_invalid', 'instance_locale_not_saved', 'mail_from_invalid'], true) ? $request->query('error') : null,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/owner-settings */

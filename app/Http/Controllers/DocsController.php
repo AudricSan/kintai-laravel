@@ -9,12 +9,12 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\WikiContentService;
 use App\Services\WikiSyncService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class DocsController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly WikiContentService $wikiContent,
         private readonly WikiSyncService $wikiSync,
     ) {}
@@ -37,12 +37,12 @@ final class DocsController
 
         $user = $request->attributes->get('auth_user');
 
-        return response($this->view->render('docs.unavailable', [
+        return response($this->view->make('docs.unavailable', [
             'title'         => __('docs'),
             'locale'        => $locale,
             'githubWikiUrl' => $this->wikiContent->githubWikiUrl($locale),
             'isOwner'       => !empty($user['is_admin']),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function show(Request $request): Response
@@ -78,7 +78,7 @@ final class DocsController
 
         $user = $request->attributes->get('auth_user');
 
-        return response($this->view->render('docs.show', [
+        return response($this->view->make('docs.show', [
             'title'          => $currentIndex !== null ? $flatItems[$currentIndex]['title'] : __('docs'),
             'lang'           => $lang,
             'page'           => $page,
@@ -89,7 +89,7 @@ final class DocsController
             'otherLanguages' => $otherLanguages,
             'githubWikiUrl'  => $this->wikiContent->githubWikiUrl($lang, $page),
             'isOwner'        => !empty($user['is_admin']),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**

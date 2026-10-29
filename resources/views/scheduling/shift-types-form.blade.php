@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Card;
@@ -27,10 +29,12 @@ echo Flash::fromQuery('error', [
 ob_start();
 echo '<form method="POST" action="' . htmlspecialchars($action) . '">';
 echo csrf_field();
-include \App\View\ViewRenderer::pathInScope('_partials._form-shift-type');
+echo $__env->make('_partials._form-shift-type', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
 echo '<div class="form-actions">';
 echo Button::make($mode === 'edit' ? __('save') : __('new_type'))->primary()->submit()->render();
 echo ' <a href="' . back_url(route_url('admin.shift_types')) . '" class="btn btn--ghost">' . __('cancel') . '</a>';
 echo '</div></form>';
 echo Card::make()->body(ob_get_clean())->render();
 @endphp
+
+@endsection

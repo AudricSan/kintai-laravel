@@ -36,7 +36,7 @@ use App\Services\ShiftWageCalculator;
 use Illuminate\Translation\Translator;
 use App\Services\UserSelection;
 use App\Http\Controllers\ExportController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /** Page « Exports » : téléchargement de bout en bout pour un employé simple (ses données seulement). */
@@ -86,7 +86,7 @@ final class ExportControllerTest extends TestCase
         $translations = kintai_test_real_translator();
 
         $this->controller = new ExportController(
-            new ViewRenderer(dirname(__DIR__, 4) . '/resources/views'),
+            kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
             new AuthService($users, $storeUsers, $stores, $roles, $assignments),
             new ExportAccess($permissions, $stores, $storeUsers),
             new ExportWriter(),

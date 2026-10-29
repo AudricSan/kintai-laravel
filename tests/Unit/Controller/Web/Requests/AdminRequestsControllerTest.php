@@ -19,7 +19,7 @@ use Tests\Support\FakeBundleManagerFactory;
 use Tests\Support\FakeClaimsProvider;
 use Tests\Support\FakePendingTimeoffProvider;
 use App\Http\Controllers\Requests\AdminRequestsController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -93,7 +93,7 @@ final class AdminRequestsControllerTest extends TestCase
         $container->instance(StoreRepositoryInterface::class, $storesRepo);
 
         return new AdminRequestsController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
             $storeUsersRepo,

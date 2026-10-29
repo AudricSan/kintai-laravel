@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -357,3 +359,5 @@ if ($_canManage) {
 <script src="{!! $BASE_URL !!}/assets/js/modules/shifts-bulk.js"></script>
 
 @endif
+
+@endsection

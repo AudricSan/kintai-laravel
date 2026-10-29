@@ -21,7 +21,7 @@ use App\Services\AvailabilityGuard;
 use App\Services\NotificationService;
 use App\Services\ShiftServiceInterface;
 use App\Http\Controllers\Scheduling\AdminShiftController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -53,7 +53,7 @@ final class AdminShiftResolveConflictTest extends TestCase
         $this->shifts->method('findById')->willReturnCallback(fn(int $id) => $this->rows[$id] ?? null);
 
         $this->controller = new AdminShiftController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->shifts,

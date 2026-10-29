@@ -6,7 +6,7 @@ namespace Tests\Integration;
 
 use Illuminate\Container\Container;
 use App\Services\SetupWizard;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -16,11 +16,11 @@ if (!defined('BASE_PATH')) {
 /** Chaque écran de l'assistant se rend sans erreur, avec la barre de progression et le bon formulaire. */
 final class SetupWizardRenderTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(BASE_PATH . '/resources/views');
+        $this->view = kintai_test_views(BASE_PATH . '/resources/views');
         $router = kintai_test_registrar();
         foreach ([
             'admin.setup', 'admin.setup.license', 'admin.setup.bundles', 'admin.setup.questions', 'admin.setup.step', 'admin.setup.finish', 'admin.owner_settings',
@@ -34,7 +34,7 @@ final class SetupWizardRenderTest extends TestCase
     private function render(string $step, array $extra = []): string
     {
         $screen = $step === 'bundles_result' ? 'bundles' : $step;
-        return $this->view->renderPartial('system.setup', $extra + [
+        return $this->view->make('system.setup', $extra + [
             'BASE_URL'  => '',
             'title'     => 'Setup',
             'step'      => $step,
@@ -47,7 +47,7 @@ final class SetupWizardRenderTest extends TestCase
             'skippable' => in_array($screen, SetupWizard::SKIPPABLE, true),
             'error'     => null,
             'errors'    => [],
-        ]);
+        ])->render();
     }
 
     public function testProgressBarShowsEveryStepWithItsState(): void

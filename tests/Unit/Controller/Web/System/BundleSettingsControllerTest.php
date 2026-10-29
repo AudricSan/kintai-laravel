@@ -14,7 +14,7 @@ use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
 use App\Services\PlanLimitService;
 use App\Http\Controllers\System\BundleSettingsController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -93,7 +93,7 @@ final class BundleSettingsControllerTest extends TestCase
     private function makeController(FeatureManager $features, ?PlanLimitService $planLimits = null): BundleSettingsController
     {
         return new BundleSettingsController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->appSettings,
             $features,
             new AuditLogger(),

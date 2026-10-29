@@ -4,7 +4,7 @@
  * une issue sur le dépôt GitHub du projet (voir SupportController).
  * Utilise le composant .modal du Core (modals.css + openModal/closeModal d'app.js) :
  * elle reste masquée tant qu'elle n'est pas ouverte, quels que soient les bundles installés.
- * Variables disponibles via ViewRenderer::share() : $BASE_URL
+ * Variables disponibles via le partage de la vue (View::share()) : $BASE_URL
  */
 
 // Valeurs lues dans l'URL : uniquement des chaînes (?ri_success[]=x faisait planter htmlspecialchars() sur

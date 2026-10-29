@@ -13,13 +13,13 @@ use App\Validation\ColorRule;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Http\Controllers\HasAdminAccess;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AdminShiftTypeController
 {
     use HasAdminAccess;
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
@@ -63,25 +63,25 @@ final class AdminShiftTypeController
             }
         }
 
-        return response($this->view->render('scheduling.shift-types', [
+        return response($this->view->make('scheduling.shift-types', [
             'title'          => 'Types de shifts',
             'shift_types'    => $types,
             'type_store_ids' => $typeStoreIds,
             'locked_type_ids' => $lockedTypeIds,
             'all_stores'     => $this->availableStores($managedIds),
             'sort'           => $sort,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function createShiftType(Request $request): Response
     {
-        return response($this->view->render('scheduling.shift-types-form', [
+        return response($this->view->make('scheduling.shift-types-form', [
             'title'              => 'Nouveau type de shift',
             'mode'               => 'create',
             'shift_type'         => [],
             'all_stores'         => $this->availableStores($this->managedIds($request)),
             'selected_store_ids' => [],
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function storeShiftType(Request $request): Response
@@ -119,13 +119,13 @@ final class AdminShiftTypeController
         $this->assertAnyStoreAccess($request, $storeIds);
         $this->assertManagesEveryStore($request, $storeIds);
 
-        return response($this->view->render('scheduling.shift-types-form', [
+        return response($this->view->make('scheduling.shift-types-form', [
             'title'              => 'Modifier ' . htmlspecialchars($type['name'] ?? ''),
             'mode'               => 'edit',
             'shift_type'         => $type,
             'all_stores'         => $this->availableStores($this->managedIds($request)),
             'selected_store_ids' => $storeIds,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function updateShiftType(Request $request): Response

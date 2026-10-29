@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Card;
@@ -83,3 +85,5 @@ echo Form::make()
 $body = ob_get_clean();
 echo Card::make()->narrow()->body($body)->render();
 @endphp
+
+@endsection

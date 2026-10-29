@@ -14,7 +14,6 @@ use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\ValidationException;
 use App\Services\Log;
 use App\ValidationFeedback;
-use App\View\ViewRenderer;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -119,10 +118,10 @@ final class ErrorResponder
     public static function page(int $status, string $message): Response
     {
         try {
-            $html = app(ViewRenderer::class)->render("errors.{$status}", [
+            $html = view("errors.{$status}", [
                 'status'  => $status,
                 'message' => $message,
-            ]);
+            ])->render();
 
             return response($html, $status);
         } catch (Throwable) {

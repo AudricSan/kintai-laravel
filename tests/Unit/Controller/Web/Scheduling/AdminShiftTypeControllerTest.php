@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\Log;
 use App\Http\Controllers\Scheduling\AdminShiftTypeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Exceptions\ValidationException;
@@ -36,7 +36,7 @@ final class AdminShiftTypeControllerTest extends TestCase
     private function controller(): AdminShiftTypeController
     {
         if ($this->controller === null) {
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $this->controller = new AdminShiftTypeController(
                 $view,
                 $this->shiftTypes,

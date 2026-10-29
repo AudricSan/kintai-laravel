@@ -204,7 +204,7 @@ $ico              = fn(string $k): string => '<span class="topbar-nav-group__lin
                 @php
                 $notif_items  = $_dropdownItems;
                 $notif_unread = $_unreadCount;
-                include \App\View\ViewRenderer::pathInScope('layout.partials._notif_panel');
+                echo $__env->make('layout.partials._notif_panel', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
                 @endphp
             </div>
         </div>

@@ -25,7 +25,7 @@ echo file_get_contents(BASE_PATH . '/public/assets/css/pdf/pdf-export-table.css'
 </head>
 <body>
 
-@includeInScope('_partials._pdf-preview-toolbar')
+@include('_partials._pdf-preview-toolbar')
 <div class="pdf-preview-page pdf-preview-page--landscape">
 
 <h1>{!! __('users') !!}</h1>

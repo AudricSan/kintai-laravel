@@ -33,12 +33,12 @@
                 @foreach (\App\SessionFlash::pull() as $_flash)
                     <div class="alert alert--{{ $_flash['type'] }} mb-sm">{{ $_flash['text'] }}</div>
                 @endforeach
-                @includeInScope('layout.partials._old-input')
-                {!! $content !!}            </div>
+                @include('layout.partials._old-input')
+                @yield('content')            </div>
         </div>
     </div>
 
-    @includeInScope('layout.partials._footer')
+    @include('layout.partials._footer')
     <script src="{!! $BASE_URL !!}/assets/js/modules/old-input.js?v={!! asset_version() !!}"></script>
     {!! inline_styles() !!}</body>
 </html>

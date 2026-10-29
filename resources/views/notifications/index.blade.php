@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Pagination;
 
@@ -48,3 +50,5 @@ use App\View\Components\Pagination;
     @if (($totalPages ?? 1) > 1)
         {!! Pagination::make((int) $page, (int) $totalPages)->render() !!}    @endif
 @endif
+
+@endsection

@@ -22,7 +22,7 @@ use App\Services\AuditLogger;
 use App\Services\IcalService;
 use App\Services\ScheduleExportService;
 use App\Services\UserSelection;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Page « Exports » : n'importe quel jeu de données de l'application (Core et bundles actifs) en JSON, CSV ou classeur Excel,
@@ -40,7 +40,7 @@ final class ExportController
     private const TARGET_ALL = 'all';
 
     public function __construct(
-        private readonly ViewRenderer                 $view,
+        private readonly ViewFactory                 $view,
         private readonly AuthService                  $auth,
         private readonly ExportAccess                 $access,
         private readonly ExportWriter                 $writer,
@@ -79,7 +79,7 @@ final class ExportController
             $candidates = $this->selection->candidates((int) substr($target, 6));
         }
 
-        return response($this->view->render('exports.index', [
+        return response($this->view->make('exports.index', [
             'title'      => __('export_title'),
             'available'  => $available,
             'dataset'    => $entry['dataset'] ?? null,
@@ -89,7 +89,7 @@ final class ExportController
             'from'       => date('Y-m-01'),
             'to'         => date('Y-m-d', strtotime('+90 days')),
             'canIcs'     => ($entry['dataset']->key ?? '') === 'shifts',
-        ]));
+        ])->render());
     }
 
     /** GET /exports/download?dataset=&target=&user_ids[]=&from=&to=&format= */

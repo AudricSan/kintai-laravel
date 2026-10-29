@@ -100,7 +100,7 @@
                 </div>
             @endif
 
-            @includeInScope('layout.partials._topbar')
+            @include('layout.partials._topbar')
         </div>
         @if (!empty($app_maintenance_mode_enabled) || !empty($password_change_recommended) || ($isOwner && !empty($storage_low)))
             <script nonce="{!! csp_nonce() !!}">
@@ -124,7 +124,7 @@
             @foreach (\App\SessionFlash::pull() as $_flash)
                 <div class="alert alert--{{ $_flash['type'] }} mb-sm">{{ $_flash['text'] }}</div>
             @endforeach
-            @includeInScope('layout.partials._old-input')
+            @include('layout.partials._old-input')
             @if ($isOwner && !empty($app_public_url_missing))
                 <div class="alert alert--warning mb-sm">
                     {{ __('public_url_missing_warning') }}                    <a href="{!! route_url('admin.owner_settings') !!}">{{ __('public_url_missing_action') }}</a>
@@ -140,11 +140,11 @@
                     {{ __('bundle_quota_overflow_warning', ['active' => $bundle_quota_overflow['active'], 'max' => $bundle_quota_overflow['max']]) }}                    <a href="{!! route_url('admin.bundles') !!}">{{ __('bundle_quota_overflow_action') }}</a>
                 </div>
             @endif
-            {!! $content !!}        </div>
+            @yield('content')        </div>
 
-        @includeInScope('layout.partials._footer')
+        @include('layout.partials._footer')
 
-        @includeInScope('layout.partials._bottomnav')
+        @include('layout.partials._bottomnav')
     </div>
 
     <script src="{!! $BASE_URL !!}/assets/js/modules/csp-actions.js?v={!! asset_version() !!}"></script>
@@ -173,13 +173,13 @@
     <script nonce="{!! csp_nonce() !!}">document.addEventListener('click',function(e){if(e.target.closest('a,button,input,select,textarea,form'))return;var t=e.target.closest('.tr--clickable[data-href]');if(t){location.href=t.getAttribute('data-href');return;}var m=e.target.closest('.tr--clickable[data-modal]');if(m&&window.openModal){window.openModal(m.getAttribute('data-modal'));}});</script>
 
     @if (!empty($auth_user['id'] ?? null))
-        @includeInScope('layout.partials.report-issue-modal')
+        @include('layout.partials.report-issue-modal')
     @endif
 
-    @includeInScope('layout.partials._confirm-modal')
-    @includeInScope('layout.partials._page-overlay')
+    @include('layout.partials._confirm-modal')
+    @include('layout.partials._page-overlay')
     @php if (!empty($password_reminder_popup)) {
-        include \App\View\ViewRenderer::pathInScope('layout.partials._password-reminder-modal');
+        echo $__env->make('layout.partials._password-reminder-modal', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
     } @endphp
     @php // Règles ajoutées par les partiels du layout lui-même, rendus après le <head>. @endphp
     {!! inline_styles() !!}</body>

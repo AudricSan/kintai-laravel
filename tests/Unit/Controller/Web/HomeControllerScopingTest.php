@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\DashboardAlertService;
 use App\Services\StoreStatsServiceInterface;
 use App\Http\Controllers\HomeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -31,8 +31,7 @@ final class HomeControllerScopingTest extends TestCase
 {
     protected function setUp(): void
     {
-        $this->ensureViewFile('dashboard.index', '<?php ?>');
-        $this->ensureViewFile('layout.app', "<?php echo json_encode(['stats' => \$stats, 'shifts_today' => \$shifts_today]);");
+        $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['stats' => \$stats, 'shifts_today' => \$shifts_today]);");
     }
 
     private function buildController(
@@ -84,7 +83,7 @@ final class HomeControllerScopingTest extends TestCase
         $dashboardAlerts = new DashboardAlertService($shiftsRepo, $usersRepo, $storeUsersRepo);
 
         return new HomeController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
             $shiftsRepo,

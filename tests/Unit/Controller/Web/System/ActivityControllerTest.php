@@ -9,7 +9,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\System\ActivityController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -38,7 +38,7 @@ final class ActivityControllerTest extends TestCase
         $this->users->method('findAll')->willReturn([]);
 
         $this->controller = new ActivityController(
-            new ViewRenderer($viewDir),
+            kintai_test_views($viewDir),
             $this->logs,
             $this->users,
             new AuditLogger(),

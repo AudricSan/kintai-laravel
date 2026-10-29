@@ -12,7 +12,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Controllers\HasAdminAccess;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Page de résumé "Demandes" : agrège les demandes en attente de toutes sortes (congés, échanges de shifts,
@@ -25,7 +25,7 @@ final class AdminRequestsController
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
@@ -46,11 +46,11 @@ final class AdminRequestsController
         $sections = ($this->pendingRequests ?? PendingRequests::current())
             ->sections($managedIds, $can, static fn(?string $feature): bool => feat_bundle($feature));
 
-        return response($this->view->render('requests.index', [
+        return response($this->view->make('requests.index', [
             'title'      => __('requests'),
             'sections'   => $sections,
             'users_map'  => $this->buildUsersMap(),
             'stores_map' => $this->buildStoresMap($managedIds),
-        ], 'layout.app'));
+        ])->render());
     }
 }

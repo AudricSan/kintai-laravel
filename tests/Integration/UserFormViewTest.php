@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 final class UserFormViewTest extends TestCase
@@ -21,14 +21,14 @@ final class UserFormViewTest extends TestCase
      */
     public function testEditModeDoesNotNestAFormInsideTheEditForm(): void
     {
-        $view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
+        $view = kintai_test_views(dirname(__DIR__, 2) . '/resources/views');
 
-        $html = $view->renderPartial('_partials._form-user', [
+        $html = $view->make('_partials._form-user', [
             'as_cards' => true,
             'mode'     => 'edit',
             'user'     => ['id' => 75],
             'BASE_URL' => '',
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('<form', $html);
         $this->assertStringContainsString('form="resetPasswordForm"', $html);

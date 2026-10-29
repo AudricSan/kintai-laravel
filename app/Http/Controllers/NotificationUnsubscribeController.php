@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\NotificationPreferenceService;
 use App\Services\UnsubscribeTokens;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Désabonnement d'un type d'e-mail de notification, depuis le lien du pied de page ou l'en-tête List-Unsubscribe.
@@ -23,7 +23,7 @@ use App\View\ViewRenderer;
 final class NotificationUnsubscribeController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UnsubscribeTokens $tokens,
         private readonly NotificationPreferenceService $prefs,
     ) {}
@@ -69,12 +69,12 @@ final class NotificationUnsubscribeController
     /** @param array{user: int, type: string, channel: string, query: string}|null $link */
     private function page(string $state, ?array $link, Request $request, int $status = 200): Response
     {
-        $response = response($this->view->render('auth.notification-unsubscribe', [
+        $response = response($this->view->make('auth.notification-unsubscribe', [
             'title'      => __('notif_unsub_title'),
             'state'      => $state,
             'type_label' => $link !== null ? __('notif_' . $link['type']) : '',
             'action'     => $link !== null ? route_url('notifications.unsubscribe.confirm') . '?' . $link['query'] : '',
-        ], 'layout.guest'));
+        ])->render());
 
         return $status === 200 ? $response : $response->setStatusCode($status);
     }

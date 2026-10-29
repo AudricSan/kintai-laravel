@@ -3,7 +3,7 @@
 /**
  * Footer global de l'application — inclus par layout/app.php (utilisateur
  * connecté) et layout/guest.php (page de connexion / pages publiques).
- * Variables disponibles via ViewRenderer::share() : $BASE_URL, $auth_user,
+ * Variables disponibles via le partage de la vue (View::share()) : $BASE_URL, $auth_user,
  * $isManager, $app_subtitle, $app_support_email, $app_version.
  *
  * @var string $BASE_URL

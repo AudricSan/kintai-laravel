@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -93,3 +95,5 @@ ob_start();
         {!! Button::make(__('mailtest_send_btn'))->primary()->submit()->render() !!}    </div>
 </form>
 @php echo Card::make()->header(__('mailtest_send_card'))->body(ob_get_clean())->render(); @endphp
+
+@endsection

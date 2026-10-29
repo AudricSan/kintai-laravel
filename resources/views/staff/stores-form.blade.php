@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -44,7 +46,7 @@ echo Flash::fromQuery('error', [
 </div>
 
 <form method="POST" action="{{ $action }}">
-    {!! csrf_field() !!}    @includeInScope('_partials._form-store')
+    {!! csrf_field() !!}    @include('_partials._form-store')
     <div class="form-actions">
         {!! Button::make($mode === 'edit' ? __('save') : __('new_store'))->primary()->submit()->render() !!}        <a href="{!! back_url(route_url('admin.stores')) !!}" class="btn btn--ghost">{!! __('cancel') !!}</a>
     </div>
@@ -140,3 +142,5 @@ endif;
     @endif
 </div>
 @endif
+
+@endsection

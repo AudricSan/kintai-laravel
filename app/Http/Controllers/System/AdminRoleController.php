@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Gestion des rôles dynamiques (RBAC). Réservée à l'Owner. Les permissions
@@ -53,7 +53,7 @@ final class AdminRoleController
     ];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly RoleRepositoryInterface $roles,
         private readonly RoleAssignmentRepositoryInterface $assignments,
         private readonly UserRepositoryInterface $users,
@@ -76,19 +76,19 @@ final class AdminRoleController
         }
         unset($role);
 
-        return response($this->view->render('system.roles', [
+        return response($this->view->make('system.roles', [
             'title'             => __('roles'),
             'roles'             => $roles,
             'assignment_counts' => $counts,
             'success'           => isset($_GET['success']),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** GET /admin/roles/create */
     public function createRole(Request $request): Response
     {
 
-        return response($this->view->render('system.roles-form', [
+        return response($this->view->make('system.roles-form', [
             'title'                 => __('new_role'),
             'mode'                  => 'create',
             'role'                  => [],
@@ -97,7 +97,7 @@ final class AdminRoleController
             'granted_permissions'   => [],
             'granted_global_permissions' => [],
             'holders'               => [],
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/roles/create */
@@ -140,7 +140,7 @@ final class AdminRoleController
         $role['description'] = $this->resolveDescription($role);
         $isOwnerRole = ($role['slug'] ?? null) === 'owner';
 
-        return response($this->view->render('system.roles-form', [
+        return response($this->view->make('system.roles-form', [
             'title'                 => 'Modifier ' . htmlspecialchars($role['name'] ?? ''),
             'mode'                  => 'edit',
             'role'                  => $role,
@@ -150,7 +150,7 @@ final class AdminRoleController
             'granted_global_permissions' => $this->roles->getGlobalPermissionKeys((int) $role['id']),
             'holders'               => $this->roleHolders((int) $role['id']),
             'assignable_users'      => $isOwnerRole ? $this->activeUsers() : $this->assignableHolderCandidates(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/roles/{id}/edit */

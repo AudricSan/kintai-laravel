@@ -12,7 +12,7 @@ use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleCalendarSettings;
 use App\Services\Calendar\GoogleRedirectUri;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Agendas externes de l'instance (Owner) : identifiants du projet Google Cloud, activation de la liaison Google Calendar
@@ -24,7 +24,7 @@ final class CalendarSettingsController
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly GoogleCalendarSettings $settings,
         private readonly GoogleCalendarClient $client,
         private readonly GoogleRedirectUri $redirect,
@@ -37,7 +37,7 @@ final class CalendarSettingsController
     {
         $check = (string) $request->query('check', '');
 
-        return response($this->view->render('system.calendar-settings', [
+        return response($this->view->make('system.calendar-settings', [
             'title'         => __('gcal_admin_title'),
             'enabled'       => $this->settings->isEnabled(),
             'client_id'     => $this->settings->clientId(),
@@ -46,7 +46,7 @@ final class CalendarSettingsController
             'redirect_uri'  => $this->redirect->resolve($this->base()),
             'connections'   => $this->repo->countActiveConnections(),
             'check'         => in_array($check, ['ok', 'invalid_client', 'unreachable', 'incomplete'], true) ? $check : '',
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/calendar-settings */

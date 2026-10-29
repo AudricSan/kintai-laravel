@@ -25,7 +25,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\EmployeeStatsService;
 use Illuminate\Translation\Translator;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,13 +37,13 @@ use PHPUnit\Framework\TestCase;
 final class AuthMiddlewareTest extends TestCase
 {
     private Container $container;
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
         $this->container = new \Tests\Support\TestContainer();
-        $this->view      = new ViewRenderer(sys_get_temp_dir());
-        $this->container->instance(ViewRenderer::class, $this->view);
+        $this->view      = kintai_test_views(sys_get_temp_dir());
+        $this->container->instance(ViewFactory::class, $this->view);
         $this->container->instance(FeatureManager::class, new FeatureManager([]));
         // BundleManager::__construct() exige une vraie Application (lourde à construire
         // ici, et final) ; isActive() ne lit que $bundles (vide par défaut), donc une
@@ -123,7 +123,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->handle();
 
-        $can = $this->view->get('user_can');
+        $can = $this->view->shared('user_can');
         $this->assertIsCallable($can);
         $this->assertTrue($can('shifts.view'));
         $this->assertTrue($can('timeoff.view'));
@@ -137,7 +137,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->handle();
 
-        $can = $this->view->get('user_can');
+        $can = $this->view->shared('user_can');
         $this->assertTrue($can('employees.view'));
         $this->assertTrue($can('stores.delete'));
     }
@@ -153,7 +153,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->handle();
 
-        $this->assertTrue($this->view->get('auth_is_manager'));
+        $this->assertTrue($this->view->shared('auth_is_manager'));
     }
 
     public function testSharesAuthIsManagerFalseForPlainEmployee(): void
@@ -162,7 +162,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->handle();
 
-        $this->assertFalse($this->view->get('auth_is_manager'));
+        $this->assertFalse($this->view->shared('auth_is_manager'));
     }
 
     public function testSharesManagedStoreIdsDefaultForManagerWhenNotAlreadySet(): void
@@ -171,7 +171,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->handle();
 
-        $this->assertSame([1], $this->view->get('managed_store_ids'));
+        $this->assertSame([1], $this->view->shared('managed_store_ids'));
     }
 
     public function testDoesNotShareManagedStoreIdsForPlainEmployee(): void
@@ -180,7 +180,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $this->handle();
 
-        $this->assertNull($this->view->get('managed_store_ids'));
+        $this->assertNull($this->view->shared('managed_store_ids'));
     }
 
     /**
@@ -197,7 +197,7 @@ final class AuthMiddlewareTest extends TestCase
         $this->bindAuthenticatedUser(['shifts.view']);
         $this->handle();
 
-        $routeVisible = $this->view->get('route_visible');
+        $routeVisible = $this->view->shared('route_visible');
         $this->assertIsCallable($routeVisible);
         $this->assertFalse($routeVisible('admin.photos.index'), 'shifts.view ne doit pas rendre visible un lien vers une route exigeant photos.view');
         $this->assertTrue($routeVisible('admin.owner_settings'), "une route 'public' reste toujours visible");
@@ -212,7 +212,7 @@ final class AuthMiddlewareTest extends TestCase
         $this->bindAuthenticatedUser(['photos.view']);
         $this->handle();
 
-        $this->assertTrue($this->view->get('route_visible')('admin.photos.index'));
+        $this->assertTrue($this->view->shared('route_visible')('admin.photos.index'));
     }
 
     public function testRedirectsToLoginWhenNotAuthenticated(): void
@@ -231,6 +231,6 @@ final class AuthMiddlewareTest extends TestCase
         $response = $this->handle();
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertNull($this->view->get('user_can'));
+        $this->assertNull($this->view->shared('user_can'));
     }
 }

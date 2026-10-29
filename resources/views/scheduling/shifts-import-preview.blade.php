@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Badge;
@@ -198,7 +200,7 @@ ob_start();
     $user = [];
     $all_stores = [];
     @endphp
-    @includeInScope('_partials._form-user')
+    @include('_partials._form-user')
     <div class="form-actions">
         {!! Button::make(__('create'))->primary()->submit()->attrs(['id' => 'qc-submit'])->render() !!}        {!! Button::make(__('cancel'))->ghost()->attrs(['data-on-click' => 'qcClose'])->render() !!}    </div>
 </form>
@@ -224,3 +226,5 @@ echo Modal::make(__('quick_create_title'), ob_get_clean())
 <script src="{!! $BASE_URL !!}/assets/js/modules/user-form-live-check.js"></script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/furigana-suggest.js"></script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/shifts-import-preview.js"></script>
+
+@endsection

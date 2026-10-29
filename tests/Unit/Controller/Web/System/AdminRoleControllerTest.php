@@ -20,7 +20,7 @@ use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
 use Tests\Support\FakeBundleManagerFactory;
 use App\Http\Controllers\System\AdminRoleController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -52,7 +52,7 @@ final class AdminRoleControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $this->controller = new AdminRoleController(
-                new ViewRenderer(sys_get_temp_dir()),
+                kintai_test_views(sys_get_temp_dir()),
                 $this->roles,
                 $this->assignments,
                 $this->users,

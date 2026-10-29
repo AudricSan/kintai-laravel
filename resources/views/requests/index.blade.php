@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /**
  * Page « Demandes » : une section par sorte de demande en attente, fournie par App\Extension\PendingRequests
@@ -66,3 +68,5 @@ $_cell = static function (array $column) use ($users_map, $stores_map): string {
 </div>
 @endforeach
 @php unset($_total, $_cell, $_section, $_req, $_col); @endphp
+
+@endsection

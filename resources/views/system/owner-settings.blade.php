@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 
 use App\View\Components\Alert;
@@ -63,7 +65,7 @@ if (($error ?? null) === 'instance_locale_not_saved') {
     <h2 class="page-header__title">{!! __('owner_settings') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 <form method="POST" action="{!! route_url('admin.owner_settings') !!}" class="app-settings">
     {!! csrf_field() !!}
@@ -300,3 +302,4 @@ if (($error ?? null) === 'instance_locale_not_saved') {
 </form>
 
 <script src="{!! $BASE_URL !!}/assets/js/modules/owner-settings.js"></script>
+@endsection

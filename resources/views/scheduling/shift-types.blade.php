@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Badge;
@@ -109,3 +111,5 @@ echo Flash::fromQuery('error', [
         return $html;
     })
     ->render() !!}</div>
+
+@endsection

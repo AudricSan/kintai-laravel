@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 
@@ -342,3 +344,5 @@ endif;
 </div>
 
 @endif
+
+@endsection

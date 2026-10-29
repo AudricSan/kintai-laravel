@@ -26,5 +26,5 @@ ob_start();
     <div class="form-actions">
         {!! Button::make(__('setup_save_next'))->primary()->submit()->render() !!}    </div>
 </form>
-@includeInScope('system.setup._skip')
+@include('system.setup._skip')
 @php echo Card::make()->header(__('setup_step_organisation'))->body(ob_get_clean())->render(); @endphp

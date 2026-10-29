@@ -17,7 +17,7 @@ use App\Services\GithubUpdateService;
 use Illuminate\Translation\Translator;
 use App\Services\UpdateService;
 use App\Http\Controllers\System\BackupController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use Tests\Support\VerifiedReleaseFixture;
 use PHPUnit\Framework\TestCase;
 
@@ -29,7 +29,7 @@ final class BackupControllerTest extends TestCase
     private UpdateService $updateService;
     private BackupService $backup;
     private AppSettingsService $settings;
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
@@ -53,7 +53,7 @@ final class BackupControllerTest extends TestCase
         $settingsRepo->method('all')->willReturn([]);
         $this->settings = new AppSettingsService($settingsRepo);
 
-        $this->view = new ViewRenderer(sys_get_temp_dir());
+        $this->view = kintai_test_views(sys_get_temp_dir());
 
 
         // describeFlash() traduit via __() : sans ça, __() (voir helpers.php) retombe

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -62,7 +64,7 @@ foreach ($_empWidgetPermMap as $_wk => $_wp) {
 <div class="page-header">
     <h2 class="page-header__title">{!! __('dashboard') !!}</h2>
     <div class="page-header__actions">
-        @includeInScope('_partials._dashboard-actions')
+        @include('_partials._dashboard-actions')
         {!! Button::make(__('customize'))->ghost()->sm()->attrs(['data-on-click' => 'dashCustomizeToggle'])->render() !!}    </div>
 </div>
 
@@ -84,10 +86,10 @@ foreach ($all_widgets as $wk) {
 @endphp
 <p class="text-sm text-muted">{!! __('dashboard_layout_hint') !!}</p>
 <div class="dash-layout-tools">
-    @includeInScope('_partials._dashboard-add-widget')
+    @include('_partials._dashboard-add-widget')
     <button type="button" class="btn btn--ghost btn--sm" data-dash-reset>{!! __('dashboard_layout_reset') !!}</button>
 </div>
-@includeInScope('_partials._dashboard-layouts')
+@include('_partials._dashboard-layouts')
 @php
 unset($_dashHidden);
 echo Card::make()
@@ -133,8 +135,9 @@ $_empStats       = $stats;
 $_empShiftsToday = $shifts_today;
 $_empUpcoming    = $upcoming;
 $_empStoresMap   = $stores_map;
-include \App\View\ViewRenderer::pathInScope('_partials._employee-widgets');
-$_dashBlocks = $_empBlocks;
+$_empBlocks = new \ArrayObject();
+echo $__env->make('_partials._employee-widgets', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
+$_dashBlocks = $_empBlocks->getArrayCopy();
 unset($_empBlocks);
 @endphp
 
@@ -145,8 +148,10 @@ foreach ($bundle_widgets as $_bundleWidget) {
 $_dashLabels  = $widgetLabels;
 $_dashSaveUrl = route_url('employee.dashboard.layout');
 $_dashWidgetsUrl = route_url('employee.dashboard.widgets');
-include \App\View\ViewRenderer::pathInScope('_partials._dashboard-grid');
+echo $__env->make('_partials._dashboard-grid', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
 unset($_bundleWidget, $_dashBlocks, $_dashLabels, $_dashSaveUrl, $_dashWidgetsUrl);
 @endphp
 
 <script src="{!! $BASE_URL !!}/assets/js/modules/dashboard.js"></script>
+
+@endsection

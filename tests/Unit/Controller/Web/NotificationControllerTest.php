@@ -16,7 +16,7 @@ use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use App\Services\WebPushEndpointValidator;
 use App\Http\Controllers\NotificationController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\Stub;
@@ -62,7 +62,7 @@ final class NotificationControllerTest extends TestCase
                 $this->notifications,
                 $this->subscriptions,
                 new WebPushEndpointValidator(static fn(string $host): array => ['142.250.74.10']),
-                new ViewRenderer(dirname(__DIR__, 4) . '/resources/views'),
+                kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
             );
         }
 

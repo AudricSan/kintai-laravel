@@ -14,7 +14,7 @@ use App\Services\NotificationPreferenceService;
 use App\Services\NotificationService;
 use App\Services\VapidKeyStore;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Paramètres des notifications de l'instance (Owner) : délai de conservation des notifications lues, état des canaux,
@@ -25,7 +25,7 @@ final class NotificationSettingsController
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly AppSettingsService $settings,
         private readonly NotificationChannelStatus $channels,
         private readonly VapidKeyStore $vapid,
@@ -39,7 +39,7 @@ final class NotificationSettingsController
     {
         $sent = (string) $request->query('channels', '');
 
-        return response($this->view->render('system.notification-settings', [
+        return response($this->view->make('system.notification-settings', [
             'title'          => __('notif_admin_title'),
             'retention_days' => $this->settings->notificationsRetentionDays(),
             'retention_min'  => AppSettingsService::NOTIFICATIONS_RETENTION_MIN,
@@ -47,7 +47,7 @@ final class NotificationSettingsController
             'status'         => $this->channels->all(),
             // Canaux annoncés par le dernier test, seulement parmi ceux que l'on connaît.
             'test_channels'  => array_values(array_intersect(explode(',', $sent), ['bell', 'web_push', 'mobile', 'email'])),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/notifications-settings */

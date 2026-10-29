@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
 use App\Services\StoreStatsServiceInterface;
 use App\Http\Controllers\HomeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -85,7 +85,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         $dashboardAlerts = new DashboardAlertService($shiftsRepo, $usersRepo, $storeUsersRepo);
 
         return new HomeController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
             $shiftsRepo,

@@ -13,7 +13,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -26,11 +26,11 @@ final class EmptyStorePagesTest extends TestCase
 {
     private const VIEWS = __DIR__ . '/../../../resources/views';
 
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(self::VIEWS);
+        $this->view = kintai_test_views(self::VIEWS);
         session()->put('_token', 'test-token');
         $router = kintai_test_registrar();
         $router->get('/admin/stores', ['X', 'y'], name: 'admin.stores');
@@ -61,9 +61,9 @@ final class EmptyStorePagesTest extends TestCase
     public function testStatsPageOfAStoreWithoutShiftsRendersWithAEmptyStateInsteadOfFailing(): void
     {
         $store = ['id' => 1, 'name' => 'Vide', 'currency' => 'JPY'];
-        $html = $this->view->render('analytics.store-stats', array_merge($this->emptyStats(), [
+        $html = $this->view->make('analytics.store-stats', array_merge($this->emptyStats(), [
             'store' => $store, 'currency' => 'JPY', 'minShiftMin' => 0, 'maxShiftMin' => 0, 'BASE_URL' => '',
-        ]));
+        ]))->render();
 
         $this->assertStringContainsString('sstat-period-nav', $html);
         $this->assertStringContainsString('no_shift_period', $html, 'Le message « aucun shift » doit être affiché à la place des graphiques');
@@ -78,17 +78,17 @@ final class EmptyStorePagesTest extends TestCase
             'n' => 2, 'hoursByUser' => [7 => 0.0, 8 => 0.0], 'usersMap' => [7 => ['id' => 7, 'last_name' => 'A', 'first_name' => 'B']],
         ]);
 
-        $this->assertStringContainsString('sstat-progress-bar', $this->view->render('analytics.store-stats', $data));
+        $this->assertStringContainsString('sstat-progress-bar', $this->view->make('analytics.store-stats', $data)->render());
     }
 
     public function testDeductionsFormRendersAPostFormWithACsrfToken(): void
     {
-        $html = $this->view->render('staff.member-deductions', [
+        $html = $this->view->make('staff.member-deductions', [
             'store' => ['id' => 1, 'name' => 'Alpha', 'currency' => 'JPY'],
             'membership' => ['id' => 9, 'store_id' => 1, 'user_id' => 3],
             'user' => ['id' => 3, 'first_name' => 'Emp', 'last_name' => 'One'],
             'deductionSettings' => [], 'deductionOverrides' => [], 'BASE_URL' => '',
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('<form method="POST" action="/admin/stores/', $html);
         $this->assertStringContainsString('/members/9/deductions', $html);

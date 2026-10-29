@@ -19,7 +19,7 @@ use App\Services\UnsubscribeTokens;
 use App\Models\NotificationPreference;
 use Tests\Support\InMemoryAppSettings;
 use App\Http\Controllers\NotificationUnsubscribeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -65,7 +65,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
             $this->createStub(UserRepositoryInterface::class),
         );
         $this->tokens = new UnsubscribeTokens(new InMemoryAppSettings());
-        $view = new ViewRenderer(dirname(__DIR__, 4) . '/resources/views');
+        $view = kintai_test_views(dirname(__DIR__, 4) . '/resources/views');
         $view->share('BASE_URL', '');
         $this->controller = new NotificationUnsubscribeController($view, $this->tokens, $this->prefs);
     }

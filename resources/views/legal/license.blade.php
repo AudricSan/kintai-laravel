@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /**
  * @var string $BASE_URL
@@ -16,3 +18,5 @@
         </p>
     </div>
 </div>
+
+@endsection

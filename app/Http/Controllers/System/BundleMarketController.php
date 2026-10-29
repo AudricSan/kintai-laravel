@@ -20,7 +20,7 @@ use App\Services\AuditLogger;
 use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\BundleRegistry\BundleCatalogService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Gère les registries de bundles ajoutés par l'Owner (façon dépôts d'add-ons
@@ -34,7 +34,7 @@ final class BundleMarketController
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly BundleRegistryRepositoryInterface $registries,
         private readonly BundleCatalogService $catalog,
         private readonly InstalledBundleRepositoryInterface $installedBundles,
@@ -50,12 +50,12 @@ final class BundleMarketController
     /** GET /admin/bundles/registries */
     public function index(Request $request): Response
     {
-        return response($this->view->render('system.bundle-registries', [
+        return response($this->view->make('system.bundle-registries', [
             'title'      => __('bundle_registries'),
             'registries' => $this->registries->all(),
             'error'      => $request->query('error'),
             'success'    => $request->query('success'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/bundles/registries */
@@ -164,7 +164,7 @@ final class BundleMarketController
             ];
         }
 
-        return response($this->view->render('system.bundle-market', [
+        return response($this->view->make('system.bundle-market', [
             'title'   => __('bundle_market'),
             'entries' => $entries,
             'error'   => $request->query('error'),
@@ -173,7 +173,7 @@ final class BundleMarketController
             'uninstalled' => $request->query('uninstalled'),
             'bundleUpdateChannel' => $channel,
             'channelSaved' => $request->query('channel_saved'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**

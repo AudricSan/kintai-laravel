@@ -1,3 +1,5 @@
+@extends('layout.guest')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Button;
@@ -125,3 +127,5 @@ endif; @endphp
     });
 }());
 </script>
+
+@endsection

@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
 use App\Http\Controllers\AuthController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -66,7 +66,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $languages->method('findDefault')->willReturn(['code' => 'fr']);
 
         $controller = new AuthController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $users,
@@ -110,7 +110,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
 
         $controller = new AuthController(
-            new ViewRenderer(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers,
+            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers,
             $this->createStub(IcalTokenRepositoryInterface::class), $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class), $languages, new AvatarImageOptimizer(),
         );

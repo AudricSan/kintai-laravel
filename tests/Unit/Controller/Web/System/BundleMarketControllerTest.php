@@ -17,7 +17,7 @@ use App\Services\BundleRegistry\BundleCatalogService;
 use App\Services\BundleRegistry\BundleRegistryClient;
 use App\Services\UpdateService;
 use App\Http\Controllers\System\BundleMarketController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -79,7 +79,7 @@ final class BundleMarketControllerTest extends TestCase
         );
 
         return new BundleMarketController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->registries,
             $catalog,
             $this->installedBundles,

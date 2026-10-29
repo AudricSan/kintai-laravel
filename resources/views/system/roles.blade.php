@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -19,7 +21,7 @@ echo Flash::fromQuery('error', [
     <h2 class="page-header__title">{!! __('roles') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 <div class="page-header page-header--end">
     <a href="{!! route_url('admin.roles.create') !!}" class="btn btn--primary">{!! __('new_role') !!}</a>
@@ -65,3 +67,5 @@ echo Flash::fromQuery('error', [
         </table>
     </div>
 </div>
+
+@endsection

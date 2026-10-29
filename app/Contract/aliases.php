@@ -7,8 +7,8 @@ declare(strict_types=1);
  * du Core. Chargé par app/Support/helpers.php, donc par l'application comme par le socle de tests des bundles.
  *
  * Pourquoi pas un alias à la demande (un fichier par nom, chargé par l'autoloader) : PHP ne charge pas une classe
- * pour vérifier un type de paramètre. Un contrôleur de bundle typé `kintai\Contract\View\ViewRenderer` refuserait
- * alors l'instance de App\View\ViewRenderer reçue tant que rien n'aurait chargé l'alias.
+ * pour vérifier un type de paramètre. Un contrôleur de bundle typé `kintai\Contract\View\ViewFactory` refuserait
+ * alors l'instance de Illuminate\Contracts\View\Factory reçue tant que rien n'aurait chargé l'alias.
  */
 (static function (): void {
     foreach (require __DIR__ . '/surface.php' as $alias => $entry) {

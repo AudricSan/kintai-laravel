@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 use App\Services\AppResetService;
 use App\Services\BackupService;
 use App\Http\Controllers\System\AppResetController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -66,7 +66,7 @@ final class AppResetControllerTest extends TestCase
             $this->createStub(UserRepositoryInterface::class),
         );
 
-        $view = new ViewRenderer(sys_get_temp_dir());
+        $view = kintai_test_views(sys_get_temp_dir());
         $this->ensureViewFile(sys_get_temp_dir(), 'system.reset-confirm');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 

@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
 use App\Http\Controllers\AuthController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 final class AuthControllerAvatarTest extends TestCase
@@ -43,7 +43,7 @@ final class AuthControllerAvatarTest extends TestCase
         $auth = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments, $rememberTokens);
 
         $this->controller = new AuthController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $this->users,

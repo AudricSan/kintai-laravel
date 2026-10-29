@@ -23,7 +23,7 @@ use App\Services\DashboardLayoutResolver;
 use App\Services\SchedulePublication;
 use App\Services\ShiftWageCalculator;
 use App\Services\StoreStatsServiceInterface;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class HomeController
 {
@@ -62,7 +62,7 @@ final class HomeController
     private const HR_OVERTIME_WEEKLY_HOURS = 40;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
@@ -224,7 +224,7 @@ final class HomeController
 
         $employeeWidgets = $this->employeeWidgets($dashWidgets, $user, array_keys($enabledAll), $today, $userCan);
 
-        return response($this->view->render('dashboard.index', [
+        return response($this->view->make('dashboard.index', [
             'title'              => 'Dashboard',
             'stats'              => [
                 'users'            => count($allUsers),
@@ -256,7 +256,7 @@ final class HomeController
             'bundle_widgets'      => $bundleWidgets,
             'bundle_widget_meta'  => self::prefixedMeta($dashWidgets),
             'employee_widgets'    => $employeeWidgets,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -354,7 +354,7 @@ final class HomeController
     /** Fonctionnalité active pour les magasins de l'utilisateur (même règle que $feat dans les vues). */
     private function storeFeatureCheck(): \Closure
     {
-        $storeFeatures = $this->view->get('store_features');
+        $storeFeatures = $this->view->shared('store_features');
         return static fn(?string $f): bool => feat_bundle($f)
             && ($f === null || $storeFeatures === null || in_array($f, (array) $storeFeatures, true));
     }

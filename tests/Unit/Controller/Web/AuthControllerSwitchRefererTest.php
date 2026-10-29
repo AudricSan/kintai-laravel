@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
 use App\Http\Controllers\AuthController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -50,7 +50,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
         );
 
         $this->controller = new AuthController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $users,

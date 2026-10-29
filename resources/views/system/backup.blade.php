@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 
 use App\View\Components\Button;
@@ -21,7 +23,7 @@ $action = route_url('admin.backup');
     <h2 class="page-header__title">{!! __('backup_title') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 @php
 ob_start();
@@ -131,3 +133,4 @@ ob_start();
     </form>
     @php echo Card::make()->header(__('reset_title'))->body(ob_get_clean())->attrs(['class' => 'settings-grid__full'])->render(); @endphp
 </div>
+@endsection

@@ -22,7 +22,7 @@ use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreServiceInterface;
 use App\Services\StoreStatsServiceInterface;
 use App\Http\Controllers\Staff\AdminStoreController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -69,7 +69,7 @@ final class AdminStoreControllerTest extends TestCase
     private function controller(): AdminStoreController
     {
         if ($this->controller === null) {
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $this->controller = new AdminStoreController(
                 $view,
                 $this->users,
@@ -93,7 +93,7 @@ final class AdminStoreControllerTest extends TestCase
         $storeService = $this->createStub(StoreServiceInterface::class);
         $storeService->method('createStore')->willThrowException(new \App\Exceptions\PlanLimitExceededException('1 magasin maximum'));
         $controller = new AdminStoreController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
             $this->storeUsers,
@@ -167,7 +167,7 @@ final class AdminStoreControllerTest extends TestCase
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $controller = new AdminStoreController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
             $this->storeUsers,
@@ -222,7 +222,7 @@ final class AdminStoreControllerTest extends TestCase
         });
 
         $controller = new AdminStoreController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
             $this->storeUsers,
@@ -269,7 +269,7 @@ final class AdminStoreControllerTest extends TestCase
         });
 
         $controller = new AdminStoreController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
             $this->storeUsers,
@@ -457,7 +457,7 @@ final class AdminStoreControllerTest extends TestCase
         });
 
         $controller = new AdminStoreController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
             $this->storeUsers,
@@ -551,7 +551,7 @@ final class AdminStoreControllerTest extends TestCase
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, ['acme' => $acme]);
 
         $controller = new AdminStoreController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
             $this->storeUsers,

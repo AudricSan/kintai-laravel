@@ -55,7 +55,7 @@ return [
     'kintai\\Contract\\Services\\ShiftWageCalculator' => ['target' => 'App\\Services\\ShiftWageCalculator', 'status' => 'stable', 'role' => 'Coût d\'un shift (source unique du calcul de salaire).'],
     'kintai\\Contract\\Services\\ShiftServiceInterface' => ['target' => 'App\\Services\\ShiftServiceInterface', 'status' => 'provisoire', 'role' => 'Création de shifts ; remplacé par une écriture ciblée (étape 3).'],
     'kintai\\Contract\\Services\\StoreStatsServiceInterface' => ['target' => 'App\\Services\\StoreStatsServiceInterface', 'status' => 'provisoire', 'role' => 'Statistiques magasin ; remplacé par des fournisseurs (étape 3).'],
-    'kintai\\Contract\\View\\ViewRenderer' => ['target' => 'App\\View\\ViewRenderer', 'status' => 'stable', 'role' => 'Rendu des vues du bundle.'],
+    'kintai\\Contract\\View\\ViewFactory' => ['target' => 'Illuminate\\Contracts\\View\\Factory', 'status' => 'stable', 'role' => 'Rendu des vues du bundle.'],
     'kintai\\Contract\\View\\Components\\Badge' => ['target' => 'App\\View\\Components\\Badge', 'status' => 'stable', 'role' => 'Composant badge.'],
     'kintai\\Contract\\View\\Components\\Button' => ['target' => 'App\\View\\Components\\Button', 'status' => 'stable', 'role' => 'Composant bouton.'],
     'kintai\\Contract\\View\\Components\\Card' => ['target' => 'App\\View\\Components\\Card', 'status' => 'stable', 'role' => 'Composant carte.'],

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -63,7 +65,7 @@ echo Flash::fromQuery('error', [
 
 <form method="POST" action="{{ $action }}" id="userEditForm" class="form-stack" novalidate{!! ($mode === 'edit' && $canEditUser) ? ' data-autosave="1"' : '' !!}>
     <fieldset{!! $canEditUser ? '' : ' disabled' !!} class="fieldset-reset">
-        {!! csrf_field() !!}        @php $as_cards = true; include \App\View\ViewRenderer::pathInScope('_partials._form-user'); @endphp
+        {!! csrf_field() !!}        @php $as_cards = true; echo $__env->make('_partials._form-user', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); @endphp
     </fieldset>
 </form>
 @if ($mode === 'edit')
@@ -300,3 +302,5 @@ endforeach;
 <script src="{!! $BASE_URL !!}/assets/js/modules/user-form-live-check.js"></script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/furigana-suggest.js"></script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/user-role-select.js"></script>
+
+@endsection

@@ -9,7 +9,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Extension\ShiftFormSections;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -75,9 +75,9 @@ final class ShiftFormSectionsTest extends TestCase
         return new ShiftFormSections(new ExtensionRegistry($manager));
     }
 
-    private function view(): ViewRenderer
+    private function view(): ViewFactory
     {
-        $view = new ViewRenderer($this->viewDir);
+        $view = kintai_test_views($this->viewDir);
         $view->addNamespace('acme', $this->viewDir . '/acme');
         return $view;
     }

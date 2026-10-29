@@ -27,7 +27,7 @@ use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use Illuminate\Translation\Translator;
 use App\Http\Controllers\EmployeeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -41,7 +41,7 @@ final class EmployeeControllerNavSettingsTest extends TestCase
         $this->navPrefs = $this->createMock(UserNavPrefsRepositoryInterface::class);
 
         $this->controller = new EmployeeController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),

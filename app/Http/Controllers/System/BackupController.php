@@ -16,14 +16,14 @@ use App\BundleDiscoveryService;
 use App\Services\GithubUpdateService;
 use App\Services\UpdateService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class BackupController
 {
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly BackupService $backup,
         private readonly UpdateService $update,
         private readonly GithubUpdateService $githubUpdate,
@@ -50,13 +50,13 @@ final class BackupController
         $backups = $this->backup->list();
         $flash = $this->describeFlash((string) $request->query('success', ''));
 
-        return response($this->view->render('system.backup', [
+        return response($this->view->make('system.backup', [
             'title'   => 'Sauvegardes',
             'backups' => $backups,
             'flash'   => $flash,
             'backup_auto_enabled' => $this->settings->backupAutoEnabled() ? '1' : '0',
             'backup_max_keep'     => $this->settings->backupMaxKeep(),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/backup/settings — sauvegarde automatique (cron) et rétention. */
@@ -108,7 +108,7 @@ final class BackupController
             $otherChannelsHistory[$channel] = $this->githubUpdate->getReleaseHistory($channel);
         }
 
-        return response($this->view->render('system.update', [
+        return response($this->view->make('system.update', [
             'title'                     => 'Mises à jour',
             'currentVersion'            => $this->update->getCurrentVersion(),
             'updateInfo'                => $updateInfo,
@@ -121,7 +121,7 @@ final class BackupController
             'flash'                     => $flash,
             'targetContract'            => $targetContract,
             'incompatibleBundles'       => $incompatibleBundles,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/update/channel — change le canal de mise à jour suivi (release/beta/alpha). */

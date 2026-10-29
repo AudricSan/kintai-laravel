@@ -9,24 +9,24 @@ use App\Mail\SmtpTransport;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppSettingsService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class MailTestController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly AppSettingsService $settings,
     ) {}
 
     public function show(Request $request): Response
     {
-        return response($this->view->render('system.mail-test', [
+        return response($this->view->make('system.mail-test', [
             'title'      => __('mailtest_title'),
             'mailConfig' => $this->loadConfig(),
             'phpIni'     => $this->phpIniInfo(),
             'result'     => null,
             'last_to'    => '',
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function send(Request $request): Response
@@ -39,13 +39,13 @@ final class MailTestController
             $result = $this->attemptSend($to);
         }
 
-        return response($this->view->render('system.mail-test', [
+        return response($this->view->make('system.mail-test', [
             'title'      => __('mailtest_title'),
             'mailConfig' => $this->loadConfig(),
             'phpIni'     => $this->phpIniInfo(),
             'result'     => $result,
             'last_to'    => $to,
-        ], 'layout.app'));
+        ])->render());
     }
 
     private function attemptSend(string $to): array

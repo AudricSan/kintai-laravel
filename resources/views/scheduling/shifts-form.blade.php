@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Card;
@@ -48,7 +50,7 @@ ob_start();
             <p>{{ $availability_message }}</p>
         </div>
     @endif
-    @includeInScope('_partials._form-shift')
+    @include('_partials._form-shift')
     @if ($availability_conflict !== null)
     <div class="form-actions">
         <a href="{!! back_url(route_url('admin.shifts')) !!}" class="btn btn--primary">{!! __('cancel') !!}</a>
@@ -69,3 +71,5 @@ ob_start();
 echo Card::make()->body(ob_get_clean())->render();
 @endphp
 <script src="{!! $BASE_URL !!}/assets/js/modules/shift-wage-preview.js"></script>
+
+@endsection

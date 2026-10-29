@@ -17,7 +17,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\VapidKeyStore;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -32,13 +32,13 @@ if (!defined('BASE_PATH')) {
 final class NotificationMiddlewareTest extends TestCase
 {
     private Container $container;
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
         $this->container = new \Tests\Support\TestContainer();
-        $this->view       = new ViewRenderer(sys_get_temp_dir());
-        $this->container->instance(ViewRenderer::class, $this->view);
+        $this->view       = kintai_test_views(sys_get_temp_dir());
+        $this->container->instance(ViewFactory::class, $this->view);
 
     }
 
@@ -111,7 +111,7 @@ final class NotificationMiddlewareTest extends TestCase
 
         $middleware->handle(Request::capture(), $this->noop());
 
-        $this->assertSame([], $this->view->get('push_web_config'));
+        $this->assertSame([], $this->view->shared('push_web_config'));
     }
 
     public function testPushWebConfigEmptyWhenKeysAreMissing(): void
@@ -123,7 +123,7 @@ final class NotificationMiddlewareTest extends TestCase
 
         $middleware->handle(Request::capture(), $this->noop());
 
-        $this->assertSame([], $this->view->get('push_web_config'));
+        $this->assertSame([], $this->view->shared('push_web_config'));
     }
 
     public function testPushWebConfigExposesOnlyThePublicKeyWhenAuthenticated(): void
@@ -135,7 +135,7 @@ final class NotificationMiddlewareTest extends TestCase
 
         $middleware->handle(Request::capture(), $this->noop());
 
-        $this->assertSame(['vapid_key' => 'public-key-789'], $this->view->get('push_web_config'));
+        $this->assertSame(['vapid_key' => 'public-key-789'], $this->view->shared('push_web_config'));
     }
 
     public function testPushWebConfigEmptyWhenTheSettingsAreUnreachable(): void
@@ -147,7 +147,7 @@ final class NotificationMiddlewareTest extends TestCase
 
         $middleware->handle(Request::capture(), $this->noop());
 
-        $this->assertSame([], $this->view->get('push_web_config'));
+        $this->assertSame([], $this->view->shared('push_web_config'));
     }
     public function testDegradesGracefullyWhenNotificationRepositoryThrows(): void
     {
@@ -172,7 +172,7 @@ final class NotificationMiddlewareTest extends TestCase
         $response = $middleware->handle(Request::capture(), $this->noop());
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(0, $this->view->get('unread_notifications_count'));
+        $this->assertSame(0, $this->view->shared('unread_notifications_count'));
     }
 
     /**
@@ -190,9 +190,9 @@ final class NotificationMiddlewareTest extends TestCase
 
         (new NotificationMiddleware($this->container))->handle(Request::capture(), $this->noop());
 
-        $this->assertSame(42, $this->view->get('notifications_last_id'));
-        $this->assertSame([40, 38], array_column($this->view->get('notifications_dropdown'), 'id'));
-        $this->assertSame(2, $this->view->get('unread_notifications_count'));
+        $this->assertSame(42, $this->view->shared('notifications_last_id'));
+        $this->assertSame([40, 38], array_column($this->view->shared('notifications_dropdown'), 'id'));
+        $this->assertSame(2, $this->view->shared('unread_notifications_count'));
     }
 
     /**

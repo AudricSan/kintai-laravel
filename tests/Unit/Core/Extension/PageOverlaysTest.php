@@ -10,7 +10,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Extension\PageOverlayHost;
 use App\Extension\PageOverlays;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -74,9 +74,9 @@ final class PageOverlaysTest extends TestCase
         return new PageOverlays(new ExtensionRegistry($manager));
     }
 
-    private function view(): ViewRenderer
+    private function view(): ViewFactory
     {
-        $view = new ViewRenderer($this->views);
+        $view = kintai_test_views($this->views);
         $view->addNamespace('acme', $this->views);
         return $view;
     }
@@ -199,7 +199,7 @@ final class PageOverlaysTest extends TestCase
     {
         $overlays = $this->overlays(['acme' => [new PageOverlay('reminder', 'acme::ok', placement: PageOverlay::BAR)]]);
         $container = \Illuminate\Container\Container::getInstance();
-        $container->instance(ViewRenderer::class, $this->view());
+        $container->instance(ViewFactory::class, $this->view());
         $container->instance(\App\Auth\PermissionService::class, (new \ReflectionClass(\App\Auth\PermissionService::class))->newInstanceWithoutConstructor());
         $users = $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class);
         $users->method('findByUser')->willReturn([]);
@@ -226,7 +226,7 @@ final class PageOverlaysTest extends TestCase
     {
         $overlays = $this->overlays(['acme' => [new PageOverlay('ask', 'acme::ok', null, null, null, null, 100, false, true)]]);
         $container = \Illuminate\Container\Container::getInstance();
-        $container->instance(ViewRenderer::class, $this->view());
+        $container->instance(ViewFactory::class, $this->view());
         $container->instance(\App\Auth\PermissionService::class, (new \ReflectionClass(\App\Auth\PermissionService::class))->newInstanceWithoutConstructor());
         $users = $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class);
         $users->method('findByUser')->willReturn([['store_id' => 3]]);

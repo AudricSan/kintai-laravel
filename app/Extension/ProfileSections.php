@@ -7,7 +7,7 @@ namespace App\Extension;
 use kintai\Contract\Extension\ProfileSection;
 use Illuminate\Container\Container;
 use App\Services\Log;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Sections du formulaire « Mes informations » du profil apportées par les bundles actifs (point d'extension
@@ -84,13 +84,13 @@ final class ProfileSections
      * @param array<string, mixed> $user
      * @return list<string>
      */
-    public function render(array $user, ViewRenderer $view): array
+    public function render(array $user, ViewFactory $view): array
     {
         $html = [];
         foreach ($this->sections() as $section) {
             $level = ob_get_level();
             try {
-                $html[] = $view->renderPartial($section->view, ['user' => $user]);
+                $html[] = $view->make($section->view, ['user' => $user])->render();
             } catch (\Throwable $e) {
                 // Une vue qui lève une exception laisse ouvert le tampon de sortie de renderPartial.
                 while (ob_get_level() > $level) {

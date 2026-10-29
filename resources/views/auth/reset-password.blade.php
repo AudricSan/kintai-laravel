@@ -1,3 +1,5 @@
+@extends('layout.guest')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Button;
@@ -50,3 +52,5 @@ use App\View\Components\Button;
     </form>
 
 @endif
+
+@endsection

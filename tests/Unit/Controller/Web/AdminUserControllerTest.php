@@ -26,7 +26,7 @@ use App\Services\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Auth\UserAnonymizer;
@@ -77,7 +77,7 @@ final class AdminUserControllerTest extends TestCase
     private function controller(): AdminUserController
     {
         if ($this->controller === null) {
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $this->controller = new AdminUserController(
                 $view,
                 $this->users,

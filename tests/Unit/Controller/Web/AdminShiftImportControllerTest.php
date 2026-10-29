@@ -16,7 +16,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Scheduling\AdminShiftImportController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -46,7 +46,7 @@ final class AdminShiftImportControllerTest extends TestCase
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
             );
             $this->controller = new AdminShiftImportController(
-                new ViewRenderer(sys_get_temp_dir()),
+                kintai_test_views(sys_get_temp_dir()),
                 $this->createStub(UserRepositoryInterface::class),
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->createStub(ShiftRepositoryInterface::class),

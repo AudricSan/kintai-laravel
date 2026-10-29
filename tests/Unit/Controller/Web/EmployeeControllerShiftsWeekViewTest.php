@@ -27,7 +27,7 @@ use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use Illuminate\Translation\Translator;
 use App\Http\Controllers\EmployeeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -62,7 +62,7 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
         $stores->method('findAll')->willReturn([]);
 
         $this->controller = new EmployeeController(
-            new ViewRenderer($viewDir),
+            kintai_test_views($viewDir),
             $this->shifts,
             $shiftTypes,
             $stores,

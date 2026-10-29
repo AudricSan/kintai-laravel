@@ -18,7 +18,7 @@ use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Tests\Support\CalendarSyncFixture;
 use App\Http\Controllers\System\CalendarSettingsController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /** Identifiants Google de l'instance (Owner), test des identifiants, et nettoyage à la suppression d'un compte. */
@@ -27,7 +27,7 @@ final class CalendarSettingsControllerTest extends TestCase
     use CalendarSyncFixture;
 
     private CalendarSettingsController $controller;
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
@@ -38,7 +38,7 @@ final class CalendarSettingsControllerTest extends TestCase
         foreach (['x', 'admin.owner_settings', 'admin.notifications_settings', 'admin.calendar_settings', 'admin.calendar_settings.save', 'admin.calendar_settings.test', 'admin.backup', 'admin.update', 'admin.languages', 'admin.bundles', 'admin.roles', 'admin.license', 'home'] as $i => $name) {
             $router->get('/p' . $i, ['X', 'y'], name: $name);
         }
-        $this->view = new ViewRenderer(BASE_PATH . '/resources/views');
+        $this->view = kintai_test_views(BASE_PATH . '/resources/views');
         $this->view->share('BASE_URL', '');
         $this->controller = new CalendarSettingsController(
             $this->view,
@@ -88,10 +88,10 @@ final class CalendarSettingsControllerTest extends TestCase
     public function testTheSecretNeverReachesTheRenderedPage(): void
     {
         // La page sans la mise en page de l'application (qui demande toutes les routes du site).
-        $html = $this->view->render('system.calendar-settings', [
+        $html = $this->view->make('system.calendar-settings', [
             'enabled' => true, 'client_id' => 'client-id', 'has_secret' => true, 'available' => true,
             'redirect_uri' => 'https://kintai.test/profile/calendar/google/callback', 'connections' => 2, 'check' => '',
-        ]);
+        ])->render();
 
         $this->assertStringNotContainsString('client-secret', $html);
         $this->assertStringContainsString('https://kintai.test/profile/calendar/google/callback', $html);

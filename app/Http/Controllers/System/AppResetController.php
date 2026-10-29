@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppResetService;
 use App\Services\BackupService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Réinitialisation de l'application depuis /admin/backup ("Danger zone", Owner uniquement).
@@ -26,7 +26,7 @@ final class AppResetController
     private const MODES = ['data', 'factory'];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly BackupService $backup,
         private readonly AppResetService $reset,
         private readonly AuthService $auth,
@@ -44,13 +44,13 @@ final class AppResetController
 
         $backup = $this->backup->create('[auto] Sauvegarde avant réinitialisation (' . $mode . ')');
 
-        return response($this->view->render('system.reset-confirm', [
+        return response($this->view->make('system.reset-confirm', [
             'title'          => __('reset_title'),
             'mode'           => $mode,
             'keep'           => $keep,
             'backup_filename' => $backup['filename'],
             'download_url'   => $this->base() . '/admin/backup/download?filename=' . urlencode($backup['filename']),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/reset/execute */

@@ -12,7 +12,7 @@ use Illuminate\Translation\Translator;
 use App\Services\WikiContentService;
 use App\Services\WikiSyncService;
 use App\Http\Controllers\DocsController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -96,7 +96,7 @@ final class DocsControllerTest extends TestCase
         app()->setLocale($locale);
 
         return new DocsController(
-            new ViewRenderer($this->tmpViews),
+            kintai_test_views($this->tmpViews),
             new WikiContentService($this->tmpWiki),
             new WikiSyncService($this->tmpWiki),
         );

@@ -15,7 +15,7 @@ use App\Services\AppSettingsService;
 use App\Services\PasswordResetService;
 use App\Services\PublicUrlResolver;
 use App\Http\Controllers\PasswordResetController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -57,7 +57,7 @@ final class PasswordResetControllerI18nTest extends TestCase
         $settingsRepo = $this->createStub(AppSettingsRepositoryInterface::class);
         $settingsRepo->method('all')->willReturn([]);
         $this->controller = new PasswordResetController(
-            new ViewRenderer($viewDir),
+            kintai_test_views($viewDir),
             $service,
             new PublicUrlResolver(new AppSettingsService($settingsRepo), 'https://kintai.example.com'),
         );

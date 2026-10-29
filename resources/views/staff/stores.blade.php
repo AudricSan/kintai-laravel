@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Badge;
@@ -76,3 +78,5 @@ $storeChipColor = function (string $seed): string {
             . '</div>';
     })
     ->render() !!}</div>
+
+@endsection

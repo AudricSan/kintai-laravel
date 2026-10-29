@@ -42,7 +42,7 @@ final class FooterSupportModalsTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include \App\View\ViewRenderer::pathInScope('layout.partials.report-issue-modal', (new \App\View\ViewRenderer(self::VIEWS))->factory());
+        echo kintai_test_views(self::VIEWS)->make('layout.partials.report-issue-modal', get_defined_vars())->render();
         return (string) ob_get_clean();
     }
 
@@ -52,7 +52,7 @@ final class FooterSupportModalsTest extends TestCase
         $auth_user = ['id' => 1, 'is_admin' => 0];
         $isManager = false;
         ob_start();
-        include \App\View\ViewRenderer::pathInScope('layout.partials._footer', (new \App\View\ViewRenderer(self::VIEWS))->factory());
+        echo kintai_test_views(self::VIEWS)->make('layout.partials._footer', get_defined_vars())->render();
         return (string) ob_get_clean();
     }
 

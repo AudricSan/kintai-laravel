@@ -35,7 +35,7 @@ use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\BundleRegistry\BundleRegistryClient;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AppServiceProvider extends ServiceProvider
 {

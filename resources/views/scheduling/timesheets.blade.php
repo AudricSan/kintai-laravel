@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -201,3 +203,5 @@ $_anomalies = array_sum(array_column($timesheet['totals'] ?? [], 'anomalies'));
     </div>
     @endif
 @endif
+
+@endsection

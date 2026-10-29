@@ -25,7 +25,7 @@ use App\Services\NotificationPreferenceService;
 use App\Services\NotificationTypeRegistry;
 use App\Models\NotificationPreference;
 use App\Http\Controllers\AuthController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /** Onglet Notifications du profil : enregistrement de la grille et des heures silencieuses (POST /profile/notifications). */
@@ -83,7 +83,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
         );
 
         $this->controller = new AuthController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $users,

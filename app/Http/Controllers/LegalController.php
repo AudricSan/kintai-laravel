@@ -6,32 +6,32 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class LegalController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
     ) {}
 
     public function mentions(Request $request): Response
     {
-        return response($this->view->render('legal.mentions', [
+        return response($this->view->make('legal.mentions', [
             'title' => __('legal_notice'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function terms(Request $request): Response
     {
-        return response($this->view->render('legal.terms', [
+        return response($this->view->make('legal.terms', [
             'title' => __('terms_of_use'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function license(Request $request): Response
     {
-        return response($this->view->render('legal.license', [
+        return response($this->view->make('legal.license', [
             'title' => __('license'),
-        ], 'layout.app'));
+        ])->render());
     }
 }

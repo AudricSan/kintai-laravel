@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Badge;
@@ -216,3 +218,5 @@ $reportUrl = $BASE_URL . '/admin/stores/' . store_segment((int) $store['id']) . 
       ->emptyMessage(__('no_data'))
       ->render() !!}</div>
 
+
+@endsection

@@ -27,7 +27,7 @@ use App\Services\NotificationService;
 use App\Services\SchedulePublication;
 use App\Http\Controllers\HasBaseUrl;
 use App\Http\Controllers\HasStoreFeatureCheck;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class EmployeeController
 {
@@ -40,7 +40,7 @@ final class EmployeeController
     ];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface $stores,
@@ -90,7 +90,7 @@ final class EmployeeController
         $enabledWidgets = $enabledAll;
 
         $userCan = fn(string $perm): bool => $this->permissions->can($user, $perm, null);
-        $storeFeatures = $this->view->get('store_features');
+        $storeFeatures = $this->view->shared('store_features');
         $bundleWidgets = $dashWidgets->render(
             DashboardWidget::EMPLOYEE,
             self::EMPLOYEE_WIDGETS,
@@ -114,7 +114,7 @@ final class EmployeeController
             static fn(?string $f): bool => feat_bundle($f) && ($f === null || $storeFeatures === null || in_array($f, (array) $storeFeatures, true)),
         );
 
-        return response($this->view->render('employee.dashboard', [
+        return response($this->view->make('employee.dashboard', [
             'title'            => __('dashboard'),
             'user'             => $user,
             'shifts_today'     => $shiftsToday,
@@ -133,7 +133,7 @@ final class EmployeeController
             'bundle_widgets'   => $bundleWidgets,
             'bundle_stats'     => $bundleStats,
             'bundle_widget_meta' => $dashWidgets->meta(DashboardWidget::EMPLOYEE, self::EMPLOYEE_WIDGETS),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -233,7 +233,7 @@ final class EmployeeController
             }
         }
 
-        return response($this->view->render('scheduling.shifts-calendar', [
+        return response($this->view->make('scheduling.shifts-calendar', [
             'title'          => __('my_planning'),
             'year'           => $year,
             'month'          => $month,
@@ -251,7 +251,7 @@ final class EmployeeController
             'week_start_day' => $weekStartDay,
             'ical_links'     => $icalLinks,
             'is_manager_view'=> false,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function shiftsWeek(Request $request): Response
@@ -323,7 +323,7 @@ final class EmployeeController
         }
 
 
-        return response($this->view->render('scheduling.shifts', [
+        return response($this->view->make('scheduling.shifts', [
             'title'          => 'Mon planning',
             'days'           => $days,
             'shifts_by_date' => $shiftsByDate,
@@ -335,7 +335,7 @@ final class EmployeeController
             'next_week'      => $nextWeek,
             'week_label'     => 'Semaine ' . $monday->format('W') . ' · ' . $monday->format('d M') . ' – ' . $sunday->format('d M Y'),
             'today'          => date('Y-m-d'),
-        ], 'layout.app'));
+        ])->render());
     }
 
     // -------------------------------------------------------------------------
@@ -483,7 +483,7 @@ final class EmployeeController
         ];
 
 
-        return response($this->view->render('scheduling.shifts-timeline', [
+        return response($this->view->make('scheduling.shifts-timeline', [
             'title'               => 'Mon planning',
             'page_heading'        => __('my_planning'),
             'show_request_swap'   => true,
@@ -508,7 +508,7 @@ final class EmployeeController
             'stores_map'          => $storesMap,
             'available_stores'    => $storesList,
             'store_settings'      => $storeSettings,
-        ], 'layout.app'));
+        ])->render());
     }
 
 

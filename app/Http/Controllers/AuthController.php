@@ -28,7 +28,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserNavPrefsRepositoryInterface;
 use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AuthController
 {
@@ -40,7 +40,7 @@ final class AuthController
     private const NAV_EMPLOYEE_SECTIONS       = ['planning', 'requests', 'statistics', 'account'];
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly AuthService $auth,
         private readonly AuditLogger $auditLogger,
         private readonly UserRepositoryInterface $users,
@@ -116,7 +116,7 @@ final class AuthController
             return redirect()->away($this->base() . '/');
         }
 
-        return response($this->view->render('auth.login', [
+        return response($this->view->make('auth.login', [
             'title'      => __('login_page'),
             'error'      => !empty($_GET['error']) && $_GET['error'] !== 'expired',
             // Formulaire validé après expiration de la session (jeton CSRF refusé, voir CsrfMiddleware).
@@ -125,7 +125,7 @@ final class AuthController
             // Sélecteur de langue de la page de connexion (pour la session ; voir switchLanguage()).
             'login_languages' => $this->languages->findAllActive(),
             'current_locale'  => app()->getLocale(),
-        ], 'layout.guest'));
+        ])->render());
     }
 
     /** Traite la soumission du formulaire de connexion. */
@@ -304,7 +304,7 @@ final class AuthController
         $bnSaved   = \App\Extension\Navigation::migrateLegacyMobileKeys($this->navPrefs->getBottomNavItems($userId));
         $bnItems   = !empty($bnSaved) ? $bnSaved : $bnDefault;
 
-        return response($this->view->render('auth.profile', [
+        return response($this->view->make('auth.profile', [
             'title'                => __('profile'),
             'user'                 => $user,
             'has_default_password' => $hasDefaultPassword,
@@ -327,7 +327,7 @@ final class AuthController
             'email_available'      => $tab === 'notifications' && ($this->notifMailer?->isAvailable() ?? false),
             // Sections des bundles actifs dans « Mes informations » (contrat 1.12), ex. l'annuaire.
             'profile_sections'     => ProfileSections::current()->render($user, $this->view),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** Enregistre la grille des préférences de notification et les heures silencieuses (onglet Notifications). */

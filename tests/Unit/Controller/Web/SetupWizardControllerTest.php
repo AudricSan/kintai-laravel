@@ -23,7 +23,7 @@ use App\Setup\SetupStepInterface;
 use App\Setup\SetupSteps;
 use Tests\Support\InMemoryAppSettings;
 use App\Http\Controllers\System\SetupWizardController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -93,7 +93,7 @@ final class SetupWizardControllerTest extends TestCase
         mkdir($this->views . '/layout', 0777, true);
         file_put_contents($this->views . '/layout/app.php', '<?php echo $content ?? "";');
         self::copyDir(BASE_PATH . '/resources/views/system', $this->views . '/system');
-        $view = new ViewRenderer($this->views);
+        $view = kintai_test_views($this->views);
         $view->share('BASE_URL', '');
         $this->controller = new SetupWizardController(
             $view,

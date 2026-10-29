@@ -205,9 +205,9 @@
             "status": "stable",
             "target": "App\\View\\Components\\UserPicker"
         },
-        "kintai\\Contract\\View\\ViewRenderer": {
+        "kintai\\Contract\\View\\ViewFactory": {
             "status": "stable",
-            "target": "App\\View\\ViewRenderer"
+            "target": "Illuminate\\Contracts\\View\\Factory"
         }
     },
     "functions": {

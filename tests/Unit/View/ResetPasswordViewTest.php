@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\View;
 
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,13 +15,13 @@ final class ResetPasswordViewTest extends TestCase
 {
     public function testTheErrorMessageIsEscapedExactlyOnce(): void
     {
-        $html = (new ViewRenderer(dirname(__DIR__, 3) . '/resources/views'))->render('auth.reset-password', [
+        $html = (kintai_test_views(dirname(__DIR__, 3) . '/resources/views'))->make('auth.reset-password', [
             'BASE_URL' => '',
             'token'    => 't',
             'valid'    => true,
             'success'  => false,
             'error'    => "L'erreur & <b>le reste</b>",
-        ]);
+        ])->render();
 
         $this->assertStringContainsString('L&#039;erreur &amp; &lt;b&gt;le reste&lt;/b&gt;', $html);
         $this->assertStringNotContainsString('&amp;#039;', $html, 'double échappement');

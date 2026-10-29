@@ -15,7 +15,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -141,11 +141,11 @@ final class PasswordReminderTest extends TestCase
     /** @return array{0: Response, 1: bool, 2: bool} réponse, bandeau, fenêtre */
     private function page(string $uri, string $method = 'GET', array $server = []): array
     {
-        $view = new ViewRenderer(sys_get_temp_dir());
-        $this->container->instance(ViewRenderer::class, $view);
+        $view = kintai_test_views(sys_get_temp_dir());
+        $this->container->instance(ViewFactory::class, $view);
         $response = $this->through($uri, $method, $server);
 
-        return [$response, (bool) $view->get('password_change_recommended'), (bool) $view->get('password_reminder_popup')];
+        return [$response, (bool) $view->shared('password_change_recommended'), (bool) $view->shared('password_reminder_popup')];
     }
 
     /** @return array<string, array{string, string}> */

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -523,3 +525,5 @@ echo Modal::make('—', '<div id="al-detail-content"></div>')
     });
 })();
 </script>
+
+@endsection

@@ -12,7 +12,7 @@ use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -37,7 +37,7 @@ final class PermissionMiddlewareTest extends TestCase
         if ($this->middleware === null) {
             $this->middleware  = new PermissionMiddleware(
                 new PermissionService($this->assignments, $this->roles),
-                new ViewRenderer(sys_get_temp_dir()),
+                kintai_test_views(sys_get_temp_dir()),
                 $this->storeUsers,
             );
         }

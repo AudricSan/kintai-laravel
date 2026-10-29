@@ -14,7 +14,7 @@ use App\Services\PlanLimitService;
 use App\Services\PublicUrlResolver;
 use App\Services\StorageUsageService;
 use App\Services\UpdateService;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AppSettingsMiddleware
 {
@@ -24,7 +24,7 @@ final class AppSettingsMiddleware
     {
         try {
             $settings = $this->container->make(AppSettingsService::class);
-            $view     = $this->container->make(ViewRenderer::class);
+            $view     = $this->container->make(ViewFactory::class);
 
             $view->share('app_subtitle',     $settings->subtitle());
             $view->share('app_login_notice', $settings->loginNotice());
@@ -48,7 +48,7 @@ final class AppSettingsMiddleware
         // Stockage du serveur presque plein : bandeau réservé à l'Owner. Séparé du bloc ci-dessus, la mesure du disque
         // ne dépend pas de la base et ne doit jamais empêcher la page de s'afficher.
         try {
-            $this->container->make(ViewRenderer::class)->share('storage_low', $this->container->make(StorageUsageService::class)->lowStorage());
+            $this->container->make(ViewFactory::class)->share('storage_low', $this->container->make(StorageUsageService::class)->lowStorage());
         } catch (\Throwable) {
         }
 

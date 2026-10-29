@@ -11,7 +11,7 @@ use App\Extension\ExtensionRegistry;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\Log;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Variables partagées avec toutes les vues des pages authentifiées :
@@ -39,7 +39,7 @@ final class BundleViewDataMiddleware
         }
 
         $user = $auth->user();
-        $view = $this->container->make(ViewRenderer::class);
+        $view = $this->container->make(ViewFactory::class);
 
         $isOwner = !empty($user['is_admin']);
         $isManager = !$isOwner && $auth->isManager();

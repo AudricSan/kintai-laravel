@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Badge;
@@ -459,7 +461,7 @@ $_filteredBnPool = $_navigation->mobileChoices($_isManagerView, $route_visible ?
 @php
 // Liaison Google Calendar : mise à jour automatique, contrairement à l'abonnement iCal que Google relit quand il veut.
 if (isset($calendar)) {
-    include \App\View\ViewRenderer::pathInScope('auth._profile-google-calendar');
+    echo $__env->make('auth._profile-google-calendar', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
 }
 ob_start();
 @endphp
@@ -686,3 +688,5 @@ echo Card::make(__('privacy_policy_title'))
 @endphp
 
 @endif
+
+@endsection

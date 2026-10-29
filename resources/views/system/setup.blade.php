@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /**
  * Assistant de configuration (SetupWizardController) : une étape à la fois, avec la barre de progression.
@@ -64,10 +66,12 @@ $screen = $step === 'bundles_result' ? 'bundles' : $step;
 @php
 $partial = 'system.setup._' . $step;
 if ($__env->exists($partial)) {
-    include \App\View\ViewRenderer::pathInScope($partial);
+    echo $__env->make($partial, \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
 }
 @endphp
 
 @if ($previous !== null && $step !== 'bundles_result')
     <p class="mt-sm"><a href="{!! route_url('admin.setup') !!}?step={{ $previous }}">← {!! __('setup_back') !!}</a></p>
 @endif
+
+@endsection

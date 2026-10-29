@@ -18,7 +18,7 @@ use App\Services\PdfCjkFontResolver;
  * config/repository via les méthodes abstraites ci-dessous ; ce trait porte
  * la logique jusqu'ici commune aux trois.
  *
- * Nécessite sur la classe utilisatrice : $this->view (ViewRenderer),
+ * Nécessite sur la classe utilisatrice : $this->view (ViewFactory),
  * $this->stores (StoreRepositoryInterface), $this->auditLogger (AuditLogger),
  * $this->permissions (PermissionService, pour getManagersForReportForm()),
  * et le trait HasAdminAccess (base(), assertStoreAccess()).
@@ -83,11 +83,11 @@ trait HasStaffReportCrud
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
-        return response($this->view->render($this->reportConfig()['view'], array_merge([
+        return response($this->view->make($this->reportConfig()['view'], array_merge([
             'title'   => $titlePrefix . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
             'reports' => $this->reportRepo()->findByStore($storeId),
-        ], $this->reportListExtras($storeId)), 'layout.app'));
+        ], $this->reportListExtras($storeId)))->render());
     }
 
     /** Données additionnelles pour la vue liste, propres à un type de rapport (voir AdminSalaryReportController). */
@@ -134,11 +134,11 @@ trait HasStaffReportCrud
             'store_id' => $storeId,
         ], $storeId);
 
-        return response($this->view->render($this->reportConfig()['view'] . '-show', array_merge([
+        return response($this->view->make($this->reportConfig()['view'] . '-show', array_merge([
             'title'  => $this->reportShowTitle($report),
             'store'  => $this->stores->findById($storeId),
             'report' => $report,
-        ], $this->reportShowExtras($storeId, $report)), 'layout.app'));
+        ], $this->reportShowExtras($storeId, $report)))->render());
     }
 
     /** Données additionnelles pour la vue show/pdf, propres à un type de rapport (voir AdminSalaryReportController). */
@@ -151,12 +151,12 @@ trait HasStaffReportCrud
     {
         [$report, $storeId] = $this->findReportOrFail($request);
 
-        return response($this->view->render($this->reportConfig()['view'] . '-form', array_merge([
+        return response($this->view->make($this->reportConfig()['view'] . '-form', array_merge([
             'title'  => $this->reportEditTitle(),
             'store'  => $this->stores->findById($storeId),
             'mode'   => 'edit',
             'report' => $report,
-        ], $this->reportEditExtras($storeId, $report)), 'layout.app'));
+        ], $this->reportEditExtras($storeId, $report)))->render());
     }
 
     private function updateReport(Request $request): Response
@@ -221,11 +221,11 @@ trait HasStaffReportCrud
         [$report, $storeId, $reportId] = $this->findReportOrFail($request);
         $cfg = $this->reportConfig();
 
-        $html = $this->view->render($cfg['view'] . '-pdf', array_merge([
+        $html = $this->view->make($cfg['view'] . '-pdf', array_merge([
             'report'      => $report,
             'store'       => $this->stores->findById($storeId),
             'downloadUrl' => $this->base() . '/admin/stores/' . $storeId . '/reports/' . $cfg['slug'] . '/' . $reportId . '/pdf/download',
-        ], $this->reportShowExtras($storeId, $report)));
+        ], $this->reportShowExtras($storeId, $report)))->render();
 
         return response($html);
     }
@@ -236,10 +236,10 @@ trait HasStaffReportCrud
         [$report, $storeId, $reportId] = $this->findReportOrFail($request);
         $cfg = $this->reportConfig();
 
-        $html = $this->view->render($cfg['view'] . '-pdf', array_merge([
+        $html = $this->view->make($cfg['view'] . '-pdf', array_merge([
             'report' => $report,
             'store'  => $this->stores->findById($storeId),
-        ], $this->reportShowExtras($storeId, $report)));
+        ], $this->reportShowExtras($storeId, $report)))->render();
 
         return $this->renderPdf($html, $cfg['entity'] . '_' . $reportId . '.pdf');
     }

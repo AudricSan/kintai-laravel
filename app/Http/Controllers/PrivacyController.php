@@ -6,18 +6,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class PrivacyController
 {
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
     ) {}
 
     public function show(Request $request): Response
     {
-        return response($this->view->render('privacy', [
+        return response($this->view->make('privacy', [
             'title' => 'Politique de confidentialité',
-        ], 'layout.app'));
+        ])->render());
     }
 }

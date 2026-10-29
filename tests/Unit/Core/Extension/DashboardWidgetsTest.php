@@ -9,7 +9,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\DashboardWidgets;
 use App\Extension\ExtensionRegistry;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -81,9 +81,9 @@ final class DashboardWidgetsTest extends TestCase
         return new DashboardWidget($key, $audience, 'label_' . $key, $view, $data, $permission, $feature, $order);
     }
 
-    private function renderer(): ViewRenderer
+    private function renderer(): ViewFactory
     {
-        $view = new ViewRenderer($this->views);
+        $view = kintai_test_views($this->views);
         $view->addNamespace('acme', $this->views);
         return $view;
     }

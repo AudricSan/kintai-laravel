@@ -14,14 +14,14 @@ use App\Services\AuditLogger;
 use App\Services\BundleActivationService;
 use App\Services\PlanLimitService;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class BundleSettingsController
 {
     use HasBaseUrl;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly AppSettingsRepositoryInterface $appSettings,
         private readonly FeatureManager $features,
         private readonly AuditLogger $auditLogger,
@@ -50,13 +50,13 @@ final class BundleSettingsController
         $maxActiveBundles = $this->planLimits->maxActiveBundles();
         $activeCount = count(array_filter($bundles, fn(array $b) => $b['enabled']));
 
-        return response($this->view->render('system.bundles', [
+        return response($this->view->make('system.bundles', [
             'title'            => __('bundle_settings'),
             'bundles'          => $bundles,
             'success'          => isset($_GET['success']),
             'maxActiveBundles' => $maxActiveBundles,
             'activeCount'      => $activeCount,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** POST /admin/bundles */

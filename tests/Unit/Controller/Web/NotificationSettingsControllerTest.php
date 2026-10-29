@@ -38,7 +38,7 @@ use App\Services\VapidKeyStore;
 use App\Models\Notification;
 use Tests\Support\InMemoryAppSettings;
 use App\Http\Controllers\System\NotificationSettingsController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -52,7 +52,7 @@ final class NotificationSettingsControllerTest extends TestCase
     private NotificationSettingsController $controller;
     private NotificationPreferenceService $prefs;
     private NotificationChannelStatus $status;
-    private ViewRenderer $view;
+    private ViewFactory $view;
     /** @var list<array> e-mails envoyés */
     public array $mails = [];
     /** @var array<int, array<string, mixed>> */
@@ -153,7 +153,7 @@ final class NotificationSettingsControllerTest extends TestCase
             new NotificationMailer($mailer, $publicUrl, new UnsubscribeTokens($this->settings), $translations),
         );
 
-        $this->view = new ViewRenderer(BASE_PATH . '/resources/views');
+        $this->view = kintai_test_views(BASE_PATH . '/resources/views');
         $this->view->share('BASE_URL', '');
         $this->status = new NotificationChannelStatus($vapid, $subscriptions, $devices, $mailer, $publicUrl, $users, []);
         $this->controller = new NotificationSettingsController(
@@ -241,10 +241,10 @@ final class NotificationSettingsControllerTest extends TestCase
     /** La page sans la mise en page de l'application (qui demande toutes les routes du site). */
     private function page(array $testChannels): string
     {
-        return $this->view->render('system.notification-settings', [
+        return $this->view->make('system.notification-settings', [
             'retention_days' => 45, 'retention_min' => 7, 'retention_max' => 3650,
             'status' => $this->status->all(), 'test_channels' => $testChannels,
-        ]);
+        ])->render();
     }
 
     public function testThePageShowsTheStateOfEachChannel(): void

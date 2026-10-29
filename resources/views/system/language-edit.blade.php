@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\FilterBar;
 use App\View\Components\Pagination;
@@ -92,3 +94,5 @@ $code = $language['code'];
     'confirmDelete' => __('translation_confirm_delete_key'),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/language-editor.js"></script>
+
+@endsection

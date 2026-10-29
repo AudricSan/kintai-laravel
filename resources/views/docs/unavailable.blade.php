@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /** @var string $locale        Locale courante de l'utilisateur ('fr'|'en'|'ja') */
 /** @var string $githubWikiUrl URL de la page d'accueil du wiki GitHub dans cette langue */
@@ -69,3 +71,5 @@ $langLabel  = $langLabels[$locale] ?? $locale;
         @endif
     </div>
 </div>
+
+@endsection

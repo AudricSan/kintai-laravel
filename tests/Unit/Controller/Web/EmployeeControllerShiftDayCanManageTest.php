@@ -27,7 +27,7 @@ use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use Illuminate\Translation\Translator;
 use App\Http\Controllers\EmployeeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
@@ -72,7 +72,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
     private function buildController(ShiftRepositoryInterface $shifts, NotificationRepositoryInterface $notifRepo): EmployeeController
     {
         return new EmployeeController(
-            new ViewRenderer($this->viewDir),
+            kintai_test_views($this->viewDir),
             $shifts,
             $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->stores,

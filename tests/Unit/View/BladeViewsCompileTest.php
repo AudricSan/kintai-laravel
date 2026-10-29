@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\View;
 
-use App\View\ViewRenderer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,7 +15,7 @@ final class BladeViewsCompileTest extends TestCase
     public function testEveryCoreBladeViewCompilesToValidPhp(): void
     {
         $base = dirname(__DIR__, 3) . '/resources/views';
-        $factory = (new ViewRenderer($base))->factory();
+        $compiler = app('blade.compiler');
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS));
         $count = 0;
         foreach ($files as $file) {
@@ -24,9 +23,8 @@ final class BladeViewsCompileTest extends TestCase
             if (!str_ends_with($relative, '.blade.php')) {
                 continue;
             }
-            $name = str_replace('/', '.', substr($relative, 0, -strlen('.blade.php')));
             try {
-                token_get_all((string) file_get_contents(ViewRenderer::pathInScope($name, $factory)), TOKEN_PARSE);
+                token_get_all($compiler->compileString((string) file_get_contents($file->getPathname())), TOKEN_PARSE);
             } catch (\ParseError $e) {
                 $this->fail("{$relative} : {$e->getMessage()} (ligne {$e->getLine()} du PHP compilé)");
             }

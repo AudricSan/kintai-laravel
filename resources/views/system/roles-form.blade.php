@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Flash;
@@ -54,7 +56,7 @@ echo Flash::fromQuery('error', [
     <div class="card card--mb">
         <div class="card-body">
             <h4 class="section-title">{!! __('role_holders') !!} <span class="page-count">({!! count($holders) !!})</span></h4>
-            @php $removable = true; include \App\View\ViewRenderer::pathInScope('_partials._role-holders-list'); @endphp
+            @php $removable = true; echo $__env->make('_partials._role-holders-list', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); @endphp
             @if (!empty($assignable_users))
             {!! Button::make(__('add'))->outline()->sm()->attrs(['type' => 'button', 'data-on-click' => 'openModal', 'data-args' => '["addRoleHolderModal"]'])->render() !!}            @endif
         </div>
@@ -94,7 +96,7 @@ echo Flash::fromQuery('error', [
         <div class="card rf-holders">
             <div class="card-body">
                 <h4 class="section-title">{!! __('role_holders') !!} <span class="page-count">({!! count($holders) !!})</span></h4>
-                @php $removable = true; include \App\View\ViewRenderer::pathInScope('_partials._role-holders-list'); @endphp
+                @php $removable = true; echo $__env->make('_partials._role-holders-list', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); @endphp
 
                 @if (!empty($assignable_users))
                 {!! Button::make(__('add'))->outline()->sm()->attrs(['type' => 'button', 'data-on-click' => 'openModal', 'data-args' => '["addRoleHolderModal"]'])->render() !!}                @endif
@@ -202,3 +204,5 @@ endif; @endphp
 @if (!$isSystem)
 <script src="{!! $BASE_URL !!}/assets/js/modules/permission-editor.js"></script>
 @endif
+
+@endsection

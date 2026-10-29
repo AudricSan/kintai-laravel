@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Card;
@@ -259,3 +261,5 @@ ob_start();
 
 @endif
 <script src="{!! $BASE_URL !!}/assets/js/modules/stats-charts.js"></script>
+
+@endsection

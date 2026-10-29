@@ -25,7 +25,7 @@ use App\Services\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -73,7 +73,7 @@ final class AdminUserControllerScopeTest extends TestCase
         Log::setContainer($container);
 
         $this->controller = new AdminUserController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $stores,
             $this->createStub(ShiftRepositoryInterface::class),

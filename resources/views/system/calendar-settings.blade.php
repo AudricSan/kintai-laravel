@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 
 use App\View\Components\Alert;
@@ -31,7 +33,7 @@ if (isset($checkAlerts[$check])) {
     <h2 class="page-header__title">{!! __('gcal_admin_title') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 @php
 ob_start();
@@ -86,3 +88,4 @@ ob_start();
 @php
 echo Card::make()->header(__('gcal_admin_card_state'))->body(ob_get_clean())->render();
 @endphp
+@endsection

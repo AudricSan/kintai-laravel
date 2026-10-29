@@ -26,7 +26,7 @@ use App\Services\AuditLogger;
 use App\Services\AvailabilityGuard;
 use App\Services\Log;
 use App\Services\ShiftWageCalculator;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use App\Http\Controllers\HasAdminAccess;
 use App\Services\ShiftServiceInterface;
 
@@ -35,7 +35,7 @@ final class AdminShiftController
     use HasAdminAccess;
 
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
@@ -173,7 +173,7 @@ final class AdminShiftController
             ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
             : $this->users->findAll();
 
-        return response($this->view->render('scheduling.shifts-form', [
+        return response($this->view->make('scheduling.shifts-form', [
             'title'                 => $mode === 'edit' ? 'Modifier le shift #' . $shift['id'] : 'Nouveau shift',
             'mode'                  => $mode,
             'shift'                 => $shift,
@@ -183,7 +183,7 @@ final class AdminShiftController
             'redirect_to'           => safe_redirect_path((string) $request->post('redirect_to', ''), ''),
             'availability_conflict' => $conflict,
             'availability_message'  => $this->availabilityMessage($conflict),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /** Champs du formulaire de shift tels que postés, pour le réafficher à l'identique. */
@@ -305,7 +305,7 @@ final class AdminShiftController
         }
         asort($usersForFilter);
 
-        return response($this->view->render('scheduling.shifts', [
+        return response($this->view->make('scheduling.shifts', [
             'title'            => 'Shifts',
             'shifts'           => $allShifts,
             'users_map'        => $usersMap,
@@ -317,7 +317,7 @@ final class AdminShiftController
             'filter_user_id'   => $filterUserId,
             'sort'             => $sort,
             'can_manage'       => true,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -389,7 +389,7 @@ final class AdminShiftController
         // Types de shift
         $typesMap = $this->shiftService->getShiftTypesMap();
 
-        return response($this->view->render('scheduling.shifts-calendar', [
+        return response($this->view->make('scheduling.shifts-calendar', [
             'title'         => 'Calendrier',
             'year'          => $year,
             'month'         => $month,
@@ -410,7 +410,7 @@ final class AdminShiftController
             'filter_store_id' => $filterStoreId,
             'week_start_day'  => $weekStartDay,
             'is_manager_view' => true,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -543,7 +543,7 @@ final class AdminShiftController
             'low_staff_hour_end'   => (int) ($storeObj['low_staff_hour_end']   ?? -1),
         ];
 
-        return response($this->view->render('scheduling.shifts-timeline', [
+        return response($this->view->make('scheduling.shifts-timeline', [
             'title'               => 'Planning — Timeline',
             'days'                => $days,
             'period_mode'         => $viewMode,
@@ -577,7 +577,7 @@ final class AdminShiftController
             'all_users'           => $this->users->findAll(),
             'all_stores'          => $availStores,
             'all_types'           => $this->shiftTypesForManaged($managedIds),
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -693,7 +693,7 @@ final class AdminShiftController
             }
         }
 
-        return response($this->view->render('scheduling.shifts-timeline-print', [
+        return response($this->view->make('scheduling.shifts-timeline-print', [
             'days'                => $days,
             'period_mode'         => $viewMode,
             'shifts_by_date_user' => $shiftsByDateUser,
@@ -706,7 +706,7 @@ final class AdminShiftController
             'today'               => $today,
             'autoprint'           => $request->query('autoprint') === '1',
             'showLegend'          => $request->query('legend') === '1',
-        ]));
+        ])->render());
     }
 
     public function createShift(Request $request): Response
@@ -722,7 +722,7 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->query('redirect_to', ''), '');
 
-        return response($this->view->render('scheduling.shifts-form', [
+        return response($this->view->make('scheduling.shifts-form', [
             'title'       => 'Nouveau shift',
             'mode'        => 'create',
             'shift'       => ['is_open' => $request->query('is_open') === '1' ? 1 : 0],
@@ -730,7 +730,7 @@ final class AdminShiftController
             'all_stores'  => $availStores,
             'all_types'   => $this->shiftTypesForManaged($managedIds),
             'redirect_to' => $redirectTo,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -882,7 +882,7 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->query('redirect_to', ''), '');
 
-        return response($this->view->render('scheduling.shifts-form', [
+        return response($this->view->make('scheduling.shifts-form', [
             'title'       => 'Modifier le shift #' . $shift['id'],
             'mode'        => 'edit',
             'shift'       => $shift,
@@ -890,7 +890,7 @@ final class AdminShiftController
             'all_stores'  => $this->availableStores($managedIds),
             'all_types'   => $this->shiftTypesForManaged($managedIds),
             'redirect_to' => $redirectTo,
-        ], 'layout.app'));
+        ])->render());
     }
 
     public function updateShift(Request $request): Response
@@ -1337,7 +1337,7 @@ final class AdminShiftController
             ($a['shift_date'] ?? '')
         ));
 
-        return response($this->view->render('scheduling.shifts-conflicts', [
+        return response($this->view->make('scheduling.shifts-conflicts', [
             'title'           => __('shift_conflicts_title'),
             'conflicts'       => $conflicts,
             'too_short'       => $tooShort,
@@ -1347,7 +1347,7 @@ final class AdminShiftController
             'types_map'       => $typesMap,
             'filter_store_id' => $filterStoreId,
             'filter_month'    => $filterMonth,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**

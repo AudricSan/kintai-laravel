@@ -6,7 +6,7 @@ namespace Tests\Unit\View;
 
 use kintai\Contract\Extension\NotificationType;
 use Illuminate\Container\Container;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,14 +30,14 @@ final class ProfileNotificationsTabTest extends TestCase
 
     private function render(array $grid, ?array $quiet, array $extra = []): string
     {
-        return (new ViewRenderer(__DIR__ . '/../../../resources/views'))->render('auth.profile', $extra + [
+        return (kintai_test_views(__DIR__ . '/../../../resources/views'))->make('auth.profile', $extra + [
             'title'                => 'Profil',
             'user'                 => ['id' => 9],
             'has_default_password' => false,
             'tab'                  => 'notifications',
             'notif_grid'           => $grid,
             'quiet_hours'          => $quiet,
-        ]);
+        ])->render();
     }
 
     public function testRendersGridByCategoryWithBoxesBoundToTheSingleForm(): void

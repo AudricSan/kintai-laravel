@@ -7,7 +7,7 @@ namespace App\Extension;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Zone « fenêtres de page » du layout (Bundle::pageOverlays()) : construit le contexte de l'utilisateur, demande à
@@ -63,7 +63,7 @@ final class PageOverlayHost
 
             $rendered = ($overlays ?? PageOverlays::current())->render(
                 $context,
-                $container->make(ViewRenderer::class),
+                $container->make(ViewFactory::class),
                 static fn(string $permission): bool => $can($permission),
                 static fn(string $feature): bool => $storeFeatures === null || in_array($feature, $storeFeatures, true),
             );

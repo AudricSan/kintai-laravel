@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Alert;
 use App\View\Components\Badge;
@@ -235,3 +237,5 @@ arsort($chartCosts);
 
 <div class="erep-print-footer">
     {{ __('report_employees') }} — {{ $store['name'] ?? '' }} — {{ $since }} / {{ $today }}</div>
+
+@endsection

@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -28,8 +30,8 @@ $bundleChipColor = function (string $seed): string {
     <h2 class="page-header__title">{!! __('bundle_market') !!} <span class="page-count">({!! count($entries) !!})</span></h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
-@includeInScope('system._bundle-tabs')
+@include('_partials._settings-tabs')
+@include('system._bundle-tabs')
 
 @php // Le slug vient de l'URL : n'afficher le message que pour un slug bien formé, jamais un texte libre. @endphp
 @if ($success && preg_match('/^[a-z0-9][a-z0-9-]{0,63}$/', (string) $success) === 1)
@@ -177,3 +179,5 @@ $bundleChipColor = function (string $seed): string {
 </div>
 
 <script src="{!! $BASE_URL !!}/assets/js/modules/bundle-market.js?v={!! asset_version() !!}"></script>
+
+@endsection

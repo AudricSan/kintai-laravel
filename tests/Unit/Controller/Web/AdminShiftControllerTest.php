@@ -28,7 +28,7 @@ use App\Services\NotificationService;
 use App\Services\SchedulePublication;
 use App\Services\ShiftServiceInterface;
 use App\Http\Controllers\Scheduling\AdminShiftController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use Tests\Support\FakeAbsenceProvider;
 use Tests\Support\FakeBundleManagerFactory;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -69,7 +69,7 @@ final class AdminShiftControllerTest extends TestCase
     private function controller(): AdminShiftController
     {
         if ($this->controller === null) {
-            $view = new ViewRenderer(sys_get_temp_dir());
+            $view = kintai_test_views(sys_get_temp_dir());
             $auditLogger = new AuditLogger();
             $permissions = new PermissionService($this->roleAssignments, $this->roles);
             $this->controller = new AdminShiftController(

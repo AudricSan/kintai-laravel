@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Flash;
 use App\View\Components\Badge;
@@ -27,7 +29,7 @@ echo Flash::fromQuery('error', [
     <h2 class="page-header__title">{!! __('languages') !!} <span class="page-count">({!! count($languages) !!})</span></h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 <div class="card mb-sm">
     <div class="table-wrap">
@@ -108,3 +110,5 @@ echo Flash::fromQuery('error', [
         </form>
     </div>
 </div>
+
+@endsection

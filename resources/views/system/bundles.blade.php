@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Flash;
@@ -20,8 +22,8 @@ echo Flash::fromQuery('error', [
     <h2 class="page-header__title">{!! __('bundle_settings') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
-@includeInScope('system._bundle-tabs')
+@include('_partials._settings-tabs')
+@include('system._bundle-tabs')
 
 <div class="card card--mb">
     <div class="card-body">
@@ -79,3 +81,5 @@ echo Flash::fromQuery('error', [
     <div class="form-actions">
         {!! Button::make(__('save'))->primary()->submit()->render() !!}    </div>
 </form>
+
+@endsection

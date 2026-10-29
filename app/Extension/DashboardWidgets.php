@@ -7,7 +7,7 @@ namespace App\Extension;
 use kintai\Contract\Extension\DashboardWidget;
 use Illuminate\Container\Container;
 use App\Services\WidgetGuard;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Widgets des tableaux de bord (gérant et employé), construits à partir de données :
@@ -84,7 +84,7 @@ final class DashboardWidgets
      * @param callable(?string): bool  $feat        Fonctionnalité par magasin active ?
      * @return list<array{key: string, html: string}>
      */
-    public function render(string $audience, array $coreKeys, array $enabledKeys, array $context, ViewRenderer $view, callable $can, callable $feat): array
+    public function render(string $audience, array $coreKeys, array $enabledKeys, array $context, ViewFactory $view, callable $can, callable $feat): array
     {
         $rendered = [];
         foreach ($this->declared($audience, $coreKeys) as $widget) {
@@ -98,7 +98,7 @@ final class DashboardWidgets
                 }
                 $level = ob_get_level();
                 try {
-                    return $view->renderPartial($widget->view, $data + ['widget_key' => $widget->key]);
+                    return $view->make($widget->view, $data + ['widget_key' => $widget->key])->render();
                 } finally {
                     // Une vue qui lève une exception laisse son tampon ouvert : on le referme sans l'afficher.
                     while (ob_get_level() > $level) {

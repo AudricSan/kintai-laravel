@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 /** @var array  $stats */
 /** @var array  $shifts_today */
@@ -93,7 +95,7 @@ $_dashChartData = [];
 <div class="page-header">
     <h2 class="page-header__title">{!! __('dashboard') !!}</h2>
     <div class="page-header__actions">
-        @includeInScope('_partials._dashboard-actions')
+        @include('_partials._dashboard-actions')
         <button type="button" class="btn btn--ghost btn--sm" data-on-click="adminDashCustomize">
             {!! __('customize') !!}        </button>
     </div>
@@ -115,12 +117,12 @@ $_dashChartData = [];
                     $_dashHidden[$wk] = $widgetLabels[$wk] ?? $wk;
                 }
             }
-            include \App\View\ViewRenderer::pathInScope('_partials._dashboard-add-widget');
+            echo $__env->make('_partials._dashboard-add-widget', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
             unset($_dashHidden);
             @endphp
             <button type="button" class="btn btn--ghost btn--sm" data-dash-reset>{!! __('dashboard_layout_reset') !!}</button>
         </div>
-        @includeInScope('_partials._dashboard-layouts')
+        @include('_partials._dashboard-layouts')
     </div>
 </div>
 
@@ -584,7 +586,8 @@ $_empStats       = $employee_month_stats ?? null;
 $_empShiftsToday = $employee_widgets['shifts_today'];
 $_empUpcoming    = $employee_widgets['upcoming'];
 $_empStoresMap   = $employee_widgets['stores_map'];
-include \App\View\ViewRenderer::pathInScope('_partials._employee-widgets');
+$_empBlocks = new \ArrayObject();
+echo $__env->make('_partials._employee-widgets', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
 $_empShown = false;
 foreach ($_empBlocks as $_ek => $_eh) {
     $_dashBlocks[$_empPrefix . $_ek] = $_eh;
@@ -597,7 +600,7 @@ unset($_empWidgets, $_empStats, $_empShiftsToday, $_empUpcoming, $_empStoresMap,
 $_dashLabels  = $widgetLabels;
 $_dashSaveUrl = route_url('admin.dashboard.layout');
 $_dashWidgetsUrl = route_url('admin.dashboard.widgets');
-include \App\View\ViewRenderer::pathInScope('_partials._dashboard-grid');
+echo $__env->make('_partials._dashboard-grid', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render();
 unset($_bundleWidget, $_dashBlocks, $_dashLabels, $_dashSaveUrl, $_dashWidgetsUrl);
 @endphp
 @php if ($_empShown): // Navigation de mois et détail des shifts de « Mes stats du mois ». @endphp
@@ -608,3 +611,5 @@ unset($_bundleWidget, $_dashBlocks, $_dashLabels, $_dashSaveUrl, $_dashWidgetsUr
 <script type="application/json" id="kintai-stats-data">{!! json_encode($_dashChartData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 <script src="{!! $BASE_URL !!}/assets/js/modules/stats-charts.js"></script>
 @endif
+
+@endsection

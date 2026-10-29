@@ -12,7 +12,7 @@ final class FormUserPartialTest extends TestCase
     {
         $BASE_URL = '';
         ob_start();
-        include \App\View\ViewRenderer::pathInScope('_partials._form-user', (new \App\View\ViewRenderer(__DIR__ . '/../../../resources/views'))->factory());
+        echo kintai_test_views(__DIR__ . '/../../../resources/views')->make('_partials._form-user', get_defined_vars())->render();
         return ob_get_clean();
     }
 

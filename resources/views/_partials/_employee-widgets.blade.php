@@ -10,13 +10,12 @@
  * @var array                $_empUpcoming    Ses prochains shifts
  * @var array<int, string>   $_empStoresMap   id => nom de magasin
  *
- * Résultat : $_empBlocks (clé non préfixée => HTML, vide si le widget est désactivé ou sans données).
+ * Résultat : $_empBlocks (ArrayObject fourni par la vue appelante) (clé non préfixée => HTML, vide si le widget est désactivé ou sans données).
  */
 use App\View\Components\Button;
 use App\View\Components\Card;
 use App\View\Components\Table;
 
-$_empBlocks = [];
 @endphp
 @php ob_start(); @endphp
 @if (isset($_empWidgets['monthly_stats']) && $_empStats !== null)

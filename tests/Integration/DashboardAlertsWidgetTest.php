@@ -6,7 +6,7 @@ namespace Tests\Integration;
 
 use Illuminate\Container\Container;
 use App\Http\Controllers\HomeController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,11 +15,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class DashboardAlertsWidgetTest extends TestCase
 {
-    private ViewRenderer $view;
+    private ViewFactory $view;
 
     protected function setUp(): void
     {
-        $this->view = new ViewRenderer(dirname(__DIR__, 2) . '/resources/views');
+        $this->view = kintai_test_views(dirname(__DIR__, 2) . '/resources/views');
 
         $router = kintai_test_registrar();
         $router->get('/admin/dashboard/widgets', [\stdClass::class, 'x'], name: 'admin.dashboard.widgets');
@@ -31,14 +31,14 @@ final class DashboardAlertsWidgetTest extends TestCase
 
     private function render(?array $alerts, array $widgets = ['dashboard_alerts']): string
     {
-        return $this->view->renderPartial('dashboard.index', [
+        return $this->view->make('dashboard.index', [
             'BASE_URL'         => '',
             'stats'            => [],
             'dashboard_alerts' => $alerts,
             'enabled_widgets'  => array_flip($widgets),
             'all_widgets'      => HomeController::ADMIN_WIDGETS,
             'user_can'         => fn(string $p): bool => $p !== 'employees.view',
-        ]);
+        ])->render();
     }
 
     private static function alerts(): array

@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\VapidKeyStore;
 use App\Repositories\NotificationRepositoryInterface;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
  * Injecte dans toutes les vues :
@@ -37,7 +37,7 @@ final class NotificationMiddleware
         }
 
         $auth = $this->container->make(AuthService::class);
-        $view = $this->container->make(ViewRenderer::class);
+        $view = $this->container->make(ViewFactory::class);
 
         $dropdown = [];
         $count    = 0;

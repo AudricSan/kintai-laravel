@@ -10,13 +10,13 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\PasswordResetService;
 use App\Services\PublicUrlResolver;
 use App\Http\Controllers\HasBaseUrl;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class PasswordResetController
 {
     use HasBaseUrl;
     public function __construct(
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
         private readonly PasswordResetService $passwordReset,
         private readonly PublicUrlResolver $publicUrl,
     ) {}
@@ -24,11 +24,11 @@ final class PasswordResetController
     /** GET /forgot-password */
     public function showForgotForm(Request $request): Response
     {
-        return response($this->view->render('auth.forgot-password', [
+        return response($this->view->make('auth.forgot-password', [
             'title'   => __('forgot_password_title'),
             'sent'    => false,
             'error'   => false,
-        ], 'layout.guest'));
+        ])->render());
     }
 
     /** POST /forgot-password */
@@ -37,11 +37,11 @@ final class PasswordResetController
         $email = trim((string) $request->post('email', ''));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return response($this->view->render('auth.forgot-password', [
+            return response($this->view->make('auth.forgot-password', [
                 'title' => __('forgot_password_title'),
                 'sent'  => false,
                 'error' => true,
-            ], 'layout.guest'));
+            ])->render());
         }
 
         // Anti-énumération : on envoie toujours la page "succès". Le lien de l'e-mail doit être absolu : il est
@@ -49,11 +49,11 @@ final class PasswordResetController
         // Sans URL configurée, le service n'envoie rien et journalise l'erreur ; l'Owner en est averti dans l'interface.
         $this->passwordReset->sendResetLink($email, $this->publicUrl->resolve() ?? '');
 
-        return response($this->view->render('auth.forgot-password', [
+        return response($this->view->make('auth.forgot-password', [
             'title' => __('forgot_password_title'),
             'sent'  => true,
             'error' => false,
-        ], 'layout.guest'));
+        ])->render());
     }
 
     /** GET /reset-password/{token} */
@@ -62,13 +62,13 @@ final class PasswordResetController
         $token  = (string) $request->route('token', '');
         $record = $this->passwordReset->findValidToken($token);
 
-        return response($this->view->render('auth.reset-password', [
+        return response($this->view->make('auth.reset-password', [
             'title'   => __('new_password'),
             'token'   => $token,
             'valid'   => $record !== null,
             'success' => false,
             'error'   => null,
-        ], 'layout.guest'));
+        ])->render());
     }
 
     /** POST /reset-password/{token} */
@@ -92,27 +92,27 @@ final class PasswordResetController
             return $this->resetView($token, __('reset_password_invalid_link'));
         }
 
-        return response($this->view->render('auth.reset-password', [
+        return response($this->view->make('auth.reset-password', [
             'title'   => __('new_password'),
             'token'   => $token,
             'valid'   => true,
             'success' => true,
             'error'   => null,
             'login_url' => $this->base() . '/login',
-        ], 'layout.guest'));
+        ])->render());
     }
 
     private function resetView(string $token, string $error): Response
     {
         $record = $this->passwordReset->findValidToken($token);
 
-        return response($this->view->render('auth.reset-password', [
+        return response($this->view->make('auth.reset-password', [
             'title'   => __('new_password'),
             'token'   => $token,
             'valid'   => $record !== null,
             'success' => false,
             'error'   => $error,
-        ], 'layout.guest'));
+        ])->render());
     }
 
 

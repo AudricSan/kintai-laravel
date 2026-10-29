@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Button;
 use App\View\Components\Card;
@@ -43,3 +45,5 @@ ob_start();
 $body = ob_get_clean();
 echo Card::make()->narrow()->header(__('excel_file_label'))->body($body)->render();
 @endphp
+
+@endsection

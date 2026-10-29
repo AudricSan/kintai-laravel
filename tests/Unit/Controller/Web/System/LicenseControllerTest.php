@@ -14,7 +14,7 @@ use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
 use App\Services\PlanLimitService;
 use App\Http\Controllers\System\LicenseController;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -56,7 +56,7 @@ final class LicenseControllerTest extends TestCase
         );
 
         return new LicenseController(
-            new ViewRenderer(sys_get_temp_dir()),
+            kintai_test_views(sys_get_temp_dir()),
             $license,
             new AuditLogger(),
             $planLimits,

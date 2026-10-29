@@ -12,7 +12,7 @@ use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\WebPushEndpointValidator;
-use App\View\ViewRenderer;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class NotificationController
 {
@@ -23,7 +23,7 @@ final class NotificationController
         private readonly NotificationRepositoryInterface $repo,
         private readonly WebPushSubscriptionRepositoryInterface $subscriptions,
         private readonly WebPushEndpointValidator $endpoints,
-        private readonly ViewRenderer $view,
+        private readonly ViewFactory $view,
     ) {}
 
     private const PER_PAGE = 30;
@@ -38,12 +38,12 @@ final class NotificationController
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
         $page       = min($totalPages, max(1, (int) $request->query('page', 1)));
 
-        return response($this->view->render('notifications.index', [
+        return response($this->view->make('notifications.index', [
             'title'         => __('notifications'),
             'notifications' => $this->repo->findByUser($userId, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
             'page'          => $page,
             'totalPages'    => $totalPages,
-        ], 'layout.app'));
+        ])->render());
     }
 
     /**
@@ -210,9 +210,9 @@ final class NotificationController
     /** Contenu du panneau de la cloche, même partiel que la topbar. */
     private function panelHtml(int $userId, int $unread): string
     {
-        return $this->view->renderPartial('layout.partials._notif_panel', [
+        return $this->view->make('layout.partials._notif_panel', [
             'notif_items'  => $this->repo->findUnreadByUser($userId, 10),
             'notif_unread' => $unread,
-        ]);
+        ])->render();
     }
 }

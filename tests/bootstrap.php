@@ -139,3 +139,19 @@ function kintai_test_translator_reset(): void
 // Par défaut les tests n'ont aucun texte : __() rend la clé. Un test qui veut des textes installe le sien.
 $GLOBALS['kintai_test_translator_original'] = new Illuminate\Translation\Translator(new Illuminate\Translation\ArrayLoader(), 'en');
 kintai_test_translator_reset();
+
+
+// Aide des tests : moteur de vues de Laravel sur un autre dossier de vues (vues d'essai, copie…), avec les directives et
+// les helpers de l'application.
+function kintai_test_views(string $path, bool $withLayout = false): Illuminate\View\Factory
+{
+    $app    = $GLOBALS['kintai_test_app'];
+    // Mises en page réduites à leur contenu (tests/Fixtures/views/layout) devant les vraies : un test de page vérifie la
+    // page, pas la navigation qui l'entoure.
+    $finder = new Illuminate\View\FileViewFinder(new Illuminate\Filesystem\Filesystem(), $withLayout ? [$path] : [__DIR__ . '/Fixtures/views', $path]);
+    $views  = new Illuminate\View\Factory($app['view.engine.resolver'], $finder, $app['events']);
+    $views->setContainer($app);
+    $views->share('app', $app);
+
+    return $views;
+}

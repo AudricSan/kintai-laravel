@@ -1,3 +1,5 @@
+@extends('layout.app')
+@section('content')
 @php
 use App\View\Components\Badge;
 use App\View\Components\Button;
@@ -39,7 +41,7 @@ echo Flash::fromQuery('error', [
     <h2 class="page-header__title">{!! __('license') !!}</h2>
 </div>
 
-@includeInScope('_partials._settings-tabs')
+@include('_partials._settings-tabs')
 
 @php
 ob_start();
@@ -151,3 +153,5 @@ $activateCard = Card::make()->header(__('license_activate_title'))->body(ob_get_
 
 <div class="settings-grid">
     {!! $statusCard !!}    {!! $limitsCard !!}    {!! $activateCard !!}</div>
+
+@endsection
