@@ -23,10 +23,6 @@ final class ResignationReportBundle extends Bundle
         return 'resignation-report';
     }
 
-    public function getVersion(): string
-    {
-        return '1.2.0';
-    }
 
     public function getLabel(): string
     {
@@ -48,7 +44,7 @@ final class ResignationReportBundle extends Bundle
 
     private function registerServices(): void
     {
-        $container = $this->app->container();
+        $container = $this->app;
 
         $container->singleton(
             ResignationReportRepositoryInterface::class,

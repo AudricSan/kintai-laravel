@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationR
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use kintai\Core\Database\BundleMigrationRunner;
 use kintai\Core\Repositories\UserRepositoryInterface;
-use kintai\Core\Request;
+use Illuminate\Http\Request;
 use kintai\Core\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
 
@@ -84,7 +84,7 @@ final class ResignationDeactivationTest extends TestCase
         $job = new ResignationDeactivateJob($this->deactivation, new AuditLogger());
 
         $this->assertSame('resignation-deactivate', $job->getName());
-        $body = json_decode($job->run(new Request())->body(), true);
+        $body = json_decode($job->run(Request::capture())->getContent(), true);
         $this->assertSame(1, $body['deactivated']);
     }
 }

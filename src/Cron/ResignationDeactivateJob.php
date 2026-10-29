@@ -6,8 +6,8 @@ namespace kintai\Bundles\Installed\ResignationReport\Cron;
 
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use kintai\Contract\Cron\CronJob;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**
@@ -37,6 +37,6 @@ final class ResignationDeactivateJob implements CronJob
             ]);
         }
 
-        return Response::json(['ok' => true, 'deactivated' => count($applied), 'reports' => $applied]);
+        return response()->json(['ok' => true, 'deactivated' => count($applied), 'reports' => $applied]);
     }
 }

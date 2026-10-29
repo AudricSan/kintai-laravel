@@ -13,8 +13,8 @@ use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Http\Request;
-use kintai\Contract\Http\Response;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Http\Concerns\HasStaffReportCrud;
@@ -78,7 +78,7 @@ final class AdminResignationReportController
 
         $reports = $this->resignationReports->findAll($queryStoreIds, $filters);
 
-        return Response::html($this->view->render('resignation-report::reports-resignation', [
+        return response($this->view->render('resignation-report::reports-resignation', [
             'title'          => __('resignation_report_resignation_reports'),
             'stores'         => $allStores,
             'filter_store_id' => $filterStoreId,
@@ -125,7 +125,7 @@ final class AdminResignationReportController
             'count' => count($reports),
         ]);
 
-        return Response::jsonDownload(['data' => $reports], 'resignation_reports_' . date('Ymd') . '.json');
+        return response()->jsonDownload(['data' => $reports], 'resignation_reports_' . date('Ymd') . '.json');
     }
 
     /**
@@ -146,7 +146,7 @@ final class AdminResignationReportController
             'downloadUrl'  => $this->base() . '/admin/reports/resignation/export/pdf/download' . $this->exportQueryString($request),
         ]);
 
-        return Response::html($html);
+        return response($html);
     }
 
     public function exportResignationReportsPdfDownload(Request $request): Response
@@ -181,11 +181,11 @@ final class AdminResignationReportController
 
     public function createResignationReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $store = $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
-        $authUser = $request->getAttribute('auth_user');
+        $authUser = $request->attributes->get('auth_user');
 
         // Pré-remplir avec les données d'un employé si user_id est fourni
         $preset = [];
@@ -209,7 +209,7 @@ final class AdminResignationReportController
 
         $managers = $this->getManagersForReportForm($storeId, $userId);
 
-        return Response::html($this->view->render('resignation-report::reports-resignation-form', [
+        return response($this->view->render('resignation-report::reports-resignation-form', [
             'title'   => __('resignation_report_new_resignation_report') . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
             'users'   => $users,
@@ -221,7 +221,7 @@ final class AdminResignationReportController
 
     public function storeResignationReport(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->findStoreOrFail($storeId);
         $this->assertStoreAccess($request, $storeId);
 
@@ -240,7 +240,7 @@ final class AdminResignationReportController
             'store_id' => $storeId,
             'user_id'  => $userId > 0 ? $userId : null,
         ], $this->postData($request, self::REPORT_TYPE['fields']), [
-            'created_by' => $request->getAttribute('auth_user')['id'] ?? 0,
+            'created_by' => $request->attributes->get('auth_user')['id'] ?? 0,
         ]);
 
         $saved = $this->resignationReports->save($data);
@@ -270,16 +270,16 @@ final class AdminResignationReportController
     /** Date de démission modifiée : le compte suit (désactivé si elle est atteinte, réactivé si elle est repoussée). */
     public function updateResignationReport(Request $request): Response
     {
-        $before = $this->resignationReports->findById((int) $request->param('rid'));
+        $before = $this->resignationReports->findById((int) $request->route('rid'));
         $newUserId = (int) $request->post('user_id', 0);
         if ($newUserId > 0 && $newUserId !== (int) ($before['user_id'] ?? 0)) {
             $this->assertNotOwnerAccount($request, $newUserId);
-            $this->assertNotSelfOrOtherManager($request, (int) $request->param('id'), $newUserId);
+            $this->assertNotSelfOrOtherManager($request, (int) $request->route('id'), $newUserId);
         }
 
         $response = $this->updateReport($request);
 
-        $report = $this->resignationReports->findById((int) $request->param('rid'));
+        $report = $this->resignationReports->findById((int) $request->route('rid'));
         if ($report === null) {
             return $response;
         }
@@ -356,7 +356,7 @@ final class AdminResignationReportController
     /** Seul un Owner peut agir sur un compte Owner (même règle que les fiches employés). */
     private function assertNotOwnerAccount(Request $request, int $userId): void
     {
-        $callerId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $callerId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         $owners   = $this->permissions->ownerUserIds();
         if (in_array($userId, $owners, true) && !in_array($callerId, $owners, true)) {
             throw new ForbiddenException(__('error_not_store_manager'));
@@ -369,7 +369,7 @@ final class AdminResignationReportController
      */
     private function assertNotSelfOrOtherManager(Request $request, int $storeId, int $userId): void
     {
-        $callerId = (int) ($request->getAttribute('auth_user')['id'] ?? 0);
+        $callerId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($userId === $callerId) {
             throw new ForbiddenException(__('resignation_report_error_resignation_self'));
         }
@@ -388,7 +388,7 @@ final class AdminResignationReportController
      */
     private function assertUserOnlyInManagedStores(Request $request, int $userId): void
     {
-        $managed = $request->getAttribute('managed_store_ids');
+        $managed = $request->attributes->get('managed_store_ids');
         if ($managed === null) {
             return;
         }
@@ -411,7 +411,7 @@ final class AdminResignationReportController
 
     public function reactivateUser(Request $request): Response
     {
-        $storeId = (int) $request->param('id');
+        $storeId = (int) $request->route('id');
         $this->findStoreOrFail($storeId);
         [$report, , $reportId] = $this->findReportOrFail($request);
 
