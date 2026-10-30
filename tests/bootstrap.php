@@ -67,11 +67,24 @@ Illuminate\Http\Request::macro('setRouteParams', function (array $params): void 
     $this->setRouteResolver(static fn () => $route);
 });
 
+// Aide des tests : remplace le journal de Laravel par un RecordingLog qui retient les entrées (Log::info, AuditLogger…).
+// Une base neuve (kintai_test_database) remet le vrai journal.
+function kintai_test_log(): Tests\Support\RecordingLog
+{
+    $log = new Tests\Support\RecordingLog();
+    $GLOBALS['kintai_test_app']->instance('log', $log);
+    Illuminate\Support\Facades\Log::clearResolvedInstance('log');
+
+    return $log;
+}
+
 // Aide des tests : base SQLite en mémoire neuve, installée comme connexion par défaut de l'application (DB::, Schema::,
 // Eloquent, migrateur). Renvoie la Capsule posée sur cette connexion.
 function kintai_test_database(): App\Database\LaravelCapsule
 {
     $app = $GLOBALS['kintai_test_app'];
+    $app->forgetInstance('log');
+    Illuminate\Support\Facades\Log::clearResolvedInstance('log');
     config(['database.connections.testing' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]]);
     $app['db']->purge('testing');
     $app['db']->setDefaultConnection('testing');

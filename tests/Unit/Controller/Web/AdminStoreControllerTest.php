@@ -8,7 +8,6 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use Tests\Support\FakeBundleManagerFactory;
 use App\Extension\StoreFeatures;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -17,7 +16,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreServiceInterface;
 use App\Services\StoreStatsServiceInterface;
@@ -33,7 +32,6 @@ final class AdminStoreControllerTest extends TestCase
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private UserRepositoryInterface&Stub $users;
     private StoreStatsServiceInterface&Stub $storeStatsService;
-    private LogRepositoryInterface&Stub $logRepo;
     private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private ?AdminStoreController $controller = null;
@@ -51,42 +49,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
         $this->roles = $this->createStub(RoleRepositoryInterface::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-
-        // AuditLogger::log() délègue à Log::record() -> LogRepositoryInterface::record().
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $this->registerLogRepository();
     }
-
-    /** Branche $this->logRepo derrière Log::record() ; à rappeler quand un test le remplace par un mock. */
-    private function registerLogRepository(): void
-    {
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
-    }
-
-    /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
-    private function controller(): AdminStoreController
-    {
-        if ($this->controller === null) {
-            $view = kintai_test_views(sys_get_temp_dir());
-            $this->controller = new AdminStoreController(
-                $view,
-                $this->users,
-                $this->stores,
-                $this->storeUsers,
-                new AuditLogger(),
-                $this->createStub(StoreServiceInterface::class),
-                $this->storeStatsService,
-                new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['messaging', 'daily-report', 'store-photos'])),
-                new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-                new PermissionService($this->roleAssignments, $this->roles),
-            );
-        }
-
-        return $this->controller;
-    }
-
     /** Audit n°8 : quota de magasins atteint → retour au formulaire (erreur de validation), plus une page 403. */
     public function testStoreQuotaReachedSendsBackToTheFormInsteadOfA403(): void
     {
@@ -295,8 +258,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $this->registerLogRepository();
+        $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1', 'employee' => '5']);
@@ -305,17 +267,14 @@ final class AdminStoreControllerTest extends TestCase
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
         $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 5)->willReturn(['id' => 1, 'store_id' => 1, 'user_id' => 5]);
         $this->storeStatsService->method('employeeStats')->willReturn([]);
-
-        $this->logRepo->expects($this->once())->method('record')->with(
-            $this->anything(), $this->anything(), $this->anything(),
-            'employee_stats.viewed', 'user', 5,
-            $this->anything(), $this->anything(), 1,
-            $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(),
-        );
-
         $response = $this->controller()->employeeStats($req);
 
         $this->assertSame(200, $response->getStatusCode());
+
+        $audit = array_values(array_filter($log->on('audit'), fn(array $e) => $e['message'] === 'employee_stats.viewed'));
+        $this->assertCount(1, $audit);
+        $this->assertSame('user', $audit[0]['context']['resource_type']);
+        $this->assertSame(5, $audit[0]['context']['resource_id']);
     }
 
     /** @return array<string, array{string, bool}> */
@@ -416,7 +375,6 @@ final class AdminStoreControllerTest extends TestCase
     {
         $_GET = [];
         $_POST = [];
-        Log::reset();
     }
 
     private function ensureViewFile(string $view): void
@@ -566,4 +524,26 @@ final class AdminStoreControllerTest extends TestCase
         $this->assertSame(302, $controller->updateStore($req)->getStatusCode());
         $this->assertSame(['shifts' => true, 'acme_board' => true], $captured['_features']);
     }
+
+    private function controller(): AdminStoreController
+    {
+        if ($this->controller === null) {
+            $view = kintai_test_views(sys_get_temp_dir());
+            $this->controller = new AdminStoreController(
+                $view,
+                $this->users,
+                $this->stores,
+                $this->storeUsers,
+                new AuditLogger(),
+                $this->createStub(StoreServiceInterface::class),
+                $this->storeStatsService,
+                new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['messaging', 'daily-report', 'store-photos'])),
+                new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
+                new PermissionService($this->roleAssignments, $this->roles),
+            );
+        }
+
+        return $this->controller;
+    }
+
 }

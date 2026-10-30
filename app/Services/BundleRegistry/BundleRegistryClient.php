@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\BundleRegistry;
 
 use App\Services\HttpFetcher;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Récupère et valide le fichier de listing (registry.json) d'un registry de

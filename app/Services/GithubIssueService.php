@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 /**
  * Crée des issues sur le dépôt GitHub du projet depuis le formulaire "Signaler
  * un problème" du footer, sans faire quitter l'application à l'utilisateur

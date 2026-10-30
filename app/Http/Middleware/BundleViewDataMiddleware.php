@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**

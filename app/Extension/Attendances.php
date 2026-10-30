@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Provider\Attendance;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Pointages des employés, lus à travers des fournisseurs (étape 3 du contrat de bundle) : ceux des fournisseurs

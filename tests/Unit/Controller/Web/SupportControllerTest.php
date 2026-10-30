@@ -5,26 +5,20 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use Illuminate\Container\Container;
-use App\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\GithubIssueService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\UpdateService;
 use App\Http\Controllers\SupportController;
 use PHPUnit\Framework\TestCase;
 
 final class SupportControllerTest extends TestCase
 {
-    private LogRepositoryInterface $logRepo;
     private string $tmpDir;
 
     protected function setUp(): void
     {
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
 
         $this->tmpDir = sys_get_temp_dir() . '/kintai_supportctrl_test_' . bin2hex(random_bytes(4));
         mkdir($this->tmpDir . '/config', 0775, true);
@@ -36,7 +30,6 @@ final class SupportControllerTest extends TestCase
         $_GET = [];
         $_POST = [];
         $_SERVER = [];
-        Log::reset();
         putenv('GITHUB_ISSUES_TOKEN');
         putenv('GITHUB_UPDATE_REPO');
 
@@ -93,13 +86,11 @@ final class SupportControllerTest extends TestCase
 
         $poster = fn(): string => json_encode(['html_url' => 'https://github.com/AudricSan/Kintai/issues/99']);
 
-        $logRepo = $this->createMock(LogRepositoryInterface::class);
-        $logRepo->expects($this->once())->method('record');
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $logRepo);
-        Log::setContainer($container);
+        $log = kintai_test_log();
 
         $response = $this->makeController($poster)->reportIssue($req);
+
+        $this->assertCount(1, $log->on('audit'));
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString(

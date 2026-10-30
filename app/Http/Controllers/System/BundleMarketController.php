@@ -11,7 +11,7 @@ use App\Repositories\BundleRegistryRepositoryInterface;
 use App\Repositories\InstalledBundleRepositoryInterface;
 use Illuminate\Container\Container;
 use App\Services\BundleActivationService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppSettingsService;

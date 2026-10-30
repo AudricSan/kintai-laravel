@@ -13,7 +13,7 @@ use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -55,7 +55,6 @@ final class TimeoffMassAssignmentTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function request(array $json, array $params = []): Request

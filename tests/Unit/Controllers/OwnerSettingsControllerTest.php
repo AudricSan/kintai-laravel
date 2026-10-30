@@ -6,11 +6,10 @@ namespace Tests\Unit\Controllers;
 
 use Illuminate\Container\Container;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\LogRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PublicUrlResolver;
 use App\Services\EnvFileWriter;
 use App\Services\InstanceLocale;
@@ -35,17 +34,12 @@ final class OwnerSettingsControllerTest extends TestCase
         }
         touch($viewDir . '/owner-settings.php');
         touch($layoutDir . '/app.php');
-
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
-        Log::setContainer($container);
     }
 
     protected function tearDown(): void
     {
         $_GET = [];
         $_POST = [];
-        Log::reset();
     }
 
     /**

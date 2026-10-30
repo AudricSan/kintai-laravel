@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Extension;
 
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Annonce des événements du Core aux bundles actifs qui les écoutent (point d'extension Bundle::eventListeners(),

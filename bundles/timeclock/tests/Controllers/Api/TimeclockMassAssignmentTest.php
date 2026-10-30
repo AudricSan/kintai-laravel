@@ -13,7 +13,7 @@ use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -44,7 +44,6 @@ final class TimeclockMassAssignmentTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     /** @param list<string> $keys clés accordées sur le magasin 5 */

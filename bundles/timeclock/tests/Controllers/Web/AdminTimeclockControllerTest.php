@@ -8,13 +8,12 @@ namespace Tests\Bundles\Timeclock\Controllers\Web;
 use kintai\Bundles\Installed\Timeclock\Controllers\Web\AdminTimeclockController;
 use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -25,7 +24,6 @@ final class AdminTimeclockControllerTest extends TestCase
     private TimeclockRepositoryInterface&Stub $timeclocks;
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
-    private LogRepositoryInterface&Stub $logRepo;
     private ?AdminTimeclockController $controller = null;
 
     protected function setUp(): void
@@ -37,11 +35,6 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->timeclocks = $this->createStub(TimeclockRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
-
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -68,7 +61,6 @@ final class AdminTimeclockControllerTest extends TestCase
         $_GET = [];
         $_POST = [];
         $_SERVER = [];
-        Log::reset();
     }
 
     public function testTimeclocksListsEntriesForFilterDate(): void

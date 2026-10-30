@@ -13,7 +13,7 @@ use Illuminate\Session\TokenMismatchException;
 use App\Exceptions\HttpException;
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\ValidationException;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;

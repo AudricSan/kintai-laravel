@@ -9,7 +9,6 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\DailyReportRepositoryInterface;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -22,7 +21,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
@@ -40,7 +39,6 @@ final class AdminUserControllerTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private LogRepositoryInterface&Stub $logRepo;
     private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private ShiftTypeRepositoryInterface&Stub $shiftTypes;
@@ -59,55 +57,7 @@ final class AdminUserControllerTest extends TestCase
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
-
-        // AuditLogger::log() délègue à Log::record() -> LogRepositoryInterface::record().
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $this->registerLogRepository();
     }
-
-    /** Branche $this->logRepo derrière Log::record() ; à rappeler quand un test le remplace par un mock. */
-    private function registerLogRepository(): void
-    {
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
-    }
-
-    /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
-    private function controller(): AdminUserController
-    {
-        if ($this->controller === null) {
-            $view = kintai_test_views(sys_get_temp_dir());
-            $this->controller = new AdminUserController(
-                $view,
-                $this->users,
-                $this->stores,
-                $this->createStub(ShiftRepositoryInterface::class),
-                $this->shiftTypes,
-                $this->storeUsers,
-                $this->userRates,
-                new AuditLogger(),
-                new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-                new PermissionService($this->roleAssignments, $this->roles),
-                new PlanLimitService(
-                    $this->stores,
-                    $this->users,
-                    new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
-                ),
-                new OwnerGuard(new PermissionService($this->roleAssignments, $this->roles), $this->users),
-                null,
-                new UserAnonymizer(
-                    $this->users,
-                    $this->roleAssignments,
-                    new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
-                    sys_get_temp_dir(),
-                ),
-            );
-        }
-
-        return $this->controller;
-    }
-
     public function testUsersRenders(): void
     {
         $req = Request::capture();
@@ -261,8 +211,7 @@ final class AdminUserControllerTest extends TestCase
     public function testEditUserLogsProfileConsultation(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $this->registerLogRepository();
+        $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['employee' => 5]);
@@ -270,17 +219,14 @@ final class AdminUserControllerTest extends TestCase
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@test.com']);
         $this->stores->method('findAll')->willReturn([]);
         $this->storeUsers->method('findByUser')->willReturn([]);
-
-        $this->logRepo->expects($this->once())->method('record')->with(
-            $this->anything(), $this->anything(), $this->anything(),
-            'user.viewed', 'user', 5,
-            $this->anything(), $this->anything(), $this->anything(),
-            $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(),
-        );
-
         $response = $this->controller()->editUser($req);
 
         $this->assertSame(200, $response->getStatusCode());
+
+        $audit = array_values(array_filter($log->on('audit'), fn(array $e) => $e['message'] === 'user.viewed'));
+        $this->assertCount(1, $audit);
+        $this->assertSame('user', $audit[0]['context']['resource_type']);
+        $this->assertSame(5, $audit[0]['context']['resource_id']);
     }
 
     // -------------------------------------------------------------------------
@@ -1272,7 +1218,6 @@ final class AdminUserControllerTest extends TestCase
     {
         $_GET = [];
         $_POST = [];
-        Log::reset();
     }
 
     // -------------------------------------------------------------------------
@@ -1332,4 +1277,39 @@ final class AdminUserControllerTest extends TestCase
         $this->assertSame(1, $saved['is_active']);
         $this->assertSame('090', $saved['phone']);
     }
+
+    private function controller(): AdminUserController
+    {
+        if ($this->controller === null) {
+            $view = kintai_test_views(sys_get_temp_dir());
+            $this->controller = new AdminUserController(
+                $view,
+                $this->users,
+                $this->stores,
+                $this->createStub(ShiftRepositoryInterface::class),
+                $this->shiftTypes,
+                $this->storeUsers,
+                $this->userRates,
+                new AuditLogger(),
+                new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
+                new PermissionService($this->roleAssignments, $this->roles),
+                new PlanLimitService(
+                    $this->stores,
+                    $this->users,
+                    new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                ),
+                new OwnerGuard(new PermissionService($this->roleAssignments, $this->roles), $this->users),
+                null,
+                new UserAnonymizer(
+                    $this->users,
+                    $this->roleAssignments,
+                    new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+                    sys_get_temp_dir(),
+                ),
+            );
+        }
+
+        return $this->controller;
+    }
+
 }

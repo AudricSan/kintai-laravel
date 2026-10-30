@@ -45,35 +45,6 @@ final class DatabaseLogRepositoryTest extends TestCase
         $this->repo = new DatabaseLogRepository();
     }
 
-    public function testLogCreatesEntry(): void
-    {
-        $this->repo->log('info', 'business', 'test message');
-        $this->assertCount(1, ActivityEntry::all());
-    }
-
-    public function testLogDoesNotThrow(): void
-    {
-        $this->repo->log('info', 'business', 'test');
-        $this->assertTrue(true);
-    }
-
-    public function testRecordWithAction(): void
-    {
-        $this->repo->record('info', 'audit', 'shift.created', 'shift.created', 'shift', 42, ['key' => 'val'], 1, 2, '127.0.0.1', 'TestAgent', 'POST', '/shifts', 201, 150, 'sess123');
-
-        $row = ActivityEntry::first()->toArray();
-        $this->assertSame('shift.created', $row['action']);
-        $this->assertSame('shift', $row['resource_type']);
-        $this->assertSame(42, $row['resource_id']);
-        $this->assertSame(1, $row['user_id']);
-        $this->assertSame(2, $row['store_id']);
-        $this->assertSame('POST', $row['request_method']);
-        $this->assertSame('/shifts', $row['request_uri']);
-        $this->assertSame(201, $row['response_status']);
-        $this->assertSame(150, $row['duration_ms']);
-        $this->assertSame('sess123', $row['session_id']);
-    }
-
     public function testFindAllPaginated(): void
     {
         for ($i = 1; $i <= 25; $i++) {

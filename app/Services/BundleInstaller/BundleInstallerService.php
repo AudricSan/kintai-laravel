@@ -10,7 +10,7 @@ use Illuminate\Database\Migrations\Migrator;
 use App\InstalledBundleManifestStore;
 use App\Repositories\InstalledBundleRepositoryInterface;
 use App\Services\HttpFetcher;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\UpdateService;
 
 /**

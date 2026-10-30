@@ -9,7 +9,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\CronToken;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 final class CronRunner
 {

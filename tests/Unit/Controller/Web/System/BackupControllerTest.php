@@ -71,7 +71,6 @@ final class BackupControllerTest extends TestCase
         $this->removeDir($this->tmpDir);
         unset($_ENV['LARAVEL_STORAGE_PATH']);
         $_GET = [];
-        \App\Services\Log::reset();
 
         kintai_test_translator_reset();
     }
@@ -443,52 +442,42 @@ final class BackupControllerTest extends TestCase
 
     public function testRestoreLogsBackupRestoredAction(): void
     {
-        $logs = $this->createMock(\App\Repositories\LogRepositoryInterface::class);
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(\App\Repositories\LogRepositoryInterface::class, $logs);
-        \App\Services\Log::setContainer($container);
+        $log = kintai_test_log();
 
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
         $filename = urldecode(substr($this->locationOf($created), strlen('/admin/backup?success=created_')));
-
-        $logs->expects($this->atLeastOnce())
-            ->method('record')
-            ->with($this->anything(), $this->anything(), $this->anything(), $this->callback(
-                fn($action) => in_array($action, ['backup.created', 'backup.restored'], true)
-            ), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything());
 
         $_POST = ['filename' => $filename];
         $response = $controller->restore($this->requestAs(true));
         $_POST = [];
 
+        $actions = array_column(array_column($log->on('audit'), 'context'), 'action');
+        $this->assertContains('backup.created', $actions);
+        $this->assertContains('backup.restored', $actions);
+
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=restored', $this->locationOf($response));
 
-        \App\Services\Log::reset();
     }
 
     public function testDeleteLogsBackupDeletedAction(): void
     {
-        $logs = $this->createMock(\App\Repositories\LogRepositoryInterface::class);
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(\App\Repositories\LogRepositoryInterface::class, $logs);
-        \App\Services\Log::setContainer($container);
+        $log = kintai_test_log();
 
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
         $filename = urldecode(substr($this->locationOf($created), strlen('/admin/backup?success=created_')));
 
-        $logs->expects($this->atLeastOnce())->method('record');
-
         $_POST = ['filename' => $filename];
         $response = $controller->delete($this->requestAs(true));
         $_POST = [];
 
+        $this->assertContains('backup.deleted', array_column(array_column($log->on('audit'), 'context'), 'action'));
+
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('success=deleted', $this->locationOf($response));
 
-        \App\Services\Log::reset();
     }
 
     public function testDescribeFlashParsesUpdateSummary(): void

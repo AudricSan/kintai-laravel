@@ -28,7 +28,7 @@ final class ActivityLogPurgeTest extends TestCase
 
         $this->logs = new DatabaseLogRepository();
         foreach (['-400 days', '-100 days', '-10 days', '-1 day'] as $age) {
-            $this->logs->record(LogRepositoryInterface::LEVEL_INFO, LogRepositoryInterface::CHANNEL_AUDIT, 'x', 'test.action');
+            \App\Models\ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'x', 'action' => 'test.action', 'created_at' => date('Y-m-d H:i:s')]);
             $id = (int) $this->capsule->getConnection()->table('activity_log')->max('id');
             $this->capsule->getConnection()->table('activity_log')->where('id', $id)->update(['created_at' => date('Y-m-d H:i:s', strtotime($age))]);
         }

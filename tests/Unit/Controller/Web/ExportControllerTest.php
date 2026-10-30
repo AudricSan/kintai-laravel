@@ -30,7 +30,7 @@ use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\IcalService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\ScheduleExportService;
 use App\Services\ShiftWageCalculator;
 use Illuminate\Translation\Translator;
@@ -104,7 +104,6 @@ final class ExportControllerTest extends TestCase
     protected function tearDown(): void
     {
         session()->forget([auth()->getName(), 'auth_pw_fp']);
-        Log::reset();
         foreach ($this->bound as $class) {
             Container::getInstance()->offsetUnset($class);
         }

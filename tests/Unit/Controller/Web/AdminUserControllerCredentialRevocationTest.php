@@ -11,7 +11,6 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -23,7 +22,7 @@ use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
@@ -70,10 +69,6 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
         // Demandeur : rôle système global (la garde d'accès à l'employé ciblé doit le laisser passer).
         $roleAssignments->method('findByUser')->willReturn([['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
         $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
-
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
-        Log::setContainer($container);
 
         $this->remember = $this->createMock(UserRepositoryInterface::class);
         $this->api      = $this->createMock(ApiTokenRepositoryInterface::class);

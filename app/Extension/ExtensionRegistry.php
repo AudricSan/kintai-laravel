@@ -21,7 +21,7 @@ use kintai\Contract\Provider\SalesProvider;
 use kintai\Contract\Provider\SwapProvider;
 use App\Bundles\Bundle;
 use App\BundleManager;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Collecte les contributions des bundles actifs aux points d'extension du Core (contrat 1.1, étape 2 du plan).

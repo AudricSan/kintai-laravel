@@ -9,13 +9,12 @@ use kintai\Bundles\Installed\HiringReport\Controllers\Web\AdminHiringReportContr
 use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -27,7 +26,6 @@ final class AdminHiringReportControllerTest extends TestCase
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private LogRepositoryInterface&Stub $logRepo;
     private ?AdminHiringReportController $controller = null;
 
     protected function setUp(): void
@@ -42,11 +40,6 @@ final class AdminHiringReportControllerTest extends TestCase
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -74,7 +67,6 @@ final class AdminHiringReportControllerTest extends TestCase
         $_GET = [];
         $_POST = [];
         $_SERVER = [];
-        Log::reset();
     }
 
     public function testAllHiringReportsListsAcrossStoresForAdmin(): void
@@ -142,27 +134,21 @@ final class AdminHiringReportControllerTest extends TestCase
     public function testShowHiringReportLogsConsultation(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
-        $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
+        $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'employee_name' => 'Alice']);
         $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
-
-        $this->logRepo->expects($this->once())->method('record')->with(
-            $this->anything(), $this->anything(), $this->anything(),
-            'hiring_report.viewed', 'hiring_report', 10,
-            $this->anything(), $this->anything(), 1,
-            $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(),
-        );
-
         $response = $this->controller()->showHiringReport($req);
 
         $this->assertSame(200, $response->getStatusCode());
+
+        $audit = array_values(array_filter($log->on('audit'), fn(array $e) => $e['message'] === 'hiring_report.viewed'));
+        $this->assertCount(1, $audit);
+        $this->assertSame('hiring_report', $audit[0]['context']['resource_type']);
+        $this->assertSame(10, $audit[0]['context']['resource_id']);
     }
 
     public function testShowHiringReportOfAnotherStoreThrowsNotFound(): void

@@ -19,7 +19,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
 use App\Http\Controllers\Api\V1\UserController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -61,7 +61,6 @@ final class UserControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function makeJsonRequest(array $body): Request

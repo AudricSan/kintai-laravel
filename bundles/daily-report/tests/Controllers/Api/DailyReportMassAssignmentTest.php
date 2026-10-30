@@ -13,7 +13,7 @@ use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -54,7 +54,6 @@ final class DailyReportMassAssignmentTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function request(array $json): Request

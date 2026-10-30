@@ -8,40 +8,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 final class DatabaseLogRepository implements LogRepositoryInterface
 {
-    public function log(string $level, string $channel, string $message, array $context = [], ?int $userId = null, ?int $storeId = null, ?string $ipAddress = null, ?string $userAgent = null): void
-    {
-        $this->record($level, $channel, $message, null, null, null, $context, $userId, $storeId, $ipAddress, $userAgent);
-    }
-
-    public function record(string $level, string $channel, string $message, ?string $action = null, ?string $resourceType = null, ?int $resourceId = null, array $context = [], ?int $userId = null, ?int $storeId = null, ?string $ipAddress = null, ?string $userAgent = null, ?string $requestMethod = null, ?string $requestUri = null, ?int $responseStatus = null, ?int $durationMs = null, ?string $sessionId = null): void
-    {
-        $data = [
-            'level'           => $level,
-            'channel'         => $channel,
-            'message'         => $message,
-            'action'          => $action,
-            'resource_type'   => $resourceType,
-            'resource_id'     => $resourceId,
-            'context'         => $context ? json_encode($context, JSON_UNESCAPED_UNICODE) : null,
-            'user_id'         => $userId,
-            'store_id'        => $storeId,
-            'ip_address'      => $ipAddress,
-            'user_agent'      => $userAgent ? mb_substr($userAgent, 0, 500) : null,
-            'request_method'  => $requestMethod,
-            'request_uri'     => $requestUri,
-            'response_status' => $responseStatus,
-            'duration_ms'     => $durationMs,
-            'session_id'      => $sessionId,
-            'created_at'      => date('Y-m-d H:i:s'),
-        ];
-
-        try {
-            EloquentActivityEntry::create($data);
-        } catch (\Throwable $e) {
-            error_log('[Kintai][Log] Échec écriture activity_log: ' . $e->getMessage());
-        }
-    }
-
     public function findAll(int $page = 1, int $perPage = 50, array $filters = []): array
     {
         $query = $this->buildFilterQuery($filters);

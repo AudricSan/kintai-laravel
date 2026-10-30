@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 /**
  * Primitive HTTP réutilisable (GET en mémoire, téléchargement vers un
  * fichier), avec le même repli curl -> wrapper de flux PHP que

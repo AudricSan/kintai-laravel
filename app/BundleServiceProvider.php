@@ -6,7 +6,7 @@ namespace App;
 
 use Illuminate\Support\ServiceProvider;
 
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 final class BundleServiceProvider extends ServiceProvider
 {

@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Provider\Absence;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Absences des employés, lues à travers des fournisseurs (étape 3 du contrat de bundle) : celles des fournisseurs

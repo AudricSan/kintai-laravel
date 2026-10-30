@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Provider\DailySales;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Ventes journalières des magasins, lues auprès des fournisseurs déclarés par les bundles actifs

@@ -10,7 +10,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\V1\StoreUserController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -35,7 +35,6 @@ final class StoreUserControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function request(array $body, array $params = ['store_id' => '3']): Request

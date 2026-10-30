@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 /**
  * Isole le chargement des données d'un widget fourni par un bundle : si le bundle est actif mais défaillant
  * (table absente après une mise à jour sans migration, base incomplète…), le widget disparaît et l'erreur est

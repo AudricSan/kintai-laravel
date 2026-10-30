@@ -9,7 +9,7 @@ use kintai\Contract\Extension\NavItem;
 use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
 
 /** Point d'extension « navigation » (contrat 1.1) : objet NavItem et collecte par le registre du Core. */
@@ -17,7 +17,6 @@ final class NavigationExtensionTest extends TestCase
 {
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     /** @param array<string, list<NavItem>|\Closure> $byBundle slug => entrées, ou closure qui les renvoie */

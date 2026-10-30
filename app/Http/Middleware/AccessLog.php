@@ -6,9 +6,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Repositories\LogRepositoryInterface;
 use App\Services\AppSettingsService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -51,22 +50,16 @@ final class AccessLog
 
             $status = $response->getStatusCode();
             $level = match (true) {
-                $status >= 500 => LogRepositoryInterface::LEVEL_ERROR,
-                $status >= 400 => LogRepositoryInterface::LEVEL_WARNING,
-                default        => LogRepositoryInterface::LEVEL_INFO,
+                $status >= 500 => 'error',
+                $status >= 400 => 'warning',
+                default        => 'info',
             };
             $durationMs = (int) round((microtime(true) - (float) $request->attributes->get(self::STARTED_AT, microtime(true))) * 1000);
 
-            Log::write(
-                $level,
-                LogRepositoryInterface::CHANNEL_ACCESS,
-                sprintf('%s %s', $request->method(), $uri),
-                [],
-                null,
-                null,
-                $status,
-                $durationMs,
-            );
+            Log::channel('access')->log($level, sprintf('%s %s', $request->method(), $uri), [
+                'response_status' => $status,
+                'duration_ms'     => $durationMs,
+            ]);
         } catch (Throwable) {
             // Le logging ne doit jamais faire planter l'application
         }

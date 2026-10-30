@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class AuditLogger
 {
@@ -17,15 +18,14 @@ final class AuditLogger
         ?int $storeId = null,
         ?int $userId = null,
     ): void {
-        Log::record(
-            $action,
-            $resourceType,
-            $resourceId,
-            $action,
-            $details,
-            $userId,
-            $storeId,
-        );
+        Log::channel('audit')->info($action, [
+            'action'        => $action,
+            'resource_type' => $resourceType,
+            'resource_id'   => $resourceId,
+            'user_id'       => $userId,
+            'store_id'      => $storeId,
+            ...$details,
+        ]);
     }
 
     /**
@@ -51,14 +51,13 @@ final class AuditLogger
             $context['changes'] = $changes;
         }
 
-        Log::record(
-            $action,
-            $resourceType,
-            $resourceId,
-            $action,
-            $context,
-            $userId,
-            $storeId,
-        );
+        Log::channel('audit')->info($action, [
+            'action'        => $action,
+            'resource_type' => $resourceType,
+            'resource_id'   => $resourceId,
+            'user_id'       => $userId,
+            'store_id'      => $storeId,
+            ...$context,
+        ]);
     }
 }

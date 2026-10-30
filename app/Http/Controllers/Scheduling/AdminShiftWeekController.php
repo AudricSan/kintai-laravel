@@ -13,7 +13,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
 use App\Services\SchedulePublication;
 use App\Services\WeekPlanner;

@@ -71,8 +71,6 @@ final class AppServiceProvider extends ServiceProvider
     private function registerLogging(): void
     {
         $this->app->singleton(AuditLogger::class, fn() => new AuditLogger());
-
-        Log::setContainer($this->app);
     }
 
     /**

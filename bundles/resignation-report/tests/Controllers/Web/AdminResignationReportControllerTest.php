@@ -14,7 +14,6 @@ use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use App\Auth\PermissionService;
 use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
-use App\Repositories\LogRepositoryInterface;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -23,7 +22,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -35,7 +34,6 @@ final class AdminResignationReportControllerTest extends TestCase
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private LogRepositoryInterface&Stub $logRepo;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
     private RoleRepositoryInterface&Stub $roles;
     private ?AdminResignationReportController $controller = null;
@@ -53,11 +51,6 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
 
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->roles = $this->createStub(RoleRepositoryInterface::class);
@@ -99,7 +92,6 @@ final class AdminResignationReportControllerTest extends TestCase
         $_GET = [];
         $_POST = [];
         $_SERVER = [];
-        Log::reset();
     }
 
     // -------------------------------------------------------------------------
@@ -302,27 +294,21 @@ final class AdminResignationReportControllerTest extends TestCase
     public function testShowResignationReportLogsConsultation(): void
     {
         $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
-        $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
+        $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '20']);
 
         $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20, 'store_id' => 1, 'employee_name' => 'Bob']);
         $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
-
-        $this->logRepo->expects($this->once())->method('record')->with(
-            $this->anything(), $this->anything(), $this->anything(),
-            'resignation_report.viewed', 'resignation_report', 20,
-            $this->anything(), $this->anything(), 1,
-            $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(),
-        );
-
         $response = $this->controller()->showResignationReport($req);
 
         $this->assertSame(200, $response->getStatusCode());
+
+        $audit = array_values(array_filter($log->on('audit'), fn(array $e) => $e['message'] === 'resignation_report.viewed'));
+        $this->assertCount(1, $audit);
+        $this->assertSame('resignation_report', $audit[0]['context']['resource_type']);
+        $this->assertSame(20, $audit[0]['context']['resource_id']);
     }
 
     public function testShowResignationReportOfAnotherStoreThrowsNotFound(): void

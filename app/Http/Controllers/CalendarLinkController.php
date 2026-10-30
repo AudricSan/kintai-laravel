@@ -15,7 +15,7 @@ use App\Services\Calendar\GoogleCalendarException;
 use App\Services\Calendar\GoogleCalendarSettings;
 use App\Services\CalendarSyncService;
 use App\Services\Calendar\GoogleRedirectUri;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Liaison de l'agenda Google de l'utilisateur connecté (onglet « iCal » du profil). Chacun ne lie et ne délie que son

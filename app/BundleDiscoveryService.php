@@ -6,7 +6,7 @@ namespace App;
 
 use App\Bundles\Bundle as ContractBundle;
 use App\Bundles\BundleManifest;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Découvre les bundles disponibles depuis deux sources, fusionnées en une

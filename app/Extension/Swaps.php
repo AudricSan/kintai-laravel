@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Provider\Swap;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Demandes d'échange de shifts, lues à travers des fournisseurs (contrat 1.18) :

@@ -13,7 +13,6 @@ use Illuminate\Container\Container;
 use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -25,7 +24,7 @@ use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
@@ -47,9 +46,6 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
 
     protected function setUp(): void
     {
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
-        Log::setContainer($container);
         $this->received = [];
     }
 

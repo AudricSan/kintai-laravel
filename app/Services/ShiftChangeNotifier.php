@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 use kintai\Contract\Event\ShiftDeleted;
 use kintai\Contract\Event\ShiftSaved;
 use Illuminate\Container\Container;

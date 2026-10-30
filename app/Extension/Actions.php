@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Extension\Action;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Liens d'action des bundles dans les emplacements des pages du Core, construits à partir de données : ceux déclarés

@@ -23,7 +23,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
 use App\Services\StoreServiceInterface;
 use App\Http\Controllers\Api\V1\AvailabilityController;
@@ -87,7 +87,6 @@ final class ApiStoreScopeTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function request(int $userId, array $params = [], ?array $json = null): Request

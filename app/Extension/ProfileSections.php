@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Extension\ProfileSection;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**

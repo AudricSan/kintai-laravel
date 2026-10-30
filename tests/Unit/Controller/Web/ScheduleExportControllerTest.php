@@ -19,7 +19,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\IcalService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\ScheduleExportService;
 use Illuminate\Translation\Translator;
 use App\Http\Controllers\ScheduleExportController;
@@ -78,7 +78,6 @@ final class ScheduleExportControllerTest extends TestCase
     protected function tearDown(): void
     {
         session()->forget([auth()->getName(), 'auth_pw_fp']);
-        Log::reset();
         kintai_test_translator_reset();
     }
 

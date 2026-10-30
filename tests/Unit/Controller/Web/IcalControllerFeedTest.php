@@ -20,7 +20,7 @@ use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\IcalService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Translation\Translator;
 use App\Http\Controllers\IcalController;
 use PHPUnit\Framework\MockObject\Stub;
@@ -74,7 +74,6 @@ final class IcalControllerFeedTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
         // Retire le TranslationService lié dans setUp() : il fausserait les tests qui attendent des clés brutes.
         kintai_test_translator_reset();
     }

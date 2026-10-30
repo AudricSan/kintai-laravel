@@ -9,7 +9,6 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -21,7 +20,7 @@ use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
 use App\Http\Controllers\Staff\AdminUserController;
@@ -67,10 +66,6 @@ final class AdminUserControllerScopeTest extends TestCase
         $this->users      = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $stores           = $this->createStub(StoreRepositoryInterface::class);
-
-        $container = new \Tests\Support\TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->createStub(LogRepositoryInterface::class));
-        Log::setContainer($container);
 
         $this->controller = new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),

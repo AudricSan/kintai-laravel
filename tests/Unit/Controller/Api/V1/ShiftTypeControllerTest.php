@@ -11,7 +11,7 @@ use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\V1\ShiftTypeController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -40,7 +40,6 @@ final class ShiftTypeControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function makeJsonRequest(array $body): Request

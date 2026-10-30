@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Bus\Dispatcher;
 use App\Jobs\DeliverNotification;

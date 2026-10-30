@@ -9,7 +9,7 @@ use App\Exceptions\PlanLimitExceededException;
 use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\StoreServiceInterface;
 use App\Http\Controllers\Api\V1\StoreController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -41,7 +41,6 @@ final class StoreControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        Log::reset();
     }
 
     private function makeJsonRequest(array $body): Request

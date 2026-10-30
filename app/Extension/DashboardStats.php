@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use kintai\Contract\Extension\DashboardStat;
 use Illuminate\Container\Container;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Cartes de statistiques du tableau de bord employé apportées par les bundles (point d'extension

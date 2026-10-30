@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Auth\PermissionService;
 use App\Services\AuditLogger;
 use App\Services\AvailabilityGuard;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\ShiftWageCalculator;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use App\Http\Controllers\HasAdminAccess;

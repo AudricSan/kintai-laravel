@@ -14,7 +14,6 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Extension\Sales;
-use App\Repositories\LogRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
@@ -26,7 +25,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Services\StoreStatsServiceInterface;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -44,7 +43,6 @@ final class AdminSalaryReportControllerTest extends TestCase
     private ShiftRepositoryInterface&Stub $shifts;
     private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     private UserShiftTypeRateRepositoryInterface&Stub $userRates;
-    private LogRepositoryInterface&Stub $logRepo;
     private StoreStatsServiceInterface&Stub $storeStatsService;
     private ?AdminSalaryReportController $controller = null;
 
@@ -66,11 +64,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
-
-        $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -148,7 +141,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $_GET = [];
         $_POST = [];
         $_SERVER = [];
-        Log::reset();
     }
 
     // -------------------------------------------------------------------------
@@ -252,27 +244,21 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testShowSalaryReportLogsConsultation(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
+        $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30, 'store_id' => 1, 'target_month' => '2026-08']);
         $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
-
-        $this->logRepo->expects($this->once())->method('record')->with(
-            $this->anything(), $this->anything(), $this->anything(),
-            'salary_report.viewed', 'salary_report', 30,
-            $this->anything(), $this->anything(), 1,
-            $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(),
-        );
-
         $response = $this->controller()->showSalaryReport($req);
 
         $this->assertSame(200, $response->getStatusCode());
+
+        $audit = array_values(array_filter($log->on('audit'), fn(array $e) => $e['message'] === 'salary_report.viewed'));
+        $this->assertCount(1, $audit);
+        $this->assertSame('salary_report', $audit[0]['context']['resource_type']);
+        $this->assertSame(30, $audit[0]['context']['resource_id']);
     }
 
     public function testShowSalaryReportOfAnotherStoreThrowsNotFound(): void
@@ -405,27 +391,21 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testDeleteSalaryReportDeletesAndLogs(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new TestContainer();
-        $container->instance(LogRepositoryInterface::class, $this->logRepo);
-        Log::setContainer($container);
+        $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30, 'store_id' => 1]);
         $this->salaryReports->expects($this->once())->method('delete')->with(30);
-
-        $this->logRepo->expects($this->once())->method('record')->with(
-            $this->anything(), $this->anything(), $this->anything(),
-            'salary_report.deleted', 'salary_report', 30,
-            $this->anything(), $this->anything(), $this->anything(),
-            $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(), $this->anything(),
-        );
-
         $response = $this->controller()->deleteSalaryReport($req);
 
         $this->assertSame(302, $response->getStatusCode());
+
+        $audit = array_values(array_filter($log->on('audit'), fn(array $e) => $e['message'] === 'salary_report.deleted'));
+        $this->assertCount(1, $audit);
+        $this->assertSame('salary_report', $audit[0]['context']['resource_type']);
+        $this->assertSame(30, $audit[0]['context']['resource_id']);
     }
 
     public function testCreateSalaryReportPresetsFromDailyReportsAndShifts(): void

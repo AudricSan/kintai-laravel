@@ -8,7 +8,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
-use App\Services\Log;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Scheduling\AdminShiftTypeController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -52,7 +52,6 @@ final class AdminShiftTypeControllerTest extends TestCase
     {
         $_GET  = [];
         $_POST = [];
-        Log::reset();
     }
 
     // -------------------------------------------------------------------------
