@@ -105,8 +105,8 @@ final class ErrorResponder
         }
 
         if ($e instanceof HttpException || $e instanceof HttpExceptionInterface) {
-            $status  = $e instanceof HttpException ? $e->statusCode : $e->getStatusCode();
-            $headers = $e instanceof HttpException ? $e->headers : $e->getHeaders();
+            $status  = $e->getStatusCode();
+            $headers = $e->getHeaders();
             $response = $wantsJson
                 ? response()->json(['error' => $e->getMessage()], $status)
                 : self::page($status, $e->getMessage());

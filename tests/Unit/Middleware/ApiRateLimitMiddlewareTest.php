@@ -73,8 +73,8 @@ final class ApiRateLimitMiddlewareTest extends TestCase
             $this->pass($mw, $this->request('/api/v1/shifts', 'token-a'));
             $this->fail('La quatrième requête aurait dû être refusée.');
         } catch (HttpException $e) {
-            $this->assertSame(429, $e->statusCode);
-            $this->assertGreaterThan(0, (int) $e->headers['Retry-After']);
+            $this->assertSame(429, $e->getStatusCode());
+            $this->assertGreaterThan(0, (int) $e->getHeaders()['Retry-After']);
         }
     }
 

@@ -63,9 +63,9 @@ final class RateLimiterMiddlewareTest extends TestCase
             $this->pass($this->request('10.0.0.1', '/forgot-password'));
             $this->fail('429 attendu');
         } catch (HttpException $e) {
-            $this->assertSame(429, $e->statusCode);
-            $this->assertGreaterThan(0, (int) ($e->headers['Retry-After'] ?? 0));
-            $this->assertLessThanOrEqual(300, (int) $e->headers['Retry-After']);
+            $this->assertSame(429, $e->getStatusCode());
+            $this->assertGreaterThan(0, (int) ($e->getHeaders()['Retry-After'] ?? 0));
+            $this->assertLessThanOrEqual(300, (int) $e->getHeaders()['Retry-After']);
         }
     }
 

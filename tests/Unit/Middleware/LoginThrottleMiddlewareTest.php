@@ -63,7 +63,7 @@ final class LoginThrottleMiddlewareTest extends TestCase
         try {
             $this->attempt($req, false);
         } catch (HttpException $e) {
-            $this->assertSame(429, $e->statusCode);
+            $this->assertSame(429, $e->getStatusCode());
             return $e;
         }
         $this->fail('La requête aurait dû être refusée (429).');
@@ -129,9 +129,9 @@ final class LoginThrottleMiddlewareTest extends TestCase
 
         $e = $this->assertBlocked($this->request('10.0.0.1', ['email' => 'victim@shop.test']));
 
-        $this->assertArrayHasKey('Retry-After', $e->headers);
-        $this->assertGreaterThan(0, (int) $e->headers['Retry-After']);
-        $this->assertLessThanOrEqual(LoginThrottleMiddleware::WINDOW, (int) $e->headers['Retry-After']);
+        $this->assertArrayHasKey('Retry-After', $e->getHeaders());
+        $this->assertGreaterThan(0, (int) $e->getHeaders()['Retry-After']);
+        $this->assertLessThanOrEqual(LoginThrottleMiddleware::WINDOW, (int) $e->getHeaders()['Retry-After']);
     }
 
     public function testEmailIsNormalisedSoCaseAndSpacesCannotDodgeTheLimit(): void
