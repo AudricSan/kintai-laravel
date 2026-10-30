@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Scheduling;
 
 use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
-use App\Repositories\ShiftWeekTemplateRepositoryInterface;
+use App\Models\ShiftWeekTemplate;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -32,7 +32,6 @@ final class AdminShiftWeekController
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly WeekPlanner $planner,
-        private readonly ShiftWeekTemplateRepositoryInterface $templates,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
         private readonly AuditLogger $auditLogger,
@@ -72,8 +71,8 @@ final class AdminShiftWeekController
         if ($entries === []) {
             return $this->back($request, $storeId, ['error' => 'week_source_empty']);
         }
-        $saved = $this->templates->save($storeId, $name, $entries, $this->authId($request));
-        $this->auditLogger->log($request, 'schedule.template_saved', 'shift_week_template', $saved['id'], [
+        $saved = ShiftWeekTemplate::updateOrCreate(['store_id' => $storeId, 'name' => $name], ['entries' => array_values($entries), 'created_by' => $this->authId($request)]);
+        $this->auditLogger->log($request, 'schedule.template_saved', 'shift_week_template', $saved->id, [
             'name' => $name, 'week' => $week, 'shifts' => count($entries),
         ], $storeId);
 
@@ -100,7 +99,7 @@ final class AdminShiftWeekController
     {
         $template = $this->template($request);
         $storeId  = $this->authorize($request, 'shifts.update', $template['store_id']);
-        $this->templates->delete($template['id']);
+        $template->delete();
         $this->auditLogger->log($request, 'schedule.template_deleted', 'shift_week_template', $template['id'], [
             'name' => $template['name'],
         ], $storeId);
@@ -119,14 +118,10 @@ final class AdminShiftWeekController
         return $storeId;
     }
 
-    /** @return array{id: int, store_id: int, name: string, entries: list<array<string, mixed>>, created_by: ?int} */
-    private function template(Request $request): array
+    private function template(Request $request): ShiftWeekTemplate
     {
-        $template = $this->templates->findById((int) $request->route('id'));
-        if ($template === null) {
-            throw new NotFoundException(__('error_resource_not_found'));
-        }
-        return $template;
+        return ShiftWeekTemplate::find((int) $request->route('id'))
+            ?? throw new NotFoundException(__('error_resource_not_found'));
     }
 
     private function postedDate(Request $request, string $field): ?string

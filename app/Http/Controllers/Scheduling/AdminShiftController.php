@@ -10,7 +10,7 @@ use App\Services\NotificationService;
 use App\Services\SchedulePublication;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
-use App\Repositories\ShiftWeekTemplateRepositoryInterface;
+use App\Models\ShiftWeekTemplate;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Contract\Event\OpenShiftClosed;
@@ -50,7 +50,6 @@ final class AdminShiftController
         // Publication du planning par magasin ; null (tests, appel direct) : tout est publié, comme avant.
         private readonly ?SchedulePublication $publication = null,
         // Modèles de semaine proposés sur la timeline ; null : bloc des modèles masqué.
-        private readonly ?ShiftWeekTemplateRepositoryInterface $weekTemplates = null,
     ) {}
 
     /**
@@ -572,7 +571,7 @@ final class AdminShiftController
             'week_start_day'      => $weekStartDay,
             // Semaine type (copie de la semaine précédente, modèles) : vue semaine, pour qui gère le magasin.
             'week_tools'          => $canManage && $filterStoreId > 0 && $viewMode === 'week'
-                ? ['templates' => $this->weekTemplates?->findByStore($filterStoreId) ?? [], 'templates_enabled' => $this->weekTemplates !== null]
+                ? ['templates' => ShiftWeekTemplate::where('store_id', $filterStoreId)->orderBy('name')->get(), 'templates_enabled' => true]
                 : null,
             'all_users'           => $this->users->findAll(),
             'all_stores'          => $availStores,

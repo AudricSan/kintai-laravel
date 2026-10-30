@@ -12,7 +12,7 @@ use App\Extension\ExtensionRegistry;
 use App\Repositories\DatabaseAvailabilityRepository;
 use App\Repositories\DatabaseShiftRepository;
 use App\Repositories\DatabaseShiftTypeRepository;
-use App\Repositories\DatabaseShiftWeekTemplateRepository;
+use App\Models\ShiftWeekTemplate;
 use App\Repositories\DatabaseStoreUserRepository;
 use App\Repositories\DatabaseUserRepository;
 use App\Services\AvailabilityGuard;
@@ -203,14 +203,14 @@ final class WeekPlannerTest extends TestCase
     {
         $this->shift($this->alice, '2026-11-02');
         $this->shift($this->bob, '2026-11-08', '12:00', '20:00');
-        $templates = new DatabaseShiftWeekTemplateRepository();
-        $saved = $templates->save($this->store, 'Semaine été', $this->planner->entriesOfWeek($this->store, $this->monday), $this->alice);
+        $key = ['store_id' => $this->store, 'name' => 'Semaine été'];
+        $saved = ShiftWeekTemplate::updateOrCreate($key, ['entries' => $this->planner->entriesOfWeek($this->store, $this->monday), 'created_by' => $this->alice]);
 
         // Même nom : le modèle est remplacé, pas dupliqué.
-        $templates->save($this->store, 'Semaine été', $saved['entries'], $this->alice);
-        $this->assertCount(1, $templates->findByStore($this->store));
+        ShiftWeekTemplate::updateOrCreate($key, ['entries' => $saved->entries, 'created_by' => $this->alice]);
+        $this->assertSame(1, ShiftWeekTemplate::where('store_id', $this->store)->count());
 
-        $template = $templates->findById($saved['id']);
+        $template = ShiftWeekTemplate::find($saved->id);
         $this->assertSame([0, 6], array_column($template['entries'], 'day'));
         $result = $this->planner->apply($this->store, '2026-11-23', $template['entries']);
 
@@ -220,8 +220,8 @@ final class WeekPlannerTest extends TestCase
             ['2026-11-29', $this->bob, '12:00', '20:00'],
         ], $this->week('2026-11-23'));
 
-        $this->assertSame(1, $templates->delete($saved['id']));
-        $this->assertNull($templates->findById($saved['id']));
+        $this->assertTrue($template->delete());
+        $this->assertNull(ShiftWeekTemplate::find($saved->id));
     }
 
     public function testMalformedEntriesAreIgnored(): void
