@@ -30,7 +30,33 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "tests/",
+            "Tests\\Bundles\\DailyReport\\": "bundles/daily-report/tests/",
+            "Tests\\Bundles\\HiringReport\\": "bundles/hiring-report/tests/",
+            "Tests\\Bundles\\Messaging\\": "bundles/messaging/tests/",
+            "Tests\\Bundles\\Notebook\\": "bundles/notebook/tests/",
+            "Tests\\Bundles\\PlanningCheck\\": "bundles/planning-check/tests/",
+            "Tests\\Bundles\\ResignationReport\\": "bundles/resignation-report/tests/",
+            "Tests\\Bundles\\SalaryReport\\": "bundles/salary-report/tests/",
+            "Tests\\Bundles\\ShiftClaim\\": "bundles/shift-claim/tests/",
+            "Tests\\Bundles\\ShiftSwap\\": "bundles/shift-swap/tests/",
+            "Tests\\Bundles\\StorePhoto\\": "bundles/store-photos/tests/",
+            "Tests\\Bundles\\TeamDirectory\\": "bundles/team-directory/tests/",
+            "Tests\\Bundles\\TimeOff\\": "bundles/timeoff/tests/",
+            "Tests\\Bundles\\Timeclock\\": "bundles/timeclock/tests/",
+            "kintai\\Bundles\\Installed\\DailyReport\\": "bundles/daily-report/src/",
+            "kintai\\Bundles\\Installed\\HiringReport\\": "bundles/hiring-report/src/",
+            "kintai\\Bundles\\Installed\\Messaging\\": "bundles/messaging/src/",
+            "kintai\\Bundles\\Installed\\Notebook\\": "bundles/notebook/src/",
+            "kintai\\Bundles\\Installed\\PlanningCheck\\": "bundles/planning-check/src/",
+            "kintai\\Bundles\\Installed\\ResignationReport\\": "bundles/resignation-report/src/",
+            "kintai\\Bundles\\Installed\\SalaryReport\\": "bundles/salary-report/src/",
+            "kintai\\Bundles\\Installed\\ShiftClaim\\": "bundles/shift-claim/src/",
+            "kintai\\Bundles\\Installed\\ShiftSwap\\": "bundles/shift-swap/src/",
+            "kintai\\Bundles\\Installed\\StorePhoto\\": "bundles/store-photos/src/",
+            "kintai\\Bundles\\Installed\\TeamDirectory\\": "bundles/team-directory/src/",
+            "kintai\\Bundles\\Installed\\TimeOff\\": "bundles/timeoff/src/",
+            "kintai\\Bundles\\Installed\\Timeclock\\": "bundles/timeclock/src/"
         }
     },
     "config": {
