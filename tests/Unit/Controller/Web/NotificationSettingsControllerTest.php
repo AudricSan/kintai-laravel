@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Auth\AuthService;
 use App\BundleManager;
 use Illuminate\Container\Container;
@@ -19,7 +18,6 @@ use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
@@ -59,33 +57,11 @@ final class NotificationSettingsControllerTest extends TestCase
     protected function setUp(): void
     {
         session()->put(auth()->getName(), 1);
-
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
-        $schema->create('notifications', function ($table) {
-            $table->increments('id');
-            $table->integer('user_id');
-            $table->string('type');
-            $table->string('body_key')->nullable();
-            $table->text('params')->nullable();
-            $table->text('body')->nullable();
-            $table->string('link', 500)->nullable();
-            $table->string('reference_type', 40)->nullable();
-            $table->integer('reference_id')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-        });
-        $schema->create('notification_preferences', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id');
-            $table->string('type', 64);
-            $table->string('channel', 16);
-            $table->boolean('enabled');
-            $table->unique(['user_id', 'type', 'channel']);
-        });
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(1);
+        // Le navigateur du Owner est abonné au web push : le canal figure dans le test.
+        \App\Models\WebPushSubscription::put(1, 'https://fcm.googleapis.com/fcm/send/owner', 'k', 'a', null);
 
         session()->put('_token', 'x');
         $router = kintai_test_registrar();
@@ -116,10 +92,6 @@ final class NotificationSettingsControllerTest extends TestCase
         $appSettings    = new AppSettingsService($this->settings);
         $vapid          = new VapidKeyStore($this->settings);
         $vapid->ensure();
-
-        $subscriptions = $this->createStub(WebPushSubscriptionRepositoryInterface::class);
-        $subscriptions->method('countAll')->willReturn(3);
-        $subscriptions->method('findByUser')->willReturn([['id' => 1]]);
         $devices = $this->createStub(DevicePushTokenRepositoryInterface::class);
 
         $transport = kintai_test_mailer(function (array $to, string $subject): bool {
@@ -148,7 +120,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
         $this->view = kintai_test_views(BASE_PATH . '/resources/views');
         $this->view->share('BASE_URL', '');
-        $this->status = new NotificationChannelStatus($vapid, $subscriptions, $devices, $mailer, $publicUrl, $users, []);
+        $this->status = new NotificationChannelStatus($vapid, $devices, $mailer, $publicUrl, $users, []);
         $this->controller = new NotificationSettingsController(
             $this->view,
             $appSettings,

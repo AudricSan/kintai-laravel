@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Mail\MailerService;
 use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 
 /**
  * État des canaux de notification de l'instance, pour l'Owner : ce qui fonctionne, ce qui manque, et par où passerait
@@ -20,7 +20,6 @@ final class NotificationChannelStatus
      */
     public function __construct(
         private readonly VapidKeyStore $vapid,
-        private readonly WebPushSubscriptionRepositoryInterface $subscriptions,
         private readonly DevicePushTokenRepositoryInterface $devices,
         private readonly MailerService $mailer,
         private readonly PublicUrlResolver $publicUrl,
@@ -51,7 +50,7 @@ final class NotificationChannelStatus
                 'available'          => $this->vapid->isAvailable(),
                 'has_keys'           => $this->vapid->publicKey() !== null && $this->vapid->privateKey() !== null,
                 'missing_extensions' => VapidKeyStore::missingExtensions(),
-                'subscriptions'      => $this->subscriptions->countAll(),
+                'subscriptions'      => WebPushSubscription::countAll(),
             ],
             'email' => [
                 'available'      => $configured && $hasUrl,
@@ -79,7 +78,7 @@ final class NotificationChannelStatus
         $status   = $this->all();
         $channels = ['bell'];
 
-        if ($status['web_push']['available'] && $this->subscriptions->findByUser($userId) !== []) {
+        if ($status['web_push']['available'] && WebPushSubscription::findByUser($userId) !== []) {
             $channels[] = 'web_push';
         }
         if ($status['mobile']['available'] && $this->devices->findByUser($userId) !== []) {

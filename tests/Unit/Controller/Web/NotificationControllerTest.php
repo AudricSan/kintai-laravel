@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\AuthService;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use App\Repositories\NotificationRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -25,7 +25,6 @@ use PHPUnit\Framework\TestCase;
 final class NotificationControllerTest extends TestCase
 {
     private NotificationRepositoryInterface&Stub $notifications;
-    private WebPushSubscriptionRepositoryInterface&Stub $subscriptions;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private AuthService $auth;
     private ?NotificationController $controller = null;
@@ -33,6 +32,8 @@ final class NotificationControllerTest extends TestCase
     protected function setUp(): void
     {
         session()->put(auth()->getName(), 5);
+        kintai_test_database();
+        kintai_test_migrate();
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@example.com']);
@@ -50,7 +51,6 @@ final class NotificationControllerTest extends TestCase
         );
 
         $this->notifications = $this->createStub(NotificationRepositoryInterface::class);
-        $this->subscriptions = $this->createStub(WebPushSubscriptionRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -60,7 +60,6 @@ final class NotificationControllerTest extends TestCase
             $this->controller = new NotificationController(
                 $this->auth,
                 $this->notifications,
-                $this->subscriptions,
                 new WebPushEndpointValidator(static fn(string $host): array => ['142.250.74.10']),
                 kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
             );
@@ -144,15 +143,15 @@ final class NotificationControllerTest extends TestCase
 
     public function testPushSubscribeSavesTheSubscriptionForCurrentUser(): void
     {
-        $this->subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
-        $this->subscriptions->expects($this->once())->method('save')
-            ->with(5, self::ENDPOINT, self::KEYS['p256dh'], self::KEYS['auth'], $this->anything());
-
         $response = $this->controller()->pushSubscribe($this->makeJsonRequest(['endpoint' => self::ENDPOINT, 'keys' => self::KEYS]));
 
         $this->assertSame(200, $response->getStatusCode());
+        $saved = WebPushSubscription::first();
+        $this->assertSame(5, (int) $saved->user_id);
+        $this->assertSame(self::ENDPOINT, $saved->endpoint);
+        $this->assertSame(self::KEYS['p256dh'], $saved->p256dh);
+        $this->assertSame(self::KEYS['auth'], $saved->auth);
     }
-
     /** @return array<string, array{array}> */
     public static function invalidSubscriptions(): array
     {
@@ -169,40 +168,38 @@ final class NotificationControllerTest extends TestCase
     #[DataProvider('invalidSubscriptions')]
     public function testPushSubscribeRejectsInvalidSubscription(array $body): void
     {
-        $this->subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
-        $this->subscriptions->expects($this->never())->method('save');
-
-        $this->expectException(\App\Exceptions\ValidationException::class);
-        $this->controller()->pushSubscribe($this->makeJsonRequest($body));
+        try {
+            $this->controller()->pushSubscribe($this->makeJsonRequest($body));
+            $this->fail('abonnement invalide accepté');
+        } catch (\App\Exceptions\ValidationException) {
+            $this->assertSame(0, WebPushSubscription::count());
+        }
     }
-
     /** La désinscription ne doit retirer que l'abonnement de l'utilisateur connecté (id 5 ici). */
     public function testPushUnsubscribeIsScopedToTheLoggedInUser(): void
     {
-        $this->subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
-        $this->subscriptions->expects($this->once())->method('deleteByEndpoint')->with(self::ENDPOINT, 5);
+        WebPushSubscription::put(5, self::ENDPOINT, 'k', 'a', null);
+        WebPushSubscription::put(9, 'https://updates.push.services.mozilla.com/other', 'k', 'a', null);
 
         $response = $this->controller()->pushUnsubscribe($this->makeJsonRequest(['endpoint' => self::ENDPOINT]));
+        $this->controller()->pushUnsubscribe($this->makeJsonRequest(['endpoint' => 'https://updates.push.services.mozilla.com/other']));
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['https://updates.push.services.mozilla.com/other'], WebPushSubscription::pluck('endpoint')->all(), 'celui d\'un autre compte reste');
     }
-
     public function testPushUnsubscribeIsNoopWithoutEndpoint(): void
     {
-        $this->subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
-        $this->subscriptions->expects($this->never())->method('deleteByEndpoint');
+        WebPushSubscription::put(5, self::ENDPOINT, 'k', 'a', null);
 
         $response = $this->controller()->pushUnsubscribe($this->makeJsonRequest([]));
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(1, WebPushSubscription::count());
     }
-
     public function testPushStatusIsTrueOnlyForTheCurrentUsersSubscription(): void
     {
-        $this->subscriptions->method('findByEndpoint')->willReturnMap([
-            [self::ENDPOINT, ['id' => 1, 'user_id' => 5]],
-            ['https://updates.push.services.mozilla.com/other', ['id' => 2, 'user_id' => 9]],
-        ]);
+        WebPushSubscription::put(5, self::ENDPOINT, 'k', 'a', null);
+        WebPushSubscription::put(9, 'https://updates.push.services.mozilla.com/other', 'k', 'a', null);
 
         $mine   = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => self::ENDPOINT]))->getContent(), true);
         $theirs = json_decode($this->controller()->pushStatus($this->makeJsonRequest(['endpoint' => 'https://updates.push.services.mozilla.com/other']))->getContent(), true);

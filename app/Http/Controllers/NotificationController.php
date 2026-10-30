@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\NotificationRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\WebPushEndpointValidator;
@@ -21,7 +21,6 @@ final class NotificationController
     public function __construct(
         private readonly AuthService $auth,
         private readonly NotificationRepositoryInterface $repo,
-        private readonly WebPushSubscriptionRepositoryInterface $subscriptions,
         private readonly WebPushEndpointValidator $endpoints,
         private readonly ViewFactory $view,
     ) {}
@@ -131,7 +130,7 @@ final class NotificationController
             throw new ValidationException(['endpoint' => [__('validation_push_subscription_invalid')]]);
         }
 
-        $this->subscriptions->save($userId, $endpoint, $p256dh, $authKey, $_SERVER['HTTP_USER_AGENT'] ?? null);
+        WebPushSubscription::put($userId, $endpoint, $p256dh, $authKey, $_SERVER['HTTP_USER_AGENT'] ?? null);
 
         return response()->json(['ok' => true]);
     }
@@ -146,7 +145,7 @@ final class NotificationController
         $userId   = (int) $this->auth->user()['id'];
         $endpoint = trim((string) ($request->json('endpoint') ?? ''));
         if ($endpoint !== '') {
-            $this->subscriptions->deleteByEndpoint($endpoint, $userId);
+            WebPushSubscription::deleteByEndpoint($endpoint, $userId);
         }
 
         return response()->json(['ok' => true]);
@@ -161,7 +160,7 @@ final class NotificationController
     {
         $userId   = (int) $this->auth->user()['id'];
         $endpoint = trim((string) ($request->json('endpoint') ?? ''));
-        $row      = $endpoint !== '' ? $this->subscriptions->findByEndpoint($endpoint) : null;
+        $row      = $endpoint !== '' ? WebPushSubscription::findByEndpoint($endpoint) : null;
 
         return response()->json(['subscribed' => $row !== null && (int) $row['user_id'] === $userId]);
     }

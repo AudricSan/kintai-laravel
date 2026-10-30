@@ -26,7 +26,7 @@ use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserNavPrefsRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use App\Http\Controllers\HasBaseUrl;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
@@ -56,7 +56,6 @@ final class AuthController
         private readonly ?CredentialRevoker $revoker = null,
         private readonly ?UserAnonymizer $anonymizer = null,
         private readonly ?NotificationPreferenceService $notifPrefs = null,
-        private readonly ?WebPushSubscriptionRepositoryInterface $webPushSubscriptions = null,
         private readonly ?NotificationMailer $notifMailer = null,
         private readonly ?GoogleCalendarSettings $googleCalendar = null,
     ) {}
@@ -638,9 +637,9 @@ final class AuthController
         // Le navigateur qui se déconnecte ne doit plus recevoir les notifications de ce compte : son abonnement web
         // push (adresse envoyée avec le formulaire par push.js) est supprimé. Seul celui de ce compte l'est.
         $pushEndpoint = trim((string) $request->post('push_endpoint', ''));
-        if ($pushEndpoint !== '' && $userId !== null && $this->webPushSubscriptions !== null) {
+        if ($pushEndpoint !== '' && $userId !== null) {
             try {
-                $this->webPushSubscriptions->deleteByEndpoint($pushEndpoint, $userId);
+                WebPushSubscription::deleteByEndpoint($pushEndpoint, $userId);
             } catch (\Throwable) {
                 // La déconnexion prime sur le nettoyage de l'abonnement.
             }

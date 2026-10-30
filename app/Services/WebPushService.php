@@ -10,7 +10,7 @@ use Minishlink\WebPush\ContentEncoding;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
 use Psr\Http\Client\ClientInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 
 /**
  * Web push natif (protocole Web Push + VAPID) vers les navigateurs abonnés, sans Firebase. Distinct de
@@ -28,7 +28,6 @@ final class WebPushService
     private array $cache = [];
 
     public function __construct(
-        private readonly WebPushSubscriptionRepositoryInterface $subscriptions,
         private readonly VapidKeyStore $keys,
         // Injectable pour les tests ; par défaut un client avec des délais courts, qui ne suit pas les redirections.
         private readonly ?ClientInterface $client = null,
@@ -50,7 +49,7 @@ final class WebPushService
         if ($missing === []) {
             return;
         }
-        $found = $this->subscriptions->findByUsers($missing);
+        $found = WebPushSubscription::findByUsers($missing);
         foreach ($missing as $id) {
             $this->cache[$id] = $found[$id] ?? [];
         }
@@ -110,9 +109,9 @@ final class WebPushService
                     continue;
                 }
                 if ($report->isSuccess()) {
-                    $this->subscriptions->touchLastUsed((int) $row['id']);
+                    WebPushSubscription::touchLastUsed((int) $row['id']);
                 } elseif ($report->isSubscriptionExpired()) {
-                    $this->subscriptions->deleteById((int) $row['id']);
+                    WebPushSubscription::deleteById((int) $row['id']);
                 } else {
                     Log::warning('web_push_send_failed', ['user_id' => $userId, 'reason' => $report->getReason()]);
                 }

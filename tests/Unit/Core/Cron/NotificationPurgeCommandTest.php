@@ -7,7 +7,6 @@ namespace Tests\Unit\Core\Cron;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Console\Commands\NotificationPurgeCommand;
 use App\Repositories\DatabaseNotificationRepository;
-use App\Repositories\DatabaseWebPushSubscriptionRepository;
 use App\Services\AppSettingsService;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
@@ -55,7 +54,6 @@ final class NotificationPurgeCommandTest extends TestCase
     {
         app()->instance(AppSettingsService::class, new AppSettingsService(new InMemoryAppSettings($settings)));
         app()->instance(AppRepositoriesNotificationRepositoryInterface::class, new DatabaseNotificationRepository());
-        app()->instance(AppRepositoriesWebPushSubscriptionRepositoryInterface::class, new DatabaseWebPushSubscriptionRepository());
         [$code, $output] = kintai_test_command(new NotificationPurgeCommand());
         app()->forgetInstance(AppSettingsService::class);
 
@@ -157,6 +155,6 @@ final class NotificationPurgeCommandTest extends TestCase
         $this->subscription('https://push.example/a', 1, 1);
         $this->subscription('https://push.example/b', 1, 1);
 
-        $this->assertSame(2, (new DatabaseWebPushSubscriptionRepository())->countAll());
+        $this->assertSame(2, WebPushSubscription::countAll());
     }
 }

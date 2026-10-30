@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AppSettingsRepositoryInterface;
@@ -13,7 +12,7 @@ use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use App\Services\NotificationPreferenceService;
 use App\Services\NotificationService;
 use App\Services\NotificationTypeRegistry;
@@ -38,33 +37,17 @@ final class NotificationServiceWebPushTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
-        $schema->create('notifications', function ($table) {
-            $table->increments('id');
-            $table->integer('user_id');
-            $table->string('type');
-            $table->string('body_key')->nullable();
-            $table->text('params')->nullable();
-            $table->text('body')->nullable();
-            $table->string('link', 500)->nullable();
-            $table->string('reference_type', 40)->nullable();
-            $table->integer('reference_id')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
+        kintai_test_database();
+        kintai_test_migrate();
+        foreach ([7, 8, 9] as $userId) {
+            kintai_test_user($userId);
+        }
+        // Les lectures d'abonnements sont observées : le service doit les demander (ou non).
+        \Illuminate\Support\Facades\DB::listen(function ($query): void {
+            if (str_starts_with($query->sql, 'select') && str_contains($query->sql, 'web_push_subscriptions')) {
+                $this->lookups[] = array_map('intval', $query->bindings);
+            }
         });
-        $schema->create('notification_preferences', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id');
-            $table->string('type', 64);
-            $table->string('channel', 16);
-            $table->boolean('enabled');
-            $table->unique(['user_id', 'type', 'channel']);
-        });
-
         $users = $this->createStub(UserRepositoryInterface::class);
         $stored = [];
         $users->method('findById')->willReturnCallback(function (int $id) use (&$stored) {
@@ -91,21 +74,6 @@ final class NotificationServiceWebPushTest extends TestCase
         $keys = new VapidKeyStore($settings);
         $keys->ensure();
 
-        $lookups = &$this->lookups;
-        $subscriptions = new class($lookups) implements WebPushSubscriptionRepositoryInterface {
-            public function __construct(private array &$lookups) {}
-
-            public function findByUser(int $userId): array { return []; }
-            public function findByUsers(array $userIds): array { $this->lookups[] = $userIds; return []; }
-            public function findByEndpoint(string $endpoint): ?array { return null; }
-            public function save(int $userId, string $endpoint, string $p256dh, string $auth, ?string $userAgent): array { return []; }
-            public function deleteByEndpoint(string $endpoint, ?int $userId = null): int { return 0; }
-            public function deleteById(int $id): void {}
-            public function touchLastUsed(int $id): void {}
-            public function deleteAllForUser(int $userId): void {}
-            public function countAll(): int { return 0; }
-            public function purgeUnusedSince(string $before): int { return 0; }
-        };
 
         $this->service = new NotificationService(
             new DatabaseNotificationRepository(),
@@ -114,7 +82,7 @@ final class NotificationServiceWebPushTest extends TestCase
             $users,
             $registry,
             $this->prefs,
-            new WebPushService($subscriptions, $keys),
+            new WebPushService($keys),
         );
     }
 

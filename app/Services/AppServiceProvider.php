@@ -15,7 +15,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\NotificationRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
@@ -102,7 +102,6 @@ final class AppServiceProvider extends ServiceProvider
 
             return new NotificationChannelStatus(
                 $c->make(VapidKeyStore::class),
-                $c->make(WebPushSubscriptionRepositoryInterface::class),
                 $c->make(DevicePushTokenRepositoryInterface::class),
                 $c->make(MailerService::class),
                 $c->make(PublicUrlResolver::class),
@@ -120,7 +119,6 @@ final class AppServiceProvider extends ServiceProvider
         ));
         $this->app->singleton(VapidKeyStore::class, fn(Container $c) => new VapidKeyStore($c->make(AppSettingsRepositoryInterface::class)));
         $this->app->singleton(WebPushService::class, fn(Container $c) => new WebPushService(
-            $c->make(WebPushSubscriptionRepositoryInterface::class),
             $c->make(VapidKeyStore::class),
             null,
             $c->make(WebPushEndpointValidator::class),

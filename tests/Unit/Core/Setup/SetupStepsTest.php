@@ -11,7 +11,6 @@ use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\EnvFileWriter;
@@ -268,10 +267,9 @@ final class SetupStepsTest extends TestCase
     private function notificationsStep(NotificationService $notifications): NotificationsStep
     {
         $vapid = new VapidKeyStore($this->store);
-        $subscriptions = $this->createStub(WebPushSubscriptionRepositoryInterface::class);
         $devices = $this->createStub(DevicePushTokenRepositoryInterface::class);
         $mailer = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@example.com']]);
-        $status = new NotificationChannelStatus($vapid, $subscriptions, $devices, $mailer, new PublicUrlResolver($this->settings, ''), $this->createStub(UserRepositoryInterface::class), []);
+        $status = new NotificationChannelStatus($vapid, $devices, $mailer, new PublicUrlResolver($this->settings, ''), $this->createStub(UserRepositoryInterface::class), []);
         return new NotificationsStep($status, $notifications);
     }
 

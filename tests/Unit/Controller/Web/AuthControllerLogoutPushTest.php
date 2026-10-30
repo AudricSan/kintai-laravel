@@ -14,7 +14,7 @@ use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserNavPrefsRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -36,7 +36,7 @@ final class AuthControllerLogoutPushTest extends TestCase
         $_POST = [];
     }
 
-    private function controller(?WebPushSubscriptionRepositoryInterface $subscriptions): AuthController
+    private function controller(): AuthController
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 9, 'is_active' => 1, 'deleted_at' => null]);
@@ -61,37 +61,41 @@ final class AuthControllerLogoutPushTest extends TestCase
             null,
             null,
             null,
-            $subscriptions,
         );
     }
 
     public function testLogoutDeletesThisBrowsersSubscriptionForThisUserOnly(): void
     {
-        $subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
-        $subscriptions->expects($this->once())->method('deleteByEndpoint')->with('https://fcm.googleapis.com/fcm/send/abc', 9);
+        kintai_test_database();
+        kintai_test_migrate();
+        WebPushSubscription::put(9, 'https://fcm.googleapis.com/fcm/send/abc', 'k', 'a', null);
+        WebPushSubscription::put(9, 'https://fcm.googleapis.com/fcm/send/autre-navigateur', 'k', 'a', null);
         $_POST = ['push_endpoint' => 'https://fcm.googleapis.com/fcm/send/abc'];
 
-        $response = $this->controller($subscriptions)->logout(Request::capture());
+        $response = $this->controller()->logout(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame(['https://fcm.googleapis.com/fcm/send/autre-navigateur'], WebPushSubscription::pluck('endpoint')->all());
     }
 
     public function testLogoutWithoutEndpointDeletesNothing(): void
     {
-        $subscriptions = $this->createMock(WebPushSubscriptionRepositoryInterface::class);
-        $subscriptions->expects($this->never())->method('deleteByEndpoint');
+        kintai_test_database();
+        kintai_test_migrate();
+        WebPushSubscription::put(9, 'https://fcm.googleapis.com/fcm/send/abc', 'k', 'a', null);
         $_POST = ['push_endpoint' => ''];
 
-        $this->controller($subscriptions)->logout(Request::capture());
+        $this->controller()->logout(Request::capture());
+
+        $this->assertSame(1, WebPushSubscription::count());
     }
 
     public function testLogoutStillSucceedsWhenTheCleanupFails(): void
     {
-        $subscriptions = $this->createStub(WebPushSubscriptionRepositoryInterface::class);
-        $subscriptions->method('deleteByEndpoint')->willThrowException(new \RuntimeException('table absente'));
+        kintai_test_database(); // sans migrations : la table des abonnements n'existe pas
         $_POST = ['push_endpoint' => 'https://fcm.googleapis.com/fcm/send/abc'];
 
-        $response = $this->controller($subscriptions)->logout(Request::capture());
+        $response = $this->controller()->logout(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
     }

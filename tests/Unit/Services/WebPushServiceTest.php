@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use GuzzleHttp\Psr7\Response as PsrResponse;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use App\Services\VapidKeyStore;
 use App\Services\WebPushEndpointValidator;
 use App\Services\WebPushService;
@@ -28,17 +28,15 @@ final class WebPushServiceTest extends TestCase
     private bool $networkDown = false;
 
     /** @var array<int, array<string, mixed>> */
-    private array $rows = [];
-    /** @var list<int> */
-    private array $deleted = [];
-    /** @var list<int> */
-    private array $touched = [];
+    /** @var list<int> identifiants des abonnements enregistrés par le test */
+    private array $seeded = [];
 
     private VapidKeyStore $keys;
-    private WebPushSubscriptionRepositoryInterface $subscriptions;
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $settings = new class implements AppSettingsRepositoryInterface {
             public array $values = [];
 
@@ -50,30 +48,6 @@ final class WebPushServiceTest extends TestCase
         $this->keys = new VapidKeyStore($settings);
         $this->keys->ensure();
 
-        $test = $this;
-        $this->subscriptions = new class($this->rows, $this->deleted, $this->touched) implements WebPushSubscriptionRepositoryInterface {
-            public function __construct(private array &$rows, private array &$deleted, private array &$touched) {}
-
-            public function findByUser(int $userId): array { return $this->findByUsers([$userId])[$userId] ?? []; }
-            public function findByUsers(array $userIds): array
-            {
-                $out = [];
-                foreach ($this->rows as $row) {
-                    if (in_array($row['user_id'], $userIds, true)) {
-                        $out[$row['user_id']][] = $row;
-                    }
-                }
-                return $out;
-            }
-            public function findByEndpoint(string $endpoint): ?array { return null; }
-            public function save(int $userId, string $endpoint, string $p256dh, string $auth, ?string $userAgent): array { return []; }
-            public function deleteByEndpoint(string $endpoint, ?int $userId = null): int { return 0; }
-            public function deleteById(int $id): void { $this->deleted[] = $id; }
-            public function touchLastUsed(int $id): void { $this->touched[] = $id; }
-            public function deleteAllForUser(int $userId): void {}
-            public function countAll(): int { return 0; }
-            public function purgeUnusedSince(string $before): int { return 0; }
-        };
     }
 
     /** Abonnement navigateur valide : vraie clé P-256 et secret d'authentification de 16 octets. */
@@ -99,7 +73,7 @@ final class WebPushServiceTest extends TestCase
             }
         };
 
-        return new WebPushService($this->subscriptions, $this->keys, $client);
+        return new WebPushService($this->keys, $client);
     }
 
     /** @internal appelé par le faux client */
@@ -115,8 +89,8 @@ final class WebPushServiceTest extends TestCase
     /** Le nom a pu changer de cible depuis l'abonnement (rebinding DNS) : l'adresse est recontrôlée à chaque envoi. */
     public function testDoesNotContactAnEndpointThatNoLongerPassesTheCheck(): void
     {
-        $this->rows[] = $this->subscription(1, 7, 'https://devenu-interne.exemple.org/a');
-        $this->rows[] = $this->subscription(2, 7, 'https://toujours-public.exemple.org/b');
+        $this->store($this->subscription(1, 7, 'https://devenu-interne.exemple.org/a'));
+        $this->store($this->subscription(2, 7, 'https://toujours-public.exemple.org/b'));
 
         $validator = new WebPushEndpointValidator(static fn(string $host): array => str_starts_with($host, 'devenu-interne.') ? ['10.0.0.5'] : ['142.250.74.10']);
         $client = new class($this) implements ClientInterface {
@@ -127,18 +101,18 @@ final class WebPushServiceTest extends TestCase
                 return $this->test->handle($request);
             }
         };
-        (new WebPushService($this->subscriptions, $this->keys, $client, $validator))->sendToUser(7, 'Titre', 'Corps');
+        (new WebPushService($this->keys, $client, $validator))->sendToUser(7, 'Titre', 'Corps');
 
         $this->assertCount(1, $this->sent, 'seule l\'adresse restée publique est contactée');
         $this->assertSame('https://toujours-public.exemple.org/b', (string) $this->sent[0]->getUri());
-        $this->assertSame([], $this->deleted, 'un contrôle refusé ne supprime pas l\'abonnement');
+        $this->assertSame([], $this->deletedIds(), 'un contrôle refusé ne supprime pas l\'abonnement');
     }
 
     public function testSendsAnEncryptedVapidSignedMessageToEachBrowserOfTheUser(): void
     {
-        $this->rows[] = $this->subscription(1, 7, 'https://push.example/a');
-        $this->rows[] = $this->subscription(2, 7, 'https://push.example/b');
-        $this->rows[] = $this->subscription(3, 8, 'https://push.example/autre-compte');
+        $this->store($this->subscription(1, 7, 'https://push.example/a'));
+        $this->store($this->subscription(2, 7, 'https://push.example/b'));
+        $this->store($this->subscription(3, 8, 'https://push.example/autre-compte'));
 
         $this->service()->sendToUser(7, 'Nouveau shift', 'Lundi 9h', ['type' => 'shift_assigned', 'link' => '/employee/shifts/day', 'notification_id' => 42]);
 
@@ -153,43 +127,43 @@ final class WebPushServiceTest extends TestCase
         $body = (string) $request->getBody();
         $this->assertNotSame('', $body);
         $this->assertStringNotContainsString('Nouveau shift', $body, 'la charge utile est chiffrée');
-        $this->assertSame([1, 2], $this->touched);
-        $this->assertSame([], $this->deleted);
+        $this->assertSame([1, 2], $this->touchedIds());
+        $this->assertSame([], $this->deletedIds());
     }
 
     public function testAnExpiredSubscriptionIsDeleted(): void
     {
-        $this->rows[] = $this->subscription(1, 7, 'https://push.example/gone');
-        $this->rows[] = $this->subscription(2, 7, 'https://push.example/not-found');
-        $this->rows[] = $this->subscription(3, 7, 'https://push.example/ok');
+        $this->store($this->subscription(1, 7, 'https://push.example/gone'));
+        $this->store($this->subscription(2, 7, 'https://push.example/not-found'));
+        $this->store($this->subscription(3, 7, 'https://push.example/ok'));
         $this->statusByEndpoint = ['https://push.example/gone' => 410, 'https://push.example/not-found' => 404];
 
         $this->service()->sendToUser(7, 'Titre', 'Corps');
 
-        $this->assertSame([1, 2], $this->deleted);
-        $this->assertSame([3], $this->touched);
+        $this->assertSame([1, 2], $this->deletedIds());
+        $this->assertSame([3], $this->touchedIds());
     }
 
     public function testAnotherErrorKeepsTheSubscriptionAndDoesNotThrow(): void
     {
-        $this->rows[] = $this->subscription(1, 7, 'https://push.example/overloaded');
+        $this->store($this->subscription(1, 7, 'https://push.example/overloaded'));
         $this->statusByEndpoint = ['https://push.example/overloaded' => 503];
 
         $this->service()->sendToUser(7, 'Titre', 'Corps');
 
-        $this->assertSame([], $this->deleted);
-        $this->assertSame([], $this->touched);
+        $this->assertSame([], $this->deletedIds());
+        $this->assertSame([], $this->touchedIds());
         $this->assertCount(1, $this->sent, 'pas de relance');
     }
 
     public function testANetworkFailureNeverThrows(): void
     {
-        $this->rows[] = $this->subscription(1, 7, 'https://push.example/a');
+        $this->store($this->subscription(1, 7, 'https://push.example/a'));
         $this->networkDown = true;
 
         $this->service()->sendToUser(7, 'Titre', 'Corps');
 
-        $this->assertSame([], $this->deleted);
+        $this->assertSame([], $this->deletedIds());
         $this->addToAssertionCount(1);
     }
 
@@ -198,7 +172,7 @@ final class WebPushServiceTest extends TestCase
         $this->service()->sendToUser(7, 'Titre', 'Corps');
         $this->assertSame([], $this->sent, 'aucun abonnement');
 
-        $this->rows[] = $this->subscription(1, 7, 'https://push.example/a');
+        $this->store($this->subscription(1, 7, 'https://push.example/a'));
         $emptyKeys = new VapidKeyStore(new class implements AppSettingsRepositoryInterface {
             public function all(): array { return []; }
             public function get(string $key): ?string { return null; }
@@ -209,15 +183,15 @@ final class WebPushServiceTest extends TestCase
             public function sendRequest(RequestInterface $request): ResponseInterface { throw new \LogicException('ne doit pas être appelé'); }
         };
 
-        (new WebPushService($this->subscriptions, $emptyKeys, $client))->sendToUser(7, 'Titre', 'Corps');
+        (new WebPushService($emptyKeys, $client))->sendToUser(7, 'Titre', 'Corps');
 
         $this->addToAssertionCount(1);
     }
 
     public function testPreloadLoadsSeveralUsersAtOnce(): void
     {
-        $this->rows[] = $this->subscription(1, 7, 'https://push.example/a');
-        $this->rows[] = $this->subscription(2, 8, 'https://push.example/b');
+        $this->store($this->subscription(1, 7, 'https://push.example/a'));
+        $this->store($this->subscription(2, 8, 'https://push.example/b'));
         $service = $this->service();
 
         $service->preload([7, 8]);
@@ -225,5 +199,24 @@ final class WebPushServiceTest extends TestCase
         $service->sendToUser(8, 'Titre', 'Corps');
 
         $this->assertSame(['https://push.example/a', 'https://push.example/b'], array_map(fn($r) => (string) $r->getUri(), $this->sent));
+    }
+
+    /** Enregistre l'abonnement dans la table et en retient l'identifiant. */
+    private function store(array $subscription): void
+    {
+        WebPushSubscription::create($subscription + ['endpoint_hash' => hash('sha256', $subscription['endpoint'])]);
+        $this->seeded[] = $subscription['id'];
+    }
+
+    /** @return list<int> abonnements enregistrés par le test puis supprimés */
+    private function deletedIds(): array
+    {
+        return array_values(array_filter($this->seeded, static fn(int $id): bool => WebPushSubscription::find($id) === null));
+    }
+
+    /** @return list<int> abonnements enregistrés par le test dont l'envoi a été horodaté */
+    private function touchedIds(): array
+    {
+        return array_values(array_filter($this->seeded, static fn(int $id): bool => WebPushSubscription::find($id)?->last_used_at !== null));
     }
 }

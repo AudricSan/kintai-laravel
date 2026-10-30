@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Repositories\NotificationRepositoryInterface;
-use App\Repositories\WebPushSubscriptionRepositoryInterface;
+use App\Models\WebPushSubscription;
 use App\Services\AppSettingsService;
 use Illuminate\Console\Command;
 
@@ -24,7 +24,7 @@ final class NotificationPurgeCommand extends Command
 
     protected $description = 'Purge des notifications lues';
 
-    public function handle(NotificationRepositoryInterface $notifications, WebPushSubscriptionRepositoryInterface $subscriptions, AppSettingsService $settings): int
+    public function handle(NotificationRepositoryInterface $notifications, AppSettingsService $settings): int
     {
         $days   = $settings->notificationsRetentionDays();
         $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
@@ -35,7 +35,7 @@ final class NotificationPurgeCommand extends Command
             'retention_days'        => $days,
             'cutoff'                => $cutoff,
             'notifications_deleted' => $notifications->purgeReadBefore($cutoff),
-            'subscriptions_deleted' => $subscriptions->purgeUnusedSince($idle),
+            'subscriptions_deleted' => WebPushSubscription::purgeUnusedSince($idle),
         ]));
 
         return self::SUCCESS;
