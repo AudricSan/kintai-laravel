@@ -24,7 +24,6 @@ final class RouteSlugService
     public function __construct(
         private readonly RouteSlugRepositoryInterface $slugs,
         private readonly Router $router,
-        private readonly ?RouteBinderRegistry $binders = null,
     ) {}
 
     /**
@@ -79,7 +78,7 @@ final class RouteSlugService
             $this->slugs->setCurrent(self::TYPE, $storeId, $slug, false);
         }
 
-        $this->binders?->reset();
+        RouteSegments::reset();
     }
 
     /** Alias courant d'un magasin et s'il a été saisi à la main (pour le formulaire). */

@@ -219,7 +219,7 @@ $ico              = fn(string $k): string => '<span class="topbar-nav-group__lin
             <button class="user-dropdown__toggle" id="user-toggle"
                 aria-expanded="false" aria-haspopup="true">
                 @if (!empty($auth_user['avatar_path']))
-                    <img src="{!! route_url('user.avatar', ['user_id' => (int) $auth_user['id']]) !!}" alt="" class="user-dropdown__avatar">
+                    <img src="{!! route_url('user.avatar', ['employee' => (int) $auth_user['id']]) !!}" alt="" class="user-dropdown__avatar">
                 @else
                     <span class="user-dropdown__avatar">{{ $initials }}</span>
                 @endif
@@ -230,7 +230,7 @@ $ico              = fn(string $k): string => '<span class="topbar-nav-group__lin
             <div class="user-dropdown__panel" role="menu">
                 <div class="user-dropdown__header">
                     @if (!empty($auth_user['avatar_path']))
-                        <img src="{!! route_url('user.avatar', ['user_id' => (int) $auth_user['id']]) !!}" alt="" class="user-dropdown__header-avatar">
+                        <img src="{!! route_url('user.avatar', ['employee' => (int) $auth_user['id']]) !!}" alt="" class="user-dropdown__header-avatar">
                     @else
                         <span class="user-dropdown__avatar user-dropdown__header-avatar">{{ $initials }}</span>
                     @endif

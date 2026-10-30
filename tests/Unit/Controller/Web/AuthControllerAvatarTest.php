@@ -88,7 +88,7 @@ final class AuthControllerAvatarTest extends TestCase
         $this->users->method('findById')->with(42)->willReturn(['id' => 42, 'avatar_path' => null]);
 
         $request = Request::capture();
-        $request->setRouteParams(['user_id' => '42']);
+        $request->setRouteParams(['employee' => '42']);
 
         $this->expectException(NotFoundException::class);
         $this->controller->avatar($request);
@@ -99,7 +99,7 @@ final class AuthControllerAvatarTest extends TestCase
         $this->users->method('findById')->with(999)->willReturn(null);
 
         $request = Request::capture();
-        $request->setRouteParams(['user_id' => '999']);
+        $request->setRouteParams(['employee' => '999']);
 
         $this->expectException(NotFoundException::class);
         $this->controller->avatar($request);

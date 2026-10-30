@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Routing;
 
 /**
- * Traduit un paramètre de route typé ({id:store}, {uid:employee}) entre le segment lisible de l'URL et
+ * Traduit un paramètre de route typé ({store}, {employee}) entre le segment lisible de l'URL et
  * l'identifiant numérique que reçoivent les contrôleurs et les middlewares.
  */
 interface RouteParamBinder

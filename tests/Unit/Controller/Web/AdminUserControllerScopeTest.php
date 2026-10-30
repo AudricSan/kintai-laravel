@@ -101,7 +101,7 @@ final class AdminUserControllerScopeTest extends TestCase
     {
         $_POST = $post;
         $req = Request::capture();
-        $req->setRouteParams(['id' => (string) $targetId]);
+        $req->setRouteParams(['employee' => (string) $targetId]);
         $req->attributes->set('auth_user', ['id' => self::MANAGER, 'is_admin' => false]);
         $req->attributes->set('managed_store_ids', [self::STORE_A]);
         return $req;

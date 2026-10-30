@@ -33,7 +33,8 @@ final class ResetAuthSessionFingerprint implements Extension
                 $app->instance('router', $GLOBALS['kintai_test_router']);
                 // Sans résolveur de segments (store, employee), les URL gardent les identifiants nus ; un test de routes
                 // typées installe le sien.
-                $app->instance(\App\Routing\RouteBinderRegistry::class, new \App\Routing\RouteBinderRegistry());
+                $app->instance(\App\Routing\StoreRouteBinder::class, new \Tests\Support\BareRouteBinder());
+                $app->instance(\App\Routing\EmployeeRouteBinder::class, new \Tests\Support\BareRouteBinder());
                 \Illuminate\Support\Facades\Route::clearResolvedInstance('router');
                 // Aucun texte par défaut : __() rend la clé (voir kintai_test_translator()).
                 kintai_test_translator_reset();

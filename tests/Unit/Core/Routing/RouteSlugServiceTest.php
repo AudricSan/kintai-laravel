@@ -17,8 +17,8 @@ final class RouteSlugServiceTest extends TestCase
     {
         $router = kintai_test_registrar();
         $router->get('/admin/stores/create', ['C', 'create']);
-        $router->get('/admin/stores/{id:store}/edit', ['C', 'edit']);
-        $router->get('/admin/stores/{id:store}/profitability', ['C', 'profit']);
+        $router->get('/admin/stores/{store}/edit', ['C', 'edit']);
+        $router->get('/admin/stores/{store}/profitability', ['C', 'profit']);
 
         $this->repo    = new InMemoryRouteSlugRepository();
         $this->service = new RouteSlugService($this->repo, app('router'));

@@ -428,7 +428,7 @@ if (!function_exists('route_segment')) {
     function route_segment(string $type, int|string $id): string
     {
         try {
-            $binder = \App\Http\Routing\Routes::binder($type);
+            $binder = \App\Routing\RouteSegments::binder($type);
             $segment = $binder !== null ? $binder->segmentFor((int) $id) : (string) $id;
         } catch (\Throwable) {
             $segment = (string) $id;

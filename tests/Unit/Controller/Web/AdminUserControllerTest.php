@@ -247,7 +247,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setRouteParams(['id' => 1]);
+        $req->setRouteParams(['employee' => 1]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'email' => 'test@test.com']);
         $this->stores->method('findAll')->willReturn([]);
@@ -265,7 +265,7 @@ final class AdminUserControllerTest extends TestCase
         $this->registerLogRepository();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@test.com']);
         $this->stores->method('findAll')->willReturn([]);
@@ -874,7 +874,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $req = $this->makePostRequest(['email' => 'taken@example.com']);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $response = $this->controller()->updateUser($req);
 
@@ -890,7 +890,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $req = $this->makePostRequest(['email' => 'me@example.com']);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $response = $this->controller()->updateUser($req);
 
@@ -906,7 +906,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $req = $this->makePostRequest(['email' => 'me@example.com']);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $response = $this->controller()->updateUser($req);
 
@@ -923,7 +923,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->expects($this->never())->method('save');
 
         $req = $this->makePostRequest(['email' => 'me@example.com', 'employee_code' => 'emp9']);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $response = $this->controller()->updateUser($req);
 
@@ -941,7 +941,7 @@ final class AdminUserControllerTest extends TestCase
         $this->users->expects($this->once())->method('save')->willReturn(['id' => 5]);
 
         $req = $this->makePostRequest(['email' => 'me@example.com', 'employee_code' => 'EMP9', 'furigana_last_name' => 'テスト', 'furigana_first_name' => 'テスト']);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $this->assertSame(302, $this->controller()->updateUser($req)->getStatusCode());
     }
@@ -959,7 +959,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_last_name'  => 'テスト',
             'furigana_first_name' => 'テスト',
         ]);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
 
         $response = $this->controller()->updateUser($req);
 
@@ -988,7 +988,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_first_name' => 'テスト',
             'is_admin' => '1',
         ]);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->controller()->updateUser($req);
@@ -1018,7 +1018,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_first_name' => 'テスト',
             'is_admin' => '1',
         ]);
-        $req->setRouteParams(['id' => 5]);
+        $req->setRouteParams(['employee' => 5]);
         $req->attributes->set('auth_user', ['id' => 2, 'is_admin' => false]);
 
         $this->controller()->updateUser($req);
@@ -1167,7 +1167,7 @@ final class AdminUserControllerTest extends TestCase
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
         $req->attributes->set('managed_store_ids', [1]);
-        $req->setRouteParams(['id' => '10']);
+        $req->setRouteParams(['employee' => '10']);
 
         $this->userRates->expects($this->never())->method('save');
 
@@ -1188,7 +1188,7 @@ final class AdminUserControllerTest extends TestCase
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
         $req->attributes->set('managed_store_ids', [1]);
-        $req->setRouteParams(['id' => '10']);
+        $req->setRouteParams(['employee' => '10']);
 
         $this->userRates->expects($this->once())->method('save')->willReturnCallback(fn (array $d) => $d + ['id' => 1]);
 
@@ -1206,7 +1206,7 @@ final class AdminUserControllerTest extends TestCase
 
         $req = $this->makePostRequest([]);
         $req->attributes->set('managed_store_ids', [1]);
-        $req->setRouteParams(['id' => '10', 'rid' => '3']);
+        $req->setRouteParams(['employee' => '10', 'rid' => '3']);
 
         $this->userRates->expects($this->never())->method('delete');
 
@@ -1229,7 +1229,7 @@ final class AdminUserControllerTest extends TestCase
 
         $req = $this->makePostRequest($post);
         $req->attributes->set('auth_user', ['id' => 7, 'is_admin' => true]);
-        $req->setRouteParams(['id' => (string) $targetId]);
+        $req->setRouteParams(['employee' => (string) $targetId]);
         return $req;
     }
 

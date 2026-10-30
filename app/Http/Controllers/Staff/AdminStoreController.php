@@ -128,7 +128,7 @@ final class AdminStoreController
 
     public function editStore(Request $request): Response
     {
-        $store = $this->stores->findById((int) $request->route('id'));
+        $store = $this->stores->findById((int) $request->route('store'));
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -174,7 +174,7 @@ final class AdminStoreController
 
     public function updateStore(Request $request): Response
     {
-        $store = $this->stores->findById((int) $request->route('id'));
+        $store = $this->stores->findById((int) $request->route('store'));
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -260,7 +260,7 @@ final class AdminStoreController
             throw new ForbiddenException(__('error_owner_only_delete_store'));
         }
 
-        $id    = (int) $request->route('id');
+        $id    = (int) $request->route('store');
         $store = $this->stores->findById($id);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
@@ -309,7 +309,7 @@ final class AdminStoreController
 
     public function addMember(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $store   = $this->stores->findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
@@ -350,7 +350,7 @@ final class AdminStoreController
 
     public function updateMemberRole(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $mid     = (int) $request->route('mid');
 
         $membership = $this->storeUsers->findById($mid);
@@ -381,7 +381,7 @@ final class AdminStoreController
 
     public function removeMember(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $mid     = (int) $request->route('mid');
 
         $membership = $this->storeUsers->findById($mid);
@@ -404,7 +404,7 @@ final class AdminStoreController
 
     public function editMemberDeductions(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $mid     = (int) $request->route('mid');
         $this->assertStoreAccess($request, $storeId);
 
@@ -431,7 +431,7 @@ final class AdminStoreController
 
     public function saveMemberDeductions(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $mid     = (int) $request->route('mid');
         $this->assertStoreAccess($request, $storeId);
 
@@ -461,7 +461,7 @@ final class AdminStoreController
 
     public function storeStats(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -486,7 +486,7 @@ final class AdminStoreController
 
     public function storeStatsExport(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -572,7 +572,7 @@ final class AdminStoreController
 
     public function storeProfitability(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
         // Sans fournisseur de ventes actif (daily-report), la page n'a rien à montrer : elle n'est pas proposée.
         if (!Sales::current()->available()) {
@@ -609,8 +609,8 @@ final class AdminStoreController
 
     public function employeeStats(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
-        $userId  = (int) $request->route('uid');
+        $storeId = (int) $request->route('store');
+        $userId  = (int) $request->route('employee');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);
@@ -645,7 +645,7 @@ final class AdminStoreController
 
     public function employeeReport(Request $request): Response
     {
-        $storeId = (int) $request->route('id');
+        $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
 
         $store = $this->stores->findById($storeId);

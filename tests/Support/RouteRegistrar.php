@@ -71,13 +71,9 @@ final class RouteRegistrar
     {
         $full = $this->groupPrefix . $pattern;
 
-        $bindings  = [];
         $wildcards = [];
-        $uri = preg_replace_callback('/\{(\w+)(?::(\w+))?(\*)?\}/', static function (array $m) use (&$bindings, &$wildcards): string {
-            if (($m[2] ?? '') !== '') {
-                $bindings[$m[1]] = $m[2];
-            }
-            if (($m[3] ?? '') === '*') {
+        $uri = preg_replace_callback('/\{(\w+)(\*)?\}/', static function (array $m) use (&$wildcards): string {
+            if (($m[2] ?? '') === '*') {
                 $wildcards[] = $m[1];
             }
 
@@ -102,9 +98,6 @@ final class RouteRegistrar
         $route = $this->router->addRoute([$verb], $uri, $handler);
         foreach ($wildcards as $param) {
             $route->where($param, '.+');
-        }
-        if ($bindings !== []) {
-            $route->bindSegments($bindings);
         }
         if ($stack !== []) {
             $route->middleware($stack);

@@ -109,7 +109,7 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
     {
         $_POST = $post;
         $req = Request::capture();
-        $req->setRouteParams(['id' => (string) self::TARGET_ID]);
+        $req->setRouteParams(['employee' => (string) self::TARGET_ID]);
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => false]);
         return $req;
     }

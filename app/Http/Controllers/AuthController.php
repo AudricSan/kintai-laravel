@@ -491,7 +491,7 @@ final class AuthController
      */
     public function avatar(Request $request): Response
     {
-        $targetId = (int) $request->route('user_id');
+        $targetId = (int) $request->route('employee');
         $target   = $this->users->findById($targetId);
         $filename = $target['avatar_path'] ?? null;
         if ($target === null || $filename === null) {

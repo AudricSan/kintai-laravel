@@ -49,9 +49,6 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // Hors jeton CSRF : l'API (jetons d'API) et le désabonnement en un clic d'un client e-mail (RFC 8058), sans
         // session, qui se protège par une signature dans l'adresse.
         $middleware->validateCsrfTokens(except: ['api/*', 'notifications/unsubscribe']);
-        $middleware->alias([
-            'kintai.bind' => \App\Http\Middleware\BindRouteParameters::class,
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Pages d'erreur et JSON de Kintai ; les erreurs HTTP prévues (404, 422, 429…) ne sont pas journalisées.

@@ -12,7 +12,7 @@ use App\Console\KintaiScriptCommand;
 use App\BundleManager;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Routing\EmployeeRouteBinder;
-use App\Routing\RouteBinderRegistry;
+use App\Routing\RouteSegments;
 use App\Routing\StoreRouteBinder;
 use App\Foundation\Auth\KintaiGate;
 
@@ -62,25 +62,17 @@ final class KintaiServiceProvider extends ServiceProvider
             $this->app->bind($service);
         }
 
-        // Paramètres de route typés ({id:store}, {uid:employee}) : segments lisibles ↔ identifiants (voir Core\Routing)
-        $this->app->singleton(RouteBinderRegistry::class, function ($app): RouteBinderRegistry {
-            $registry = new RouteBinderRegistry();
-            $registry->register('store', fn() => $app->make(StoreRouteBinder::class));
-            $registry->register('employee', fn() => $app->make(EmployeeRouteBinder::class));
-            return $registry;
-        });
+        // Paramètres de route {store} et {employee} : segments lisibles ↔ identifiants (voir RouteSegments).
+        $this->app->singleton(StoreRouteBinder::class);
+        $this->app->singleton(EmployeeRouteBinder::class);
 
         $this->app->singleton(BundleManager::class);
 
-        // Contrôleurs : la redirection ou la 404 d'un paramètre typé est rendue juste avant l'action.
-        $this->app->bind(
-            \Illuminate\Routing\Contracts\ControllerDispatcher::class,
-            static fn($app): \App\Http\KintaiControllerDispatcher => new \App\Http\KintaiControllerDispatcher($app),
-        );
     }
 
     public function boot(): void
     {
+        RouteSegments::register($this->app['router']);
         \App\Http\Macros::register();
 
         // Racine de l'application (sous-dossier compris), pour les liens des vues.

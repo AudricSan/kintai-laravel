@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\AuthMiddleware;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use App\Http\Middleware\LoginThrottleMiddleware;
 use App\Http\Middleware\OwnerOnlyMiddleware;
 use App\Http\Middleware\PermissionMiddleware;
@@ -117,7 +118,7 @@ Route::prefix('profile')->middleware([AuthMiddleware::class])->group(function ()
 
 // Photo de profil : servie hors du groupe /profile pour rester consultable
 // via l'ID d'un autre utilisateur (annuaire collègues, bundle TeamDirectory).
-Route::get('/avatar/{user_id}', [AuthController::class, 'avatar'])->bindSegments(['user_id' => 'employee'])->middleware([AuthMiddleware::class])->name('user.avatar');
+Route::get('/avatar/{employee}', [AuthController::class, 'avatar'])->middleware([AuthMiddleware::class, SubstituteBindings::class])->name('user.avatar');
 
 // Exports de données (Core et bundles) en JSON, CSV, Excel ou ICS. Les droits sont décidés par jeu de données et par magasin
 // dans ExportAccess, pas par une permission de route : chacun peut au moins exporter ses propres données.
@@ -195,7 +196,7 @@ Route::post('/admin/dashboard/layouts', [DashboardLayoutsController::class, 'man
 // Routes administration (web)
 // =============================================================================
 
-Route::prefix('admin')->middleware([AuthMiddleware::class, PermissionMiddleware::class])->group(function () {
+Route::prefix('admin')->middleware([AuthMiddleware::class, SubstituteBindings::class, PermissionMiddleware::class])->group(function () {
 
     // Configuration organisation
     Route::get('/owner-settings', [OwnerSettingsController::class, 'show'])->middleware([OwnerOnlyMiddleware::class])->name('admin.owner_settings')->permission('public');
@@ -218,32 +219,32 @@ Route::prefix('admin')->middleware([AuthMiddleware::class, PermissionMiddleware:
     Route::post('/users/quick-create', [AdminUserController::class, 'quickCreateUser'])->name('admin.users.quick_create')->permission('employees.create');
     Route::get('/users/check-employee-code', [AdminUserController::class, 'checkEmployeeCode'])->name('admin.users.check_employee_code')->permission('employees.view');
     Route::get('/users/check-email', [AdminUserController::class, 'checkEmail'])->name('admin.users.check_email')->permission('employees.view');
-    Route::get('/users/{id}/edit', [AdminUserController::class, 'editUser'])->bindSegments(['id' => 'employee'])->name('admin.users.edit')->permission('employees.view');
-    Route::post('/users/{id}/edit', [AdminUserController::class, 'updateUser'])->bindSegments(['id' => 'employee'])->name('admin.users.update')->permission('employees.update');
-    Route::post('/users/{id}/delete', [AdminUserController::class, 'deleteUser'])->bindSegments(['id' => 'employee'])->name('admin.users.delete')->permission('employees.delete');
-    Route::post('/users/{id}/reset-password', [AdminUserController::class, 'resetPassword'])->bindSegments(['id' => 'employee'])->name('admin.users.reset_password')->permission('employees.update');
-    Route::post('/users/{id}/rates', [AdminUserController::class, 'setUserRate'])->bindSegments(['id' => 'employee'])->name('admin.users.rates.set')->permission('employees.update');
-    Route::post('/users/{id}/rates/{rid}/delete', [AdminUserController::class, 'deleteUserRate'])->bindSegments(['id' => 'employee'])->name('admin.users.rates.delete')->permission('employees.update');
+    Route::get('/users/{employee}/edit', [AdminUserController::class, 'editUser'])->name('admin.users.edit')->permission('employees.view');
+    Route::post('/users/{employee}/edit', [AdminUserController::class, 'updateUser'])->name('admin.users.update')->permission('employees.update');
+    Route::post('/users/{employee}/delete', [AdminUserController::class, 'deleteUser'])->name('admin.users.delete')->permission('employees.delete');
+    Route::post('/users/{employee}/reset-password', [AdminUserController::class, 'resetPassword'])->name('admin.users.reset_password')->permission('employees.update');
+    Route::post('/users/{employee}/rates', [AdminUserController::class, 'setUserRate'])->name('admin.users.rates.set')->permission('employees.update');
+    Route::post('/users/{employee}/rates/{rid}/delete', [AdminUserController::class, 'deleteUserRate'])->name('admin.users.rates.delete')->permission('employees.update');
 
     // Magasins
     Route::get('/stores', [AdminStoreController::class, 'stores'])->name('admin.stores')->permission('stores.view');
     Route::get('/stores/create', [AdminStoreController::class, 'createStore'])->name('admin.stores.create')->permission('stores.create');
     Route::post('/stores/create', [AdminStoreController::class, 'storeStore'])->name('admin.stores.store')->permission('stores.create');
-    Route::get('/stores/{id}/edit', [AdminStoreController::class, 'editStore'])->bindSegments(['id' => 'store'])->name('admin.stores.edit')->permission('stores.view');
-    Route::post('/stores/{id}/edit', [AdminStoreController::class, 'updateStore'])->bindSegments(['id' => 'store'])->name('admin.stores.update')->permission('stores.update');
-    Route::post('/stores/{id}/delete', [AdminStoreController::class, 'deleteStore'])->bindSegments(['id' => 'store'])->name('admin.stores.delete')->permission('stores.delete');
-    Route::post('/stores/{id}/members', [AdminStoreController::class, 'addMember'])->bindSegments(['id' => 'store'])->name('admin.stores.members.add')->permission('employees.update');
-    Route::post('/stores/{id}/members/{mid}/role', [AdminStoreController::class, 'updateMemberRole'])->bindSegments(['id' => 'store'])->name('admin.stores.members.role')->permission('employees.update');
-    Route::post('/stores/{id}/members/{mid}/delete', [AdminStoreController::class, 'removeMember'])->bindSegments(['id' => 'store'])->name('admin.stores.members.delete')->permission('employees.update');
-    Route::get('/stores/{id}/members/{mid}/deductions', [AdminStoreController::class, 'editMemberDeductions'])->bindSegments(['id' => 'store'])->name('admin.stores.members.deductions')->permission('payroll.view');
-    Route::post('/stores/{id}/members/{mid}/deductions', [AdminStoreController::class, 'saveMemberDeductions'])->bindSegments(['id' => 'store'])->name('admin.stores.members.deductions.save')->permission('payroll.generate');
+    Route::get('/stores/{store}/edit', [AdminStoreController::class, 'editStore'])->name('admin.stores.edit')->permission('stores.view');
+    Route::post('/stores/{store}/edit', [AdminStoreController::class, 'updateStore'])->name('admin.stores.update')->permission('stores.update');
+    Route::post('/stores/{store}/delete', [AdminStoreController::class, 'deleteStore'])->name('admin.stores.delete')->permission('stores.delete');
+    Route::post('/stores/{store}/members', [AdminStoreController::class, 'addMember'])->name('admin.stores.members.add')->permission('employees.update');
+    Route::post('/stores/{store}/members/{mid}/role', [AdminStoreController::class, 'updateMemberRole'])->name('admin.stores.members.role')->permission('employees.update');
+    Route::post('/stores/{store}/members/{mid}/delete', [AdminStoreController::class, 'removeMember'])->name('admin.stores.members.delete')->permission('employees.update');
+    Route::get('/stores/{store}/members/{mid}/deductions', [AdminStoreController::class, 'editMemberDeductions'])->name('admin.stores.members.deductions')->permission('payroll.view');
+    Route::post('/stores/{store}/members/{mid}/deductions', [AdminStoreController::class, 'saveMemberDeductions'])->name('admin.stores.members.deductions.save')->permission('payroll.generate');
 
     // Statistiques & Rapports
-    Route::get('/stores/{id}/stats', [AdminStoreController::class, 'storeStats'])->bindSegments(['id' => 'store'])->name('admin.stores.stats')->permission('payroll.view');
-    Route::get('/stores/{id}/stats/export', [AdminStoreController::class, 'storeStatsExport'])->bindSegments(['id' => 'store'])->name('admin.stores.stats_export')->permission('payroll.export');
-    Route::get('/stores/{id}/profitability', [AdminStoreController::class, 'storeProfitability'])->bindSegments(['id' => 'store'])->name('admin.stores.profitability')->permission('payroll.view');
-    Route::get('/stores/{id}/employee-report', [AdminStoreController::class, 'employeeReport'])->bindSegments(['id' => 'store'])->name('admin.stores.employee_report')->permission('payroll.view');
-    Route::get('/stores/{id}/employee-report/{uid}/stats', [AdminStoreController::class, 'employeeStats'])->bindSegments(['id' => 'store', 'uid' => 'employee'])->name('admin.stores.employee_stats')->permission('payroll.view');
+    Route::get('/stores/{store}/stats', [AdminStoreController::class, 'storeStats'])->name('admin.stores.stats')->permission('payroll.view');
+    Route::get('/stores/{store}/stats/export', [AdminStoreController::class, 'storeStatsExport'])->name('admin.stores.stats_export')->permission('payroll.export');
+    Route::get('/stores/{store}/profitability', [AdminStoreController::class, 'storeProfitability'])->name('admin.stores.profitability')->permission('payroll.view');
+    Route::get('/stores/{store}/employee-report', [AdminStoreController::class, 'employeeReport'])->name('admin.stores.employee_report')->permission('payroll.view');
+    Route::get('/stores/{store}/employee-report/{employee}/stats', [AdminStoreController::class, 'employeeStats'])->name('admin.stores.employee_stats')->permission('payroll.view');
 
     // Rapports d'embauche : bundle distribué hors monorepo, routes chargées depuis storage/bundles/hiring-report/ une fois installé (voir wiki : Architecture)
 

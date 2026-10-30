@@ -145,7 +145,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setRouteParams(['id' => 1]);
+        $req->setRouteParams(['store' => 1]);
 
         $store = [
             'id' => 1, 'name' => 'Test Store', 'currency' => 'JPY',
@@ -181,7 +181,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setRouteParams(['id' => 1]);
+        $req->setRouteParams(['store' => 1]);
 
         $store = ['id' => 1, 'name' => 'Test Store', 'currency' => 'JPY', 'week_start_day' => 1, 'timezone' => 'Asia/Tokyo'];
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($store);
@@ -206,7 +206,7 @@ final class AdminStoreControllerTest extends TestCase
         );
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-        $req->setRouteParams(['id' => '1']);
+        $req->setRouteParams(['store' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
         // Magasin déjà configuré : décisions enregistrées pour plusieurs fonctionnalités.
@@ -256,7 +256,7 @@ final class AdminStoreControllerTest extends TestCase
         $_POST = ['name' => 'Test Store', 'feature_shifts' => '1'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-        $req->setRouteParams(['id' => '1']);
+        $req->setRouteParams(['store' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
         $this->stores->expects($this->atLeastOnce())->method('getFeatureDecisions')->with(1)->willReturn([]);
@@ -299,7 +299,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->registerLogRepository();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-        $req->setRouteParams(['id' => '1', 'uid' => '5']);
+        $req->setRouteParams(['store' => '1', 'employee' => '5']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A', 'currency' => 'JPY']);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
@@ -338,7 +338,7 @@ final class AdminStoreControllerTest extends TestCase
         $_POST   = ['user_id' => '0', 'redirect_to' => $redirectTo];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
-        $req->setRouteParams(['id' => 1]);
+        $req->setRouteParams(['store' => 1]);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
 
         $response = $this->controller()->addMember($req);
@@ -376,7 +376,7 @@ final class AdminStoreControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 2]);
         $req->attributes->set('managed_store_ids', [1]);
-        $req->setRouteParams(['id' => 1, 'mid' => 9]);
+        $req->setRouteParams(['store' => 1, 'mid' => 9]);
         return $req;
     }
 
@@ -439,7 +439,7 @@ final class AdminStoreControllerTest extends TestCase
         $_POST = ['name' => 'Tokyo Est'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-        $req->setRouteParams(['id' => '1']);
+        $req->setRouteParams(['store' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn([
             'id' => 1, 'name' => 'Tokyo', 'code' => 'TKY', 'is_active' => 1, 'phone' => '03-0000-0000',
@@ -520,7 +520,7 @@ final class AdminStoreControllerTest extends TestCase
         $_POST = ['name' => 'Test Store', 'feature_shifts' => '1', 'feature_acme_board' => '1'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-        $req->setRouteParams(['id' => '1']);
+        $req->setRouteParams(['store' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
         $this->stores->expects($this->atLeastOnce())->method('getFeatureDecisions')->with(1)->willReturn(['shifts' => true, 'gone_bundle_feature' => true]);

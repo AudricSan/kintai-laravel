@@ -674,7 +674,7 @@ final class AdminUserController
 
     public function editUser(Request $request): Response
     {
-        $user = $this->users->findById((int) $request->route('id'));
+        $user = $this->users->findById((int) $request->route('employee'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -772,7 +772,7 @@ final class AdminUserController
 
     public function updateUser(Request $request): Response
     {
-        $user = $this->users->findById((int) $request->route('id'));
+        $user = $this->users->findById((int) $request->route('employee'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -888,7 +888,7 @@ final class AdminUserController
 
     public function deleteUser(Request $request): Response
     {
-        $id = (int) $request->route('id');
+        $id = (int) $request->route('employee');
         $this->assertCanActOnUser($request, $id, 'employees.delete');
         $this->ownerGuard->assertNotSelfUnlessOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), $id);
         $this->ownerGuard->assertCanRemoveOwner((int) ($request->attributes->get('auth_user')['id'] ?? 0), $id);
@@ -901,7 +901,7 @@ final class AdminUserController
 
     public function resetPassword(Request $request): Response
     {
-        $user   = $this->users->findById((int) $request->route('id'));
+        $user   = $this->users->findById((int) $request->route('employee'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -924,7 +924,7 @@ final class AdminUserController
 
     public function setUserRate(Request $request): Response
     {
-        $userId = (int) $request->route('id');
+        $userId = (int) $request->route('employee');
         $user   = $this->users->findById($userId);
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
@@ -979,7 +979,7 @@ final class AdminUserController
 
     public function deleteUserRate(Request $request): Response
     {
-        $userId = (int) $request->route('id');
+        $userId = (int) $request->route('employee');
         $rid    = (int) $request->route('rid');
         $this->assertCanActOnUser($request, $userId, 'employees.update');
 

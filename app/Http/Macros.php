@@ -37,19 +37,6 @@ final class Macros
             return $this->setAction(array_merge($this->getAction(), [Routes::PERMISSION => $rule]));
         });
 
-        // Paramètres typés : Route::get('/stores/{id}/edit', …)->bindSegments(['id' => 'store']). Le segment lisible
-        // (slug, numéro d'employé) devient l'identifiant avant les autres middlewares de la route (BindRouteParameters).
-        Route::macro('bindSegments', function (array $types): Route {
-            /** @var Route $this */
-            $action = array_merge($this->getAction(), [Routes::BINDINGS => $types]);
-            $action['middleware'] = array_values(array_unique(array_merge(
-                ['kintai.bind'],
-                (array) ($action['middleware'] ?? []),
-            )));
-
-            return $this->setAction($action);
-        });
-
         // Règle de permission et nom de la route de la requête (posés à la main par les tests de middlewares).
         Request::macro('routePermission', function (): string|array|null {
             /** @var Request $this */

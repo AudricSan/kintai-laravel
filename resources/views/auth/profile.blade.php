@@ -192,7 +192,7 @@ $_avatarInitials = htmlspecialchars(strtoupper(
 @endphp
 <div class="profile-avatar-row">
     @if ($_avatarPath)
-        <img src="{!! route_url('user.avatar', ['user_id' => $user['id']]) !!}" alt="" class="profile-avatar-preview">
+        <img src="{!! route_url('user.avatar', ['employee' => $user['id']]) !!}" alt="" class="profile-avatar-preview">
     @else
         <span class="avatar-chip profile-avatar-preview profile-avatar-preview--fallback {!! style_class(['--chip-bg' => $user['color'] ?? '#3B82F6']) !!}">{!! $_avatarInitials !!}</span>
     @endif

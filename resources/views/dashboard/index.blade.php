@@ -204,7 +204,7 @@ $_alertGroups = [
     }],
     'users_without_shift' => [__('dashboard_alerts_users_without_shift'), static function (array $a) use ($can): string {
         $text = htmlspecialchars($a['name'] . ' · ' . $a['store_name']);
-        return $can('employees.view') ? '<a href="' . route_url('admin.users.edit', ['id' => $a['id']]) . '">' . $text . '</a>' : $text;
+        return $can('employees.view') ? '<a href="' . route_url('admin.users.edit', ['employee' => $a['id']]) . '">' . $text . '</a>' : $text;
     }],
     'stale_requests' => [__('dashboard_alerts_stale_requests'), static function (array $a): string {
         // Libellé du fournisseur de la demande (contrat 1.9).
@@ -293,7 +293,7 @@ $store_stats_hours_by_week ??= [];
         @php $_dashChartData['hoursByWeek'] = array_map('floatval', $store_stats_hours_by_week); @endphp
         @endif
         <div class="card-body">
-            <a href="{!! route_url('admin.stores.stats', ['id' => $_row['store_id']]) !!}" class="card-header-link">{!! __('statistics') !!} →</a>
+            <a href="{!! route_url('admin.stores.stats', ['store' => $_row['store_id']]) !!}" class="card-header-link">{!! __('statistics') !!} →</a>
         </div>
         @php unset($_row); @endphp
     @else
@@ -310,12 +310,12 @@ $store_stats_hours_by_week ??= [];
                 </thead>
                 <tbody>
                     @foreach ($store_stats_rows as $_row)
-                        <tr class="tr--clickable" data-goto="{!! route_url('admin.stores.stats', ['id' => $_row['store_id']]) !!}">
+                        <tr class="tr--clickable" data-goto="{!! route_url('admin.stores.stats', ['store' => $_row['store_id']]) !!}">
                             <td data-label="{{ __('store') }}">{{ (string) $_row['store_name'] }}</td>
                             <td data-label="{{ __('net_hours') }}">{!! number_format((float) $_row['total_hours'], 1) !!}{!! __('hours_unit') !!}</td>
                             <td data-label="{{ __('total_cost') }}">{!! format_currency((float) $_row['total_cost'], (string) $_row['currency'], (string) $_row['currency_symbol_style']) !!}</td>
                             <td data-label="{{ __('score_stability') }}">{!! $_row['stability'] !== null ? (int) $_row['stability'] : '—' !!}</td>
-                            <td><a href="{!! route_url('admin.stores.stats', ['id' => $_row['store_id']]) !!}" class="card-header-link">{!! __('statistics') !!} →</a></td>
+                            <td><a href="{!! route_url('admin.stores.stats', ['store' => $_row['store_id']]) !!}" class="card-header-link">{!! __('statistics') !!} →</a></td>
                         </tr>
                     @endforeach
                 </tbody>

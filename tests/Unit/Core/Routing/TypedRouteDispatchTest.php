@@ -10,9 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use App\Repositories\StoreRepositoryInterface;
 use App\Routing\EmployeeRouteBinder;
-use App\Routing\RouteBinderRegistry;
+use App\Routing\RouteSegments;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use App\Routing\StoreRouteBinder;
-use App\Http\Middleware\BindRouteParameters;
 use App\Http\Routing\Routes;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +33,7 @@ final class RecordParamTestMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        self::$seen = $request->route('id');
+        self::$seen = (string) $request->route('store');
         return $next($request);
     }
 }
@@ -43,12 +43,12 @@ final class EchoParamsTestController
 {
     public function show(Request $request): JsonResponse
     {
-        return response()->json(['id' => $request->route('id'), 'uid' => $request->route('uid')]);
+        return response()->json(['id' => $request->route('store'), 'uid' => $request->route('employee')]);
     }
 }
 
 /**
- * Routes typées de bout en bout : ->bindSegments(), génération d'URL, résolution avant les middlewares,
+ * Routes typées de bout en bout : Route::bind(), génération d'URL, résolution avant les middlewares,
  * 301 et 404 rendues seulement après eux (un visiteur refusé n'apprend rien).
  */
 final class TypedRouteDispatchTest extends TestCase
@@ -61,37 +61,26 @@ final class TypedRouteDispatchTest extends TestCase
         $repo->setCurrent('store', 3, '所沢寿町店', false);
 
         $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(fn(int $id) => $id === 3 ? ['id' => 3] : null);
+        $stores->method('findById')->willReturnCallback(fn(int $id) => $id === 3 ? ['store' => 3] : null);
 
-        $binders = [
-            'store'    => new StoreRouteBinder($repo, $stores),
-            'employee' => new EmployeeRouteBinder($repo),
-        ];
-        $registry = new RouteBinderRegistry();
-        foreach ($binders as $type => $binder) {
-            $registry->register($type, fn() => $binder);
-        }
-        app()->instance(RouteBinderRegistry::class, $registry);
+        app()->instance(StoreRouteBinder::class, new StoreRouteBinder($repo, $stores));
+        app()->instance(EmployeeRouteBinder::class, new EmployeeRouteBinder($repo));
 
         $this->router = kintai_test_router();
-        $this->router->aliasMiddleware('kintai.bind', BindRouteParameters::class);
-        $this->router->get('/admin/stores/{id}/edit', [EchoParamsTestController::class, 'show'])
-            ->bindSegments(['id' => 'store'])->middleware([RecordParamTestMiddleware::class])->name('stores.edit');
-        $this->router->post('/admin/stores/{id}/edit', [EchoParamsTestController::class, 'show'])
-            ->bindSegments(['id' => 'store'])->name('stores.update');
-        $this->router->get('/admin/stores/{id}/report/{uid}/stats', [EchoParamsTestController::class, 'show'])
-            ->bindSegments(['id' => 'store', 'uid' => 'employee'])->name('stores.emp');
-        $this->router->get('/private/stores/{id}', [EchoParamsTestController::class, 'show'])
-            ->bindSegments(['id' => 'store'])->middleware([DenyAllTestMiddleware::class])->name('private');
+        RouteSegments::register($this->router);
+        $this->router->get('/admin/stores/{store}/edit', [EchoParamsTestController::class, 'show'])
+            ->middleware([SubstituteBindings::class, RecordParamTestMiddleware::class])->name('stores.edit');
+        $this->router->post('/admin/stores/{store}/edit', [EchoParamsTestController::class, 'show'])
+            ->middleware([SubstituteBindings::class])->name('stores.update');
+        $this->router->get('/admin/stores/{store}/report/{employee}/stats', [EchoParamsTestController::class, 'show'])
+            ->middleware([SubstituteBindings::class])->name('stores.emp');
+        $this->router->get('/private/stores/{store}', [EchoParamsTestController::class, 'show'])
+            ->middleware([DenyAllTestMiddleware::class, SubstituteBindings::class])->name('private');
         $this->router->get('/files/{path}', [EchoParamsTestController::class, 'show'])->where('path', '.+')->name('files');
 
         RecordParamTestMiddleware::$seen = null;
     }
 
-    protected function tearDown(): void
-    {
-        app()->forgetInstance(RouteBinderRegistry::class);
-    }
 
     private function dispatch(string $method, string $uri, string $query = ''): Response
     {
@@ -102,16 +91,12 @@ final class TypedRouteDispatchTest extends TestCase
         return $this->router->dispatch($request);
     }
 
-    public function testTypedPlaceholderRecordsItsType(): void
-    {
-        $this->assertSame(['id' => 'store', 'uid' => 'employee'], Routes::bindings(Routes::byName('stores.emp')));
-    }
 
     public function testUrlGenerationTurnsIdsIntoReadableEncodedSegments(): void
     {
-        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/edit', Routes::url('stores.edit', ['id' => 3]));
-        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/016/stats', Routes::url('stores.emp', ['id' => '3', 'uid' => 18]));
-        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/id-26/stats', Routes::url('stores.emp', ['id' => 3, 'uid' => 26]));
+        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/edit', Routes::url('stores.edit', ['store' => 3]));
+        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/016/stats', Routes::url('stores.emp', ['store' => '3', 'employee' => 18]));
+        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/id-26/stats', Routes::url('stores.emp', ['store' => 3, 'employee' => 26]));
         $this->assertSame('/files/a/b.pdf', Routes::url('files', ['path' => 'a/b.pdf']), 'paramètres non typés inchangés');
     }
 
@@ -120,7 +105,7 @@ final class TypedRouteDispatchTest extends TestCase
         $response = $this->dispatch('GET', '/admin/stores/' . rawurlencode('所沢寿町店') . '/edit');
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('{"id":"3","uid":null}', $response->getContent());
+        $this->assertSame('{"id":3,"uid":null}', $response->getContent());
         $this->assertSame('3', RecordParamTestMiddleware::$seen, 'les middlewares de route lisent déjà l\'identifiant');
     }
 
@@ -137,7 +122,7 @@ final class TypedRouteDispatchTest extends TestCase
         $response = $this->dispatch('POST', '/admin/stores/3/edit');
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('{"id":"3","uid":null}', $response->getContent());
+        $this->assertSame('{"id":3,"uid":null}', $response->getContent());
     }
 
     public function testUnknownSegmentIsA404(): void
