@@ -28,7 +28,7 @@ final class DailyReportMailServiceTest extends TestCase
             $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
         ));
-        $mailer            = new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai Test']]);
+        $mailer            = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai Test']]);
         $translations      = new TranslationService(
             $this->createStub(TranslationRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),

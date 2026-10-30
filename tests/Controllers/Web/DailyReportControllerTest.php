@@ -83,7 +83,7 @@ final class DailyReportControllerTest extends TestCase
             );
             $mailService = new DailyReportMailService(
                 $permissions,
-                new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
+                new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
                 $translations,
                 new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
             );

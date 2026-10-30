@@ -8,7 +8,6 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
 use App\Mail\MailerService;
-use App\Mail\MailTransportInterface;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -35,18 +34,38 @@ final class DailyReportRecipientsTest extends TestCase
         3 => ['id' => 3, 'display_name' => 'Off', 'email' => 'off@example.test', 'language' => 'fr', 'is_active' => 0],
     ];
 
-    private function service(): DailyReportMailService
+    /** Mailer de Laravel dont le transport transmet chaque message envoyé (destinataires, sujet, HTML, nombre de pièces jointes) à $onSend. */
+    private function mailer(\Closure $onSend): \Illuminate\Mail\Mailer
     {
-        $transport = new class ($this->sent) implements MailTransportInterface {
-            /** @param list<array<string, mixed>> $sent */
-            public function __construct(private array &$sent) {}
-
-            public function send(string $fromAddress, string $fromName, array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $extraHeaders = []): bool
+        $transport = new class($onSend) extends \Symfony\Component\Mailer\Transport\AbstractTransport {
+            public function __construct(private \Closure $onSend)
             {
-                $this->sent[] = ['to' => $to, 'subject' => $subject, 'body' => $htmlBody];
-                return true;
+                parent::__construct();
+            }
+
+            protected function doSend(\Symfony\Component\Mailer\SentMessage $message): void
+            {
+                $email = $message->getOriginalMessage();
+                $to    = array_map(static fn($address): string => $address->getAddress(), $email->getTo());
+                if (($this->onSend)($to, (string) $email->getSubject(), (string) $email->getHtmlBody(), count($email->getAttachments())) === false) {
+                    throw new \Symfony\Component\Mailer\Exception\TransportException('Envoi refusé.');
+                }
+            }
+
+            public function __toString(): string
+            {
+                return 'test://';
             }
         };
+
+        return new \Illuminate\Mail\Mailer('test', $this->createStub(\Illuminate\Contracts\View\Factory::class), $transport);
+    }
+    private function service(): DailyReportMailService
+    {
+        $transport = $this->mailer(function (array $to, string $subject, string $htmlBody): bool {
+            $this->sent[] = ['to' => $to, 'subject' => $subject, 'body' => $htmlBody];
+            return true;
+        });
 
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findByStore')->willReturn([['user_id' => 1, 'is_active' => 1], ['user_id' => 2, 'is_active' => 1], ['user_id' => 3, 'is_active' => 1]]);
@@ -60,7 +79,7 @@ final class DailyReportRecipientsTest extends TestCase
 
         return new DailyReportMailService(
             new DailyReportPermissionService($permissions),
-            new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test']], $transport),
+            new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test']], $transport),
             new TranslationService($this->createStub(TranslationRepositoryInterface::class), $this->createStub(LanguageRepositoryInterface::class)),
             new UserSelection($storeUsers, $users, $permissions),
         );

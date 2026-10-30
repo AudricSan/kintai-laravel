@@ -56,7 +56,7 @@ final class AutoValidateJobTest extends TestCase
         ));
         $mailService = new DailyReportMailService(
             $permissions,
-            new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
+            new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             new TranslationService(
                 $this->createStub(TranslationRepositoryInterface::class),
                 $this->createStub(LanguageRepositoryInterface::class),
