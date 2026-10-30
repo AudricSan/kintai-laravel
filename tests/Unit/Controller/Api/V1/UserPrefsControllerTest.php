@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Api\V1;
 
 use App\Auth\UserTargetGuard;
 use App\Exceptions\ValidationException;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -34,11 +34,10 @@ final class UserPrefsControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $users = $this->createStub(UserRepositoryInterface::class);
-            $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
             $users->method('findById')->willReturn(['id' => 20]);
-            $storeUsers->method('findByUser')->willReturn([]);
+            kintai_test_store_users(findByUser: fn() => []);
             $this->controller = new UserPrefsController(
-                new UserTargetGuard($users, $storeUsers, ApiOwnerAuth::permissions($this)),
+                new UserTargetGuard($users, ApiOwnerAuth::permissions($this)),
             );
         }
 

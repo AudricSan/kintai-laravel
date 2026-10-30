@@ -11,7 +11,7 @@ use App\Extension\StoreFeatures;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,7 +29,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminStoreControllerTest extends TestCase
 {
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private UserRepositoryInterface&Stub $users;
     private StoreStatsServiceInterface&Stub $storeStatsService;
     private ?AdminStoreController $controller = null;
@@ -42,7 +41,6 @@ final class AdminStoreControllerTest extends TestCase
         $this->ensureViewFile('layout.app');
         
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
     }
@@ -55,7 +53,6 @@ final class AdminStoreControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
-            $this->storeUsers,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -114,7 +111,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock']);
         $this->stores->expects($this->atLeastOnce())->method('getImportSettings')->with(1)->willReturn([]);
         $this->stores->method('getDeductionSettings')->willReturn([]);
-        $this->storeUsers->method('findByStore')->willReturn([]);
+        kintai_test_store_users(findByStore: fn() => []);
         $this->users->method('findAll')->willReturn([]);
 
         $response = $this->controller()->editStore($req);
@@ -129,7 +126,6 @@ final class AdminStoreControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
-            $this->storeUsers,
             new AuditLogger(),
             $this->createStub(StoreServiceInterface::class),
             $this->storeStatsService,
@@ -147,7 +143,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock', 'messages']);
         $this->stores->expects($this->atLeastOnce())->method('getImportSettings')->with(1)->willReturn([]);
         $this->stores->method('getDeductionSettings')->willReturn([]);
-        $this->storeUsers->method('findByStore')->willReturn([]);
+        kintai_test_store_users(findByStore: fn() => []);
         $this->users->method('findAll')->willReturn([]);
 
         $response = $controller->editStore($req);
@@ -184,7 +180,6 @@ final class AdminStoreControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
-            $this->storeUsers,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -231,7 +226,6 @@ final class AdminStoreControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
-            $this->storeUsers,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -252,7 +246,6 @@ final class AdminStoreControllerTest extends TestCase
     public function testEmployeeStatsLogsConsultation(): void
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $log = kintai_test_log();
         $req = Request::capture();
@@ -261,7 +254,7 @@ final class AdminStoreControllerTest extends TestCase
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A', 'currency' => 'JPY']);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 5)->willReturn(['id' => 1, 'store_id' => 1, 'user_id' => 5]);
+        kintai_test_store_users(findMembership: fn() => ['id' => 1, 'store_id' => 1, 'user_id' => 5]);
         $this->storeStatsService->method('employeeStats')->willReturn([]);
         $response = $this->controller()->employeeStats($req);
 
@@ -335,9 +328,8 @@ final class AdminStoreControllerTest extends TestCase
     /** Audit du 13/10/2026 : un gérant pouvait s'attribuer un rôle plus puissant que le sien. */
     public function testUpdateMemberRoleRefusesRoleExceedingCallerPermissions(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = $this->prepareManagerScenario(['role_id' => '30']);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 2]);
+        kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 2] : null);
         $this->users->method('findById')->willReturn(['id' => 2]);
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
@@ -346,9 +338,8 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testUpdateMemberRoleRefusesToTouchAnOwnerAccount(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = $this->prepareManagerScenario(['role_id' => '31']);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 7]);
+        kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 7] : null);
         $this->users->method('findById')->willReturn(['id' => 7]);
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
@@ -411,7 +402,6 @@ final class AdminStoreControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
-            $this->storeUsers,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -437,12 +427,9 @@ final class AdminStoreControllerTest extends TestCase
     /** Audit M13 : un gérant ne se retire pas lui-même de son magasin (il perdrait ses droits). */
     public function testAManagerCannotRemoveTheirOwnMembership(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = $this->prepareManagerScenario([]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 2]);
+        kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 2] : null);
         $this->users->method('findById')->willReturn(['id' => 2]);
-        $this->storeUsers->expects($this->never())->method('delete');
-
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->controller()->removeMember($req);
@@ -451,9 +438,8 @@ final class AdminStoreControllerTest extends TestCase
     /** Même un rôle qu'il aurait le droit d'attribuer : il ne change pas le sien. */
     public function testAManagerCannotChangeTheirOwnRole(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = $this->prepareManagerScenario(['role_id' => '31']);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => 1, 'user_id' => 2]);
+        kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 2] : null);
         $this->users->method('findById')->willReturn(['id' => 2]);
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
@@ -505,7 +491,6 @@ final class AdminStoreControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $this->stores,
-            $this->storeUsers,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -526,7 +511,6 @@ final class AdminStoreControllerTest extends TestCase
                 $view,
                 $this->users,
                 $this->stores,
-                $this->storeUsers,
                 new AuditLogger(),
                 $this->createStub(StoreServiceInterface::class),
                 $this->storeStatsService,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Staff;
 
+use App\Models\StoreUser;
+
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use Illuminate\Http\Request;
@@ -105,7 +107,7 @@ trait HasStaffReportCrud
     {
         $seenIds = [];
         $members = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $m) {
+        foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
             if (in_array($uid, $seenIds, true)) {
                 continue;
@@ -188,10 +190,10 @@ trait HasStaffReportCrud
      */
     protected function assertReportUserInStore(int $userId, int $storeId): void
     {
-        if ($userId <= 0 || !isset($this->storeUsers)) {
+        if ($userId <= 0) {
             return;
         }
-        if ($this->storeUsers->findMembership($storeId, $userId) === null) {
+        if (StoreUser::findMembership($storeId, $userId) === null) {
             throw new ValidationException(['user_id' => __('error_report_user_not_in_store')]);
         }
     }
@@ -320,7 +322,7 @@ trait HasStaffReportCrud
     /**
      * Retourne la liste des responsables (Owner + admin/manager du store) pour le
      * store courant ou pour tous les stores d'un employé donné. Utilisée par
-     * démission et salaire. Nécessite $this->storeUsers (StoreUserRepositoryInterface)
+     * démission et salaire. Utilise le modèle StoreUser
      * et $this->users (UserRepositoryInterface) sur la classe utilisatrice.
      *
      * L'Owner est toujours inclus même si non listé dans store_user : voir
@@ -331,7 +333,7 @@ trait HasStaffReportCrud
     {
         $storeIds = [$storeId];
         if ($userId > 0) {
-            $memberships = $this->storeUsers->findByUser($userId);
+            $memberships = StoreUser::findByUser($userId);
             $userStoreIds = array_map(fn($m) => (int) $m['store_id'], $memberships);
             if (!empty($userStoreIds)) {
                 $storeIds = $userStoreIds;
@@ -348,7 +350,7 @@ trait HasStaffReportCrud
             }
         }
         foreach ($storeIds as $sid) {
-            $members = $this->storeUsers->findByStore($sid);
+            $members = StoreUser::findByStore($sid);
             foreach ($members as $m) {
                 $uid = (int) $m['user_id'];
                 if (in_array($uid, $seenIds, true)) {

@@ -347,6 +347,53 @@ function kintai_test_fk_off(): void
     Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
 }
 
+// Aide des tests : appartenances magasin/employé réelles (lignes store_user), alimentées comme les anciens doubles du dépôt :
+// chaque réglage est une valeur ou un callable (findByStore/findByUser/findById : identifiant ; findMembership : magasin, employé)
+// appelé pour les identifiants 1 à $upTo. Les clés étrangères sont suspendues le temps de l'insertion.
+function kintai_test_store_users(mixed $findByStore = null, mixed $findByUser = null, mixed $findMembership = null, mixed $findById = null, int $upTo = 60): void
+{
+    kintai_test_ready('store_user');
+    $db = Illuminate\Support\Facades\DB::class;
+    $db::table('store_user')->delete();   // l'état décrit remplace celui des tests précédents
+    $rows = [];
+    $collect = static function (mixed $list, array $implied = []) use (&$rows): void {
+        foreach (is_array($list) ? $list : [] as $row) {
+            $row = is_array($row) ? $row + $implied : $row;
+            if (is_array($row) && isset($row['store_id'], $row['user_id'])) {
+                $signature = $row['store_id'] . '|' . $row['user_id'];
+                if (isset($row['id']) && in_array($row['id'], array_column(array_diff_key($rows, [$signature => 1]), 'id'), true)) {
+                    unset($row['id']);
+                }
+                $rows[$signature] = $row;
+            }
+        }
+    };
+    $call = static fn(mixed $spec, mixed ...$args): mixed => is_callable($spec) ? $spec(...$args) : $spec;
+    for ($id = 1; $id <= $upTo; $id++) {
+        if ($findByStore !== null) { $collect($call($findByStore, $id), ['store_id' => $id]); }
+        if ($findByUser !== null) { $collect($call($findByUser, $id), ['user_id' => $id]); }
+        if ($findById !== null) { $collect([$call($findById, $id)]); }
+        if ($findMembership !== null && $id <= 30) {
+            for ($userId = 1; $userId <= $upTo; $userId++) {
+                $collect([$call($findMembership, $id, $userId)], ['store_id' => $id, 'user_id' => $userId]);
+            }
+        }
+    }
+
+    $foreignKeys = (int) ($db::selectOne('PRAGMA foreign_keys')->foreign_keys ?? 1);
+    $db::statement('PRAGMA foreign_keys = OFF');
+    $columns = array_flip(['id', 'store_id', 'user_id', 'staff_code', 'hire_date', 'contract_type', 'is_active', 'subject_to_deductions', 'hired_by']);
+    foreach ($rows as $row) {
+        $row = array_intersect_key($row, $columns);
+        if (isset($row['id'])) {   // une même paire magasin/employé ne peut exister sous deux identifiants
+            $db::table('store_user')->where('store_id', $row['store_id'])->where('user_id', $row['user_id'])->where('id', '!=', $row['id'])->delete();
+        }
+        isset($row['id'])
+            ? $db::table('store_user')->updateOrInsert(['id' => $row['id']], $row)
+            : $db::table('store_user')->updateOrInsert(['store_id' => $row['store_id'], 'user_id' => $row['user_id']], $row);
+    }
+    $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));
+}
 // Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
 // « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
 function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator

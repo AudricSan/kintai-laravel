@@ -7,7 +7,7 @@ namespace App\Http\Middleware;
 use Closure;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -57,7 +57,6 @@ final class PermissionMiddleware
     public function __construct(
         private readonly PermissionService $permissions,
         private readonly ViewFactory $view,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -95,7 +94,7 @@ final class PermissionMiddleware
             if (is_array($rule) && !empty($rule['membership'])) {
                 $storeParam = $rule['store_param'] ?? 'id';
                 $storeId    = (int) ($request->route($storeParam) ?? 0);
-                if ($storeId > 0 && $this->storeUsers->findMembership($storeId, $userId) !== null) {
+                if ($storeId > 0 && StoreUser::findMembership($storeId, $userId) !== null) {
                     $this->setManagedStoreIds($request, [$storeId]);
                     return $next($request);
                 }

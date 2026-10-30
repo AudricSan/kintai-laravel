@@ -13,7 +13,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -29,7 +29,6 @@ final class AdminRoleControllerTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminRoleController $controller = null;
 
     /** Dernier rôle créé par l'action testée. */
@@ -46,7 +45,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile('layout.app');
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->stores      = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -58,7 +56,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
                 $this->users,
                 $this->stores,
                 new AuditLogger(),
-                $this->storeUsers,
                 new RoleAssignmentSyncService(),
                 new OwnerGuard(new PermissionService(), $this->users),
             );
@@ -209,7 +206,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => ['employees.view']);
         kintai_test_assignments(findByRole: fn() => [
             ['id' => 1, 'user_id' => 7, 'scope_type' => 'store', 'scope_id' => 3],
@@ -219,8 +215,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['id' => 7, 'display_name' => 'Jane', 'is_active' => 1],
             ['id' => 8, 'display_name' => 'Inactive Joe', 'is_active' => 0],
         ]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(7)->willReturn([['store_id' => 3]]);
-
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 7 ? [['store_id' => 3]] : []);
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
 
@@ -230,7 +225,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testEditRoleForOwnerRoleListsActiveUsersWithoutStoreMembership(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
         kintai_test_assignments(findByRole: fn() => []);
         $this->users->method('findAll')->willReturn([
@@ -238,8 +232,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         ]);
         // Contrairement à un rôle store-scope, la liste des candidats du rôle
         // Owner ne doit jamais interroger les appartenances aux magasins.
-        $this->storeUsers->expects($this->never())->method('findByUser');
-
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 1]);
 
@@ -395,13 +387,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testAddHolderAppliesOwnerRoleGloballyWithoutStoreCheck(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7]);
         kintai_test_assignments(findByUser: fn() => []);
-        $this->storeUsers->expects($this->never())->method('findByUser');
-
-
         $_POST = ['user_ids' => ['7']];
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 1]);
@@ -433,10 +421,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testAddHolderRedirectsWithErrorWhenSelectedUserHasNoStore(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(7)->willReturn([]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 7 ? [] : []);
         $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
 
         $_POST = ['user_ids' => ['7']];
@@ -458,10 +445,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             [8, ['id' => 8]],
             [9, null],
         ]);
-        $this->storeUsers->method('findByUser')->willReturnMap([
+        kintai_test_store_users(findByUser: fn(int $id) => array_column([
             [7, [['store_id' => 3]]],
             [8, [['store_id' => 3], ['store_id' => 4]]],
-        ]);
+        ], 1, 0)[$id] ?? []);
         kintai_test_assignments(findByUser: fn() => []);
 
         $_POST = ['user_ids' => ['7', '8', '9']];

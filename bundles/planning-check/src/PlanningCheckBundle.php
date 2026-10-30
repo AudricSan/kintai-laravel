@@ -19,7 +19,7 @@ use kintai\Contract\Container;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\PageOverlay;
@@ -85,7 +85,6 @@ final class PlanningCheckBundle extends Bundle
         $container->singleton(PlanningCheckService::class, fn(Container $c) => new PlanningCheckService(
             $c->make(PlanningCheckRepositoryInterface::class),
             $c->make(StoreRepositoryInterface::class),
-            $c->make(StoreUserRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(PermissionService::class),
             $c->make(NotificationService::class),

@@ -11,7 +11,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Extension\ExtensionRegistry;
@@ -72,9 +72,7 @@ final class AdminRequestsControllerTest extends TestCase
 
         $storesRepo = $this->createStub(StoreRepositoryInterface::class);
         $storesRepo->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
-
-        $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsersRepo->method('findByStore')->willReturn([]);
+        kintai_test_store_users(findByStore: fn() => []);
         kintai_test_shifts([['id' => 10, 'shift_date' => '2026-08-10', 'start_time' => '09:00:00', 'end_time' => '17:00:00']]);
         kintai_test_assignments(findByUser: fn() => $isAdmin ? [] : [
             ['id' => 1, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => 1],
@@ -91,7 +89,6 @@ final class AdminRequestsControllerTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $storeUsersRepo,
             $permissions,
         );
     }

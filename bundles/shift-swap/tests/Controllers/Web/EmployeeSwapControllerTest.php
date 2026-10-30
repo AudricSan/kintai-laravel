@@ -11,7 +11,7 @@ use App\Models\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -31,7 +31,6 @@ final class EmployeeSwapControllerTest extends TestCase
 {
     private ShiftSwapRequestRepositoryInterface&Stub $swapRequests;
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private NotificationService&Stub $notifs;
     private ?EmployeeSwapController $controller = null;
 
@@ -45,7 +44,6 @@ final class EmployeeSwapControllerTest extends TestCase
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
         $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
         $this->stores       = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers   = $this->createStub(StoreUserRepositoryInterface::class);
         $this->notifs       = $this->createStub(NotificationService::class);
     }
 
@@ -60,7 +58,6 @@ final class EmployeeSwapControllerTest extends TestCase
                 $view,
                 $this->swapRequests,
                 $this->stores,
-                $this->storeUsers,
                 $this->createStub(UserRepositoryInterface::class),
                 new AuditLogger(),
                 $this->notifs,
@@ -79,9 +76,8 @@ final class EmployeeSwapControllerTest extends TestCase
     public function testStoreSwapSavesTargetUserIdAndAcceptedAtColumns(): void
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5, 'user_id' => 1]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5, 'user_id' => 1]] : []);
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(5)->willReturn([]);
 
         $_POST = [
@@ -121,10 +117,9 @@ final class EmployeeSwapControllerTest extends TestCase
     public function testSwapsMarksTheNotificationsOfTheDisplayedSwapsAsRead(): void
     {
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => 5, 'user_id' => 1]]);
+        kintai_test_store_users(findByUser: fn() => [['store_id' => 5, 'user_id' => 1]]);
         $this->stores->method('getFeatures')->willReturn([]);
         $this->swapRequests->method('findByRequester')->willReturn([['id' => 3, 'created_at' => '2026-01-01'], ['id' => 4, 'created_at' => '2026-01-02']]);
         $this->swapRequests->method('findByTarget')->willReturn([['id' => 4, 'created_at' => '2026-01-02'], ['id' => 9, 'created_at' => '2026-01-03']]);
@@ -139,8 +134,7 @@ final class EmployeeSwapControllerTest extends TestCase
     public function testStoreSwapRedirectsWhenFeatureDisabledForStore(): void
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5, 'user_id' => 1]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5, 'user_id' => 1]] : []);
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(5)->willReturn(['shifts']);
 
         $_POST = ['requester_shift_id' => '10', 'target_id' => '2', 'target_shift_id' => '20'];

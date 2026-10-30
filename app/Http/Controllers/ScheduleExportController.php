@@ -10,7 +10,7 @@ use App\Extension\Absences;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -30,7 +30,6 @@ final class ScheduleExportController
     public function __construct(
         private readonly AuthService                  $auth,
         private readonly StoreRepositoryInterface     $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly ScheduleExportService        $export,
         private readonly IcalService                  $ical,
         private readonly AuditLogger                  $auditLogger,
@@ -52,7 +51,7 @@ final class ScheduleExportController
         $userId  = (int) $user['id'];
         $storeId = (int) $request->query('store_id', 0);
         $store   = $storeId > 0 ? $this->stores->findById($storeId) : null;
-        if ($store === null || $this->storeUsers->findMembership($storeId, $userId) === null) {
+        if ($store === null || StoreUser::findMembership($storeId, $userId) === null) {
             throw new NotFoundException(__('error_resource_not_found'));
         }
 

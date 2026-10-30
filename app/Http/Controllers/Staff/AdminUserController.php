@@ -16,7 +16,7 @@ use App\Extension\Events;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -39,7 +39,6 @@ final class AdminUserController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly PermissionService $permissions,
@@ -76,7 +75,7 @@ final class AdminUserController
         if (!empty($authUser['is_admin'])) {
             return;
         }
-        $storeIds = array_map(fn(array $m): int => (int) $m['store_id'], $this->storeUsers->findByUser($userId));
+        $storeIds = array_map(fn(array $m): int => (int) $m['store_id'], StoreUser::findByUser($userId));
         $this->permissions->requireUserAccess($authUser, $permissionKey, $userId, $storeIds);
     }
 
@@ -120,7 +119,6 @@ final class AdminUserController
         // rapport de salaire (ShiftWageCalculator::costOf() via EmployeeStatsService),
         // pour que ce montant "Salaire est." ne diverge plus des autres pages.
         $employeeStatsService = new EmployeeStatsService(
-            $this->storeUsers,
             $this->stores,
         );
 
@@ -154,7 +152,7 @@ final class AdminUserController
         foreach ($users as $u) {
             $uid = (int) $u['id'];
             $ids = [];
-            foreach ($this->storeUsers->findByUser($uid) as $m) {
+            foreach (StoreUser::findByUser($uid) as $m) {
                 $sid = (int) $m['store_id'];
                 if (in_array($sid, $availableStoreIds, true)) {
                     $ids[] = $sid;
@@ -332,7 +330,7 @@ final class AdminUserController
         foreach ($users as $u) {
             $uid = (int) $u['id'];
             $ids = [];
-            foreach ($this->storeUsers->findByUser($uid) as $m) {
+            foreach (StoreUser::findByUser($uid) as $m) {
                 $sid = (int) $m['store_id'];
                 if (in_array($sid, $availableStoreIds, true)) {
                     $ids[] = $sid;
@@ -493,7 +491,7 @@ final class AdminUserController
             $this->assertStoreAccess($request, $storeId);
             // Owner : pas de rôle par store à synchroniser, l'affectation globale suffit.
             $role = $isOwner ? null : ($selectedRole ?? $this->roleSync->defaultStoreRole());
-            $membership = $this->storeUsers->save([
+            $membership = StoreUser::put([
                 'store_id' => $storeId,
                 'user_id'  => (int) $saved['id'],
             ]);
@@ -612,7 +610,7 @@ final class AdminUserController
         if ($storeId > 0) {
             $this->assertStoreAccess($request, $storeId);
             $role = $this->roleSync->findAssignableRole($storeRoleId) ?? $this->roleSync->defaultStoreRole();
-            $this->storeUsers->save([
+            StoreUser::put([
                 'store_id' => $storeId,
                 'user_id'  => (int) $saved['id'],
             ]);
@@ -678,7 +676,7 @@ final class AdminUserController
         $user['is_admin'] = in_array($userId, $this->permissions->ownerUserIds(), true) ? 1 : 0;
 
         // Shift types des stores où l'utilisateur est membre
-        $memberships   = $this->storeUsers->findByUser($userId);
+        $memberships   = StoreUser::findByUser($userId);
         $userStoreIds  = array_map(fn($m) => (int) $m['store_id'], $memberships);
         $userStoreIds  = array_unique($userStoreIds);
 
@@ -734,7 +732,7 @@ final class AdminUserController
                 'role_id'            => $roleMap[$sid]['role_id'] ?? null,
                 'role_is_managing'   => !empty($roleMap[$sid]['is_managing']),
                 'store_ded_settings' => $this->stores->getDeductionSettings($sid),
-                'ded_overrides'      => ['subject_to_deductions' => $mid > 0 ? $this->storeUsers->getSubjectToDeductions($mid) : false],
+                'ded_overrides'      => ['subject_to_deductions' => $mid > 0 ? StoreUser::getSubjectToDeductions($mid) : false],
             ]);
         }
 

@@ -9,7 +9,7 @@ use kintai\Contract\Provider\ExportQuery;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 
 /**
  * Décide ce qu'un utilisateur peut exporter et en fait un périmètre sûr (ExportQuery). C'est ici, et nulle part ailleurs, que
@@ -31,7 +31,6 @@ final class ExportAccess
     public function __construct(
         private readonly PermissionService $permissions,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     /**
@@ -57,7 +56,7 @@ final class ExportAccess
     {
         return array_values(array_unique(array_map(
             static fn(array $m): int => (int) $m['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         )));
     }
 
@@ -146,7 +145,7 @@ final class ExportAccess
 
         $members = [];
         foreach ($storeIds as $storeId) {
-            foreach ($this->storeUsers->findByStore($storeId) as $m) {
+            foreach (StoreUser::findByStore($storeId) as $m) {
                 $members[(int) $m['user_id']] = true;
             }
         }

@@ -11,7 +11,7 @@ use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\TranslationService;
@@ -66,9 +66,7 @@ final class DailyReportRecipientsTest extends TestCase
             $this->sent[] = ['to' => $to, 'subject' => $subject, 'body' => $htmlBody];
             return true;
         });
-
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByStore')->willReturn([['user_id' => 1, 'is_active' => 1], ['user_id' => 2, 'is_active' => 1], ['user_id' => 3, 'is_active' => 1]]);
+        kintai_test_store_users(findByStore: fn() => [['user_id' => 1, 'is_active' => 1], ['user_id' => 2, 'is_active' => 1], ['user_id' => 3, 'is_active' => 1]]);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => $this->users[$id] ?? null);
 
@@ -79,7 +77,7 @@ final class DailyReportRecipientsTest extends TestCase
             new DailyReportPermissionService($permissions),
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test']], $transport),
             kintai_test_real_translator('en', false),
-            new UserSelection($storeUsers, $users, $permissions),
+            new UserSelection($users, $permissions),
         );
     }
 

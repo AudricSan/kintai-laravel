@@ -12,7 +12,7 @@ use App\Console\Commands\CalendarSyncCommand;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
@@ -45,17 +45,15 @@ final class CalendarLinkControllerTest extends TestCase
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id, 'email' => 'alice@kintai.test', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null]);
         kintai_test_assignments(findByUser: fn() => []);
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findMembership')->willReturnCallback(fn() => $this->membership);
-
+        kintai_test_store_users(findMembership: fn() => $this->membership);
         $auth = new AuthService(
-            $users, $storeUsers,
+            $users,
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new CalendarLinkController(
-            $auth, $this->google, new GoogleCalendarClient($this->google, $this->http), $this->sync, $storeUsers,
+            $auth, $this->google, new GoogleCalendarClient($this->google, $this->http), $this->sync,
             new GoogleRedirectUri(new PublicUrlResolver($this->appSettings, 'https://kintai.test')),
             new AuditLogger(),
         );

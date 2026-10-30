@@ -24,7 +24,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -57,9 +57,7 @@ final class ExportControllerTest extends TestCase
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findById')->willReturn(['id' => 3, 'code' => 'ST', 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo']);
         $stores->method('findActive')->willReturn([['id' => 3], ['id' => 4]]);
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByUser')->willReturnCallback(fn(int $id): array => $id === 5 ? [['store_id' => 3]] : []);
-        $storeUsers->method('findByStore')->willReturn([['user_id' => 5], ['user_id' => 6]]);
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 3 ? [['user_id' => 5], ['user_id' => 6]] : [], findByUser: fn(int $id): array => $id === 5 ? [['store_id' => 3]] : []);
         kintai_test_shifts([
             ['id' => 1, 'user_id' => 5, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'duration_minutes' => 480, 'shift_type_id' => 7],
             ['id' => 2, 'user_id' => 6, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '12:00', 'pause_minutes' => 0, 'duration_minutes' => 180, 'shift_type_id' => 7],
@@ -74,7 +72,7 @@ final class ExportControllerTest extends TestCase
         $directory = new ExportDirectory($users, $stores);
         $schedule  = new ScheduleExportService();
         $this->bind(ShiftsExport::class, new ShiftsExport($schedule, $directory));
-        $this->bind(EmployeesExport::class, new EmployeesExport($storeUsers, $directory));
+        $this->bind(EmployeesExport::class, new EmployeesExport($directory));
         $this->bind(AvailabilitiesExport::class, new AvailabilitiesExport($directory));
         $this->bind(ShiftTypesExport::class, new ShiftTypesExport($directory));
         $this->bind(StoresExport::class, new StoresExport($directory));
@@ -84,10 +82,10 @@ final class ExportControllerTest extends TestCase
 
         $this->controller = new ExportController(
             kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
-            new AuthService($users, $storeUsers, $stores),
-            new ExportAccess($permissions, $stores, $storeUsers),
+            new AuthService($users, $stores),
+            new ExportAccess($permissions, $stores),
             new ExportWriter(),
-            new UserSelection($storeUsers, $users, $permissions),
+            new UserSelection($users, $permissions),
             $stores,
             $schedule,
             new IcalService($translations),

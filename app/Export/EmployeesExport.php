@@ -6,7 +6,7 @@ namespace App\Export;
 
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 
 /**
  * Jeu de données « Employés » : une ligne par appartenance (employé × magasin) avec l'identité et les coordonnées.
@@ -15,7 +15,6 @@ use App\Repositories\StoreUserRepositoryInterface;
 final class EmployeesExport implements ExportRowsProvider
 {
     public function __construct(
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly ExportDirectory $directory,
     ) {}
 
@@ -23,7 +22,7 @@ final class EmployeesExport implements ExportRowsProvider
     {
         $rows = [];
         foreach ($query->storeIds as $storeId) {
-            foreach ($this->storeUsers->findByStore($storeId) as $membership) {
+            foreach (StoreUser::findByStore($storeId) as $membership) {
                 $userId = (int) ($membership['user_id'] ?? 0);
                 $user   = $query->includesUser($userId) ? $this->directory->user($userId) : null;
                 if ($user === null || !empty($user['deleted_at'])) {

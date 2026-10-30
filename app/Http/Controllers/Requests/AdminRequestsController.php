@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Requests;
 use App\Auth\PermissionService;
 use App\Extension\PendingRequests;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +28,6 @@ final class AdminRequestsController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly PermissionService $permissions,
         private readonly ?PendingRequests $pendingRequests = null,
     ) {}

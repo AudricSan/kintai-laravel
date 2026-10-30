@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use App\Exceptions\NotFoundException;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\TimesheetApproval;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -30,7 +30,6 @@ final class AdminTimesheetController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly TimesheetService $timesheets,
         private readonly PermissionService $permissions,

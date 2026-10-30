@@ -11,7 +11,7 @@ use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
 final class DailyReportIndexScopeTest extends TestCase
 {
     private DailyReportRepositoryInterface&Stub $reports;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?DailyReportController $controller = null;
 
     private const REPORTS = [
@@ -36,8 +35,6 @@ final class DailyReportIndexScopeTest extends TestCase
     protected function setUp(): void
     {
         $this->reports     = $this->createStub(DailyReportRepositoryInterface::class);
-        
-        $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
 
         $this->reports->method('findAllActive')->willReturn(self::REPORTS);
         $this->reports->method('findByAuthor')->willReturnCallback(
@@ -54,7 +51,6 @@ final class DailyReportIndexScopeTest extends TestCase
             $this->controller = new DailyReportController(
                 $this->reports,
                 $stores,
-                $this->storeUsers,
                 new DailyReportPermissionService(new PermissionService()),
             );
         }
@@ -69,9 +65,7 @@ final class DailyReportIndexScopeTest extends TestCase
             ['id' => 1, 'user_id' => $userId, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? ['daily_reports.view'] : []);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $s, int $u) => $s === $storeId ? ['store_id' => $s, 'user_id' => $u] : null
-        );
+        kintai_test_store_users(findMembership: fn(int $s, int $u) => $s === $storeId ? ['store_id' => $s, 'user_id' => $u] : null);
     }
 
     /** @return list<int> */
@@ -100,9 +94,7 @@ final class DailyReportIndexScopeTest extends TestCase
     public function testPlainMemberOnlySeesOwnReports(): void
     {
         kintai_test_assignments(findByUser: fn() => []);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $s, int $u) => $s === 1 ? ['store_id' => 1, 'user_id' => $u] : null
-        );
+        kintai_test_store_users(findMembership: fn(int $s, int $u) => $s === 1 ? ['store_id' => 1, 'user_id' => $u] : null);
         $this->assertSame([2], $this->listedIds([], 20));
     }
 }

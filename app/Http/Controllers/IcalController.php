@@ -10,7 +10,7 @@ use App\Models\IcalToken;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Extension\Absences;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -29,7 +29,6 @@ final class IcalController
         private readonly UserRepositoryInterface            $users,
         private readonly AuthService                        $auth,
         private readonly AuditLogger                        $auditLogger,
-        private readonly StoreUserRepositoryInterface       $storeUsers,
     ) {}
 
     /**
@@ -56,7 +55,7 @@ final class IcalController
 
         // Le jeton survit à la désactivation du compte et au départ du magasin : sans ce contrôle, un
         // ancien employé continuait de recevoir le planning (et les congés) de l'équipe dans son agenda.
-        if (empty($user['is_active']) || $this->storeUsers->findMembership($storeId, $userId) === null) {
+        if (empty($user['is_active']) || StoreUser::findMembership($storeId, $userId) === null) {
             throw new NotFoundException(__('error_ical_feed_not_found'));
         }
 

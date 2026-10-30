@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\HiringReport\Controllers\Web;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -55,7 +55,6 @@ final class AdminHiringReportController
         private readonly UserRepositoryInterface $users,
         private readonly HiringReportRepositoryInterface $hiringReports,
         private readonly AuditLogger $auditLogger,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     public function hiringReports(Request $request): Response
@@ -118,7 +117,7 @@ final class AdminHiringReportController
         $this->assertStoreAccess($request, $storeId);
 
         $userId = (int) $request->post('user_id', 0);
-        if ($userId > 0 && $this->storeUsers->findMembership($storeId, $userId) === null) {
+        if ($userId > 0 && StoreUser::findMembership($storeId, $userId) === null) {
             throw new ValidationException(['user_id' => __('hiring_report_error_hiring_user_not_in_store')]);
         }
 

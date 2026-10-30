@@ -10,7 +10,7 @@ use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -25,11 +25,11 @@ final class AdminHiringReportControllerTest extends TestCase
     private HiringReportRepositoryInterface&Stub $hiringReports;
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminHiringReportController $controller = null;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $viewDir = sys_get_temp_dir() . '/kintai-hiring-report-views';
         $this->ensureViewFile($viewDir, 'reports-hiring');
         $this->ensureViewFile($viewDir, 'reports-hiring-show');
@@ -39,7 +39,6 @@ final class AdminHiringReportControllerTest extends TestCase
         $this->hiringReports = $this->createStub(HiringReportRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -55,7 +54,6 @@ final class AdminHiringReportControllerTest extends TestCase
                 $this->users,
                 $this->hiringReports,
                 new AuditLogger(),
-                $this->storeUsers,
             );
         }
 
@@ -176,7 +174,7 @@ final class AdminHiringReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
-        $this->storeUsers->method('findMembership')->willReturn(null);
+        kintai_test_store_users(findMembership: fn() => null);
         $this->hiringReports->expects($this->never())->method('save');
 
         $this->expectException(\App\Exceptions\ValidationException::class);
@@ -188,13 +186,12 @@ final class AdminHiringReportControllerTest extends TestCase
     {
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1']);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'A']);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([['user_id' => 5]]);
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 5]] : []);
         $this->users->expects($this->never())->method('findAll');
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5]);
 
@@ -205,7 +202,6 @@ final class AdminHiringReportControllerTest extends TestCase
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST = [
             'user_id'             => '5',
             'employee_number'     => 'E-1',
@@ -234,7 +230,7 @@ final class AdminHiringReportControllerTest extends TestCase
         $req->setRouteParams(['id' => '1']);
 
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 5)->willReturn(['id' => 3]);
+        kintai_test_store_users(findMembership: fn() => ['id' => 3]);
         $this->hiringReports->expects($this->once())->method('save')->with($this->callback(
             fn(array $data) =>
                 $data['store_id'] === 1
@@ -250,7 +246,6 @@ final class AdminHiringReportControllerTest extends TestCase
     public function testUpdateHiringReportMergesPostFieldsAndRedirects(): void
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST = [
             'user_id'         => '5',
             'employee_number' => 'E-42',
@@ -262,7 +257,7 @@ final class AdminHiringReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 5)->willReturn(['id' => 3]);
+        kintai_test_store_users(findMembership: fn() => ['id' => 3]);
         $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)
             ->willReturn(['id' => 10, 'store_id' => 1, 'employee_name' => 'Ancien nom']);
 

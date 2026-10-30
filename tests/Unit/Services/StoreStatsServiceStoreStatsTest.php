@@ -10,7 +10,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
@@ -31,9 +31,7 @@ final class StoreStatsServiceStoreStatsTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByStore')->willReturn([['user_id' => 10]]);
+        kintai_test_store_users(findByStore: fn() => [['user_id' => 10]]);
         kintai_test_shift_types([]);
 
         $users = $this->createStub(UserRepositoryInterface::class);
@@ -41,7 +39,6 @@ final class StoreStatsServiceStoreStatsTest extends TestCase
 
         $this->service = new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
-            $storeUsers,
             $users,
             new RoleAssignmentSyncService(
             ),

@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInt
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Data\UserShiftTypeRate;
 use kintai\Contract\Http\Request;
@@ -64,7 +64,6 @@ final class AdminSalaryReportController
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly SalaryReportRepositoryInterface $salaryReports,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly Sales $sales,
         private readonly AuditLogger $auditLogger,
         private readonly StoreStatsServiceInterface $storeStatsService,
@@ -284,7 +283,7 @@ final class AdminSalaryReportController
 
         $targetMonth = $request->post('target_month', '');
         $userId = (int) $request->post('user_id', 0);
-        if ($userId > 0 && $this->storeUsers->findMembership($storeId, $userId) === null) {
+        if ($userId > 0 && StoreUser::findMembership($storeId, $userId) === null) {
             throw new ValidationException(['user_id' => __('salary_report_error_salary_user_not_in_store')]);
         }
 
@@ -584,9 +583,9 @@ final class AdminSalaryReportController
             if ($cost <= 0) {
                 continue;
             }
-            $membership = $this->storeUsers->findMembership($storeId, $uid);
+            $membership = StoreUser::findMembership($storeId, $uid);
             $membershipId = (int) ($membership['id'] ?? 0);
-            if ($membershipId <= 0 || !$this->storeUsers->getSubjectToDeductions($membershipId)) {
+            if ($membershipId <= 0 || !StoreUser::getSubjectToDeductions($membershipId)) {
                 continue;
             }
             $health      += round($cost * (float) ($deductionSettings['health_insurance_rate'] ?? 0) / 100, 2);

@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Extension\PendingRequests;
 use App\Models\Shift;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\DashboardAlertService;
 use Tests\Support\FakeAttendanceProvider;
@@ -58,12 +58,7 @@ final class DashboardAlertServiceTest extends TestCase
         $users->method('findById')->willReturnCallback(
             fn(int $id) => $this->usersById[$id] ?? null
         );
-
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByStore')->willReturnCallback(
-            fn(int $storeId) => $this->storeMembers[$storeId] ?? []
-        );
-
+        kintai_test_store_users(findByStore: fn(int $storeId) => $this->storeMembers[$storeId] ?? []);
         // Demandes en attente fournies par des bundles actifs (fournisseurs du contrat 1.9).
         $providers = [];
         foreach ($this->pendingFixture as $key => $requests) {
@@ -74,7 +69,7 @@ final class DashboardAlertServiceTest extends TestCase
         $manager = FakeBundleManagerFactory::withActiveSlugs(array_unique([...array_keys($providers), ...array_keys($attendance)]), [], $providers, $attendance);
         Container::getInstance()->instance(ExtensionRegistry::class, new ExtensionRegistry($manager));
 
-        return new DashboardAlertService($users, $storeUsers, new PendingRequests(new ExtensionRegistry($manager)));
+        return new DashboardAlertService($users, new PendingRequests(new ExtensionRegistry($manager)));
     }
 
     /** @param list<PendingRequest> $requests */

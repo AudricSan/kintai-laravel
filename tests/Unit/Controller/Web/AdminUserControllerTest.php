@@ -14,7 +14,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -40,7 +40,6 @@ final class AdminUserControllerTest extends TestCase
     private ?AdminUserController $controller = null;
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     protected function setUp(): void
     {
         kintai_test_database();
@@ -53,7 +52,6 @@ final class AdminUserControllerTest extends TestCase
         
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
     public function testUsersRenders(): void
     {
@@ -98,7 +96,6 @@ final class AdminUserControllerTest extends TestCase
 
     public function testExportUsersJsonReturnsExpectedFields(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
@@ -109,7 +106,7 @@ final class AdminUserControllerTest extends TestCase
              'is_admin' => false, 'is_active' => 1, 'deleted_at' => null],
         ]);
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 1]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 5 ? [['store_id' => 1]] : []);
         $this->seedRate(5, 2, 1200.0);
         kintai_test_shift_types([['id' => 2, 'name' => 'Salle']]);
 
@@ -138,10 +135,10 @@ final class AdminUserControllerTest extends TestCase
             ['id' => 6, 'display_name' => 'Other Store', 'email' => 'b@test.com', 'is_active' => 1],
         ]);
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A'], ['id' => 2, 'name' => 'Store B']]);
-        $this->storeUsers->method('findByUser')->willReturnMap([
+        kintai_test_store_users(findByUser: fn(int $id) => array_column([
             [5, [['store_id' => 1]]],
             [6, [['store_id' => 2]]],
-        ]);
+        ], 1, 0)[$id] ?? []);
         kintai_test_shift_types([]);
 
         $response = $this->controller()->exportUsersJson($req);
@@ -196,8 +193,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'email' => 'test@test.com']);
         $this->stores->method('findAll')->willReturn([]);
-        $this->storeUsers->method('findByUser')->willReturn([]);
-
+        kintai_test_store_users(findByUser: fn() => []);
         $response = $this->controller()->editUser($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -213,7 +209,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@test.com']);
         $this->stores->method('findAll')->willReturn([]);
-        $this->storeUsers->method('findByUser')->willReturn([]);
+        kintai_test_store_users(findByUser: fn() => []);
         $response = $this->controller()->editUser($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -458,13 +454,9 @@ final class AdminUserControllerTest extends TestCase
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
         kintai_test_assignments(findByUser: fn() => []);
         $capturedStoreUser = null;
-        $this->storeUsers->method('save')->willReturnCallback(function (array $d) use (&$capturedStoreUser) {
-            $capturedStoreUser = $d;
-            return $d;
-        });
-
         $this->controller()->quickCreateUser($req);
 
+        $capturedStoreUser = \App\Models\StoreUser::query()->orderByDesc('id')->first()?->toArray();
         $this->assertNotNull($capturedStoreUser);
         $this->assertSame(3, $capturedStoreUser['store_id']);
         $this->assertSame(10, $capturedStoreUser['user_id']);
@@ -524,13 +516,9 @@ final class AdminUserControllerTest extends TestCase
         ], 1, 0)[$id] ?? []);
         kintai_test_assignments(findByUser: fn() => []);
         $capturedStoreUser = null;
-        $this->storeUsers->method('save')->willReturnCallback(function (array $d) use (&$capturedStoreUser) {
-            $capturedStoreUser = $d;
-            return $d;
-        });
-
         $this->controller()->quickCreateUser($req);
 
+        $capturedStoreUser = \App\Models\StoreUser::query()->orderByDesc('id')->first()?->toArray();
         $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 10)->where('role_id', 3)->where('scope_type', 'store')->where('scope_id', 3)->exists(), 'affectation créée');
         $this->assertNotNull($capturedStoreUser);
     }
@@ -592,7 +580,6 @@ final class AdminUserControllerTest extends TestCase
     /** Rôle Owner sélectionné : compte admin global, pas de rôle par store à synchroniser même avec un store choisi. */
     public function testStoreUserSyncsOwnerRoleAndSkipsStoreRoleWhenOwnerSelected(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'Jane',
             'last_name'    => 'Doe',
@@ -617,8 +604,6 @@ final class AdminUserControllerTest extends TestCase
         });
         // Aucun rôle par store à écrire : la synchronisation store-scope (findAssignableRole
         // rejette les rôles système) ne doit pas être sollicitée pour ce cas.
-        $this->storeUsers->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d);
-
         $this->controller()->storeUser($req);
 
         $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 20)->where('role_id', 1)->where('scope_type', 'global')->whereNull('scope_id')->exists(), 'affectation créée');
@@ -672,13 +657,9 @@ final class AdminUserControllerTest extends TestCase
         $this->users->method('save')->willReturn(['id' => 21, 'display_name' => 'John']);
 
         $capturedStoreUser = null;
-        $this->storeUsers->method('save')->willReturnCallback(function (array $d) use (&$capturedStoreUser) {
-            $capturedStoreUser = $d;
-            return $d;
-        });
-
         $this->controller()->storeUser($req);
 
+        $capturedStoreUser = \App\Models\StoreUser::query()->orderByDesc('id')->first()?->toArray();
         $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 21)->where('role_id', 2)->where('scope_type', 'store')->where('scope_id', 3)->exists(), 'affectation créée');
         $this->assertNotNull($capturedStoreUser);
     }
@@ -1245,7 +1226,6 @@ final class AdminUserControllerTest extends TestCase
                 $view,
                 $this->users,
                 $this->stores,
-                $this->storeUsers,
                 new AuditLogger(),
                 new RoleAssignmentSyncService(),
                 new PermissionService(),

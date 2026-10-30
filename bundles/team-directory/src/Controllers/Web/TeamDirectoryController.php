@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\TeamDirectory\Controllers\Web;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -27,7 +27,6 @@ final class TeamDirectoryController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
     ) {}
 
@@ -43,7 +42,7 @@ final class TeamDirectoryController
 
         $storeIdsByColleague = [];
         foreach ($myStoreIds as $sid) {
-            foreach ($this->storeUsers->findByStore($sid) as $m) {
+            foreach (StoreUser::findByStore($sid) as $m) {
                 $mid = (int) $m['user_id'];
                 if ($mid === $userId) {
                     continue;
@@ -108,7 +107,7 @@ final class TeamDirectoryController
     {
         return array_values(array_unique(array_map(
             fn($m) => (int) $m['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         )));
     }
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\StoreUser;
+
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -13,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  * partagé par les contrôleurs employé des bundles TimeOff/ShiftSwap/ShiftClaim/
  * Timeclock qui remplacent progressivement ses méthodes.
  *
- * Nécessite sur la classe utilisatrice : $this->storeUsers
+ * Nécessite sur la classe utilisatrice : $this->stores
  * (StoreUserRepositoryInterface), $this->stores (StoreRepositoryInterface),
  * et le trait HasBaseUrl (base()).
  */
@@ -28,7 +30,7 @@ trait HasStoreFeatureCheck
     protected function assertFeature(Request $request, string $feature): ?Response
     {
         $user        = $request->attributes->get('auth_user');
-        $memberships = $this->storeUsers->findByUser((int) ($user['id'] ?? 0));
+        $memberships = StoreUser::findByUser((int) ($user['id'] ?? 0));
         if (empty($memberships)) {
             return null;
         }

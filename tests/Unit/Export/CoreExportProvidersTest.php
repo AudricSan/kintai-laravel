@@ -16,7 +16,7 @@ use App\Models\Availability;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use App\Services\ScheduleExportService;
@@ -75,10 +75,8 @@ final class CoreExportProvidersTest extends TestCase
 
     public function testEmployeesNeverExposeSecrets(): void
     {
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByStore')->willReturn([['user_id' => 5, 'is_active' => 1], ['user_id' => 6, 'is_active' => 0], ['user_id' => 99]]);
-
-        $rows = [...(new EmployeesExport($storeUsers, $this->directory))->rows($this->query())];
+        kintai_test_store_users(findByStore: fn() => [['user_id' => 5, 'is_active' => 1], ['user_id' => 6, 'is_active' => 0], ['user_id' => 99]]);
+        $rows = [...(new EmployeesExport($this->directory))->rows($this->query())];
 
         $this->assertSame(['Roy', 'Sato'], array_column($rows, 'last_name'), 'compte inconnu ignoré, tri par nom');
         $json = json_encode($rows);

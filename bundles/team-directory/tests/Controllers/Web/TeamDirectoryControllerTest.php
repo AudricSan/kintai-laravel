@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\TeamDirectory\Controllers\Web\TeamDirectoryControll
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -46,16 +46,7 @@ final class TeamDirectoryControllerTest extends TestCase
             [self::COLLEAGUE_INACTIVE, ['id' => self::COLLEAGUE_INACTIVE, 'first_name' => 'D', 'last_name' => 'Inactif', 'is_active' => 0, 'show_in_directory' => 1]],
             [self::OTHER_STORE_USER, ['id' => self::OTHER_STORE_USER, 'first_name' => 'E', 'last_name' => 'Ailleurs', 'is_active' => 1, 'show_in_directory' => 1]],
         ]);
-
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findByUser')->willReturnMap([
-            [self::ME, [['store_id' => 10]]],
-            [self::COLLEAGUE_VISIBLE, [['store_id' => 10]]],
-            [self::COLLEAGUE_HIDDEN, [['store_id' => 10]]],
-            [self::COLLEAGUE_INACTIVE, [['store_id' => 10]]],
-            [self::OTHER_STORE_USER, [['store_id' => 20]]],
-        ]);
-        $this->storeUsers->method('findByStore')->willReturnMap([
+        kintai_test_store_users(findByStore: fn(int $id) => array_column([
             [10, [
                 ['user_id' => self::ME],
                 ['user_id' => self::COLLEAGUE_VISIBLE],
@@ -65,8 +56,13 @@ final class TeamDirectoryControllerTest extends TestCase
             [20, [
                 ['user_id' => self::OTHER_STORE_USER],
             ]],
-        ]);
-
+        ], 1, 0)[$id] ?? [], findByUser: fn(int $id) => array_column([
+            [self::ME, [['store_id' => 10]]],
+            [self::COLLEAGUE_VISIBLE, [['store_id' => 10]]],
+            [self::COLLEAGUE_HIDDEN, [['store_id' => 10]]],
+            [self::COLLEAGUE_INACTIVE, [['store_id' => 10]]],
+            [self::OTHER_STORE_USER, [['store_id' => 20]]],
+        ], 1, 0)[$id] ?? []);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->stores->method('findAll')->willReturn([
             ['id' => 10, 'name' => 'Store A'],
@@ -76,7 +72,6 @@ final class TeamDirectoryControllerTest extends TestCase
         $this->controller = new TeamDirectoryController(
             $view,
             $this->users,
-            $this->storeUsers,
             $this->stores,
         );
     }

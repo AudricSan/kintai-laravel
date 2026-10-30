@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Extension\Absences;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -26,7 +26,6 @@ final class WeekPlanner
     public const SKIP_OVERLAP     = 'overlap';
 
     public function __construct(
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly AvailabilityGuard $availability,
     ) {}
@@ -181,7 +180,7 @@ final class WeekPlanner
             }
         }
         $ids = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $m) {
+        foreach (StoreUser::findByStore($storeId) as $m) {
             if (isset($active[(int) $m['user_id']])) {
                 $ids[(int) $m['user_id']] = true;
             }

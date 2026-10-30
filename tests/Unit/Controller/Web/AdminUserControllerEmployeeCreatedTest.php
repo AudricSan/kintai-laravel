@@ -18,7 +18,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -92,8 +92,6 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             return ['id' => 10, 'password_hash' => 'hash'] + $d;
         });
         $stores = $this->createStub(StoreRepositoryInterface::class);
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('save')->willReturnArgument(0);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]);
         kintai_test_role_table([['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]]);
         $permissions = new PermissionService();
@@ -102,7 +100,6 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $users,
             $stores,
-            $storeUsers,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             $permissions,

@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterfa
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -27,7 +27,6 @@ final class EmployeeShiftClaimController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly AuditLogger $auditLogger,
@@ -46,7 +45,7 @@ final class EmployeeShiftClaimController
         // Stores dont l'employé est membre
         $myStoreIds = array_map(
             fn($su) => (int) $su['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         );
 
         $openShifts = [];
@@ -117,7 +116,7 @@ final class EmployeeShiftClaimController
         // Vérifier appartenance au store
         $myStoreIds = array_map(
             fn($su) => (int) $su['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         );
         if (!in_array((int) ($shift['store_id'] ?? 0), $myStoreIds, true)) {
             return redirect()->away($this->base() . '/employee/open-shifts')->with('error', 'forbidden');
@@ -172,7 +171,7 @@ final class EmployeeShiftClaimController
     private function notifyManagers(int $storeId, array $shift, int $claimantId, int $referenceId): void
     {
         $recipients = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $m) {
+        foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
             $candidate = $this->users->findById($uid);
             if ($candidate !== null && $this->permissions->can($candidate, 'open_shifts.approve', $storeId)) {

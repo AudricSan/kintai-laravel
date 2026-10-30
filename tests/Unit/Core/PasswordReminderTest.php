@@ -11,7 +11,7 @@ use App\Http\Middleware\PasswordReminderMiddleware;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -49,7 +49,6 @@ final class PasswordReminderTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
             $users,
-            $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );

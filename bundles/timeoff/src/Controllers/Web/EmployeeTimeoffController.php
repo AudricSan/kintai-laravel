@@ -8,7 +8,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -28,7 +28,6 @@ final class EmployeeTimeoffController
         private readonly ViewFactory $view,
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly UserRepositoryInterface $users,
         private readonly NotificationService $notifs,
@@ -114,7 +113,7 @@ final class EmployeeTimeoffController
     {
         return array_values(array_unique(array_map(
             fn(array $m): int => (int) $m['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         )));
     }
 
@@ -169,7 +168,7 @@ final class EmployeeTimeoffController
     private function notifyManagers(int $storeId, int $referenceId, int $authorId, string $type, string $startDate, string $endDate): void
     {
         $recipients = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $m) {
+        foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
             $candidate = $this->users->findById($uid);
             if ($candidate !== null && $this->permissions->can($candidate, 'timeoff.approve', $storeId)) {

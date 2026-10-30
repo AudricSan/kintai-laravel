@@ -10,7 +10,7 @@ use App\Models\ApiToken;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -54,7 +54,6 @@ final class AuthServiceSessionRevocationTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
             $this->users,
-            $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
@@ -103,7 +102,6 @@ final class AuthServiceSessionRevocationTest extends TestCase
         $users->method('findById')->willReturn(null);
         $auth = new AuthService(
             $users,
-            $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );

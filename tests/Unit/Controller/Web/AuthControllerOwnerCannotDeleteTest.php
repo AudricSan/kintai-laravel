@@ -14,7 +14,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -61,10 +61,8 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             ? [['id' => 1, 'user_id' => self::USER_ID, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]
             : []);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $auth = new AuthService(
             $this->users,
-            $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
@@ -75,7 +73,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             new AuditLogger(),
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
-            $storeUsers,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),

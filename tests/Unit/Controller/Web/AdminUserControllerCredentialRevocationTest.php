@@ -16,7 +16,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -74,7 +74,6 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $stores,
-            $this->createStub(StoreUserRepositoryInterface::class),
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             new PermissionService(),

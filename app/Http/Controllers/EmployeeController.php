@@ -13,7 +13,7 @@ use App\Models\IcalToken;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
@@ -42,7 +42,6 @@ final class EmployeeController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -90,7 +89,7 @@ final class EmployeeController
             array_keys($enabledAll),
             [
                 'user'              => $user,
-                'store_ids'         => array_map(fn($m) => (int) $m['store_id'], $this->storeUsers->findByUser($userId)),
+                'store_ids'         => array_map(fn($m) => (int) $m['store_id'], StoreUser::findByUser($userId)),
                 'managed_store_ids' => null,
                 'stores_map'        => $storesMap,
                 'today'             => $today,
@@ -103,7 +102,7 @@ final class EmployeeController
 
         // Cartes de statistiques des bundles (contrat 1.19).
         $bundleStats = DashboardStats::current()->cards(
-            ['user' => $user, 'store_ids' => array_map(fn($m) => (int) $m['store_id'], $this->storeUsers->findByUser($userId)), 'stores_map' => $storesMap, 'today' => $today],
+            ['user' => $user, 'store_ids' => array_map(fn($m) => (int) $m['store_id'], StoreUser::findByUser($userId)), 'stores_map' => $storesMap, 'today' => $today],
             static fn(?string $f): bool => feat_bundle($f) && ($f === null || $storeFeatures === null || in_array($f, (array) $storeFeatures, true)),
         );
 
@@ -172,7 +171,7 @@ final class EmployeeController
         $monthLabel = month_label($monthStart);
 
         // Collègues du même store
-        $memberships = $this->storeUsers->findByUser($userId);
+        $memberships = StoreUser::findByUser($userId);
         $myStoreIds  = array_unique(array_map(fn($m) => (int) $m['store_id'], $memberships));
 
         // Jour de début de semaine (premier store de l'employé)
@@ -181,7 +180,7 @@ final class EmployeeController
 
         $colleagueIds = [];
         foreach ($myStoreIds as $sid) {
-            foreach ($this->storeUsers->findByStore($sid) as $m) {
+            foreach (StoreUser::findByStore($sid) as $m) {
                 $mid = (int) $m['user_id'];
                 if ($mid !== $userId) $colleagueIds[$mid] = true;
             }
@@ -274,12 +273,12 @@ final class EmployeeController
         $weekEnd   = $sunday->format('Y-m-d');
 
         // Collègues du même store
-        $memberships = $this->storeUsers->findByUser($userId);
+        $memberships = StoreUser::findByUser($userId);
         $myStoreIds  = array_unique(array_map(fn($m) => (int) $m['store_id'], $memberships));
 
         $colleagueIds = [];
         foreach ($myStoreIds as $sid) {
-            foreach ($this->storeUsers->findByStore($sid) as $m) {
+            foreach (StoreUser::findByStore($sid) as $m) {
                 $mid = (int) $m['user_id'];
                 if ($mid !== $userId) {
                     $colleagueIds[$mid] = true;
@@ -376,7 +375,7 @@ final class EmployeeController
         $nextStart  = $firstDay->modify("+{$numDays} days")->format('Y-m-d');
 
         // Mes stores
-        $memberships = $this->storeUsers->findByUser($userId);
+        $memberships = StoreUser::findByUser($userId);
         $myStoreIds  = array_values(array_unique(array_map(fn($m) => (int) $m['store_id'], $memberships)));
 
         $storesList = [];
@@ -410,7 +409,7 @@ final class EmployeeController
         // Membres du store affiché (triés par nom)
         $memberIds = [];
         if ($filterStoreId > 0) {
-            foreach ($this->storeUsers->findByStore($filterStoreId) as $m) {
+            foreach (StoreUser::findByStore($filterStoreId) as $m) {
                 $memberIds[] = (int) $m['user_id'];
             }
         }
@@ -535,7 +534,7 @@ final class EmployeeController
         $body    = $request->request->all();
         $storeId = (int) ($body['store_id'] ?? 0);
 
-        $memberships = $this->storeUsers->findByUser($userId);
+        $memberships = StoreUser::findByUser($userId);
         $myStoreIds  = array_map(fn($m) => (int) $m['store_id'], $memberships);
         if (!in_array($storeId, $myStoreIds, true)) {
             return redirect()->away($this->base() . '/profile?tab=availability')->with('error', 'forbidden');

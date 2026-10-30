@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Exceptions\NotFoundException;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 
@@ -19,7 +19,6 @@ final class UserTargetGuard
 {
     public function __construct(
         private readonly UserRepositoryInterface $users,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly PermissionService $permissions,
     ) {}
 
@@ -37,7 +36,7 @@ final class UserTargetGuard
 
         $storeIds = array_map(
             fn(array $m): int => (int) $m['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         );
         $this->permissions->requireUserAccess($request->attributes->get('auth_user') ?? [], $permissionKey, $userId, $storeIds);
 

@@ -10,7 +10,7 @@ use App\Models\ApiToken;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -41,11 +41,10 @@ final class AuthControllerTest extends TestCase
         foreach ([1, 3, 7, 99] as $userId) {
             kintai_test_user($userId);
         }
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
-        $this->auth       = new AuthService($this->users, $storeUsers, $stores);
+        $this->auth       = new AuthService($this->users, $stores);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -208,8 +207,7 @@ final class AuthControllerTest extends TestCase
             'id' => 9, 'email' => null, 'password_hash' => password_hash('0000', PASSWORD_BCRYPT, ['cost' => 4]),
             'is_active' => true, 'deleted_at' => null,
         ];
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findMembership')->willReturn(['id' => 1]);
+        kintai_test_store_users(findMembership: fn() => ['id' => 1]);
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findByCode')->willReturn(['id' => 3]);
         $users = $this->createStub(UserRepositoryInterface::class);
@@ -218,7 +216,7 @@ final class AuthControllerTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $this->noTokenExpected = true;
 
-        $auth       = new AuthService($users, $storeUsers, $stores);
+        $auth       = new AuthService($users, $stores);
         $controller = new AuthController($auth, $users, new AuditLogger());
 
         $response = $controller->login($this->makeRequest('POST', '/api/v1/auth/login', json: [

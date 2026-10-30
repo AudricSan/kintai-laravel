@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Api\V1;
 
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Auth\UserTargetGuard;
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\NotFoundException;
@@ -44,9 +44,8 @@ final class UserShiftRateControllerTest extends TestCase
 
     private function guard(): UserTargetGuard
     {
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByUser')->willReturn([]);
-        return new UserTargetGuard($this->users, $storeUsers, ApiOwnerAuth::permissions($this));
+        kintai_test_store_users(findByUser: fn() => []);
+        return new UserTargetGuard($this->users, ApiOwnerAuth::permissions($this));
     }
 
     // -------------------------------------------------------------------------

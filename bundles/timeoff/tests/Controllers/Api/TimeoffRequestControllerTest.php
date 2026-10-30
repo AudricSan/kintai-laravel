@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\TimeOff\Controllers\Api;
 
 
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Controllers\Api\TimeoffRequestController;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
@@ -28,7 +28,6 @@ final class TimeoffRequestControllerTest extends TestCase
 {
     private TimeoffRequestRepositoryInterface&MockObject $timeoffRequests;
     private TimeoffRequestController $controller;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
 
     protected function setUp(): void
     {
@@ -36,8 +35,7 @@ final class TimeoffRequestControllerTest extends TestCase
         $this->controller      = new TimeoffRequestController(
             $this->timeoffRequests,
             new AuditLogger(),
-            new PermissionService(),
-            $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class)
+            new PermissionService()
         );
     }
 

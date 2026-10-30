@@ -11,7 +11,7 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -46,7 +46,6 @@ final class AdminResignationReportController
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly ResignationReportRepositoryInterface $resignationReports,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
         private readonly ResignationDeactivation $deactivation,
@@ -229,7 +228,7 @@ final class AdminResignationReportController
         if ($userId > 0) {
             // La création désactive le compte ciblé : il doit appartenir à CE magasin et ne
             // pas être un Owner, sinon un gérant pouvait désactiver (puis supprimer) n'importe quel compte.
-            if ($this->storeUsers->findMembership($storeId, $userId) === null) {
+            if (StoreUser::findMembership($storeId, $userId) === null) {
                 throw new ValidationException(['user_id' => __('resignation_report_error_resignation_user_not_in_store')]);
             }
             $this->assertNotOwnerAccount($request, $userId);
@@ -392,7 +391,7 @@ final class AdminResignationReportController
         if ($managed === null) {
             return;
         }
-        foreach ($this->storeUsers->findByUser($userId) as $membership) {
+        foreach (StoreUser::findByUser($userId) as $membership) {
             if (!in_array((int) $membership['store_id'], $managed, true)) {
                 throw new ForbiddenException(__('error_not_store_manager'));
             }

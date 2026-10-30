@@ -23,7 +23,7 @@ use App\Services\Calendar\GoogleCalendarSettings;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserNavPref;
 use App\Models\WebPushSubscription;
@@ -45,7 +45,6 @@ final class AuthController
         private readonly AuditLogger $auditLogger,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly LanguageRepositoryInterface $languages,
         private readonly AvatarImageOptimizer $avatarOptimizer,
         // Optionnel pour ne pas casser les tests qui construisent le contrôleur à la main ;
@@ -227,7 +226,7 @@ final class AuthController
         $host               = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $base               = $this->base();
 
-        $memberships = $this->storeUsers->findByUser($userId);
+        $memberships = StoreUser::findByUser($userId);
         $stores      = [];
         foreach ($memberships as $m) {
             $s = $this->stores->findById((int) $m['store_id']);
@@ -579,7 +578,7 @@ final class AuthController
                 'languages_spoken'  => $user['languages_spoken'] ?? null,
                 'hobbies'           => $user['hobbies'] ?? null,
             ],
-            'memberships' => $this->storeUsers->findByUser($userId),
+            'memberships' => StoreUser::findByUser($userId),
             'availabilities' => Availability::findByUser($userId),
         ];
 

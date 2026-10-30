@@ -8,7 +8,7 @@ use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -37,7 +37,6 @@ final class TimeoffRequestController
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     /** GET /api/v1/timeoff-requests?store_id=X&user_id=Y&status=Z&page=1&limit=20 */
@@ -92,7 +91,7 @@ final class TimeoffRequestController
         $userId = (int) ($body['user_id'] ?? $authId);
 
         // Pour soi-même : membre du magasin suffit. Pour un tiers : timeoff.create sur ce magasin.
-        $forSelf = $userId === $authId && $this->storeUsers->findMembership($storeId, $authId) !== null;
+        $forSelf = $userId === $authId && StoreUser::findMembership($storeId, $authId) !== null;
         if (!$forSelf && !$this->permissions->can($authUser, 'timeoff.create', $storeId)) {
             throw new ForbiddenException(__('error_permission_insufficient', ['key' => 'timeoff.create']));
         }

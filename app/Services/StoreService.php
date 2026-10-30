@@ -9,7 +9,7 @@ use App\Exceptions\ValidationException;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Routing\RouteSlugService;
 use App\Validation\StoreValidator;
@@ -18,7 +18,6 @@ final class StoreService implements StoreServiceInterface
 {
     public function __construct(
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly LanguageRepositoryInterface $languages,
         private readonly PlanLimitService $planLimits,
@@ -57,7 +56,7 @@ final class StoreService implements StoreServiceInterface
 
     public function getStoreMembers(int $storeId): array
     {
-        $memberships = $this->storeUsers->findByStore($storeId);
+        $memberships = StoreUser::findByStore($storeId);
         $users = [];
         foreach ($memberships as $m) {
             $u = $this->users->findById((int) $m['user_id']);
@@ -230,11 +229,11 @@ final class StoreService implements StoreServiceInterface
 
     public function addMember(int $storeId, int $userId): ?array
     {
-        if ($this->storeUsers->findMembership($storeId, $userId) !== null) {
+        if (StoreUser::findMembership($storeId, $userId) !== null) {
             return null;
         }
 
-        return $this->storeUsers->save([
+        return StoreUser::put([
             'store_id' => $storeId,
             'user_id'  => $userId,
         ]);
@@ -242,20 +241,20 @@ final class StoreService implements StoreServiceInterface
 
     public function removeMember(int $membershipId, int $storeId): void
     {
-        $membership = $this->storeUsers->findById($membershipId);
+        $membership = StoreUser::findById($membershipId);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_membership_not_found'));
         }
-        $this->storeUsers->delete($membershipId);
+        StoreUser::remove($membershipId);
     }
 
     public function saveMemberDeductions(int $membershipId, int $storeId, bool $subjectTo): void
     {
-        $membership = $this->storeUsers->findById($membershipId);
+        $membership = StoreUser::findById($membershipId);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_member_not_found'));
         }
-        $this->storeUsers->setSubjectToDeductions($membershipId, $subjectTo);
+        StoreUser::setSubjectToDeductions($membershipId, $subjectTo);
     }
 
     public function getDeductionSettings(int $storeId): array
@@ -265,6 +264,6 @@ final class StoreService implements StoreServiceInterface
 
     public function getDeductionOverrides(int $membershipId): array
     {
-        return ['subject_to_deductions' => $this->storeUsers->getSubjectToDeductions($membershipId)];
+        return ['subject_to_deductions' => StoreUser::getSubjectToDeductions($membershipId)];
     }
 }

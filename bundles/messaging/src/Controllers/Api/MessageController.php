@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 
@@ -36,7 +36,6 @@ final class MessageController
 {
     public function __construct(
         private readonly MessageRepositoryInterface $messages,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -70,7 +69,7 @@ final class MessageController
         $data   = $request->json()->all() ?? [];
 
         $storeId = (int) ($data['store_id'] ?? 0);
-        if ($storeId <= 0 || $this->storeUsers->findMembership($storeId, $userId) === null) {
+        if ($storeId <= 0 || StoreUser::findMembership($storeId, $userId) === null) {
             throw new ForbiddenException(__('error_access_denied'));
         }
 
@@ -272,8 +271,8 @@ final class MessageController
         if ($targetUserId <= 0 || $targetUserId === $actingUserId) {
             return;
         }
-        $actingStoreIds = array_map(fn($su) => (int) $su['store_id'], $this->storeUsers->findByUser($actingUserId));
-        $targetStoreIds = array_map(fn($su) => (int) $su['store_id'], $this->storeUsers->findByUser($targetUserId));
+        $actingStoreIds = array_map(fn($su) => (int) $su['store_id'], StoreUser::findByUser($actingUserId));
+        $targetStoreIds = array_map(fn($su) => (int) $su['store_id'], StoreUser::findByUser($targetUserId));
         if (array_intersect($actingStoreIds, $targetStoreIds) === []) {
             throw new NotFoundException(__('error_participant_not_found'));
         }

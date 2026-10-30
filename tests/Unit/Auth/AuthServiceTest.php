@@ -9,7 +9,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Auth\AuthService;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\StoreRepositoryInterface;
 use App\Models\Role;
 use App\Models\RoleAssignment;
@@ -17,7 +17,6 @@ use App\Models\RoleAssignment;
 final class AuthServiceTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private ?AuthService $auth = null;
 
@@ -29,7 +28,6 @@ final class AuthServiceTest extends TestCase
         session()->forget(auth()->getName());
 
         $this->users           = $this->createStub(UserRepositoryInterface::class);
-        $this->storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores          = $this->createStub(StoreRepositoryInterface::class);
     }
 
@@ -37,7 +35,7 @@ final class AuthServiceTest extends TestCase
     private function auth(): AuthService
     {
         if ($this->auth === null) {
-            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores);
+            $this->auth = new AuthService($this->users, $this->stores);
         }
 
         return $this->auth;
@@ -145,15 +143,13 @@ final class AuthServiceTest extends TestCase
     public function testAttemptByCodeSucceeds(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $store = ['id' => 5, 'code' => 'STORE01'];
         $user  = array_merge($this->activeUser(), ['employee_code' => 'EMP001']);
 
         $this->stores->expects($this->atLeastOnce())->method('findByCode')->with('STORE01')->willReturn($store);
         $this->users->expects($this->atLeastOnce())->method('findByEmployeeCode')->with('EMP001')->willReturn($user);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(5, 10)->willReturn(['role' => 'staff']);
-
+        kintai_test_store_users(findMembership: fn() => ['role' => 'staff']);
         $result = $this->auth()->attemptByCode('EMP001', 'STORE01', 'secret123');
         $this->assertTrue($result);
     }
@@ -178,8 +174,7 @@ final class AuthServiceTest extends TestCase
         $user  = $this->activeUser();
         $this->stores->method('findByCode')->willReturn($store);
         $this->users->method('findByEmployeeCode')->willReturn($user);
-        $this->storeUsers->method('findMembership')->willReturn(null);
-
+        kintai_test_store_users(findMembership: fn() => null);
         $this->assertFalse($this->auth()->attemptByCode('EMP', 'S', 'secret123'));
     }
 

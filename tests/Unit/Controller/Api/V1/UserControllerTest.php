@@ -9,7 +9,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\PlanLimitExceededException;
 use App\Auth\OwnerGuard;
@@ -51,7 +51,6 @@ final class UserControllerTest extends TestCase
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
                 ApiOwnerAuth::permissions($this),
-                $this->createStub(StoreUserRepositoryInterface::class),
                 new OwnerGuard(ApiOwnerAuth::permissions($this), $this->users),
             );
         }
@@ -115,7 +114,6 @@ final class UserControllerTest extends TestCase
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             ApiOwnerAuth::permissions($this),
-            $this->createStub(StoreUserRepositoryInterface::class),
             new OwnerGuard(ApiOwnerAuth::permissions($this), $this->users),
             events: new Events(new ExtensionRegistry($manager)),
         );

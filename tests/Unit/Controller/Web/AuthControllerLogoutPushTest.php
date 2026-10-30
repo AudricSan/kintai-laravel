@@ -11,7 +11,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\WebPushSubscription;
@@ -40,10 +40,9 @@ final class AuthControllerLogoutPushTest extends TestCase
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 9, 'is_active' => 1, 'deleted_at' => null]);
-        $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
-        $auth = new AuthService($users, $storeUsers, $stores);
+        $auth = new AuthService($users, $stores);
 
         return new AuthController(
             kintai_test_views(sys_get_temp_dir()),
@@ -51,7 +50,6 @@ final class AuthControllerLogoutPushTest extends TestCase
             new AuditLogger(),
             $users,
             $stores,
-            $storeUsers,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             null,

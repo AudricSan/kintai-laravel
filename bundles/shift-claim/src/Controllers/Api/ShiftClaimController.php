@@ -11,7 +11,7 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use kintai\Contract\Data\Shift;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 
@@ -39,7 +39,6 @@ final class ShiftClaimController
     public function __construct(
         private readonly ShiftClaimRepositoryInterface $claims,
         private readonly PermissionService $permissions,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         // Résolus par le conteneur ; facultatifs pour les tests qui ne touchent ni à la création ni à l'approbation.
         private readonly ?ShiftClaimApproval $approval = null,
     ) {}
@@ -99,7 +98,7 @@ final class ShiftClaimController
         $userId = (int) ($body['user_id'] ?? $authId);
 
         // Pour soi-même : membre du magasin suffit. Pour un tiers : open_shifts.approve sur ce magasin.
-        $forSelf = $userId === $authId && $this->storeUsers->findMembership($storeId, $authId) !== null;
+        $forSelf = $userId === $authId && StoreUser::findMembership($storeId, $authId) !== null;
         if (!$forSelf && !$this->permissions->can($authUser, 'open_shifts.approve', $storeId)) {
             throw new ForbiddenException(__('error_permission_insufficient', ['key' => 'open_shifts.approve']));
         }

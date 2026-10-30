@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Shift;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Extension\Attendances;
 use App\Extension\PendingRequests;
 use App\Repositories\UserRepositoryInterface;
@@ -24,7 +24,6 @@ final class DashboardAlertService
 
     public function __construct(
         private readonly UserRepositoryInterface $users,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         // Demandes en attente (fournisseurs des bundles) ; sans elles (tests), celles de la requête courante.
         private readonly ?PendingRequests $pendingRequests = null,
     ) {}
@@ -83,7 +82,7 @@ final class DashboardAlertService
 
         $result = [];
         foreach ($storeIds as $sid) {
-            foreach ($this->storeUsers->findByStore($sid) as $su) {
+            foreach (StoreUser::findByStore($sid) as $su) {
                 $uid = (int) $su['user_id'];
                 if (isset($scheduledUserIds[$uid]) || isset($result[$uid])) {
                     continue;

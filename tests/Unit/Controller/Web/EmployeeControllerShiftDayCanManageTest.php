@@ -15,7 +15,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
@@ -39,7 +39,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class EmployeeControllerShiftDayCanManageTest extends TestCase
 {
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private EmployeeController $controller;
     private string $viewDir;
@@ -54,13 +53,12 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
 
         // Pas de publication de planning dans ce test : tous les shifts sont visibles.
         \Illuminate\Container\Container::getInstance()->bind(\App\Services\SchedulePublication::class, static fn() => throw new \RuntimeException('indisponible'));
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
         $this->viewDir    = $viewDir;
         $this->controller = $this->buildController();
 
-        $this->storeUsers->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [
+        kintai_test_store_users(findByUser: fn($a0) => $a0 === 9 ? [
             ['user_id' => 9, 'store_id' => 1, 'role' => 'staff'],
             ['user_id' => 9, 'store_id' => 2, 'role' => 'staff'],
         ] : []);
@@ -72,7 +70,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         return new EmployeeController(
             kintai_test_views($this->viewDir),
             $this->stores,
-            $this->storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new AuditLogger(),
             new NotificationService(

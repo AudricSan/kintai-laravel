@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ShiftClaim\Controllers\Api;
 
 
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Api\ShiftClaimController;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
@@ -29,7 +29,6 @@ final class ShiftClaimControllerTest extends TestCase
 {
     private ShiftClaimRepositoryInterface&Stub $claims;
     private ?ShiftClaimController $controller = null;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
 
     protected function setUp(): void
     {
@@ -42,8 +41,7 @@ final class ShiftClaimControllerTest extends TestCase
         if ($this->controller === null) {
             $this->controller  = new ShiftClaimController(
                 $this->claims,
-                new PermissionService(),
-                $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class)
+                new PermissionService()
             );
         }
 

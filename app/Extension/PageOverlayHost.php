@@ -6,7 +6,7 @@ namespace App\Extension;
 
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
@@ -34,7 +34,7 @@ final class PageOverlayHost
             $now       ??= new \DateTimeImmutable('now');
             $storeIds    = array_map(
                 static fn(array $m): int => (int) $m['store_id'],
-                $container->make(StoreUserRepositoryInterface::class)->findByUser($userId),
+                StoreUser::findByUser($userId),
             );
 
             // Permission accordée : portée globale, ou sur au moins un des magasins de l'utilisateur.

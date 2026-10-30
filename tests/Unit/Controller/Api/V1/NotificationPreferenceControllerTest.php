@@ -9,7 +9,7 @@ use App\BundleManager;
 use App\Exceptions\ValidationException;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\NotificationPreferenceService;
@@ -44,13 +44,10 @@ final class NotificationPreferenceControllerTest extends TestCase
         $manager  = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByUser')->willReturn([]);
-
+        kintai_test_store_users(findByUser: fn() => []);
         $this->controller = new NotificationPreferenceController(
             new NotificationPreferenceService($registry, $users),
-            new UserTargetGuard($users, $storeUsers, ApiOwnerAuth::permissions($this)),
+            new UserTargetGuard($users, ApiOwnerAuth::permissions($this)),
         );
     }
 

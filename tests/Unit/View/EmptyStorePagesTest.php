@@ -8,7 +8,7 @@ use Illuminate\Container\Container;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
@@ -47,7 +47,6 @@ final class EmptyStorePagesTest extends TestCase
         $roleSync = (new \ReflectionClass(RoleAssignmentSyncService::class))->newInstanceWithoutConstructor();
         $service = new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             $roleSync,
         );

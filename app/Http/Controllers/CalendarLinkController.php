@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CalendarConnection;
 use App\Auth\AuthService;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -37,7 +37,6 @@ final class CalendarLinkController
         private readonly GoogleCalendarSettings $settings,
         private readonly GoogleCalendarClient $client,
         private readonly CalendarSyncService $sync,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly GoogleRedirectUri $redirect,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -165,7 +164,7 @@ final class CalendarLinkController
         if ($mode === 'store') {
             $userId = (int) ($this->auth->user()['id'] ?? 0);
             // Seul un magasin de la personne est accepté : le nom d'un autre magasin n'a pas à fuiter dans son agenda.
-            if ($storeId <= 0 || $this->storeUsers->findMembership($storeId, $userId) === null) {
+            if ($storeId <= 0 || StoreUser::findMembership($storeId, $userId) === null) {
                 return ['instance', 0];
             }
         }

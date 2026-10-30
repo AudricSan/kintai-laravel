@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\PlanningCheck\Services;
 use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface as Repo;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
 
@@ -26,7 +26,6 @@ final class PlanningCheckService
     public function __construct(
         private readonly Repo $repo,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $members,
         private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
@@ -86,7 +85,7 @@ final class PlanningCheckService
     public function approvers(int $storeId): array
     {
         $ids = [];
-        foreach ($this->members->findByStore($storeId) as $membership) {
+        foreach (StoreUser::findByStore($storeId) as $membership) {
             $user = $this->users->findById((int) $membership['user_id']);
             if ($user !== null && !empty($user['is_active']) && $this->permissions->can($user, 'planning_check.approve', $storeId)) {
                 $ids[(int) $user['id']] = true;

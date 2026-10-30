@@ -17,7 +17,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -41,7 +41,6 @@ final class AdminShiftControllerTest extends TestCase
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
     private UserRepositoryInterface&Stub $users;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminShiftController $controller = null;
     private ?SchedulePublication $publication = null;
 
@@ -64,7 +63,6 @@ final class AdminShiftControllerTest extends TestCase
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -78,7 +76,6 @@ final class AdminShiftControllerTest extends TestCase
                 $view,
                 $this->users,
                 $this->stores,
-                $this->storeUsers,
                 $auditLogger,
                 $this->notifs,
                 $this->shiftService,
@@ -840,7 +837,7 @@ final class AdminShiftControllerTest extends TestCase
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
         kintai_test_shift_types([]);
-        $this->storeUsers->method('findByStore')->willReturn([
+        kintai_test_store_users(findByStore: fn() => [
             ['store_id' => 1, 'user_id' => 10],
             ['store_id' => 1, 'user_id' => 11],
             ['store_id' => 1, 'user_id' => 12],
@@ -874,7 +871,7 @@ final class AdminShiftControllerTest extends TestCase
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
         kintai_test_shift_types([]);
-        $this->storeUsers->method('findByStore')->willReturn([]);
+        kintai_test_store_users(findByStore: fn() => []);
         $this->users->method('findAll')->willReturn([]);
 
         $req = Request::capture();

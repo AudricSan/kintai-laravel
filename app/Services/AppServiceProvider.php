@@ -10,7 +10,7 @@ use App\Services\Calendar\CurlHttpTransport;
 use App\Services\Calendar\HttpTransportInterface;
 use App\Mail\MailerService;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -187,7 +187,6 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
             $c->make(StoreRepositoryInterface::class),
-            $c->make(StoreUserRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(LanguageRepositoryInterface::class),
             $c->make(PlanLimitService::class),
@@ -196,7 +195,6 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
             $c->make(StoreRepositoryInterface::class),
-            $c->make(StoreUserRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(RoleAssignmentSyncService::class),
             $c->make(\App\Extension\Sales::class),

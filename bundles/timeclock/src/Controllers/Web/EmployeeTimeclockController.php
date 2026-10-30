@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -25,7 +25,6 @@ final class EmployeeTimeclockController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly TimeclockRepositoryInterface $timeclocks,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -161,7 +160,7 @@ final class EmployeeTimeclockController
     {
         return array_values(array_unique(array_map(
             fn(array $m): int => (int) $m['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         )));
     }
 

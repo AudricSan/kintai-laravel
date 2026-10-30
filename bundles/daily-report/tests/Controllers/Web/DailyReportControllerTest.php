@@ -15,7 +15,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -39,7 +39,6 @@ use PHPUnit\Framework\TestCase;
 final class DailyReportControllerTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private DailyReportRepositoryInterface&Stub $reports;
     private NotificationService&Stub $notifs;
@@ -50,7 +49,6 @@ final class DailyReportControllerTest extends TestCase
         kintai_test_database();
         kintai_test_migrate();
         $this->users      = $this->createStub(UserRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->notifs     = $this->createStub(NotificationService::class);
 
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
@@ -73,13 +71,12 @@ final class DailyReportControllerTest extends TestCase
                 $permissions,
                 new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
                 $translations,
-                new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
+                new \App\Services\UserSelection($this->users, $permissionService),
             );
             $this->controller = new DailyReportController(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->reports,
                 $this->stores,
-                $this->storeUsers,
                 $this->users,
                 $permissions,
                 $pdfService,
@@ -88,7 +85,7 @@ final class DailyReportControllerTest extends TestCase
                 $translations,
                 $this->notifs,
                 $permissionService,
-                new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
+                new \App\Services\UserSelection($this->users, $permissionService),
             );
         }
 
@@ -108,10 +105,7 @@ final class DailyReportControllerTest extends TestCase
         ]);
         kintai_test_shift_types([]);
 
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $sid, int $uid) => ($sid === $storeId && $uid === 10) ? ['id' => 1, 'store_id' => $sid, 'user_id' => $uid] : null
-        );
-
+        kintai_test_store_users(findMembership: fn(int $sid, int $uid) => ($sid === $storeId && $uid === 10) ? ['id' => 1, 'store_id' => $sid, 'user_id' => $uid] : null);
         $this->users->method('findById')->willReturnMap([
             [10, ['id' => 10, 'last_name' => 'Dupont', 'first_name' => 'Jean']],
             [20, ['id' => 20, 'last_name' => 'Dupont', 'first_name' => 'Marie']],
@@ -127,7 +121,6 @@ final class DailyReportControllerTest extends TestCase
 
     public function testSubmitNotifiesManagersWithApprovePermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
@@ -136,11 +129,7 @@ final class DailyReportControllerTest extends TestCase
             'id' => 10, 'store_id' => 1, 'status' => 'draft', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);
         $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 9)->willReturn(['store_id' => 1, 'user_id' => 9]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([
-            ['user_id' => 9],  // l'auteur, avec seulement le droit de soumettre (pas de valider)
-            ['user_id' => 20], // manager avec daily_reports.approve
-        ]);
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 9], ['user_id' => 20]] : [], findMembership: fn(int $s, int $u) => $s === 1 && $u === 9 ? ['store_id' => 1, 'user_id' => 9] : null);
         $this->users->method('findById')->willReturnMap([
             [9, ['id' => 9]],
             [20, ['id' => 20]],
@@ -155,7 +144,7 @@ final class DailyReportControllerTest extends TestCase
         kintai_test_roles(findById: fn(int $id) => array_column([
             [2, ['id' => 2, 'is_system' => 0]],
             [3, ['id' => 3, 'is_system' => 0]],
-        ], 1, 0)[$id] ?? null, getPermissions: static fn(int $id) => array_column([
+        ], 1, 0)[$id] ?? null, getPermissions: fn(int $id) => array_column([
             [2, ['daily_reports.submit', 'daily_reports.approve']],
             [3, ['daily_reports.submit']],
         ], 1, 0)[$id] ?? []);
@@ -172,7 +161,6 @@ final class DailyReportControllerTest extends TestCase
 
     public function testValidateNotifiesAuthorButNotSelf(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
@@ -181,7 +169,7 @@ final class DailyReportControllerTest extends TestCase
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);
         $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 20)->willReturn(['store_id' => 1, 'user_id' => 20]);
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 20 ? [
             ['id' => 1, 'user_id' => 20, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ] : []);
@@ -200,8 +188,7 @@ final class DailyReportControllerTest extends TestCase
     /** Ouvrir un rapport qu'on a le droit de voir marque ses notifications comme lues. */
     public function testShowMarksTheReportNotificationsAsRead(): void
     {
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturn(['store_id' => 1, 'user_id' => 20]);
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
@@ -230,8 +217,7 @@ final class DailyReportControllerTest extends TestCase
     /** Sans le droit de voir le rapport, rien n'est marqué lu. */
     public function testShowByAUserWhoCannotSeeTheReportMarksNothing(): void
     {
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturn(['store_id' => 1, 'user_id' => 20]);
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
@@ -253,7 +239,6 @@ final class DailyReportControllerTest extends TestCase
 
     public function testValidateBySelfDoesNotSelfNotify(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
@@ -262,7 +247,7 @@ final class DailyReportControllerTest extends TestCase
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);
         $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 9)->willReturn(['store_id' => 1, 'user_id' => 9]);
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 9]);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 9 ? [
             ['id' => 1, 'user_id' => 9, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ] : []);

@@ -12,7 +12,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -41,9 +41,8 @@ final class AuthControllerSwitchRefererTest extends TestCase
         $languages->method('findAllActive')->willReturn([['code' => 'en'], ['code' => 'ja']]);
         kintai_test_assignments(findByUser: fn() => []);
         $users = $this->createStub(UserRepositoryInterface::class);
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $auth = new AuthService(
-            $users, $storeUsers, $this->createStub(StoreRepositoryInterface::class),
+            $users, $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 
@@ -53,7 +52,6 @@ final class AuthControllerSwitchRefererTest extends TestCase
             new AuditLogger(),
             $users,
             $this->createStub(StoreRepositoryInterface::class),
-            $storeUsers,
             $languages,
             new AvatarImageOptimizer(),
         );

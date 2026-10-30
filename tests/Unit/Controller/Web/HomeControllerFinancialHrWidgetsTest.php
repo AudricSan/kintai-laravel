@@ -10,7 +10,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -53,10 +53,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
         $this->seedWidgets(1, 'admin', $enabledWidgets);
-
-        $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsersRepo->method('findByStore')->willReturn([]);
-
+        kintai_test_store_users(findByStore: fn() => []);
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
         $storeStats->method('multiStoreComparison')->willReturn([]);
         // La vue financière ne lit plus que le coût par mois (costByMonth()), pas storeStats() complet.
@@ -76,13 +73,12 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         // qu'à l'admin global (is_admin=1) dans ce test.
         $permissions = new PermissionService();
 
-        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,
@@ -120,7 +116,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
     public function testFinancialOverviewComputesCurrentAndPreviousMonthDelta(): void
     {
         $currentMonth  = date('Y-m');
-        $previousMonth = date('Y-m', strtotime('-1 month'));
+        $previousMonth = date('Y-m', strtotime('first day of last month'));
 
         $controller = $this->buildController(['financial_overview'], true, [
             1 => [

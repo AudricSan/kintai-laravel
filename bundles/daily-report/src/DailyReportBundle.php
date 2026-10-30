@@ -19,7 +19,7 @@ use kintai\Contract\Container;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
@@ -157,7 +157,7 @@ final class DailyReportBundle extends Bundle
                 $stores = $container->make(StoreRepositoryInterface::class);
                 $permissions = $container->make(DailyReportPermissionService::class);
                 $accessible = [];
-                foreach ($container->make(StoreUserRepositoryInterface::class)->findByUser((int) $user['id']) as $membership) {
+                foreach (StoreUser::findByUser((int) $user['id']) as $membership) {
                     $store = $stores->findById((int) $membership['store_id']);
                     if ($store !== null && $permissions->canCreate($user, $store, $membership)) {
                         $accessible[] = $store;

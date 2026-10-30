@@ -10,7 +10,7 @@ use App\Repositories\DatabaseUserRepository;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 
@@ -40,7 +40,6 @@ final class AuthService
 
     public function __construct(
         private readonly UserRepositoryInterface $users,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
     ) {}
 
@@ -94,7 +93,7 @@ final class AuthService
         }
 
         // Vérifier que l'utilisateur est membre de ce store
-        $membership = $this->storeUsers->findMembership((int) $store['id'], (int) $user['id']);
+        $membership = StoreUser::findMembership((int) $store['id'], (int) $user['id']);
         if ($membership === null) {
             $this->burnPasswordCheck($password);
             return false;

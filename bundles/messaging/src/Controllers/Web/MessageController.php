@@ -9,7 +9,7 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -29,7 +29,6 @@ final class MessageController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly MessageRepositoryInterface $msgRepo,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -395,7 +394,7 @@ final class MessageController
         $userId = (int) ($user['id'] ?? 0);
         return array_values(array_unique(array_map(
             fn($su) => (int) $su['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         )));
     }
 
@@ -412,7 +411,7 @@ final class MessageController
     {
         $ids = [];
         foreach ($managedIds as $storeId) {
-            foreach ($this->storeUsers->findByStore($storeId) as $m) {
+            foreach (StoreUser::findByStore($storeId) as $m) {
                 $ids[] = (int) $m['user_id'];
             }
         }
@@ -441,7 +440,7 @@ final class MessageController
     private function assertFeature(Request $request, string $feature): void
     {
         $user        = $request->attributes->get('auth_user');
-        $memberships = $this->storeUsers->findByUser((int) ($user['id'] ?? 0));
+        $memberships = StoreUser::findByUser((int) ($user['id'] ?? 0));
         if (empty($memberships)) {
             return;
         }

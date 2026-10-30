@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserShiftTypeRate;
 
 final class EmployeeStatsService
@@ -20,7 +20,6 @@ final class EmployeeStatsService
     ];
 
     public function __construct(
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
     ) {}
 
@@ -52,7 +51,7 @@ final class EmployeeStatsService
             $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
         }
 
-        $memberships  = $this->storeUsers->findByUser($userId);
+        $memberships  = StoreUser::findByUser($userId);
         $currency     = 'JPY';
         $currencyStyle = 'kanji';
         if (!empty($memberships)) {

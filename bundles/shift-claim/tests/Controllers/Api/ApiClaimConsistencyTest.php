@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,6 @@ final class ApiClaimConsistencyTest extends TestCase
     private const EMPLOYEE = 3;
 
     private PermissionService $permissions;
-    private StoreUserRepositoryInterface $storeUsers;
 
     protected function setUp(): void
     {
@@ -40,8 +39,7 @@ final class ApiClaimConsistencyTest extends TestCase
             : []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['open_shifts.approve', 'open_shifts.view'], getGlobalPermissionKeys: fn() => []);
         $this->permissions = new PermissionService();
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturn(['store_id' => 1, 'user_id' => self::EMPLOYEE]);
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => self::EMPLOYEE]);
     }
 
     private function request(int $caller, array $json, array $params = []): Request
@@ -72,7 +70,7 @@ final class ApiClaimConsistencyTest extends TestCase
         kintai_test_shifts($shift === null ? [] : [$shift]);
 
         $this->expectException(ValidationException::class);
-        (new ShiftClaimController($claims, $this->permissions, $this->storeUsers))
+        (new ShiftClaimController($claims, $this->permissions))
             ->store($this->request(self::EMPLOYEE, ['store_id' => 1, 'shift_id' => 8]));
     }
 
@@ -92,7 +90,7 @@ final class ApiClaimConsistencyTest extends TestCase
         });
         $approval = new ShiftClaimApproval($claims, $this->createStub(StoreRepositoryInterface::class), $notifs);
 
-        $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $approval))
+        $response = (new ShiftClaimController($claims, $this->permissions, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -110,7 +108,7 @@ final class ApiClaimConsistencyTest extends TestCase
         $approval = new ShiftClaimApproval($claims, $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(NotificationService::class));
 
-        $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $approval))
+        $response = (new ShiftClaimController($claims, $this->permissions, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
         $this->assertSame(409, $response->getStatusCode());

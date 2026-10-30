@@ -10,7 +10,7 @@ use Tests\Support\TestContainer;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -23,19 +23,18 @@ use PHPUnit\Framework\TestCase;
 final class EmployeeTimeclockControllerTest extends TestCase
 {
     private TimeclockRepositoryInterface&Stub $timeclocks;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private ?EmployeeTimeclockController $controller = null;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $viewDir = sys_get_temp_dir() . '/kintai-timeclock-views';
         $this->ensureViewFile($viewDir, 'employee-timeclock');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->timeclocks = $this->createStub(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
     }
 
@@ -49,7 +48,6 @@ final class EmployeeTimeclockControllerTest extends TestCase
             $this->controller = new EmployeeTimeclockController(
                 $view,
                 $this->timeclocks,
-                $this->storeUsers,
                 $this->stores,
                 new AuditLogger(),
             );
@@ -69,11 +67,10 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testTimeclockRendersWhenFeatureEnabled(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->method('findByUserAndDate')->willReturn([]);
         $this->timeclocks->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([]);
@@ -85,12 +82,11 @@ final class EmployeeTimeclockControllerTest extends TestCase
 
     public function testTimeclockRedirectsWhenFeatureDisabled(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(5)->willReturn(['shifts']);
 
         $response = $this->controller()->timeclock($req);
@@ -101,11 +97,10 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInCreatesEntry(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
             fn(array $data) => $data['user_id'] === 1 && $data['store_id'] === 5 && $data['clock_out_time'] === null
@@ -120,12 +115,11 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInUsesTheChosenStoreWhenMember(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST['store_id'] = '7';
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5], ['store_id' => 7]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5], ['store_id' => 7]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
             fn(array $data) => $data['store_id'] === 7
@@ -137,12 +131,11 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInRefusesAStoreTheEmployeeDoesNotBelongTo(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST['store_id'] = '99';
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->expects($this->never())->method('save');
 
@@ -154,11 +147,10 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInRefusesAnEmployeeWithoutAnyStore(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
         $this->timeclocks->expects($this->never())->method('save');
 
@@ -169,11 +161,10 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInRejectsWhenAlreadyActive(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(['id' => 9]);
         $this->timeclocks->expects($this->never())->method('save');
 
@@ -215,14 +206,13 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInUsesClientTimeWhenWithinTrustWindow(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $clientTime = (new \DateTimeImmutable('-2 hours'))->format('c');
         $_POST['client_time'] = $clientTime;
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
 
         $expected = (new \DateTimeImmutable($clientTime))->format('Y-m-d H:i:s');
@@ -239,13 +229,12 @@ final class EmployeeTimeclockControllerTest extends TestCase
     public function testClockInIgnoresClientTimeOutsideTrustWindow(): void
     {
         $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $_POST['client_time'] = (new \DateTimeImmutable('-2 days'))->format('c');
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([['store_id' => 5]]);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
         $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
 
         $today = date('Y-m-d');

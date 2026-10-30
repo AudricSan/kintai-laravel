@@ -8,7 +8,7 @@ use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -22,7 +22,6 @@ final class TimeclockController
 {
     public function __construct(
         private readonly TimeclockRepositoryInterface $timeclocks,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
     ) {}
@@ -79,11 +78,11 @@ final class TimeclockController
 
         $storeId = (int) ($data['store_id'] ?? 0);
         if ($storeId === 0) {
-            $memberships = $this->storeUsers->findByUser($userId);
+            $memberships = StoreUser::findByUser($userId);
             $storeId     = $memberships ? (int) $memberships[0]['store_id'] : 0;
         }
         // Audit du 03/10/2026 : le store_id du corps n'était jamais comparé aux magasins de l'employé.
-        if ($storeId > 0 && $this->storeUsers->findMembership($storeId, $userId) === null) {
+        if ($storeId > 0 && StoreUser::findMembership($storeId, $userId) === null) {
             throw new \kintai\Contract\Exceptions\ForbiddenException(__('error_access_denied'));
         }
 

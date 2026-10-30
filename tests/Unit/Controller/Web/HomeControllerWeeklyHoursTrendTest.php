@@ -10,7 +10,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -53,22 +53,19 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
         // hebdomadaire de ce widget précis, pas sur financial_overview/hr_absenteeism
         // (storeStats() n'est pas mocké pour couvrir leurs appels ici).
         $this->seedWidgets(1, 'admin', ['store_stats_summary']);
-
-        $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsersRepo->method('findByStore')->willReturn([]);
+        kintai_test_store_users(findByStore: fn() => []);
         kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
         kintai_test_roles(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 5 ? ['payroll.view'] : []);
         $permissions = new PermissionService();
 
-        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

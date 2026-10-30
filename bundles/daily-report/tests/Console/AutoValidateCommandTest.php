@@ -46,7 +46,6 @@ final class AutoValidateCommandTest extends TestCase
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             kintai_test_real_translator('en', false),
             new \App\Services\UserSelection(
-                $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
                 $users,
                 new PermissionService(),
             ),

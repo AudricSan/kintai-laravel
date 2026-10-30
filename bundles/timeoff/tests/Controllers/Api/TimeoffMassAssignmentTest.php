@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -30,7 +30,6 @@ final class TimeoffMassAssignmentTest extends TestCase
     private const OTHER    = 6;
 
     private PermissionService $permissions;
-    private StoreUserRepositoryInterface $storeUsers;
 
     protected function setUp(): void
     {
@@ -39,14 +38,9 @@ final class TimeoffMassAssignmentTest extends TestCase
         ]);
         kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['timeoff.create', 'timeoff.update'], getGlobalPermissionKeys: fn() => []);
         $this->permissions = new PermissionService();
-
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
+        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
                 ? ['store_id' => $storeId, 'user_id' => $userId]
-                : null
-        );
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => self::MY_STORE]]);
+                : null);
     }
 
     protected function tearDown(): void
@@ -74,7 +68,7 @@ final class TimeoffMassAssignmentTest extends TestCase
                 && $d['store_id'] === self::MY_STORE
                 && $d['reason'] === 'vacances'
         ))->willReturn(['id' => 40]);
-        $controller = new TimeoffRequestController($repo, new AuditLogger(), $this->permissions, $this->storeUsers);
+        $controller = new TimeoffRequestController($repo, new AuditLogger(), $this->permissions);
 
         $response = $controller->store($this->request([
             'id' => 7, 'user_id' => self::ME, 'store_id' => self::MY_STORE, 'reason' => 'vacances',
@@ -89,7 +83,7 @@ final class TimeoffMassAssignmentTest extends TestCase
     {
         $repo = $this->createMock(TimeoffRequestRepositoryInterface::class);
         $repo->expects($this->never())->method('save');
-        $controller = new TimeoffRequestController($repo, new AuditLogger(), $this->permissions, $this->storeUsers);
+        $controller = new TimeoffRequestController($repo, new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->store($this->request(['user_id' => self::ME, 'store_id' => self::OTHER]));
@@ -106,7 +100,7 @@ final class TimeoffMassAssignmentTest extends TestCase
                 && !array_key_exists('store_id', $d)
                 && !array_key_exists('user_id', $d)
         ))->willReturn(['id' => 7]);
-        $controller = new TimeoffRequestController($repo, new AuditLogger(), $this->permissions, $this->storeUsers);
+        $controller = new TimeoffRequestController($repo, new AuditLogger(), $this->permissions);
 
         $controller->update($this->request(['status' => 'approved', 'store_id' => self::OTHER, 'user_id' => 1], ['id' => '7']));
     }

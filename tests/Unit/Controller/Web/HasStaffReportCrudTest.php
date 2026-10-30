@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\ValidationException;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Http\Controllers\HasAdminAccess;
 use App\Http\Controllers\Staff\HasStaffReportCrud;
@@ -18,28 +18,24 @@ use PHPUnit\Framework\TestCase;
 final class HasStaffReportCrudTest extends TestCase
 {
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
 
     protected function setUp(): void
     {
         $this->stores     = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Contrôleur minimal utilisant le trait ; $withStoreUsers=false simule une ancienne version de bundle. */
     private function harness(bool $withStoreUsers = true): object
     {
         $stores     = $this->stores;
-        $storeUsers = $this->storeUsers;
 
         if ($withStoreUsers) {
-            return new class($stores, $storeUsers) {
+            return new class($stores) {
                 use HasAdminAccess;
                 use HasStaffReportCrud;
 
                 public function __construct(
                     private readonly StoreRepositoryInterface $stores,
-                    private readonly StoreUserRepositoryInterface $storeUsers,
                 ) {}
 
                 protected function reportRepo(): object { return new \stdClass(); }
@@ -116,15 +112,14 @@ final class HasStaffReportCrudTest extends TestCase
 
     public function testReportUserMustBeStoreMember(): void
     {
-        $this->storeUsers->method('findMembership')->willReturn(null);
-
+        kintai_test_store_users(findMembership: fn() => null);
         $this->expectException(ValidationException::class);
         $this->harness()->checkUser(9, 1);
     }
 
     public function testReportUserAcceptedWhenStoreMemberOrEmpty(): void
     {
-        $this->storeUsers->method('findMembership')->willReturnCallback(fn(int $s, int $u) => $u === 9 ? ['id' => 1] : null);
+        kintai_test_store_users(findMembership: fn(int $s, int $u) => $u === 9 ? ['id' => 1] : null);
         $h = $this->harness();
 
         $h->checkUser(9, 1);

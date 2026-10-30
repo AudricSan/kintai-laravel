@@ -11,7 +11,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
@@ -59,7 +59,6 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(StoreUserRepositoryInterface::class),
             new AuditLogger(),
             $this->createStub(NotificationService::class),
             $this->createStub(ShiftServiceInterface::class),

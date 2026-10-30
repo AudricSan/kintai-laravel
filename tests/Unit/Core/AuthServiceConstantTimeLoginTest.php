@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -26,7 +26,6 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private AuthService $auth;
     /** Durée d'un password_verify réel au coût utilisé par l'application (12). */
     private float $verifyDuration;
@@ -37,11 +36,9 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
 
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         $this->auth = new AuthService(
             $this->users,
-            $this->storeUsers,
             $this->stores,
             $this->createStub(UserRepositoryInterface::class),
         );
@@ -107,8 +104,7 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
     {
         $this->stores->method('findByCode')->willReturn(['id' => 1]);
         $this->users->method('findByEmployeeCode')->willReturn(['id' => 5, 'is_active' => 1, 'deleted_at' => null, 'password_hash' => 'not-a-real-hash']);
-        $this->storeUsers->method('findMembership')->willReturn(null);
-
+        kintai_test_store_users(findMembership: fn() => null);
         $this->assertFailsSlowly(fn() => $this->auth->attemptByCode('E005', 'TOKYO', bin2hex(random_bytes(6))));
     }
 

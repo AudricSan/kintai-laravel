@@ -13,7 +13,7 @@ use App\Models\Availability;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
-use App\Repositories\DatabaseStoreUserRepository;
+use App\Models\StoreUser;
 use App\Repositories\DatabaseUserRepository;
 use App\Services\AvailabilityGuard;
 use App\Services\ShiftChangeNotifier;
@@ -66,7 +66,6 @@ final class WeekPlannerTest extends TestCase
         $this->monday     = '2026-11-02';
         $this->nextMonday = '2026-11-09';
         $this->planner = new WeekPlanner(
-            new DatabaseStoreUserRepository(),
             new DatabaseUserRepository(),
             new AvailabilityGuard(),
         );

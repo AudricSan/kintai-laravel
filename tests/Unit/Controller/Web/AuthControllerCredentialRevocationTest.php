@@ -14,7 +14,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -38,7 +38,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     private const USER_ID = 7;
 
     private UserRepositoryInterface&Stub $users;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private UserRepositoryInterface&Stub $remember;
     private AuthService $auth;
     private AuthController $controller;
@@ -67,14 +66,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->row = array_merge($this->row, $data);
             return $this->row;
         });
-
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $this->remember = $this->createStub(UserRepositoryInterface::class);
 
         $this->auth = new AuthService(
             $this->users,
-            $this->storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
@@ -94,7 +90,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             new AuditLogger(),
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
-            $this->storeUsers,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker($this->remember),

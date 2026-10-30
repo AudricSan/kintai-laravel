@@ -9,7 +9,7 @@ use App\Exceptions\ForbiddenException;
 use App\Http\Middleware\PermissionMiddleware;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -19,13 +19,11 @@ use PHPUnit\Framework\TestCase;
 
 final class PermissionMiddlewareTest extends TestCase
 {
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?PermissionMiddleware $middleware = null;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
-        $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -35,7 +33,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->middleware  = new PermissionMiddleware(
                 new PermissionService(),
                 kintai_test_views(sys_get_temp_dir()),
-                $this->storeUsers,
             );
         }
 
@@ -290,10 +287,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMembershipRuleAllowsAnyStoreMemberWithoutPermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [] : []);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 10)->willReturn(['store_id' => 1, 'user_id' => 10]);
-
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 10]);
         $request = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
 
         $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());
@@ -307,10 +302,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testMembershipRuleRejectsNonMemberWithoutPermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [] : []);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 10)->willReturn(null);
-
+        kintai_test_store_users(findMembership: fn() => null);
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -319,15 +312,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMembershipRuleStillGrantsViaScopedPermissionAndNarrows(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // Un gestionnaire avec daily_reports.create sur le store passe par la
         // clé RBAC normale (managed_store_ids narrowé), sans consulter l'adhésion.
         kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['daily_reports.create'] : []);
-        $this->storeUsers->expects($this->never())->method('findMembership');
-
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -339,12 +329,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testNonMembershipRuleNeverConsultsMembershipAndRedirectsWithoutAnyPermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // Une règle sans 'membership' n'a pas d'exception libre-service (ex. admin.daily_reports.delete).
         // Aucune permission nulle part → porte grossière → /employee (pas de findMembership consulté).
         kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [] : []);
-        $this->storeUsers->expects($this->never())->method('findMembership');
-
         $request  = $this->makeRequest('daily_reports.delete', ['id' => 10], null, ['id' => '1']);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -354,13 +341,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Une permission RBAC existe ailleurs (porte grossière franchie) mais pas la clé exacte requise : 403. */
     public function testNonMembershipRuleForbiddenWhenSomePermissionExistsButNotTheRequiredOne(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['photos.view'] : []);
-        $this->storeUsers->expects($this->never())->method('findMembership');
-
         $request = $this->makeRequest('daily_reports.delete', ['id' => 10], null, ['id' => '1']);
 
         $this->expectException(ForbiddenException::class);

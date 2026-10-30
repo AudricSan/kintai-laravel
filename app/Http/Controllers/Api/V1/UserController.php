@@ -15,7 +15,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Extension\Events;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +32,6 @@ final class UserController
         private readonly AuditLogger $auditLogger,
         private readonly PlanLimitService $planLimits,
         private readonly PermissionService $permissions,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly OwnerGuard $ownerGuard,
         // Optionnel pour les tests qui construisent le contrôleur à la main.
         private readonly ?CredentialRevoker $revoker = null,
@@ -58,7 +57,7 @@ final class UserController
         if (!$this->permissions->hasUnrestrictedGrant($authUser, 'employees.view')) {
             $visible = [(int) ($authUser['id'] ?? 0) => true];
             foreach ($this->permissions->scopedStoreIds((int) ($authUser['id'] ?? 0), 'employees.view') as $storeId) {
-                foreach ($this->storeUsers->findByStore($storeId) as $member) {
+                foreach (StoreUser::findByStore($storeId) as $member) {
                     $visible[(int) $member['user_id']] = true;
                 }
             }
@@ -162,7 +161,7 @@ final class UserController
     /** @return int[] */
     private function storeIdsOf(int $userId): array
     {
-        return array_map(fn(array $m): int => (int) $m['store_id'], $this->storeUsers->findByUser($userId));
+        return array_map(fn(array $m): int => (int) $m['store_id'], StoreUser::findByUser($userId));
     }
 
     /** Code employé en majuscules (comme le formulaire web) ; nom affiché « Nom Prénom » à défaut (UserDisplayName). */

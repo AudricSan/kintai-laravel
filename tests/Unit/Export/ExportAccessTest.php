@@ -13,7 +13,7 @@ use App\Export\ExportAccess;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,19 +36,16 @@ final class ExportAccessTest extends TestCase
         $stores->method('findActive')->willReturn([['id' => 3], ['id' => 4]]);
 
         // Magasin 3 : employés 5 et 6 ; magasin 4 : employé 7. Le gérant est membre du 3.
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByStore')->willReturnCallback(fn(int $store): array => match ($store) {
+        kintai_test_store_users(findByStore: fn(int $store): array => match ($store) {
             3 => [['user_id' => 5], ['user_id' => 6], ['user_id' => 9]],
             4 => [['user_id' => 7]],
             default => [],
-        });
-        $storeUsers->method('findByUser')->willReturnCallback(fn(int $user): array => match ($user) {
+        }, findByUser: fn(int $user): array => match ($user) {
             5 => [['store_id' => 3]],
             9 => [['store_id' => 3]],
             default => [],
         });
-
-        $this->access = new ExportAccess(new PermissionService(), $stores, $storeUsers);
+        $this->access = new ExportAccess(new PermissionService(), $stores);
     }
 
     private function dataset(string $permission, bool $self = false, bool $perPerson = true): ExportDataset

@@ -10,7 +10,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -47,18 +47,16 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findAll')->willReturn([]);
         kintai_test_shifts([]);
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByStore')->willReturn([]);
+        kintai_test_store_users(findByStore: fn() => []);
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
         $permissions = new PermissionService(
         );
-        $dashboardAlerts = new DashboardAlertService($users, $storeUsers);
+        $dashboardAlerts = new DashboardAlertService($users);
 
         $this->controller = new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $users,
             $stores,
-            $storeUsers,
             $storeStats,
             $dashboardAlerts,
             $permissions,

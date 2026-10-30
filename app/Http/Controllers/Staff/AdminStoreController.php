@@ -15,7 +15,7 @@ use App\Exceptions\ValidationException;
 use App\Extension\Sales;
 use App\Extension\StoreFeatures;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +35,6 @@ final class AdminStoreController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly StoreServiceInterface $storeService,
         private readonly StoreStatsServiceInterface $storeStatsService,
@@ -353,7 +352,7 @@ final class AdminStoreController
         $storeId = (int) $request->route('store');
         $mid     = (int) $request->route('mid');
 
-        $membership = $this->storeUsers->findById($mid);
+        $membership = StoreUser::findById($mid);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_membership_not_found'));
         }
@@ -384,7 +383,7 @@ final class AdminStoreController
         $storeId = (int) $request->route('store');
         $mid     = (int) $request->route('mid');
 
-        $membership = $this->storeUsers->findById($mid);
+        $membership = StoreUser::findById($mid);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_membership_not_found'));
         }
@@ -411,7 +410,7 @@ final class AdminStoreController
         $store = $this->stores->findById($storeId);
         if ($store === null) throw new NotFoundException(__('error_store_not_found'));
 
-        $membership = $this->storeUsers->findById($mid);
+        $membership = StoreUser::findById($mid);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_member_not_found'));
         }
@@ -435,7 +434,7 @@ final class AdminStoreController
         $mid     = (int) $request->route('mid');
         $this->assertStoreAccess($request, $storeId);
 
-        $membership = $this->storeUsers->findById($mid);
+        $membership = StoreUser::findById($mid);
         if ($membership === null || (int) $membership['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_member_not_found'));
         }
@@ -619,7 +618,7 @@ final class AdminStoreController
         $user = $this->users->findById($userId);
         if ($user === null) throw new NotFoundException(__('error_employee_not_found'));
 
-        $membership = $this->storeUsers->findMembership($storeId, $userId);
+        $membership = StoreUser::findMembership($storeId, $userId);
         if ($membership === null) throw new ForbiddenException(__('error_employee_not_store_member'));
         $roleEntry = $this->roleSync->storeRoleMapForUser($userId)[$storeId] ?? null;
         $membership['role_name']        = $roleEntry['name'] ?? '—';

@@ -10,7 +10,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -53,12 +53,7 @@ final class HomeControllerScopingTest extends TestCase
         // scoping managed_store_ids, pas sur le calcul RH/financier (storeStats() n'est
         // pas mocké pour ces widgets ici, voir HomeControllerFinancialHrWidgetsTest).
         foreach ([1, 99] as $uid) $this->seedWidgets($uid, 'admin', [ 'kpi_counters', 'store_stats_summary', 'shifts_today', 'pending_timeoff', 'timeclocks_today', ]);
-
-        $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsersRepo->method('findByStore')->willReturnCallback(
-            fn(int $storeId) => $storeMembers[$storeId] ?? []
-        );
-
+        kintai_test_store_users(findByStore: fn(int $storeId) => $storeMembers[$storeId] ?? []);
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
         $storeStats->method('multiStoreComparison')->willReturn([]);
 
@@ -70,13 +65,12 @@ final class HomeControllerScopingTest extends TestCase
         kintai_test_roles(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 5 ? ['payroll.view'] : []);
         $permissions = new PermissionService();
 
-        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

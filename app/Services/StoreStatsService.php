@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Extension\Absences;
 use App\Extension\Sales;
 use App\Extension\Swaps;
@@ -27,7 +27,6 @@ final class StoreStatsService implements StoreStatsServiceInterface
 
     public function __construct(
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly RoleAssignmentSyncService $roleSync,
         // Ventes journalières (contrat 1.14) ; sans elles (tests), celles de la requête courante.
@@ -59,7 +58,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             fn($s) => empty($s['deleted_at'])
         );
 
-        $memberIds     = array_map(fn($m) => (int) $m['user_id'], $this->storeUsers->findByStore($storeId));
+        $memberIds     = array_map(fn($m) => (int) $m['user_id'], StoreUser::findByStore($storeId));
         $rateCache     = $this->rateCacheFor($memberIds);
         $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $wageCalc      = new ShiftWageCalculator();
@@ -107,7 +106,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         ));
         $n = count($allShifts);
 
-        $members   = $this->storeUsers->findByStore($storeId);
+        $members   = StoreUser::findByStore($storeId);
         $memberIds = array_map(fn($m) => (int) $m['user_id'], $members);
 
         $usersMap = [];
@@ -439,7 +438,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         ));
         $n = count($allShifts);
 
-        $members   = $this->storeUsers->findByStore($storeId);
+        $members   = StoreUser::findByStore($storeId);
         $memberIds = array_map(fn($m) => (int) $m['user_id'], $members);
 
         $usersMap = [];
@@ -539,7 +538,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             fn($s) => empty($s['deleted_at']) && $s['shift_date'] >= $from && $s['shift_date'] <= $to
         ));
         $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
-        $members       = $this->storeUsers->findByStore($storeId);
+        $members       = StoreUser::findByStore($storeId);
         $memberIds     = array_map(fn($m) => (int) $m['user_id'], $members);
         $rateCache     = [];
         foreach ($memberIds as $uid) {
@@ -779,7 +778,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             fn($s) => empty($s['deleted_at']) && $s['shift_date'] >= $since && $s['shift_date'] <= $today
         ));
 
-        $members   = $this->storeUsers->findByStore($storeId);
+        $members   = StoreUser::findByStore($storeId);
         $memberIds = array_map(fn($m) => (int) $m['user_id'], $members);
 
         $roleMap = $this->roleSync->storeRoleMapForStore($storeId);
@@ -982,10 +981,10 @@ final class StoreStatsService implements StoreStatsServiceInterface
         usort($typeBreakdown, fn($a, $b) => strcmp($a['name'], $b['name']));
 
         $deductionSettings  = $this->stores->getDeductionSettings($storeId);
-        $membership         = $this->storeUsers->findMembership($storeId, $userId);
+        $membership         = StoreUser::findMembership($storeId, $userId);
         $membershipId       = (int) ($membership['id'] ?? 0);
         $subjectToDeductions = $membershipId > 0
-            ? $this->storeUsers->getSubjectToDeductions($membershipId)
+            ? StoreUser::getSubjectToDeductions($membershipId)
             : false;
         $deductions         = [];
         $totalDeductions    = 0.0;

@@ -12,7 +12,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -48,12 +48,9 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->newPassword   = bin2hex(random_bytes(8));
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
-
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $this->users,
-            $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
@@ -64,7 +61,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
             new AuditLogger(),
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
-            $storeUsers,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );

@@ -11,7 +11,7 @@ use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterf
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +26,6 @@ final class NotebookControllerTest extends TestCase
 {
     private NotebookEntryRepositoryInterface&Stub $notes;
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private UserRepositoryInterface&Stub $users;
     private NotificationService&Stub $notifs;
     private ?NotebookController $controller = null;
@@ -36,7 +35,6 @@ final class NotebookControllerTest extends TestCase
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->notes       = $this->createStub(NotebookEntryRepositoryInterface::class);
         $this->stores      = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->notifs      = $this->createStub(NotificationService::class);
 
@@ -56,7 +54,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->notes,
                 $this->stores,
-                $this->storeUsers,
                 $this->users,
                 new AuditLogger(),
                 $this->notifs,
@@ -144,7 +141,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testStoreCreatesAStoreScopedNoteWhenUserManagesThatStore(): void
     {
         $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->grantStoreScopedRole(9, 1, ['notebook.create', 'notebook.view']);
@@ -155,7 +151,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             fn(array $data) => $data['author_id'] === 9 && $data['store_id'] === 1 && $data['content'] === 'Bonjour équipe'
         ));
 
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([['user_id' => 9, 'store_id' => 1]]);
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 9, 'store_id' => 1]] : []);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9]);
         $this->users->method('findAll')->willReturn([['id' => 9, 'first_name' => 'Jean', 'last_name' => 'Dupont']]);
         $this->notifs->expects($this->once())->method('notifyMany')->with(
@@ -405,7 +401,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view,
             $this->notes,
             $this->stores,
-            $this->storeUsers,
             $this->users,
             new AuditLogger(),
             $this->notifs,
@@ -436,7 +431,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view,
             $this->notes,
             $this->stores,
-            $this->storeUsers,
             $this->users,
             new AuditLogger(),
             $this->notifs,

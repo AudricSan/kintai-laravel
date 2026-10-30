@@ -41,9 +41,9 @@
             "status": "stable",
             "target": "App\\Repositories\\StoreRepositoryInterface"
         },
-        "kintai\\Contract\\Data\\StoreUserRepositoryInterface": {
+        "kintai\\Contract\\Data\\StoreUser": {
             "status": "stable",
-            "target": "App\\Repositories\\StoreUserRepositoryInterface"
+            "target": "App\\Models\\StoreUser"
         },
         "kintai\\Contract\\Data\\UserRepositoryInterface": {
             "status": "stable",

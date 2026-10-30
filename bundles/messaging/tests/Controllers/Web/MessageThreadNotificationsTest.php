@@ -7,7 +7,7 @@ namespace Tests\Bundles\Messaging\Controllers\Web;
 use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use kintai\Contract\Services\AuditLogger;
@@ -42,7 +42,6 @@ final class MessageThreadNotificationsTest extends TestCase
             $view,
             $users,
             $stores,
-            $this->createStub(StoreUserRepositoryInterface::class),
             $repo,
             new AuditLogger(),
             $notifs,

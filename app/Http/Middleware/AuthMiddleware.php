@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -96,7 +96,7 @@ final class AuthMiddleware
         // Fonctionnalités activées pour le store de l'utilisateur (null = tout activé)
         $storeFeatures = null;
         if (empty($user['is_admin'])) {
-            $storeUsers = $this->container->make(StoreUserRepositoryInterface::class);
+            $storeUsers = $this->container->make(StoreUser::class);
             $memberships = $storeUsers->findByUser((int) ($user['id'] ?? 0));
             if (!empty($memberships)) {
                 $storeRepo = $this->container->make(StoreRepositoryInterface::class);

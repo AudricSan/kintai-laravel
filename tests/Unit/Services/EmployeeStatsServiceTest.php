@@ -7,7 +7,7 @@ namespace Tests\Unit\Services;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserShiftTypeRate;
 use App\Services\EmployeeStatsService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -23,7 +23,6 @@ use PHPUnit\Framework\TestCase;
 final class EmployeeStatsServiceTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private EmployeeStatsService $service;
 
@@ -31,18 +30,16 @@ final class EmployeeStatsServiceTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
         $this->service = new EmployeeStatsService(
-            $this->storeUsers,
             $this->stores,
         );
 
         kintai_test_shift_types([
             ['id' => 1, 'name' => 'Matin', 'hourly_rate' => 1000.0],
         ]);
-        $this->storeUsers->method('findByUser')->willReturn([]);
+        kintai_test_store_users(findByUser: fn() => []);
     }
 
     private function shift(array $overrides = []): array
@@ -87,7 +84,6 @@ final class EmployeeStatsServiceTest extends TestCase
     {
         $this->seedRate(1, 1, 1500.0);
         $this->service = new EmployeeStatsService(
-            $this->storeUsers,
             $this->stores,
         );
         kintai_test_shifts([$this->shift()]);

@@ -9,7 +9,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -28,7 +28,6 @@ final class EmployeeSwapController
         private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -77,12 +76,12 @@ final class EmployeeSwapController
         usort($myShifts, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
 
         // Collègues du même store (hors moi)
-        $memberships = $this->storeUsers->findByUser($userId);
+        $memberships = StoreUser::findByUser($userId);
         $myStoreIds  = array_unique(array_map(fn($m) => (int) $m['store_id'], $memberships));
 
         $colleagues = [];
         foreach ($myStoreIds as $sid) {
-            foreach ($this->storeUsers->findByStore($sid) as $m) {
+            foreach (StoreUser::findByStore($sid) as $m) {
                 $mid = (int) $m['user_id'];
                 if ($mid !== $userId) {
                     $u = $this->users->findById($mid);

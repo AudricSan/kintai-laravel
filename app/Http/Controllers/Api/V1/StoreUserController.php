@@ -9,7 +9,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,7 +18,6 @@ use App\Services\AuditLogger;
 final class StoreUserController
 {
     public function __construct(
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
@@ -42,7 +41,7 @@ final class StoreUserController
     {
         $storeId = (int) $request->route('store_id');
         $this->requireStore($storeId);
-        return response()->json($this->storeUsers->findByStore($storeId));
+        return response()->json(StoreUser::findByStore($storeId));
     }
 
     /** GET /api/v1/stores/{store_id}/members/{id} */
@@ -52,7 +51,7 @@ final class StoreUserController
         $id      = (int) $request->route('id');
         $this->requireStore($storeId);
 
-        $member = $this->storeUsers->findById($id);
+        $member = StoreUser::findById($id);
         if ($member === null || (int) $member['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_member_not_found'));
         }
@@ -73,11 +72,11 @@ final class StoreUserController
         if ($userId <= 0 || $this->users->findById($userId) === null) {
             throw new ValidationException(['user_id' => __('error_user_not_found')]);
         }
-        if ($this->storeUsers->findMembership($storeId, $userId) !== null) {
+        if (StoreUser::findMembership($storeId, $userId) !== null) {
             throw new ValidationException(['user_id' => __('error_api_member_already_exists')]);
         }
 
-        $saved  = $this->storeUsers->save($data);
+        $saved  = StoreUser::put($data);
         $this->auditLogger->log($request, 'store_user.created', 'store_user', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeId);
         return response()->json($saved, 201);
     }
@@ -89,7 +88,7 @@ final class StoreUserController
         $id      = (int) $request->route('id');
         $this->requireStore($storeId);
 
-        $existing = $this->storeUsers->findById($id);
+        $existing = StoreUser::findById($id);
         if ($existing === null || (int) $existing['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_member_not_found'));
         }
@@ -100,7 +99,7 @@ final class StoreUserController
         if (array_key_exists('is_active', $data) && empty($data['is_active']) && !empty($existing['is_active'] ?? 1)) {
             $this->assertNotSelf($request, (int) $existing['user_id']);
         }
-        return response()->json($this->storeUsers->save(array_merge($existing, $data, ['id' => $id, 'store_id' => $storeId])));
+        return response()->json(StoreUser::put(array_merge($existing, $data, ['id' => $id, 'store_id' => $storeId])));
     }
 
     /**
@@ -125,14 +124,14 @@ final class StoreUserController
         $id      = (int) $request->route('id');
         $this->requireStore($storeId);
 
-        $existing = $this->storeUsers->findById($id);
+        $existing = StoreUser::findById($id);
         if ($existing === null || (int) $existing['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_member_not_found'));
         }
 
         $this->assertNotSelf($request, (int) $existing['user_id']);
 
-        $this->storeUsers->delete($id);
+        StoreUser::remove($id);
         $this->auditLogger->log($request, 'store_user.deleted', 'store_user', resourceId: $id, storeId: $storeId);
         return response()->noContent();
     }

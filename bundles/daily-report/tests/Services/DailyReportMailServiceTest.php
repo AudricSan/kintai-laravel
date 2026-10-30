@@ -29,7 +29,6 @@ final class DailyReportMailServiceTest extends TestCase
         $mailer            = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai Test']]);
         $translations      = kintai_test_real_translator('en', false);
         $this->service     = new DailyReportMailService($this->permissions, $mailer, $translations, new \App\Services\UserSelection(
-            $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
             $this->createStub(\App\Repositories\UserRepositoryInterface::class),
             new PermissionService(),
         ));

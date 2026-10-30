@@ -12,7 +12,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -28,13 +28,11 @@ use PHPUnit\Framework\TestCase;
 final class TimeclockControllerTest extends TestCase
 {
     private TimeclockRepositoryInterface&Stub $timeclocks;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?TimeclockController $controller = null;
 
     protected function setUp(): void
     {
         $this->timeclocks  = $this->createStub(TimeclockRepositoryInterface::class);
-        $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -43,7 +41,6 @@ final class TimeclockControllerTest extends TestCase
         if ($this->controller === null) {
             $this->controller  = new TimeclockController(
                 $this->timeclocks,
-                $this->storeUsers,
                 new AuditLogger(),
                 new PermissionService()
             );

@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\Notebook\Controllers\Web;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -24,7 +24,6 @@ final class NotebookController
         private readonly ViewFactory $view,
         private readonly NotebookEntryRepositoryInterface $notes,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -249,7 +248,7 @@ final class NotebookController
     {
         $recipients = [];
         if ($storeId !== null) {
-            foreach ($this->storeUsers->findByStore($storeId) as $m) {
+            foreach (StoreUser::findByStore($storeId) as $m) {
                 $candidate = $this->users->findById((int) $m['user_id']);
                 if ($candidate !== null && $this->permissions->can($candidate, 'notebook.view', $storeId)) {
                     $recipients[] = (int) $m['user_id'];

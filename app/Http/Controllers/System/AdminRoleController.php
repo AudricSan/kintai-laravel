@@ -11,7 +11,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Validation\ColorRule;
@@ -57,7 +57,6 @@ final class AdminRoleController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly OwnerGuard $ownerGuard,
     ) {}
@@ -250,7 +249,7 @@ final class AdminRoleController
                 $validUserIds[] = $userId;
                 continue;
             }
-            $memberships = $this->storeUsers->findByUser($userId);
+            $memberships = StoreUser::findByUser($userId);
             if ($memberships === []) {
                 continue;
             }
@@ -333,7 +332,7 @@ final class AdminRoleController
     {
         $out = [];
         foreach ($this->activeUsers() as $user) {
-            $memberships = $this->storeUsers->findByUser((int) $user['id']);
+            $memberships = StoreUser::findByUser((int) $user['id']);
             if ($memberships === []) {
                 continue;
             }

@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Auth\UserTargetGuard;
 use App\Exceptions\NotFoundException;
 use App\Models\IcalToken;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,7 +15,6 @@ final class IcalTokenController
 {
     public function __construct(
         private readonly UserTargetGuard $guard,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     /** GET /api/v1/users/{user_id}/ical-tokens */
@@ -97,7 +96,7 @@ final class IcalTokenController
     /** Le flux iCal d'un magasin n'est délivré qu'à ses membres. */
     private function assertMember(int $userId, int $storeId): void
     {
-        if ($this->storeUsers->findMembership($storeId, $userId) === null) {
+        if (StoreUser::findMembership($storeId, $userId) === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
     }

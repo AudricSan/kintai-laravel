@@ -8,7 +8,7 @@ use kintai\Contract\Http\Paginator;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
@@ -28,7 +28,6 @@ final class DailyReportController
     public function __construct(
         private readonly DailyReportRepositoryInterface $reports,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly DailyReportPermissionService $permissions,
     ) {}
 
@@ -82,7 +81,7 @@ final class DailyReportController
             $storeId = (int) ($report['store_id'] ?? 0);
             if (!array_key_exists($storeId, $contexts)) {
                 $store = $this->stores->findById($storeId);
-                $contexts[$storeId] = $store === null ? null : [$store, $this->storeUsers->findMembership($storeId, $userId)];
+                $contexts[$storeId] = $store === null ? null : [$store, StoreUser::findMembership($storeId, $userId)];
             }
             if ($contexts[$storeId] === null) {
                 return false;
@@ -215,7 +214,7 @@ final class DailyReportController
             throw new NotFoundException(__('error_store_not_found'));
         }
         $authUser   = $request->attributes->get('auth_user') ?? [];
-        $membership = $this->storeUsers->findMembership($storeId, (int) ($authUser['id'] ?? 0));
+        $membership = StoreUser::findMembership($storeId, (int) ($authUser['id'] ?? 0));
         return [$store, $membership];
     }
 

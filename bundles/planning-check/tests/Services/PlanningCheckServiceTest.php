@@ -20,7 +20,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\NotificationService;
@@ -79,10 +79,7 @@ final class PlanningCheckServiceTest extends TestCase
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 3 ? ['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo', 'locale' => 'fr'] : null);
         $stores->method('findAll')->willReturn([['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo']]);
-
-        $members = $this->createStub(StoreUserRepositoryInterface::class);
-        $members->method('findByStore')->willReturn([['user_id' => 5], ['user_id' => 7]]);
-
+        kintai_test_store_users(findByStore: fn() => [['user_id' => 5], ['user_id' => 7]]);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => ['id' => $id, 'is_active' => 1, 'first_name' => 'U' . $id, 'last_name' => 'N', 'email' => "u$id@example.com"]);
         kintai_test_shift_types([['id' => 1, 'name' => 'Journée', 'color' => '#fff']]);
@@ -122,10 +119,10 @@ final class PlanningCheckServiceTest extends TestCase
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@kintai.test']], $transport),
             $translations,
             $pdf,
-            new \App\Services\UserSelection($members, $users, $permissions),
+            new \App\Services\UserSelection($users, $permissions),
         );
         $rows = new PlanningShiftRows($users);
-        $this->service = new PlanningCheckService($this->repo, $stores, $members, $users, $permissions, $notifications, $rows, $pdf, $mail);
+        $this->service = new PlanningCheckService($this->repo, $stores, $users, $permissions, $notifications, $rows, $pdf, $mail);
         $this->resolverDeps = [$stores, $rows];
         $_SESSION = [];
     }

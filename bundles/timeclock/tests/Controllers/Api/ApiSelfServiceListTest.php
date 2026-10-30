@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
@@ -39,9 +39,8 @@ final class ApiSelfServiceListTest extends TestCase
             : []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['timeclock.view'], getGlobalPermissionKeys: fn() => []);
         $permissions = new PermissionService();
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
-        return new TimeclockController($repo, $storeUsers, new AuditLogger(), $permissions);
+        return new TimeclockController($repo, new AuditLogger(), $permissions);
     }
 
     /** @return list<int> */

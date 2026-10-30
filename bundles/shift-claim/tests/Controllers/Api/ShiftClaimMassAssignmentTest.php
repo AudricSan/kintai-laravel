@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +29,6 @@ final class ShiftClaimMassAssignmentTest extends TestCase
     private const OTHER    = 6;
 
     private PermissionService $permissions;
-    private StoreUserRepositoryInterface $storeUsers;
 
     protected function setUp(): void
     {
@@ -40,14 +39,9 @@ final class ShiftClaimMassAssignmentTest extends TestCase
         ]);
         kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['open_shifts.approve'], getGlobalPermissionKeys: fn() => []);
         $this->permissions = new PermissionService();
-
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
+        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
                 ? ['store_id' => $storeId, 'user_id' => $userId]
-                : null
-        );
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => self::MY_STORE]]);
+                : null);
     }
 
     protected function tearDown(): void
@@ -73,7 +67,7 @@ final class ShiftClaimMassAssignmentTest extends TestCase
                 && $d['shift_id'] === 8
         ))->willReturn(['id' => 2]);
         kintai_test_shifts([['id' => 8, 'store_id' => self::MY_STORE, 'is_open' => 1, 'user_id' => null]]);
-        $controller = new ShiftClaimController($repo, $this->permissions, $this->storeUsers);
+        $controller = new ShiftClaimController($repo, $this->permissions);
 
         $controller->store($this->request([
             'id' => 1, 'user_id' => self::ME, 'store_id' => self::MY_STORE, 'shift_id' => 8,
@@ -85,7 +79,7 @@ final class ShiftClaimMassAssignmentTest extends TestCase
     {
         $repo = $this->createMock(ShiftClaimRepositoryInterface::class);
         $repo->expects($this->never())->method('save');
-        $controller = new ShiftClaimController($repo, $this->permissions, $this->storeUsers);
+        $controller = new ShiftClaimController($repo, $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->store($this->request(['user_id' => self::ME, 'store_id' => self::OTHER, 'shift_id' => 8]));

@@ -10,7 +10,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
@@ -28,14 +28,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class AdminShiftImportControllerTest extends TestCase
 {
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminShiftImportController $controller = null;
 
     protected function setUp(): void
     {
         kintai_test_database();
         kintai_test_migrate();
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -48,7 +46,6 @@ final class AdminShiftImportControllerTest extends TestCase
                 kintai_test_views(sys_get_temp_dir()),
                 $this->createStub(UserRepositoryInterface::class),
                 $this->createStub(StoreRepositoryInterface::class),
-                $this->storeUsers,
                 new AuditLogger(),
                 $roleSync,
             );
@@ -110,12 +107,10 @@ final class AdminShiftImportControllerTest extends TestCase
 
     public function testStoreMemberIdsReturnsUserIdsOfStoreMembership(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'store_id' => 1, 'user_id' => 10],
             ['id' => 2, 'store_id' => 1, 'user_id' => 11],
-        ]);
-
+        ] : []);
         $method = new \ReflectionMethod($this->controller(), 'storeMemberIds');
         $method->setAccessible(true);
         $ids = $method->invoke($this->controller(), 1);

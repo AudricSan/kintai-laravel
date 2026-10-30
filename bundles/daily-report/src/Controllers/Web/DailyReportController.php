@@ -11,7 +11,7 @@ use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInter
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -30,7 +30,6 @@ final class DailyReportController
         private readonly ViewFactory $view,
         private readonly DailyReportRepositoryInterface $reports,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly DailyReportPermissionService $permissions,
         private readonly DailyReportPdfService $pdfService,
@@ -51,7 +50,7 @@ final class DailyReportController
         $storeId    = (int) $request->route('id');
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -255,7 +254,7 @@ final class DailyReportController
         $storeId    = (int) $request->route('id');
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -293,7 +292,7 @@ final class DailyReportController
         $storeId    = (int) $request->route('id');
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -391,7 +390,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -437,7 +436,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -473,7 +472,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -530,7 +529,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -573,7 +572,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -634,7 +633,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -681,7 +680,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -703,7 +702,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -739,7 +738,7 @@ final class DailyReportController
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
         $report     = $this->requireReport($reportId, $storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -769,7 +768,7 @@ final class DailyReportController
         $storeId    = (int) $request->route('id');
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -800,7 +799,7 @@ final class DailyReportController
         $storeId    = (int) $request->route('id');
         $authUser   = $request->attributes->get('auth_user');
         $store      = $this->requireStore($storeId);
-        $membership = $this->storeUsers->findMembership($storeId, (int) $authUser['id']);
+        $membership = StoreUser::findMembership($storeId, (int) $authUser['id']);
 
         $this->assertStoreAccess($request, $storeId);
 
@@ -874,7 +873,7 @@ final class DailyReportController
             Shift::findByDate($storeId, $date),
             fn($s) => empty($s['deleted_at'])
                 && !empty($s['user_id'])
-                && $this->storeUsers->findMembership($storeId, (int) $s['user_id']) !== null
+                && StoreUser::findMembership($storeId, (int) $s['user_id']) !== null
         );
 
         $typesMap  = array_column(ShiftType::findByStore($storeId), null, 'id');
@@ -930,7 +929,7 @@ final class DailyReportController
     private function notifyManagers(int $storeId, string $permissionKey, string $type, string $bodyKey, int $referenceId, array $replace = [], ?string $link = null): void
     {
         $recipients = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $m) {
+        foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
             $candidate = $this->users->findById($uid);
             if ($candidate !== null && $this->permissionService->can($candidate, $permissionKey, $storeId)) {

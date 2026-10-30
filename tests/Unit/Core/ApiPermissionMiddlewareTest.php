@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Http\Middleware\ApiPermissionMiddleware;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -17,12 +17,10 @@ use PHPUnit\Framework\TestCase;
 
 final class ApiPermissionMiddlewareTest extends TestCase
 {
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?ApiPermissionMiddleware $middleware = null;
 
     protected function setUp(): void
     {
-        $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -31,7 +29,6 @@ final class ApiPermissionMiddlewareTest extends TestCase
         if ($this->middleware === null) {
             $this->middleware  = new ApiPermissionMiddleware(
                 new PermissionService(),
-                $this->storeUsers,
             );
         }
 
@@ -202,10 +199,8 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testMembershipRuleAllowsAnyStoreMemberWithoutPermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 10)->willReturn(['store_id' => 1, 'user_id' => 10]);
-
+        kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 10]);
         $request = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10, [], ['store_id' => '1']);
 
         $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());
@@ -213,10 +208,8 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testMembershipRuleRejectsNonMemberWithoutPermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 10)->willReturn(null);
-
+        kintai_test_store_users(findMembership: fn() => null);
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10, [], ['store_id' => '1']);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -225,12 +218,9 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testMembershipRuleRejectsWithoutStoreIdEvenForAMember(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // Sans store_id ciblé, la portée 'membership' ne peut pas s'appliquer :
         // seule une permission RBAC globale peut passer.
         kintai_test_assignments(findByUser: fn() => []);
-        $this->storeUsers->expects($this->never())->method('findMembership');
-
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -239,12 +229,9 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testMembershipRuleStillGrantsViaPermission(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // Un gestionnaire avec daily_reports.create sur le store passe par la
         // clé RBAC normale, sans même consulter l'adhésion.
         $this->grantStoreRole(10, 2, 1, ['daily_reports.create']);
-        $this->storeUsers->expects($this->never())->method('findMembership');
-
         $request = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10, [], ['store_id' => '1']);
 
         $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());

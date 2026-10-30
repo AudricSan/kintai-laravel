@@ -7,7 +7,7 @@ namespace Tests\Bundles\Messaging\Controllers\Api;
 use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
@@ -24,17 +24,11 @@ final class MessageMassAssignmentTest extends TestCase
     private const MY_STORE = 5;
     private const OTHER    = 6;
 
-    private StoreUserRepositoryInterface $storeUsers;
-
     protected function setUp(): void
     {
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
+        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
                 ? ['store_id' => $storeId, 'user_id' => $userId]
-                : null
-        );
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => self::MY_STORE]]);
+                : null);
     }
 
     private function request(array $json, array $params = []): Request
@@ -58,7 +52,7 @@ final class MessageMassAssignmentTest extends TestCase
                 && $d['body'] === 'bonjour'
         ))->willReturn(['id' => 77]);
 
-        (new MessageController($repo, $this->storeUsers))
+        (new MessageController($repo))
             ->addMessage($this->request(['id' => 55, 'thread_id' => 99, 'sender_id' => 1, 'body' => 'bonjour'], ['id' => '10']));
     }
 
@@ -74,7 +68,7 @@ final class MessageMassAssignmentTest extends TestCase
                 && $d['is_read'] === 0
         ))->willReturn(['id' => 4]);
 
-        (new MessageController($repo, $this->storeUsers))
+        (new MessageController($repo))
             ->addParticipant($this->request(['id' => 9, 'thread_id' => 99, 'user_id' => self::ME, 'is_read' => 1], ['id' => '10']));
     }
 
@@ -84,6 +78,6 @@ final class MessageMassAssignmentTest extends TestCase
         $repo->expects($this->never())->method('saveThread');
 
         $this->expectException(ForbiddenException::class);
-        (new MessageController($repo, $this->storeUsers))->createThread($this->request(['store_id' => self::OTHER, 'subject' => 's']));
+        (new MessageController($repo))->createThread($this->request(['store_id' => self::OTHER, 'subject' => 's']));
     }
 }

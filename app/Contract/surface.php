@@ -39,7 +39,7 @@ return [
     'kintai\\Contract\\Auth\\UserAnonymizer' => ['target' => 'App\\Auth\\UserAnonymizer', 'status' => 'stable', 'role' => 'Suppression d\'un compte : anonymisation (contrat 1.21).'],
     'kintai\\Contract\\Data\\UserRepositoryInterface' => ['target' => 'App\\Repositories\\UserRepositoryInterface', 'status' => 'stable', 'role' => 'Comptes.'],
     'kintai\\Contract\\Data\\StoreRepositoryInterface' => ['target' => 'App\\Repositories\\StoreRepositoryInterface', 'status' => 'stable', 'role' => 'Magasins.'],
-    'kintai\\Contract\\Data\\StoreUserRepositoryInterface' => ['target' => 'App\\Repositories\\StoreUserRepositoryInterface', 'status' => 'stable', 'role' => 'Adhésions aux magasins.'],
+    'kintai\\Contract\\Data\\StoreUser' => ['target' => 'App\\Models\\StoreUser', 'status' => 'stable', 'role' => 'Appartenances magasin/employé (modèle Eloquent).'],
     'kintai\\Contract\\Data\\Shift' => ['target' => 'App\\Models\\Shift', 'status' => 'stable', 'role' => 'Shifts (modèle Eloquent).'],
     'kintai\\Contract\\Data\\UserShiftTypeRate' => ['target' => 'App\\Models\\UserShiftTypeRate', 'status' => 'stable', 'role' => 'Taux horaires individuels (modèle Eloquent).'],
     'kintai\\Contract\\Data\\ShiftType' => ['target' => 'App\\Models\\ShiftType', 'status' => 'stable', 'role' => 'Types de shift (modèle Eloquent).'],

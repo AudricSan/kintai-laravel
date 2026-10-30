@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -29,17 +29,11 @@ final class TimeclockMassAssignmentTest extends TestCase
     private const MY_STORE = 5;
     private const OTHER    = 6;
 
-    private StoreUserRepositoryInterface $storeUsers;
-
     protected function setUp(): void
     {
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
+        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
                 ? ['store_id' => $storeId, 'user_id' => $userId]
-                : null
-        );
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => self::MY_STORE]]);
+                : null);
     }
 
     protected function tearDown(): void
@@ -70,7 +64,7 @@ final class TimeclockMassAssignmentTest extends TestCase
         $repo = $this->createMock(TimeclockRepositoryInterface::class);
         $repo->method('findActiveByUser')->willReturn(null);
         $repo->expects($this->never())->method('save');
-        $controller = new TimeclockController($repo, $this->storeUsers, new AuditLogger(), $this->permissions([]));
+        $controller = new TimeclockController($repo, new AuditLogger(), $this->permissions([]));
 
         $this->expectException(ForbiddenException::class);
         $controller->clockIn($this->request(['user_id' => self::ME, 'store_id' => self::OTHER]));
@@ -85,7 +79,7 @@ final class TimeclockMassAssignmentTest extends TestCase
                 && !array_key_exists('store_id', $d)
                 && !array_key_exists('user_id', $d)
         ))->willReturn(['id' => 3, 'user_id' => 9, 'store_id' => self::MY_STORE]);
-        $controller = new TimeclockController($repo, $this->storeUsers, new AuditLogger(), $this->permissions(['timeclock.update']));
+        $controller = new TimeclockController($repo, new AuditLogger(), $this->permissions(['timeclock.update']));
 
         $controller->update($this->request(['note' => 'x', 'store_id' => self::OTHER, 'user_id' => 1], ['id' => '3']));
     }

@@ -24,6 +24,7 @@ final class PageOverlaysTest extends TestCase
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->views = sys_get_temp_dir() . '/kintai-overlay-' . bin2hex(random_bytes(4));
         mkdir($this->views, 0777, true);
         file_put_contents($this->views . '/ok.php', '<h2 id="<?= $overlay_title_id ?>">Titre <?= htmlspecialchars($name ?? "") ?></h2><span>clé:<?= $overlay_key ?></span>');
@@ -201,9 +202,6 @@ final class PageOverlaysTest extends TestCase
         $container = \Illuminate\Container\Container::getInstance();
         $container->instance(ViewFactory::class, $this->view());
         $container->instance(\App\Auth\PermissionService::class, (new \ReflectionClass(\App\Auth\PermissionService::class))->newInstanceWithoutConstructor());
-        $users = $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class);
-        $users->method('findByUser')->willReturn([]);
-        $container->instance(\App\Repositories\StoreUserRepositoryInterface::class, $users);
 
         $html = PageOverlayHost::html(['id' => 7], '/admin/dashboard', null, $overlays);
 
@@ -228,9 +226,7 @@ final class PageOverlaysTest extends TestCase
         $container = \Illuminate\Container\Container::getInstance();
         $container->instance(ViewFactory::class, $this->view());
         $container->instance(\App\Auth\PermissionService::class, (new \ReflectionClass(\App\Auth\PermissionService::class))->newInstanceWithoutConstructor());
-        $users = $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class);
-        $users->method('findByUser')->willReturn([['store_id' => 3]]);
-        $container->instance(\App\Repositories\StoreUserRepositoryInterface::class, $users);
+        kintai_test_store_users(findByUser: fn(int $id) => $id === 7 ? [['store_id' => 3]] : []);
 
         $html = PageOverlayHost::html(['id' => 7], '/admin/dashboard', null, $overlays);
 

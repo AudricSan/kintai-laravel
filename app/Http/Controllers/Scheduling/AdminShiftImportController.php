@@ -10,7 +10,7 @@ use App\Models\ImportAlias;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +28,6 @@ final class AdminShiftImportController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
     ) {}
@@ -291,7 +290,7 @@ final class AdminShiftImportController
      */
     private function storeMemberIds(int $storeId): array
     {
-        return array_map(fn($su) => (int) $su['user_id'], $this->storeUsers->findByStore($storeId));
+        return array_map(fn($su) => (int) $su['user_id'], StoreUser::findByStore($storeId));
     }
 
     /**

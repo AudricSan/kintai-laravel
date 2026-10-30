@@ -12,7 +12,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use kintai\Contract\Event\OpenShiftClosed;
 use App\Extension\Absences;
 use App\Extension\Events;
@@ -38,7 +38,6 @@ final class AdminShiftController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly ShiftServiceInterface $shiftService,
@@ -341,7 +340,7 @@ final class AdminShiftController
         $membersMap  = []; // uid → user row
         $usersColour = []; // uid → color
         foreach ($this->availableStores($managedIds) as $store) {
-            foreach ($this->storeUsers->findByStore((int) $store['id']) as $m) {
+            foreach (StoreUser::findByStore((int) $store['id']) as $m) {
                 $uid = (int) $m['user_id'];
                 if (isset($membersMap[$uid])) continue;
                 $u = $this->users->findById($uid);

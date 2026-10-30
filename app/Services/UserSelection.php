@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Auth\PermissionService;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -22,7 +22,6 @@ final class UserSelection
     public const DEFAULT_MAX = 20;
 
     public function __construct(
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
     ) {}
@@ -108,7 +107,7 @@ final class UserSelection
     private function activeMembers(int $storeId): array
     {
         $ids = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $membership) {
+        foreach (StoreUser::findByStore($storeId) as $membership) {
             if (!isset($membership['is_active']) || (bool) $membership['is_active']) {
                 $ids[(int) $membership['user_id']] = true;
             }

@@ -12,7 +12,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -33,12 +33,11 @@ final class AuthControllerAvatarTest extends TestCase
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
 
-        $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $storeUsers, $stores, $rememberTokens);
+        $auth = new AuthService($this->users, $stores, $rememberTokens);
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),
@@ -46,7 +45,6 @@ final class AuthControllerAvatarTest extends TestCase
             new AuditLogger(),
             $this->users,
             $stores,
-            $storeUsers,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );

@@ -11,7 +11,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -45,13 +45,10 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
         $this->ensureViewFile($this->viewDir, 'layout.app', '<?= $content ?>');
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
-
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $storeUsers->method('findByUser')->willReturn([]);
+        kintai_test_store_users(findByUser: fn() => []);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $this->users,
-            $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
@@ -62,7 +59,6 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
             new AuditLogger(),
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
-            $storeUsers,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );

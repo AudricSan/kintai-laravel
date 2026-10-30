@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\StoreUserRepositoryInterface;
+use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -28,7 +28,6 @@ final class AdminTimeoffController
         private readonly NotificationService $notifs,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     public function timeoff(Request $request): Response
@@ -275,7 +274,7 @@ final class AdminTimeoffController
     {
         $storeIds = array_values(array_unique(array_map(
             fn(array $m): int => (int) $m['store_id'],
-            $this->storeUsers->findByUser($userId)
+            StoreUser::findByUser($userId)
         )));
         if ($storeIds === []) {
             throw new ValidationException(['user_id' => __('timeoff_error_no_store')]);

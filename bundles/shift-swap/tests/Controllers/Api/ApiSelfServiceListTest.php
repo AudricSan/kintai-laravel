@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryIn
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
@@ -40,7 +40,6 @@ final class ApiSelfServiceListTest extends TestCase
             : []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['swaps.view'], getGlobalPermissionKeys: fn() => []);
         $permissions = new PermissionService();
-        $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         return new ShiftSwapRequestController($repo, new AuditLogger(), $permissions);
     }

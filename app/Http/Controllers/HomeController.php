@@ -12,7 +12,7 @@ use App\Extension\PendingRequests;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Extension\Attendances;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
@@ -65,7 +65,6 @@ final class HomeController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreStatsServiceInterface $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
         private readonly PermissionService $permissions,
@@ -89,7 +88,7 @@ final class HomeController
         if ($managedStoreIds !== null) {
             $scopedUserIds = [];
             foreach ($managedStoreIds as $sid) {
-                foreach ($this->storeUsers->findByStore($sid) as $su) {
+                foreach (StoreUser::findByStore($sid) as $su) {
                     $scopedUserIds[(int) $su['user_id']] = true;
                 }
             }
@@ -333,7 +332,7 @@ final class HomeController
             array_keys($enabled),
             [
                 'user'              => $user,
-                'store_ids'         => array_map(static fn($m): int => (int) $m['store_id'], $this->storeUsers->findByUser($userId)),
+                'store_ids'         => array_map(static fn($m): int => (int) $m['store_id'], StoreUser::findByUser($userId)),
                 'managed_store_ids' => null,
                 'stores_map'        => $result['stores_map'],
                 'today'             => $today,
@@ -377,7 +376,7 @@ final class HomeController
         $trend = array_slice($costByMonth, -6, 6, true);
 
         $currentMonthKey = date('Y-m');
-        $prevMonthKey    = date('Y-m', strtotime('-1 month'));
+        $prevMonthKey    = date('Y-m', strtotime('first day of last month'));
         $currentCost     = $costByMonth[$currentMonthKey] ?? 0.0;
         $prevCost        = $costByMonth[$prevMonthKey] ?? 0.0;
 

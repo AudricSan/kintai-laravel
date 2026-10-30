@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterfa
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminShiftClaimControllerTest extends TestCase
 {
     private StoreRepositoryInterface&Stub $stores;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ShiftClaimRepositoryInterface&Stub $shiftClaims;
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
@@ -48,7 +47,6 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'open-shifts-select');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->shiftClaims = $this->createStub(ShiftClaimRepositoryInterface::class);
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
@@ -65,7 +63,6 @@ final class AdminShiftClaimControllerTest extends TestCase
                 $view,
                 $this->createStub(UserRepositoryInterface::class),
                 $this->stores,
-                $this->storeUsers,
                 $this->shiftClaims,
                 $this->shiftService,
                 new AuditLogger(),
@@ -173,16 +170,14 @@ final class AdminShiftClaimControllerTest extends TestCase
 
     public function testPublishShiftNotifiesEligibleStoreMembersExcludingHolder(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $shift = ['id' => 1, 'store_id' => 5, 'is_open' => 0, 'user_id' => 9];
         kintai_test_shifts([$shift]);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(5)->willReturn([
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 5 ? [
             ['user_id' => 9], // le titulaire actuel du shift : ne doit pas être notifié de son propre shift
             ['user_id' => 20],
             ['user_id' => 21],
-        ]);
-
+        ] : []);
         $this->notifs->expects($this->once())->method('notifyMany')
             ->with($this->callback(fn($ids) => !in_array(9, $ids, true) && in_array(20, $ids, true) && in_array(21, $ids, true)), 'open_shift_published', $this->anything(), $this->anything(), 1);
 

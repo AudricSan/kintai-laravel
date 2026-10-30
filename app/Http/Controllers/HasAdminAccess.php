@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\StoreUser;
+
 use Illuminate\Http\Request;
 use App\Exceptions\ForbiddenException;
 
@@ -54,7 +56,7 @@ trait HasAdminAccess
     {
         $ids = [];
         foreach ($managedIds as $storeId) {
-            foreach ($this->storeUsers->findByStore($storeId) as $m) {
+            foreach (StoreUser::findByStore($storeId) as $m) {
                 $ids[] = (int) $m['user_id'];
             }
         }
@@ -78,7 +80,7 @@ trait HasAdminAccess
         }
 
         $ids = [];
-        foreach ($this->storeUsers->findByStore($storeId) as $m) {
+        foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
             if (isset($active[$uid])) {
                 $ids[$uid] = $uid;

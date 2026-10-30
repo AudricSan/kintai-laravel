@@ -6,7 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use App\Auth\PermissionService;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -25,7 +25,6 @@ final class ApiPermissionMiddleware
 {
     public function __construct(
         private readonly PermissionService $permissions,
-        private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -59,7 +58,7 @@ final class ApiPermissionMiddleware
         // propre rapport sans permission RBAC dédiée). La logique fine par
         // ressource (statut, auteur) reste vérifiée par le contrôleur.
         if ($requireMembership && $storeId !== null
-            && $this->storeUsers->findMembership($storeId, $userId) !== null) {
+            && StoreUser::findMembership($storeId, $userId) !== null) {
             return $next($request);
         }
 

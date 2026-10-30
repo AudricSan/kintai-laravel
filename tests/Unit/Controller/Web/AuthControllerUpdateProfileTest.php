@@ -11,7 +11,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -51,12 +51,11 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $users->method('findById')->with($userId)->willReturn(['id' => $userId, 'language' => 'fr']);
         $users->method('save')->willThrowException(new \RuntimeException('DB write failed'));
 
-        $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($users, $storeUsers, $stores, $rememberTokens);
+        $auth = new AuthService($users, $stores, $rememberTokens);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
@@ -68,7 +67,6 @@ final class AuthControllerUpdateProfileTest extends TestCase
             new AuditLogger(),
             $users,
             $stores,
-            $storeUsers,
             $languages,
             new AvatarImageOptimizer(),
         );
@@ -94,16 +92,15 @@ final class AuthControllerUpdateProfileTest extends TestCase
             return $u;
         });
 
-        $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
-        $auth = new AuthService($users, $storeUsers, $stores);
+        $auth = new AuthService($users, $stores);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
 
         $controller = new AuthController(
-            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers, $languages, new AvatarImageOptimizer(),
+            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $languages, new AvatarImageOptimizer(),
         );
 
         foreach (['', 'de', 'en'] as $choice) {

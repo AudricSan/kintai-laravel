@@ -7,7 +7,7 @@ namespace App\Auth;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Container\Container;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\StoreRepositoryInterface;
 use App\Models\Role;
 use App\Models\RoleAssignment;
@@ -28,7 +28,6 @@ final class AuthServiceProvider extends ServiceProvider
             AuthService::class,
             fn(Container $c) => new AuthService(
                 $c->make(UserRepositoryInterface::class),
-                $c->make(StoreUserRepositoryInterface::class),
                 $c->make(StoreRepositoryInterface::class),
             )
         );

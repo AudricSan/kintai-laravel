@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\Messaging\Controllers\Api;
 
 
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
@@ -25,19 +25,17 @@ final class MessageControllerTest extends TestCase
 {
     private MessageRepositoryInterface&Stub $messages;
     private ?MessageController $controller = null;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
 
     protected function setUp(): void
     {
         $this->messages  = $this->createStub(MessageRepositoryInterface::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function controller(): MessageController
     {
         if ($this->controller === null) {
-            $this->controller = new MessageController($this->messages, $this->storeUsers);
+            $this->controller = new MessageController($this->messages);
         }
 
         return $this->controller;
@@ -82,11 +80,8 @@ final class MessageControllerTest extends TestCase
     public function testCreateThreadForcesCreatorIdFromTokenAndAddsSelfAsParticipant(): void
     {
         $this->messages = $this->createMock(MessageRepositoryInterface::class);
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // L'appelant est membre du magasin 3, comme le participant ajouté.
-        $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(3, 42)->willReturn(['store_id' => 3, 'user_id' => 42]);
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => 3]]);
-
+        kintai_test_store_users(findByUser: fn() => [['store_id' => 3]], findMembership: fn() => ['store_id' => 3, 'user_id' => 42]);
         $req = $this->requestAs(42, [
             'store_id'         => 3,
             'subject'          => 'Sujet',

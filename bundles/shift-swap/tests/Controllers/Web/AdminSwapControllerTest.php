@@ -10,7 +10,7 @@ use App\Exceptions\ForbiddenException;
 use App\Models\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -26,7 +26,6 @@ final class AdminSwapControllerTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
     private NotificationService&Stub $notifs;
-    private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminSwapController $controller = null;
 
     protected function setUp(): void
@@ -43,7 +42,6 @@ final class AdminSwapControllerTest extends TestCase
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -60,7 +58,6 @@ final class AdminSwapControllerTest extends TestCase
                 $this->notifs,
                 $this->stores,
                 $this->users,
-                $this->storeUsers,
             );
         }
 
@@ -95,8 +92,7 @@ final class AdminSwapControllerTest extends TestCase
      */
     public function testCreateSwapListsOnlyTheEmployeesOfTheManagersStores(): void
     {
-        $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([['user_id' => 1], ['user_id' => 2]]);
+        kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 1], ['user_id' => 2]] : []);
         $this->users->method('findAll')->willReturn([
             ['id' => 1, 'last_name' => 'Dupont', 'first_name' => 'Jean'],
             ['id' => 2, 'last_name' => 'Martin', 'first_name' => 'Paul'],

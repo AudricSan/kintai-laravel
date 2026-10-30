@@ -11,7 +11,7 @@ use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\StoreUserRepositoryInterface;
+use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +29,6 @@ final class DailyReportMassAssignmentTest extends TestCase
     private const MY_STORE = 5;
 
     private PermissionService $permissions;
-    private StoreUserRepositoryInterface $storeUsers;
 
     protected function setUp(): void
     {
@@ -38,14 +37,9 @@ final class DailyReportMassAssignmentTest extends TestCase
         ]);
         kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['daily_reports.create'], getGlobalPermissionKeys: fn() => []);
         $this->permissions = new PermissionService();
-
-        $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->storeUsers->method('findMembership')->willReturnCallback(
-            fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
+        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
                 ? ['store_id' => $storeId, 'user_id' => $userId]
-                : null
-        );
-        $this->storeUsers->method('findByUser')->willReturn([['store_id' => self::MY_STORE]]);
+                : null);
     }
 
     protected function tearDown(): void
@@ -74,7 +68,7 @@ final class DailyReportMassAssignmentTest extends TestCase
                 && !array_key_exists('is_finalized', $d)
                 && $d['notes'] === 'RAS'
         ))->willReturn(['id' => 6]);
-        $controller = new DailyReportController($repo, $stores, $this->storeUsers, new DailyReportPermissionService($this->permissions));
+        $controller = new DailyReportController($repo, $stores, new DailyReportPermissionService($this->permissions));
 
         $controller->store($this->request([
             'id' => 1, 'author_id' => 99, 'store_id' => self::MY_STORE, 'notes' => 'RAS',
