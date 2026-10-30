@@ -6,7 +6,7 @@ namespace Tests\Unit\Core\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Database\RequestMemo;
-use App\Repositories\DatabaseRoleAssignmentRepository;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use PHPUnit\Framework\TestCase;
 
@@ -60,14 +60,14 @@ final class RequestMemoTest extends TestCase
     {
         $role  = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
         Role::savePermissions((int) $role['id'], ['shifts.view', 'shifts.update']);
-        (new DatabaseRoleAssignmentRepository())->assign(7, (int) $role['id'], 'store', 1);
+        RoleAssignment::assign(7, (int) $role['id'], 'store', 1);
         $db = $this->capsule->getConnection();
         $db->enableQueryLog();
 
         for ($i = 0; $i < 10; $i++) {
             Role::findById((int) $role['id']);
             Role::getPermissions((int) $role['id']);
-            (new DatabaseRoleAssignmentRepository())->findByUser(7);
+            RoleAssignment::findByUser(7);
         }
 
         $this->assertCount(3, $db->getQueryLog());
@@ -84,32 +84,30 @@ final class RequestMemoTest extends TestCase
     }
 
     public function testRevokedAssignmentsAndRemovedPermissionsAreSeenAtOnce(): void
-    {
-        $assignments = new DatabaseRoleAssignmentRepository();
+    {
         $role        = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
         Role::savePermissions((int) $role['id'], ['shifts.view']);
-        $assignment = $assignments->assign(7, (int) $role['id'], 'store', 1);
-        $this->assertCount(1, $assignments->findByUser(7));
+        $assignment = RoleAssignment::assign(7, (int) $role['id'], 'store', 1);
+        $this->assertCount(1, RoleAssignment::findByUser(7));
         $this->assertSame(['shifts.view'], Role::getPermissions((int) $role['id']));
 
-        $assignments->revoke((int) $assignment['id']);
+        RoleAssignment::revoke((int) $assignment['id']);
         // Suppression en masse, sans modèle : la mémoire est quand même vidée.
         Role::savePermissions((int) $role['id'], []);
 
-        $this->assertSame([], $assignments->findByUser(7));
+        $this->assertSame([], RoleAssignment::findByUser(7));
         $this->assertSame([], Role::getPermissions((int) $role['id']));
     }
 
     public function testDeletingARoleForgetsItsAssignments(): void
-    {
-        $assignments = new DatabaseRoleAssignmentRepository();
+    {
         $role        = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
-        $assignments->assign(7, (int) $role['id'], 'store', 1);
-        $this->assertCount(1, $assignments->findByUser(7));
+        RoleAssignment::assign(7, (int) $role['id'], 'store', 1);
+        $this->assertCount(1, RoleAssignment::findByUser(7));
 
         Role::remove((int) $role['id']);
 
-        $this->assertSame([], $assignments->findByUser(7));
+        $this->assertSame([], RoleAssignment::findByUser(7));
         $this->assertNull(Role::findById((int) $role['id']));
     }
 }

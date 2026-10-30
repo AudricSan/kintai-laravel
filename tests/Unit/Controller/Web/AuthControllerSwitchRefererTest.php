@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -39,12 +39,11 @@ final class AuthControllerSwitchRefererTest extends TestCase
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'en'], ['code' => 'ja']]);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $users = $this->createStub(UserRepositoryInterface::class);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $auth = new AuthService(
-            $users, $storeUsers, $this->createStub(StoreRepositoryInterface::class), $roleAssignments,
+            $users, $storeUsers, $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 

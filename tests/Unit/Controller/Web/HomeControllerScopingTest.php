@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -64,12 +64,11 @@ final class HomeControllerScopingTest extends TestCase
 
         // Rôle non-système accordant payroll.view à n'importe quel store, pour que
         // canViewStats soit vrai aussi côté manager (is_admin = 0) dans ces tests.
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
         kintai_test_roles(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 5 ? ['payroll.view'] : []);
-        $permissions = new PermissionService($roleAssignments);
+        $permissions = new PermissionService();
 
         $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 

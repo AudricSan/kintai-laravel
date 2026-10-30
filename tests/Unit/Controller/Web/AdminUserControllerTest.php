@@ -9,7 +9,7 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Models\AppSetting;
 use App\Repositories\DailyReportRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -41,9 +41,11 @@ final class AdminUserControllerTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
         $this->ensureViewFile('staff.users');
         $this->ensureViewFile('staff.users-form');
         $this->ensureViewFile('staff.users-export-pdf');
@@ -52,7 +54,6 @@ final class AdminUserControllerTest extends TestCase
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
     public function testUsersRenders(): void
     {
@@ -455,8 +456,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->users->method('save')->willReturn(['id' => 10, 'display_name' => 'John']);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $capturedStoreUser = null;
         $this->storeUsers->method('save')->willReturnCallback(function (array $d) use (&$capturedStoreUser) {
             $capturedStoreUser = $d;
@@ -477,7 +477,6 @@ final class AdminUserControllerTest extends TestCase
      */
     public function testQuickCreateUserSyncsRoleAssignmentForStoreMembership(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name'  => 'John',
             'first_name'    => 'John',
@@ -494,16 +493,14 @@ final class AdminUserControllerTest extends TestCase
         $this->users->method('save')->willReturn(['id' => 10, 'display_name' => 'John']);
         \Illuminate\Support\Facades\DB::table('roles')->where('slug', 'owner')->delete();
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-        $this->roleAssignments->expects($this->once())->method('assign')->with(10, 2, 'store', 3);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $this->controller()->quickCreateUser($req);
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 10)->where('role_id', 2)->where('scope_type', 'store')->where('scope_id', 3)->exists(), 'affectation créée');
     }
 
     /** Id de rôle absent/invalide → repli sur le rôle par défaut (premier rôle sans permission). */
     public function testQuickCreateUserFallsBackToDefaultRoleWhenRoleIdMissing(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'John',
             'first_name'   => 'John',
@@ -525,9 +522,7 @@ final class AdminUserControllerTest extends TestCase
             [2, ['employees.view']],
             [3, []],
         ], 1, 0)[$id] ?? []);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-        $this->roleAssignments->expects($this->once())->method('assign')->with(10, 3, 'store', 3);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $capturedStoreUser = null;
         $this->storeUsers->method('save')->willReturnCallback(function (array $d) use (&$capturedStoreUser) {
             $capturedStoreUser = $d;
@@ -536,12 +531,12 @@ final class AdminUserControllerTest extends TestCase
 
         $this->controller()->quickCreateUser($req);
 
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 10)->where('role_id', 3)->where('scope_type', 'store')->where('scope_id', 3)->exists(), 'affectation créée');
         $this->assertNotNull($capturedStoreUser);
     }
 
     public function testQuickCreateUserSyncsOwnerRoleWhenIsAdminChecked(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'Jane',
             'first_name'   => 'Jane',
@@ -557,10 +552,9 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('save')->willReturn(['id' => 11, 'display_name' => 'Jane']);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-        $this->roleAssignments->expects($this->once())->method('assign')->with(11, 1, 'global', null);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $this->controller()->quickCreateUser($req);
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 11)->where('role_id', 1)->where('scope_type', 'global')->whereNull('scope_id')->exists(), 'affectation créée');
     }
 
     /**
@@ -571,7 +565,6 @@ final class AdminUserControllerTest extends TestCase
      */
     public function testQuickCreateUserIgnoresIsAdminWhenRequesterIsNotOwner(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'Jane',
             'first_name'   => 'Jane',
@@ -585,9 +578,10 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 2, 'is_admin' => false]);
 
         $this->users->method('save')->willReturn(['id' => 12, 'display_name' => 'Jane']);
-        $this->roleAssignments->expects($this->never())->method('assign');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
 
         $this->controller()->quickCreateUser($req);
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
     }
 
     // -------------------------------------------------------------------------
@@ -599,7 +593,6 @@ final class AdminUserControllerTest extends TestCase
     public function testStoreUserSyncsOwnerRoleAndSkipsStoreRoleWhenOwnerSelected(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'Jane',
             'last_name'    => 'Doe',
@@ -616,9 +609,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Owner', 'is_system' => 1] : null);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-        $this->roleAssignments->expects($this->once())->method('assign')->with(20, 1, 'global', null);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $captured = null;
         $this->users->method('save')->willReturnCallback(function (array $d) use (&$captured) {
             $captured = $d;
@@ -630,6 +621,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->controller()->storeUser($req);
 
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 20)->where('role_id', 1)->where('scope_type', 'global')->whereNull('scope_id')->exists(), 'affectation créée');
         $this->assertNotNull($captured);
     }
 
@@ -640,7 +632,6 @@ final class AdminUserControllerTest extends TestCase
      */
     public function testStoreUserIgnoresOwnerRoleSelectionWhenRequesterIsNotOwner(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'Jane',
             'last_name'    => 'Doe',
@@ -655,15 +646,15 @@ final class AdminUserControllerTest extends TestCase
 
         kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Owner', 'is_system' => 1] : null);
         $this->users->method('save')->willReturn(['id' => 22, 'display_name' => 'Jane']);
-        $this->roleAssignments->expects($this->never())->method('assign');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
 
         $this->controller()->storeUser($req);
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
     }
 
     /** Rôle par store sélectionné (Manager) : comportement inchangé, juste renommé store_role_id -> role_id. */
     public function testStoreUserSyncsStoreRoleWhenStoreRoleSelected(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $req = $this->makePostRequest([
             'display_name' => 'John',
             'last_name'    => 'Doe',
@@ -677,9 +668,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
 
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-        $this->roleAssignments->expects($this->once())->method('assign')->with(21, 2, 'store', 3);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $this->users->method('save')->willReturn(['id' => 21, 'display_name' => 'John']);
 
         $capturedStoreUser = null;
@@ -690,6 +679,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->controller()->storeUser($req);
 
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 21)->where('role_id', 2)->where('scope_type', 'store')->where('scope_id', 3)->exists(), 'affectation créée');
         $this->assertNotNull($capturedStoreUser);
     }
 
@@ -705,8 +695,7 @@ final class AdminUserControllerTest extends TestCase
             'furigana_first_name' => 'ジョン',
         ]);
         $req->attributes->set('managed_store_ids', null);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $captured = null;
         $this->users->method('save')->willReturnCallback(function (array $d) use (&$captured) {
             $captured ??= $d;
@@ -792,7 +781,7 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserRedirectsWithErrorWhenEmailTakenByAnotherUser(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com']);
         $this->users->expects($this->atLeastOnce())->method('findByEmail')->with('taken@example.com')->willReturn(['id' => 99]);
         $this->users->expects($this->never())->method('save');
@@ -809,7 +798,7 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserRedirectsWithErrorWhenNameMissing(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => null, 'first_name' => null]);
         $this->users->expects($this->never())->method('save');
 
@@ -825,7 +814,7 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserRedirectsWithErrorWhenFuriganaMissing(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => 'Doe', 'first_name' => 'John', 'furigana_last_name' => null, 'furigana_first_name' => null]);
         $this->users->expects($this->never())->method('save');
 
@@ -841,7 +830,7 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserRedirectsWithErrorWhenEmployeeCodeTakenByAnotherUser(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => 'Doe', 'first_name' => 'John', 'furigana_last_name' => 'ド', 'furigana_first_name' => 'ジ']);
         $this->users->expects($this->atLeastOnce())->method('findByEmployeeCode')->with('EMP9')->willReturn(['id' => 99]);
         $this->users->expects($this->never())->method('save');
@@ -859,7 +848,7 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserAllowsKeepingOwnEmployeeCode(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => 'Doe', 'first_name' => 'John', 'employee_code' => 'EMP9']);
         $this->users->expects($this->atLeastOnce())->method('findByEmployeeCode')->with('EMP9')->willReturn(['id' => 5]);
         $this->users->expects($this->once())->method('save')->willReturn(['id' => 5]);
@@ -873,7 +862,7 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserAllowsKeepingOwnEmailUnchanged(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => 'Doe', 'first_name' => 'John']);
         $this->users->expects($this->never())->method('findByEmail');
         $this->users->expects($this->once())->method('save')->willReturn(['id' => 5]);
@@ -898,12 +887,9 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserSyncsOwnerRoleWhenRequesterIsOwner(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => 'Doe', 'first_name' => 'John']);
         $this->users->method('save')->willReturn(['id' => 5]);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-        $this->roleAssignments->expects($this->once())->method('assign')->with(5, 1, 'global', null);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $req = $this->makePostRequest([
             'email' => 'me@example.com',
             'furigana_last_name'  => 'テスト',
@@ -914,6 +900,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->controller()->updateUser($req);
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 5)->where('role_id', 1)->where('scope_type', 'global')->whereNull('scope_id')->exists(), 'affectation créée');
     }
 
     /**
@@ -925,12 +912,12 @@ final class AdminUserControllerTest extends TestCase
     public function testUpdateUserIgnoresIsAdminWhenRequesterIsNotOwner(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [['role_id' => 30, 'scope_type' => 'global', 'scope_id' => null]] : []);
+        kintai_test_roles(findById: fn(int $id) => $id === 30 ? ['id' => 30, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 30 ? ['employees.update', 'employees.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 30 ? ['employees.update', 'employees.view'] : []);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'me@example.com', 'last_name' => 'Doe', 'first_name' => 'John']);
         $this->users->method('save')->willReturn(['id' => 5]);
-        $this->roleAssignments->expects($this->never())->method('assign');
-        $this->roleAssignments->expects($this->never())->method('revoke');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
+        $revokeBefore = \App\Models\RoleAssignment::query()->count();
 
         $req = $this->makePostRequest([
             'email' => 'me@example.com',
@@ -942,6 +929,8 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 2, 'is_admin' => false]);
 
         $this->controller()->updateUser($req);
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
+        $this->assertSame($revokeBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation révoquée');
     }
 
     // -------------------------------------------------------------------------
@@ -1097,7 +1086,7 @@ final class AdminUserControllerTest extends TestCase
     public function testSetUserRateAllowedWhenManagingOneOfTypeStores(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->grantRequesterGlobalRole($this->roleAssignments);
+        $this->grantRequesterGlobalRole();
         $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10]);
         kintai_test_shift_types([['id' => 7, 'code' => 'MORNING']]);
         kintai_test_shift_type_stores(7, [1, 2]);
@@ -1137,7 +1126,7 @@ final class AdminUserControllerTest extends TestCase
     /** L'acteur (id 7) est Owner : la garde d'accès le laisse passer, c'est la garde Owner qui doit refuser. */
     private function actingAsOwner(int $targetId, array $post = []): Request
     {
-        $this->roleAssignments->method('findByScope')->willReturn([
+        kintai_test_assignments(findByScope: fn() => [
             ['id' => 1, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
             ['id' => 2, 'user_id' => $targetId, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
@@ -1194,9 +1183,9 @@ final class AdminUserControllerTest extends TestCase
     // -------------------------------------------------------------------------
 
     /** Accorde au demandeur (quel que soit son id) un rôle système global : la garde d'accès à l'employé ciblé le laisse passer. */
-    private function grantRequesterGlobalRole($assignments): void
+    private function grantRequesterGlobalRole(): void
     {
-        $assignments->method('findByUser')->willReturn([['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
+        kintai_test_assignments(findByUser: fn() => [['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
     }
 
@@ -1228,7 +1217,6 @@ final class AdminUserControllerTest extends TestCase
     /** Audit M12 : sans is_admin ni is_active dans la requête, un Owner ne retire plus le statut Owner ni n'active/désactive. */
     public function testAnUpdateWithoutTheFlagsKeepsOwnerStatusAndActivity(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->users->method('findById')->willReturn([
             'id' => 8, 'is_active' => 1, 'deleted_at' => null, 'email' => 'o2@x.test',
             'first_name' => 'O', 'last_name' => 'Deux', 'furigana_last_name' => 'オ', 'furigana_first_name' => 'ツー', 'phone' => '090',
@@ -1238,10 +1226,12 @@ final class AdminUserControllerTest extends TestCase
             $saved = $d;
             return $d;
         });
-        $this->roleAssignments->expects($this->never())->method('revoke');
+        $request = $this->actingAsOwner(8, ['first_name' => 'Owen']);
+        $revokeBefore = \App\Models\RoleAssignment::query()->where('user_id', 8)->count();
 
-        $this->controller()->updateUser($this->actingAsOwner(8, ['first_name' => 'Owen']));
+        $this->controller()->updateUser($request);
 
+        $this->assertGreaterThanOrEqual($revokeBefore, \App\Models\RoleAssignment::query()->where('user_id', 8)->count(), 'le statut Owner est conservé');
         $this->assertSame('Owen', $saved['first_name']);
         $this->assertSame(1, $saved['is_active']);
         $this->assertSame('090', $saved['phone']);
@@ -1257,18 +1247,17 @@ final class AdminUserControllerTest extends TestCase
                 $this->stores,
                 $this->storeUsers,
                 new AuditLogger(),
-                new RoleAssignmentSyncService($this->roleAssignments),
-                new PermissionService($this->roleAssignments),
+                new RoleAssignmentSyncService(),
+                new PermissionService(),
                 new PlanLimitService(
                     $this->stores,
                     $this->users,
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
-                new OwnerGuard(new PermissionService($this->roleAssignments), $this->users),
+                new OwnerGuard(new PermissionService(), $this->users),
                 null,
                 new UserAnonymizer(
                     $this->users,
-                    $this->roleAssignments,
                     new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
                     sys_get_temp_dir(),
                 ),

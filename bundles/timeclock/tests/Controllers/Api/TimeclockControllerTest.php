@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
@@ -29,14 +29,12 @@ final class TimeclockControllerTest extends TestCase
 {
     private TimeclockRepositoryInterface&Stub $timeclocks;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?TimeclockController $controller = null;
 
     protected function setUp(): void
     {
         $this->timeclocks  = $this->createStub(TimeclockRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -47,7 +45,7 @@ final class TimeclockControllerTest extends TestCase
                 $this->timeclocks,
                 $this->storeUsers,
                 new AuditLogger(),
-                new PermissionService($this->assignments)
+                new PermissionService()
             );
         }
 
@@ -63,7 +61,7 @@ final class TimeclockControllerTest extends TestCase
 
     private function requestAsOwner(): Request
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 1 ? [
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 10 ? ['id' => 10, 'is_system' => 1] : null);
@@ -75,7 +73,7 @@ final class TimeclockControllerTest extends TestCase
     /** Manager avec timeclock.* uniquement sur le store $storeId. */
     private function requestAsStoreManager(int $userId, int $storeId): Request
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 20 ? ['timeclock.view', 'timeclock.update', 'timeclock.delete'] : []);

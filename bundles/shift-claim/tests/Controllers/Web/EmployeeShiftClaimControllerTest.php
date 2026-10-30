@@ -7,7 +7,7 @@ namespace Tests\Bundles\ShiftClaim\Controllers\Web;
 
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\EmployeeShiftClaimController;
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use App\Models\Shift;
@@ -60,7 +60,6 @@ final class EmployeeShiftClaimControllerTest extends TestCase
                 new AuditLogger(),
                 $this->notifs,
                 new PermissionService(
-                    $this->createStub(RoleAssignmentRepositoryInterface::class),
                 ),
             );
         }
@@ -184,11 +183,10 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             [9, ['id' => 9]],
             [20, ['id' => 20]],
         ]);
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnMap([
+        kintai_test_assignments(findByUser: fn(int $id) => array_column([
             [9, []],
             [20, [['id' => 1, 'user_id' => 20, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]],
-        ]);
+        ], 1, 0)[$id] ?? []);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['open_shifts.approve'] : []);
         $view = kintai_test_views(sys_get_temp_dir());
         $view->addNamespace('shift-claim', sys_get_temp_dir() . '/kintai-shift-claim-views');
@@ -201,7 +199,7 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             $this->shiftClaims,
             new AuditLogger(),
             $this->notifs,
-            new PermissionService($assignments),
+            new PermissionService(),
         );
 
         $this->notifs->expects($this->once())->method('notifyMany')

@@ -15,7 +15,7 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use App\Auth\PermissionService;
 use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -88,15 +88,13 @@ final class PlanningCheckServiceTest extends TestCase
         kintai_test_shift_types([['id' => 1, 'name' => 'Journée', 'color' => '#fff']]);
 
         // 7 est approbateur, 5 ne l'est pas ; 99 est Owner (rôle système global).
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnCallback(fn(int $uid): array => match ($uid) {
+        kintai_test_assignments(findByUser: fn(int $uid): array => match ($uid) {
             7 => [['role_id' => 2, 'scope_type' => 'store', 'scope_id' => 3, 'user_id' => 7]],
             99 => [['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null, 'user_id' => 99]],
             default => [],
-        });
-        $assignments->method('findByScope')->willReturn([['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null, 'user_id' => 99]]);
+        }, findByScope: fn() => [['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null, 'user_id' => 99]]);
         kintai_test_roles(findById: fn(int $id): ?array => $id === 1 ? ['id' => 1, 'is_system' => 1] : ['id' => $id, 'is_system' => 0], getPermissions: fn() => ['planning_check.approve'], getGlobalPermissionKeys: fn() => []);
-        $permissions = new PermissionService($assignments);
+        $permissions = new PermissionService();
 
         $notifications = $this->createStub(NotificationService::class);
         $notifications->method('notifyMany')->willReturnCallback(function (array $ids, string $type, string $key, array $replace, ?int $ref, ?string $link): void {

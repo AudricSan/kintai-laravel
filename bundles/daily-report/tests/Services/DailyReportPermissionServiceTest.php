@@ -7,11 +7,12 @@ namespace Tests\Bundles\DailyReport\Services;
 use PHPUnit\Framework\TestCase;
 use App\Auth\PermissionService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 
 final class DailyReportPermissionServiceTest extends TestCase
 {
+protected function setUp(): void    {        kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();    }
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -19,21 +20,18 @@ final class DailyReportPermissionServiceTest extends TestCase
     /** Service dont l'utilisateur détient les clés données, portée sur $storeId (ou globale si null). */
     private function serviceGranting(array $keys, ?int $storeId = null): DailyReportPermissionService
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturn([
-            ['id' => 1, 'user_id' => 10, 'role_id' => 1, 'scope_type' => $storeId === null ? 'global' : 'store', 'scope_id' => $storeId],
+        kintai_test_assignments(findByUser: fn(int $uid) => [
+            ['user_id' => $uid, 'role_id' => 1, 'scope_type' => $storeId === null ? 'global' : 'store', 'scope_id' => $storeId],
         ]);
         kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 0], getPermissions: fn() => $keys);
-        return new DailyReportPermissionService(new PermissionService($assignments));
+        return new DailyReportPermissionService(new PermissionService());
     }
 
     /** Service pour un utilisateur sans aucune permission (libre-service uniquement). */
     private function serviceWithoutPermissions(): DailyReportPermissionService
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturn([]);
-
-        return new DailyReportPermissionService(new PermissionService($assignments));
+        kintai_test_assignments(findByUser: fn() => []);
+        return new DailyReportPermissionService(new PermissionService());
     }
 
     private function store(array $settings = []): array

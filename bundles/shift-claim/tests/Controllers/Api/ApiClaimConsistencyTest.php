@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterfa
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use App\Auth\PermissionService;
 use App\Exceptions\ValidationException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
@@ -34,13 +34,12 @@ final class ApiClaimConsistencyTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === self::MANAGER
+        kintai_test_fk_off();
+        kintai_test_assignments(findByUser: fn(int $u) => $u === self::MANAGER
             ? [['id' => 1, 'user_id' => self::MANAGER, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['open_shifts.approve', 'open_shifts.view'], getGlobalPermissionKeys: fn() => []);
-        $this->permissions = new PermissionService($assignments);
+        $this->permissions = new PermissionService();
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->storeUsers->method('findMembership')->willReturn(['store_id' => 1, 'user_id' => self::EMPLOYEE]);
     }

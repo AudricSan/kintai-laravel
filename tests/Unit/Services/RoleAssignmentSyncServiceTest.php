@@ -8,26 +8,25 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Models\Role;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Services\RoleAssignmentSyncService;
 
 final class RoleAssignmentSyncServiceTest extends TestCase
 {
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?RoleAssignmentSyncService $service = null;
 
     protected function setUp(): void
     {
         kintai_test_database();
         kintai_test_migrate();
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
+        kintai_test_fk_off();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function service(): RoleAssignmentSyncService
     {
         if ($this->service === null) {
-            $this->service      = new RoleAssignmentSyncService($this->assignments);
+            $this->service      = new RoleAssignmentSyncService();
         }
 
         return $this->service;
@@ -39,55 +38,51 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncOwnerRoleAssignsWhenPromotedAndNotAlreadyOwner(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([]);
-        $this->assignments->expects($this->once())->method('assign')->with(10, 1, 'global', null);
-
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [] : []);
         $this->service()->syncOwnerRole(10, true);
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 10)->where('role_id', 1)->where('scope_type', 'global')->whereNull('scope_id')->exists(), 'affectation créée');
     }
 
     public function testSyncOwnerRoleDoesNothingWhenAlreadyOwner(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 5, 'user_id' => 10, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $this->assignments->expects($this->never())->method('assign');
-        $this->assignments->expects($this->never())->method('revoke');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
+        $revokeBefore = \App\Models\RoleAssignment::query()->count();
 
         $this->service()->syncOwnerRole(10, true);
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
+        $this->assertSame($revokeBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation révoquée');
     }
 
     public function testSyncOwnerRoleRevokesWhenDemoted(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 5, 'user_id' => 10, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $this->assignments->expects($this->once())->method('revoke')->with(5);
-
         $this->service()->syncOwnerRole(10, false);
+        $this->assertNull(\App\Models\RoleAssignment::findById(5), 'affectation révoquée');
     }
 
     public function testSyncOwnerRoleDoesNothingWhenDemotedAndNotOwner(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([]);
-        $this->assignments->expects($this->never())->method('revoke');
+        kintai_test_assignments(findByUser: fn() => []);
+        $revokeBefore = \App\Models\RoleAssignment::query()->count();
 
         $this->service()->syncOwnerRole(10, false);
+        $this->assertSame($revokeBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation révoquée');
     }
 
     public function testSyncOwnerRoleNoopsWhenOwnerRoleMissing(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->never())->method('assign');
-        $this->assignments->expects($this->never())->method('findByUser');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
         \Illuminate\Support\Facades\DB::table('role_assignments')->delete();
         \Illuminate\Support\Facades\DB::table('roles')->where('slug', 'owner')->delete();
         \App\Database\RequestMemo::flush();
 
         $this->service()->syncOwnerRole(10, true);
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
     }
 
     // -------------------------------------------------------------------------
@@ -96,57 +91,54 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncStoreRoleByIdAssignsWhenMissing(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([]);
-        $this->assignments->expects($this->once())->method('assign')->with(10, 2, 'store', 1);
-
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [] : []);
         $role = $this->service()->syncStoreRoleById(10, 1, 2);
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 10)->where('role_id', 2)->where('scope_type', 'store')->where('scope_id', 1)->exists(), 'affectation créée');
         $this->assertSame('Manager', $role['name']);
         $this->assertTrue($role['is_managing']);
     }
 
     public function testSyncStoreRoleByIdReplacesExistingDifferentRoleOnSameStore(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn() => []);
-        $this->assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 9, 'user_id' => 10, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->assignments->expects($this->once())->method('revoke')->with(9);
-        $this->assignments->expects($this->once())->method('assign')->with(10, 2, 'store', 1);
-
         $this->service()->syncStoreRoleById(10, 1, 2);
+        $this->assertNull(\App\Models\RoleAssignment::findById(9), 'affectation révoquée');
+        $this->assertTrue(\App\Models\RoleAssignment::query()->where('user_id', 10)->where('role_id', 2)->where('scope_type', 'store')->where('scope_id', 1)->exists(), 'affectation créée');
     }
 
     public function testSyncStoreRoleByIdDoesNothingWhenAlreadyCorrect(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn() => []);
-        $this->assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->assignments->expects($this->never())->method('revoke');
-        $this->assignments->expects($this->never())->method('assign');
+        $revokeBefore = \App\Models\RoleAssignment::query()->count();
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
 
         $this->service()->syncStoreRoleById(10, 1, 2);
+        $this->assertSame($revokeBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation révoquée');
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
     }
 
     public function testSyncStoreRoleByIdRejectsSystemRole(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Owner', 'is_system' => 1] : null);
-        $this->assignments->expects($this->never())->method('assign');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
 
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
         $this->assertNull($this->service()->syncStoreRoleById(10, 1, 1));
     }
 
     public function testSyncStoreRoleByIdRejectsUnknownRole(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         kintai_test_roles(findById: fn() => null);
-        $this->assignments->expects($this->never())->method('assign');
+        $assignmentsBefore = \App\Models\RoleAssignment::query()->count();
 
+        $this->assertSame($assignmentsBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation créée');
         $this->assertNull($this->service()->syncStoreRoleById(10, 1, 99));
     }
 
@@ -269,8 +261,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testStoreRoleMapForStoreIndexesByUser(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByScope')->with('store', 1)->willReturn([
+        kintai_test_assignments(findByScope: fn() => [
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
             ['id' => 11, 'user_id' => 12, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
@@ -289,11 +280,10 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testStoreRoleMapForUserIndexesByStoreAndIgnoresGlobalScope(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [
             ['id' => 5, 'user_id' => 10, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 4],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => array_column([
             [2, ['id' => 2, 'name' => 'Manager', 'is_system' => 0]],
         ], 1, 0)[$id] ?? null, getPermissions: static fn() => ['employees.view']);
@@ -309,22 +299,20 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testRevokeStoreRoleRevokesMatchingAssignments(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
             ['id' => 11, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 2],
         ]);
-        $this->assignments->expects($this->once())->method('revoke')->with(9);
-
         $this->service()->revokeStoreRole(10, 1);
+        $this->assertNull(\App\Models\RoleAssignment::findById(9), 'affectation révoquée');
     }
 
     public function testRevokeStoreRoleNoopsWhenNoMatch(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([]);
-        $this->assignments->expects($this->never())->method('revoke');
+        kintai_test_assignments(findByUser: fn() => []);
+        $revokeBefore = \App\Models\RoleAssignment::query()->count();
 
         $this->service()->revokeStoreRole(10, 1);
+        $this->assertSame($revokeBefore, \App\Models\RoleAssignment::query()->count(), 'aucune affectation révoquée');
     }
 }

@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\TimeOff\Controllers\Api\TimeoffRequestController;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -34,12 +34,11 @@ final class TimeoffMassAssignmentTest extends TestCase
 
     protected function setUp(): void
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'user_id' => self::ME, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => self::MY_STORE],
         ]);
         kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['timeoff.create', 'timeoff.update'], getGlobalPermissionKeys: fn() => []);
-        $this->permissions = new PermissionService($assignments);
+        $this->permissions = new PermissionService();
 
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->storeUsers->method('findMembership')->willReturnCallback(

@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Models\WebPushSubscription;
 use App\Models\Notification;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
 
 final class NotificationControllerTest extends TestCase
 {
-    private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private AuthService $auth;
     private ?NotificationController $controller = null;
 
@@ -37,15 +36,11 @@ final class NotificationControllerTest extends TestCase
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@example.com']);
-
-        $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
     }

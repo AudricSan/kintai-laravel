@@ -12,31 +12,32 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Models\Role;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 
 final class AuthServiceTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
-    private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private ?AuthService $auth = null;
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
         session()->forget(auth()->getName());
 
         $this->users           = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores          = $this->createStub(StoreRepositoryInterface::class);
-        $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function auth(): AuthService
     {
         if ($this->auth === null) {
-            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores, $this->roleAssignments);
+            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores);
         }
 
         return $this->auth;
@@ -45,11 +46,9 @@ final class AuthServiceTest extends TestCase
     /** Simule une affectation Owner (portée globale, rôle système) pour cet utilisateur. */
     private function grantOwnerRole(int $userId): void
     {
-        $this->roleAssignments->method('findByUser')->willReturnCallback(
-            fn(int $uid) => $uid === $userId ? [
+        kintai_test_assignments(findByUser: fn(int $uid) => $uid === $userId ? [
                 ['id' => 1, 'user_id' => $userId, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
-            ] : []
-        );
+            ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'slug' => 'owner', 'is_system' => 1] : null);
     }
 
@@ -61,11 +60,9 @@ final class AuthServiceTest extends TestCase
      */
     private function grantStoreRole(int $userId, int $storeId, int $roleId, array $permissions, bool $isManager): void
     {
-        $this->roleAssignments->method('findByUser')->willReturnCallback(
-            fn(int $uid) => $uid === $userId ? [
+        kintai_test_assignments(findByUser: fn(int $uid) => $uid === $userId ? [
                 ['id' => 2, 'user_id' => $userId, 'role_id' => $roleId, 'scope_type' => 'store', 'scope_id' => $storeId],
-            ] : []
-        );
+            ] : []);
         kintai_test_roles(findById: fn() => [
             'id' => $roleId, 'slug' => 'manager', 'is_system' => 0, 'is_manager' => $isManager ? 1 : 0,
         ], getPermissions: fn(int $id): array => $id === $roleId ? $permissions : []);
@@ -282,7 +279,7 @@ final class AuthServiceTest extends TestCase
     {
         session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, false));
-        $this->roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->assertFalse($this->auth()->isAdmin());
     }
 
@@ -293,7 +290,7 @@ final class AuthServiceTest extends TestCase
         // système compte désormais.
         session()->put(auth()->getName(), 10);
         $this->users->method('findById')->willReturn($this->activeUser(10, true));
-        $this->roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->assertFalse($this->auth()->isAdmin());
     }
 

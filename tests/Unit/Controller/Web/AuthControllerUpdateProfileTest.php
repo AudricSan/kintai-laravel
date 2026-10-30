@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -53,12 +53,10 @@ final class AuthControllerUpdateProfileTest extends TestCase
 
         $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($users, $storeUsers, $stores, $roleAssignments, $rememberTokens);
+        $auth = new AuthService($users, $storeUsers, $stores, $rememberTokens);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
@@ -98,9 +96,8 @@ final class AuthControllerUpdateProfileTest extends TestCase
 
         $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
-        $auth = new AuthService($users, $storeUsers, $stores, $roleAssignments);
+        kintai_test_assignments(findByUser: fn() => []);
+        $auth = new AuthService($users, $storeUsers, $stores);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);

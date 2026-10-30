@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use App\Http\Middleware\NotificationMiddleware;
 use App\Models\AppSetting;
 use App\Models\Notification;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -54,14 +54,11 @@ final class NotificationMiddlewareTest extends TestCase
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn($user);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
         $this->container->instance(AuthService::class, $auth);
@@ -127,9 +124,9 @@ final class NotificationMiddlewareTest extends TestCase
     public function testPushWebConfigEmptyWhenTheSettingsAreUnreachable(): void
     {
         // Aucun VapidKeyStore dans le conteneur et pas de base : le middleware ne doit pas échouer pour autant.
-        kintai_test_database(); // sans migrations : les réglages sont injoignables
         $this->bindAuth(['id' => 7]);
         $this->bindNotifications();
+        \Illuminate\Support\Facades\Schema::drop('app_settings'); // les réglages sont injoignables
         $middleware = new NotificationMiddleware($this->container);
 
         $middleware->handle(Request::capture(), $this->noop());
@@ -139,7 +136,7 @@ final class NotificationMiddlewareTest extends TestCase
     public function testDegradesGracefullyWhenNotificationRepositoryThrows(): void
     {
         $this->bindAuth(['id' => 7]);
-        kintai_test_database(); // sans migrations : la table des notifications n'existe pas
+        \Illuminate\Support\Facades\Schema::drop('notifications'); // la table des notifications n'existe pas
         $middleware = new NotificationMiddleware($this->container);
 
         $response = $middleware->handle(Request::capture(), $this->noop());

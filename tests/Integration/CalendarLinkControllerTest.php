@@ -9,7 +9,7 @@ use App\Models\CalendarConnection;
 use App\Models\CalendarSyncQueueItem;
 use App\Auth\AuthService;
 use App\Console\Commands\CalendarSyncCommand;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -44,15 +44,13 @@ final class CalendarLinkControllerTest extends TestCase
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id, 'email' => 'alice@kintai.test', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null]);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findMembership')->willReturnCallback(fn() => $this->membership);
 
         $auth = new AuthService(
             $users, $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
-            $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
 

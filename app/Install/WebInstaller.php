@@ -14,7 +14,7 @@ use App\Auth\PasswordHasher;
 use App\InstalledBundleManifestStore;
 use App\Database\DemoDataSeeder;
 use App\Models\AppSetting;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\AppSettingsService;
@@ -306,7 +306,7 @@ final class WebInstaller
         if ($ownerRole === null) {
             throw new \RuntimeException('Rôle « owner » introuvable après les migrations.');
         }
-        $app->make(RoleAssignmentRepositoryInterface::class)
+        $app->make(RoleAssignment::class)
             ->assign((int) $owner['id'], (int) $ownerRole['id'], 'global', null);
 
         return (int) $owner['id'];

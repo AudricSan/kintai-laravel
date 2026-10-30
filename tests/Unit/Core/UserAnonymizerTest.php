@@ -7,7 +7,7 @@ namespace Tests\Unit\Core;
 use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
 use App\Models\ApiToken;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -22,14 +22,13 @@ final class UserAnonymizerTest extends TestCase
     use \Tests\Support\ApiTokenExpectations;
 
     private UserRepositoryInterface&Stub $users;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private UserRepositoryInterface&Stub $remember;
     private string $avatarDir;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->users       = $this->createStub(UserRepositoryInterface::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->remember    = $this->createStub(UserRepositoryInterface::class);
         $this->avatarDir   = sys_get_temp_dir() . '/kintai-avatars-' . bin2hex(random_bytes(4));
         mkdir($this->avatarDir);
@@ -45,7 +44,7 @@ final class UserAnonymizerTest extends TestCase
 
     private function anonymizer(): UserAnonymizer
     {
-        return new UserAnonymizer($this->users, $this->assignments, new CredentialRevoker($this->remember), $this->avatarDir);
+        return new UserAnonymizer($this->users, new CredentialRevoker($this->remember), $this->avatarDir);
     }
 
     public function testPersonalDataIsErasedAndTheAccountMarkedDeletedButNeverRemoved(): void
@@ -80,23 +79,19 @@ final class UserAnonymizerTest extends TestCase
 
     public function testRolesAndCredentialsAreRevoked(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->remember = $this->createMock(UserRepositoryInterface::class);
         $this->users->method('findById')->willReturn(['id' => 12]);
         $this->users->method('save')->willReturnArgument(0);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(12)->willReturn([['id' => 3], ['id' => 4]]);
-
-        $revoked = [];
-        $this->assignments->expects($this->exactly(2))->method('revoke')->willReturnCallback(function (int $id) use (&$revoked): int {
-            $revoked[] = $id;
-            return 1;
-        });
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 12 ? [
+            ['id' => 3, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
+            ['id' => 4, 'role_id' => 3, 'scope_type' => 'global'],
+        ] : []);
         $this->remember->expects($this->once())->method('revokeRememberToken')->with(12);
         $this->expectApiTokensRevoked(12);
 
         $this->anonymizer()->anonymize(12);
 
-        $this->assertSame([3, 4], $revoked);
+        $this->assertSame(0, \App\Models\RoleAssignment::query()->where('user_id', 12)->count(), 'affectations révoquées');
     }
 
     public function testAnExistingDeletionDateIsKept(): void

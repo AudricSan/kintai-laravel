@@ -7,7 +7,7 @@ namespace Tests\Bundles\Timeclock\Controllers\Api;
 use kintai\Bundles\Installed\Timeclock\Controllers\Api\TimeclockController;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -34,13 +34,11 @@ final class ApiSelfServiceListTest extends TestCase
         $repo = $this->createStub(TimeclockRepositoryInterface::class);
         $repo->method('findByUser')->willReturnCallback(fn(int $u) => array_values(array_filter($items, fn($i) => $i['user_id'] === $u)));
         $repo->method('findByStore')->willReturnCallback(fn(int $s) => array_values(array_filter($items, fn($i) => $i['store_id'] === $s)));
-
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === self::MANAGER
+        kintai_test_assignments(findByUser: fn(int $u) => $u === self::MANAGER
             ? [['id' => 1, 'user_id' => self::MANAGER, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['timeclock.view'], getGlobalPermissionKeys: fn() => []);
-        $permissions = new PermissionService($assignments);
+        $permissions = new PermissionService();
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         return new TimeclockController($repo, $storeUsers, new AuditLogger(), $permissions);

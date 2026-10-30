@@ -13,7 +13,7 @@ use Illuminate\Container\Container;
 use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
 use App\Models\AppSetting;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -46,6 +46,9 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
         $this->received = [];
     }
 
@@ -93,8 +96,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
         $storeUsers->method('save')->willReturnArgument(0);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]);
         kintai_test_role_table([['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]]);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $permissions = new PermissionService($roleAssignments);
+        $permissions = new PermissionService();
 
         return new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
@@ -102,7 +104,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             $stores,
             $storeUsers,
             new AuditLogger(),
-            new RoleAssignmentSyncService($roleAssignments),
+            new RoleAssignmentSyncService(),
             $permissions,
             new PlanLimitService($stores, $users, new LicenseClientService(['base_url' => '', 'api_key' => ''])),
             new OwnerGuard($permissions, $users),

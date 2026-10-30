@@ -7,7 +7,7 @@ namespace Tests\Unit\Auth;
 use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
@@ -18,13 +18,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class OwnerGuardTest extends TestCase
 {
+protected function setUp(): void    {        kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();    }
     /**
      * @param array<int, array{active?: bool, deleted?: bool}> $owners Owners par id ; les comptes absents ne sont pas Owner
      */
     private function guard(array $owners): OwnerGuard
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByScope')->willReturn(array_map(
+        kintai_test_assignments(findByScope: fn() => array_map(
             fn(int $id): array => ['id' => $id, 'user_id' => $id, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
             array_keys($owners)
         ));
@@ -34,7 +34,7 @@ final class OwnerGuardTest extends TestCase
             ? ['id' => $id, 'is_active' => ($owners[$id]['active'] ?? true) ? 1 : 0, 'deleted_at' => ($owners[$id]['deleted'] ?? false) ? '2026-01-01 00:00:00' : null]
             : ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
 
-        return new OwnerGuard(new PermissionService($assignments), $users);
+        return new OwnerGuard(new PermissionService(), $users);
     }
 
     public function testNonOwnerTargetIsNeverBlocked(): void

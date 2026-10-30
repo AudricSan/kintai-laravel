@@ -12,7 +12,7 @@ use App\Models\Availability;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -38,6 +38,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         session()->put(auth()->getName(), 9);
 
         $capsule = new Capsule();
@@ -63,13 +64,11 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
         $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $users,
             $storeUsers,
             $stores,
-            $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
 

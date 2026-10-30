@@ -8,7 +8,7 @@ use App\Auth\OwnerGuard;
 use App\Auth\PermissionCatalog;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -54,7 +54,6 @@ final class AdminRoleController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly RoleAssignmentRepositoryInterface $assignments,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
@@ -70,7 +69,7 @@ final class AdminRoleController
         $roles = Role::findAll();
         $counts = [];
         foreach ($roles as &$role) {
-            $counts[(int) $role['id']] = count($this->assignments->findByRole((int) $role['id']));
+            $counts[(int) $role['id']] = count(RoleAssignment::findByRole((int) $role['id']));
             $role['description'] = $this->resolveDescription($role);
         }
         unset($role);
@@ -211,7 +210,7 @@ final class AdminRoleController
         if (!empty($role['is_system'])) {
             throw new ForbiddenException(__('error_owner_role_undeletable'));
         }
-        if (count($this->assignments->findByRole((int) $role['id'])) > 0) {
+        if (count(RoleAssignment::findByRole((int) $role['id'])) > 0) {
             return redirect()->away($this->base() . '/admin/roles')->with('error', 'role_in_use');
         }
 
@@ -281,7 +280,7 @@ final class AdminRoleController
             throw new ForbiddenException(__('error_owner_role_immutable'));
         }
 
-        $assignment = $this->assignments->findById((int) $request->route('assignmentId'));
+        $assignment = RoleAssignment::findById((int) $request->route('assignmentId'));
         if ($assignment === null || (int) $assignment['role_id'] !== (int) $role['id']) {
             throw new NotFoundException(__('error_resource_not_found'));
         }
@@ -424,7 +423,7 @@ final class AdminRoleController
     private function roleHolders(int $roleId): array
     {
         $holders = [];
-        foreach ($this->assignments->findByRole($roleId) as $assignment) {
+        foreach (RoleAssignment::findByRole($roleId) as $assignment) {
             $user = $this->users->findById((int) $assignment['user_id']);
             $scopeLabel = __('scope_global');
             if ($assignment['scope_type'] === 'store' && $assignment['scope_id'] !== null) {

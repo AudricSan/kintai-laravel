@@ -192,7 +192,6 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(LanguageRepositoryInterface::class),
             $c->make(PlanLimitService::class),
             $c->make(\App\Routing\RouteSlugService::class),
-            $c->make(\App\Repositories\RoleAssignmentRepositoryInterface::class),
         ));
 
         $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(

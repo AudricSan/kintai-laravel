@@ -18,7 +18,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
@@ -52,7 +52,6 @@ final class EmployeeControllerNavSettingsTest extends TestCase
                 $this->createStub(UserRepositoryInterface::class),
             ),
             new PermissionService(
-                $this->createStub(RoleAssignmentRepositoryInterface::class),
             ),
         );
     }

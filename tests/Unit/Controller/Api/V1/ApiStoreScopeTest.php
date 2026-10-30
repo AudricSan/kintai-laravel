@@ -14,7 +14,7 @@ use App\Models\ApiToken;
 use App\Models\AppSetting;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
@@ -69,13 +69,11 @@ final class ApiStoreScopeTest extends TestCase
         kintai_test_database();
         kintai_test_migrate();
         \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnCallback(fn(int $uid): array => match ($uid) {
+        kintai_test_assignments(findByUser: fn(int $uid): array => match ($uid) {
             self::OWNER   => [['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]],
             self::MANAGER => [['id' => 2, 'user_id' => self::MANAGER, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => self::STORE_A]],
             default       => [],
-        });
-        $assignments->method('findByScope')->willReturn([
+        }, findByScope: fn() => [
             ['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
         kintai_test_roles(findById: fn(int $id): array => match ($id) {
@@ -86,7 +84,7 @@ final class ApiStoreScopeTest extends TestCase
             'employees.view', 'employees.update', 'employees.delete',
             'stores.view', 'stores.update',
         ], getGlobalPermissionKeys: static fn() => []);
-        $this->permissions = new PermissionService($assignments);
+        $this->permissions = new PermissionService();
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
@@ -446,7 +444,7 @@ final class ApiStoreScopeTest extends TestCase
         $controller = new UserController(
             $this->users, new AuditLogger(), $planLimits, $this->permissions, $this->storeUsers,
             new OwnerGuard($this->permissions, $this->users), $revoker,
-            new UserAnonymizer($this->users, $this->createStub(RoleAssignmentRepositoryInterface::class), $revoker, sys_get_temp_dir()),
+            new UserAnonymizer($this->users, $revoker, sys_get_temp_dir()),
         );
 
         $response = $controller->destroy($this->request(self::MANAGER, ['id' => '31']));

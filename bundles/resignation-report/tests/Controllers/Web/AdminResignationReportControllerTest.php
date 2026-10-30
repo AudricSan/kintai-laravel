@@ -15,7 +15,7 @@ use App\Auth\PermissionService;
 use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -34,7 +34,6 @@ final class AdminResignationReportControllerTest extends TestCase
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?AdminResignationReportController $controller = null;
 
     protected function setUp(): void
@@ -52,8 +51,6 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -70,11 +67,10 @@ final class AdminResignationReportControllerTest extends TestCase
                 $this->resignationReports,
                 $this->storeUsers,
                 new AuditLogger(),
-                new PermissionService($this->assignments),
+                new PermissionService(),
                 new ResignationDeactivation($this->resignationReports, $this->users),
                 new \App\Auth\UserAnonymizer(
                     $this->users,
-                    $this->assignments,
                     new \App\Auth\CredentialRevoker(
                         $this->createStub(\App\Repositories\UserRepositoryInterface::class),
                     ),
@@ -205,7 +201,6 @@ final class AdminResignationReportControllerTest extends TestCase
     public function testGetManagersForReportFormIncludesOwnerEvenWithoutStoreMembership(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         // L'Owner n'a pas forcément de ligne store_user (voir install.php) mais doit
         // rester sélectionnable comme responsable sur n'importe quel store.
         $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([
@@ -219,13 +214,12 @@ final class AdminResignationReportControllerTest extends TestCase
             [10, ['id' => 10, 'first_name' => 'Jean', 'last_name' => 'Dupont', 'employee_code' => 'EMP010']],
         ]);
         // L'utilisateur 99 détient un rôle système (Owner) en portée globale (RBAC).
-        $this->assignments->expects($this->atLeastOnce())->method('findByScope')->with('global', null)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [
+            ['id' => 3, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
+        ] : [], findByScope: fn() => [
             ['id' => 2, 'user_id' => 99, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
         ]);
         // Le rôle RBAC affecté à l'utilisateur 10 accorde employees.update sur le store 1.
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
-            ['id' => 3, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
-        ]);
         kintai_test_roles(findById: fn(int $id) => array_column([
             [1, ['id' => 1, 'slug' => 'owner', 'is_system' => 1]],
             [2, ['id' => 2, 'is_system' => 0]],
@@ -242,7 +236,6 @@ final class AdminResignationReportControllerTest extends TestCase
     public function testGetManagersForReportFormExcludesMemberWithoutEmployeesUpdatePermission(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         // Un membre du store sans la permission RBAC employees.update ne doit plus
         // apparaître, même si sa colonne legacy store_user.role vaut 'manager'
         // (colonne jamais resynchronisée quand les permissions d'un rôle changent).
@@ -253,9 +246,9 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->users->method('findById')->willReturnMap([
             [10, ['id' => 10, 'first_name' => 'Jean', 'last_name' => 'Dupont', 'employee_code' => 'EMP010']],
         ]);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 10 ? [
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
         $method = new \ReflectionMethod($this->controller(), 'getManagersForReportForm');
         $method->setAccessible(true);
@@ -387,7 +380,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $req->setRouteParams(['id' => '1']);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
         $this->storeUsers->method('findMembership')->willReturn(['id' => 3]);
-        $this->assignments->method('findByScope')->willReturn([
+        kintai_test_assignments(findByScope: fn() => [
             ['id' => 1, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
@@ -407,7 +400,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 2]);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
         $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'user_id' => 5]);
-        $this->assignments->method('findByScope')->willReturn([]);
+        kintai_test_assignments(findByScope: fn() => []);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 1], ['store_id' => 4]]);
         $this->users->expects($this->never())->method('delete');
         $this->resignationReports->expects($this->never())->method('delete');
@@ -661,10 +654,9 @@ final class AdminResignationReportControllerTest extends TestCase
     {
         $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
         $req = $this->storeRequest(2, date('Y-m-d'));
-        $this->assignments->method('findByScope')->willReturn([]);
-        $this->assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === 5
+        kintai_test_assignments(findByUser: fn(int $u) => $u === 5
             ? [['id' => 4, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
-            : []);
+            : [], findByScope: fn() => []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['shifts.view']);
         $this->resignationReports->expects($this->never())->method('save');
 
@@ -676,11 +668,10 @@ final class AdminResignationReportControllerTest extends TestCase
     {
         $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
         $req = $this->storeRequest(7, date('Y-m-d', strtotime('+3 days')));
-        $this->assignments->method('findByScope')->willReturn([
-            ['id' => 1, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
-        $this->assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 4, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
+        ], findByScope: fn() => [
+            ['id' => 1, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
         kintai_test_roles(findById: fn(int $id) => ['id' => $id, 'is_system' => $id === 10 ? 1 : 0], getPermissions: fn() => ['shifts.view']);
         $this->resignationReports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 99]);

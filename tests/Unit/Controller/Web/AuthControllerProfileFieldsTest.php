@@ -13,7 +13,7 @@ use App\Extension\ExtensionRegistry;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -93,11 +93,10 @@ final class AuthControllerProfileFieldsTest extends TestCase
 
         $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $storeUsers, $stores, $roleAssignments, $rememberTokens);
+        $auth = new AuthService($this->users, $storeUsers, $stores, $rememberTokens);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr']]);

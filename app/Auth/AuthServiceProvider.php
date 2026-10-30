@@ -10,7 +10,7 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Models\Role;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 
 final class AuthServiceProvider extends ServiceProvider
 {
@@ -30,14 +30,12 @@ final class AuthServiceProvider extends ServiceProvider
                 $c->make(UserRepositoryInterface::class),
                 $c->make(StoreUserRepositoryInterface::class),
                 $c->make(StoreRepositoryInterface::class),
-                $c->make(RoleAssignmentRepositoryInterface::class),
             )
         );
 
         $this->app->singleton(
             PermissionService::class,
             fn(Container $c) => new PermissionService(
-                $c->make(RoleAssignmentRepositoryInterface::class),
             )
         );
     }

@@ -9,7 +9,7 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Exceptions\ForbiddenException;
 use App\Models\AppSetting;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -47,13 +47,11 @@ final class AdminUserControllerScopeTest extends TestCase
 
     protected function setUp(): void
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnCallback(fn(int $uid): array => match ($uid) {
+        kintai_test_assignments(findByUser: fn(int $uid): array => match ($uid) {
             self::OWNER   => [['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]],
             self::MANAGER => [['id' => 2, 'user_id' => self::MANAGER, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => self::STORE_A]],
             default       => [],
-        });
-        $assignments->method('findByScope')->willReturn([
+        }, findByScope: fn() => [
             ['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
         kintai_test_roles(findById: fn(int $id): array => $id === 10
@@ -69,14 +67,14 @@ final class AdminUserControllerScopeTest extends TestCase
             $stores,
             $this->storeUsers,
             new AuditLogger(),
-            new RoleAssignmentSyncService($assignments),
-            new PermissionService($assignments),
+            new RoleAssignmentSyncService(),
+            new PermissionService(),
             new PlanLimitService(
                 $stores,
                 $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
-            new OwnerGuard(new PermissionService($assignments), $this->users),
+            new OwnerGuard(new PermissionService(), $this->users),
         );
     }
 

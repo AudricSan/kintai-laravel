@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\AppSettingsService;
@@ -32,6 +32,7 @@ final class SystemNotificationServiceTest extends TestCase
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->notifs   = $this->createStub(NotificationService::class);
         $this->settings = (new InMemoryAppSettings())->into(new AppSettingsService());
         $this->alerts   = [];
@@ -41,8 +42,7 @@ final class SystemNotificationServiceTest extends TestCase
     /** @param int[] $ownerIds */
     private function service(array $ownerIds = [1, 2]): SystemNotificationService
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByScope')->willReturn(array_map(
+        kintai_test_assignments(findByScope: fn() => array_map(
             fn(int $id): array => ['id' => $id, 'user_id' => $id, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
             $ownerIds
         ));
@@ -63,7 +63,7 @@ final class SystemNotificationServiceTest extends TestCase
             }
         };
 
-        return new SystemNotificationService(new OwnerGuard(new PermissionService($assignments), $users), $this->notifs, $this->settings, $source);
+        return new SystemNotificationService(new OwnerGuard(new PermissionService(), $users), $this->notifs, $this->settings, $source);
     }
 
     /** @internal appelé par la source anonyme du test */

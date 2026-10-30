@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\RoleDashboardLayout;
 use App\Models\UserDashboardLayout;
 use App\Models\Role;
@@ -21,7 +21,6 @@ use App\Models\UserDashboardPref;
 final class DashboardLayoutResolver
 {
     public function __construct(
-        private readonly RoleAssignmentRepositoryInterface $assignments,
     ) {}
 
     /** Mises en page nommées de l'utilisateur pour ce tableau de bord (panneau « Personnaliser »). */
@@ -69,7 +68,7 @@ final class DashboardLayoutResolver
     private function roleIds(int $userId): array
     {
         $ids = [];
-        foreach ($this->assignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             $ids[(int) $assignment['role_id']] = true;
         }
         $ids = array_keys($ids);

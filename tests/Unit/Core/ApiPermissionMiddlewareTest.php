@@ -6,7 +6,7 @@ namespace Tests\Unit\Core;
 
 use App\Auth\PermissionService;
 use App\Http\Middleware\ApiPermissionMiddleware;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -17,13 +17,11 @@ use PHPUnit\Framework\TestCase;
 
 final class ApiPermissionMiddlewareTest extends TestCase
 {
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?ApiPermissionMiddleware $middleware = null;
 
     protected function setUp(): void
     {
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
@@ -32,7 +30,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
     {
         if ($this->middleware === null) {
             $this->middleware  = new ApiPermissionMiddleware(
-                new PermissionService($this->assignments),
+                new PermissionService(),
                 $this->storeUsers,
             );
         }
@@ -65,8 +63,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     private function grantStoreRole(int $userId, int $roleId, int $storeId, array $permissions): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with($userId)->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'user_id' => $userId, 'role_id' => $roleId, 'scope_type' => 'store', 'scope_id' => $storeId],
         ]);
         // Le rôle n'est pas lu quand la portée exclut déjà la demande : pas d'attente, réponse par identifiant.
@@ -83,9 +80,6 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testPublicRoutePassesThroughWithoutConsultingRoles(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->never())->method('findByUser');
-
         $request = $this->makeRequest('public', 10);
 
         $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());
@@ -93,8 +87,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testTokenWithoutPermissionGets403(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $request  = $this->makeRequest('employees.view', 10);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -144,8 +137,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testSelfRuleAllowsOwnResourceWithoutPermission(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         // GET /users/10 par l'utilisateur 10 lui-même
         $request = $this->makeRequest(['perm' => 'employees.view', 'self' => 'id'], 10, ['id' => '10']);
 
@@ -154,8 +146,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testSelfRuleRejectsOtherUsersResourceWithoutPermission(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $request  = $this->makeRequest(['perm' => 'employees.view', 'self' => 'id'], 10, ['id' => '11']);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -164,8 +155,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testSelfRuleReadsUserIdFromRequestBody(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         // clock-in pour soi-même (user_id du corps) → autorisé sans permission
         $request = $this->makeRequest(['perm' => 'timeclock.update', 'self' => 'user_id'], 10, post: ['user_id' => '10']);
 
@@ -174,8 +164,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testSelfRuleRejectsBodyTargetingAnotherUser(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         // clock-in pour un autre employé sans timeclock.update → 403
         $request  = $this->makeRequest(['perm' => 'timeclock.update', 'self' => 'user_id'], 10, post: ['user_id' => '11']);
         $response = $this->middleware()->handle($request, $this->next());
@@ -197,10 +186,9 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testOwnerSystemRoleGrantsEverything(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'is_system' => 1] : null);
         $request = $this->makeRequest('stores.delete', 1, ['id' => '3']);
 
@@ -215,7 +203,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
     public function testMembershipRuleAllowsAnyStoreMemberWithoutPermission(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 10)->willReturn(['store_id' => 1, 'user_id' => 10]);
 
         $request = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10, [], ['store_id' => '1']);
@@ -226,7 +214,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
     public function testMembershipRuleRejectsNonMemberWithoutPermission(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->assignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->storeUsers->expects($this->atLeastOnce())->method('findMembership')->with(1, 10)->willReturn(null);
 
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10, [], ['store_id' => '1']);
@@ -240,7 +228,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // Sans store_id ciblé, la portée 'membership' ne peut pas s'appliquer :
         // seule une permission RBAC globale peut passer.
-        $this->assignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->storeUsers->expects($this->never())->method('findMembership');
 
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], 10);

@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Api\V1;
 use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Models\ApiToken;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -43,10 +43,9 @@ final class AuthControllerTest extends TestCase
         }
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $stores     = $this->createStub(StoreRepositoryInterface::class);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
-        $this->auth       = new AuthService($this->users, $storeUsers, $stores, $roleAssignments);
+        $this->auth       = new AuthService($this->users, $storeUsers, $stores);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -216,11 +215,10 @@ final class AuthControllerTest extends TestCase
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findByEmployeeCode')->willReturn($row);
         $users->method('findById')->willReturn($row);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->noTokenExpected = true;
 
-        $auth       = new AuthService($users, $storeUsers, $stores, $roleAssignments);
+        $auth       = new AuthService($users, $storeUsers, $stores);
         $controller = new AuthController($auth, $users, new AuditLogger());
 
         $response = $controller->login($this->makeRequest('POST', '/api/v1/auth/login', json: [

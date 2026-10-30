@@ -10,7 +10,7 @@ use App\Models\DevicePushToken;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -41,7 +41,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
 {
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private EmployeeController $controller;
     private string $viewDir;
 
@@ -57,7 +56,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         \Illuminate\Container\Container::getInstance()->bind(\App\Services\SchedulePublication::class, static fn() => throw new \RuntimeException('indisponible'));
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
 
         $this->viewDir    = $viewDir;
         $this->controller = $this->buildController();
@@ -82,7 +80,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
             ),
-            new PermissionService($this->assignments),
+            new PermissionService(),
         );
     }
 
@@ -93,7 +91,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
 
     private function grantShiftsUpdateOnStore(int $storeId): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === 9 ? [
             ['id' => 1, 'user_id' => 9, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? ['shifts.update'] : []);
@@ -130,8 +128,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
 
     public function testCanManageFalseWhenNoRoleGrantsAnything(): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [] : []);
-
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === 9 ? [] : []);
         $_GET = ['store_id' => '1'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
@@ -144,8 +141,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
 
     public function testCanManageTrueForOwnerRegardlessOfPermissions(): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [] : []);
-
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === 9 ? [] : []);
         $_GET = ['store_id' => '1'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9, 'is_admin' => 1]);

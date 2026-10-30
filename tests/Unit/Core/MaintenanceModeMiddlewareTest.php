@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use App\Exceptions\ServiceUnavailableException;
 use App\Http\Middleware\MaintenanceModeMiddleware;
 use App\Models\AppSetting;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -25,6 +25,9 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
         $this->container = new \Tests\Support\TestContainer();
     }
 
@@ -64,17 +67,12 @@ final class MaintenanceModeMiddlewareTest extends TestCase
         // AuthService::isAdmin() lit désormais role_assignments : on simule une
         // affectation au rôle système (Owner) quand le user de test porte
         // is_admin=1, pour préserver l'intention de chaque test existant.
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         if ($user !== null && !empty($user['is_admin'])) {
             kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 1]);
-            $roleAssignments->method('findByUser')->willReturn([
-                ['id' => 1, 'user_id' => $user['id'], 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
-            ]);
-        } else {
-            $roleAssignments->method('findByUser')->willReturn([]);
+            kintai_test_assignments(findByUser: fn(int $id) => $id === (int) $user['id'] ? [['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null]] : []);
         }
 
-        $this->container->instance(AuthService::class, new AuthService($users, $storeUsers, $stores, $roleAssignments));
+        $this->container->instance(AuthService::class, new AuthService($users, $storeUsers, $stores));
 
         if ($user !== null) {
             session()->put(auth()->getName(), $user['id']);

@@ -10,7 +10,7 @@ use App\Models\DevicePushToken;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -72,7 +72,6 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
                 $this->createStub(UserRepositoryInterface::class),
             ),
             new PermissionService(
-                $this->createStub(RoleAssignmentRepositoryInterface::class),
             ),
         );
     }

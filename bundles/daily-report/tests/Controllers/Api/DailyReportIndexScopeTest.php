@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\DailyReport\Controllers\Api\DailyReportController;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -25,7 +25,6 @@ final class DailyReportIndexScopeTest extends TestCase
 {
     private DailyReportRepositoryInterface&Stub $reports;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?DailyReportController $controller = null;
 
     private const REPORTS = [
@@ -39,7 +38,6 @@ final class DailyReportIndexScopeTest extends TestCase
         $this->reports     = $this->createStub(DailyReportRepositoryInterface::class);
         
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
 
         $this->reports->method('findAllActive')->willReturn(self::REPORTS);
         $this->reports->method('findByAuthor')->willReturnCallback(
@@ -57,7 +55,7 @@ final class DailyReportIndexScopeTest extends TestCase
                 $this->reports,
                 $stores,
                 $this->storeUsers,
-                new DailyReportPermissionService(new PermissionService($this->assignments)),
+                new DailyReportPermissionService(new PermissionService()),
             );
         }
 
@@ -67,7 +65,7 @@ final class DailyReportIndexScopeTest extends TestCase
     /** Rôle de magasin portant la permission de lecture sur le seul magasin $storeId. */
     private function managerOf(int $userId, int $storeId): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? ['daily_reports.view'] : []);
@@ -101,7 +99,7 @@ final class DailyReportIndexScopeTest extends TestCase
 
     public function testPlainMemberOnlySeesOwnReports(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $this->storeUsers->method('findMembership')->willReturnCallback(
             fn(int $s, int $u) => $s === 1 ? ['store_id' => 1, 'user_id' => $u] : null
         );

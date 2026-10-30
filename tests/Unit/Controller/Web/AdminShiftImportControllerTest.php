@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -43,7 +43,6 @@ final class AdminShiftImportControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $roleSync = new RoleAssignmentSyncService(
-                $this->createStub(RoleAssignmentRepositoryInterface::class),
             );
             $this->controller = new AdminShiftImportController(
                 kintai_test_views(sys_get_temp_dir()),

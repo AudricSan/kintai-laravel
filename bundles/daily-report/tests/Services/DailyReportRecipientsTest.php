@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
 use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
@@ -73,7 +73,6 @@ final class DailyReportRecipientsTest extends TestCase
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => $this->users[$id] ?? null);
 
         $permissions = new PermissionService(
-            $this->createStub(RoleAssignmentRepositoryInterface::class),
         );
 
         return new DailyReportMailService(

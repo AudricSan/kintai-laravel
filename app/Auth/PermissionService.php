@@ -7,7 +7,7 @@ namespace App\Auth;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 
 /**
@@ -23,7 +23,6 @@ final class PermissionService
     private array $globalKeysCache = [];
 
     public function __construct(
-        private readonly RoleAssignmentRepositoryInterface $assignments,
     ) {}
 
     /**
@@ -39,7 +38,7 @@ final class PermissionService
             return false;
         }
 
-        foreach ($this->assignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             if (!$this->matchesScope($assignment, $storeId, $permissionKey)) {
                 continue;
             }
@@ -60,7 +59,7 @@ final class PermissionService
     public function scopedStoreIds(int $userId, string $permissionKey): array
     {
         $storeIds = [];
-        foreach ($this->assignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             if ($assignment['scope_type'] !== 'store' || $assignment['scope_id'] === null) {
                 continue;
             }
@@ -121,7 +120,7 @@ final class PermissionService
             return [];
         }
         $storeIds = [];
-        foreach ($this->assignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             if ($assignment['scope_type'] !== 'store' || $assignment['scope_id'] === null) {
                 continue;
             }
@@ -158,7 +157,7 @@ final class PermissionService
         if ($userId <= 0) {
             return false;
         }
-        foreach ($this->assignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             $roleId = (int) $assignment['role_id'];
             $role   = $this->role($roleId);
             if ($role === null) {
@@ -218,7 +217,7 @@ final class PermissionService
         if ($userId <= 0) {
             return false;
         }
-        foreach ($this->assignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             $roleId = (int) $assignment['role_id'];
             if (!$this->roleGrants($roleId, $permissionKey)) {
                 continue;
@@ -329,7 +328,7 @@ final class PermissionService
     public function ownerUserIds(): array
     {
         $ids = [];
-        foreach ($this->assignments->findByScope('global', null) as $assignment) {
+        foreach (RoleAssignment::findByScope('global', null) as $assignment) {
             $role = $this->role((int) $assignment['role_id']);
             if ($role !== null && !empty($role['is_system'])) {
                 $ids[] = (int) $assignment['user_id'];

@@ -10,7 +10,7 @@ use kintai\Contract\Provider\ExportRowsProvider;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Export\ExportAccess;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -30,10 +30,7 @@ final class ExportAccessTest extends TestCase
     protected function setUp(): void
     {
         // Le gérant (9) a un rôle shifts.view + employees.view sur le magasin 3 seulement ; l'employé (5) n'a aucun rôle.
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturnCallback(
-            fn(int $id): array => $id === 9 ? [['role_id' => 1, 'scope_type' => 'store', 'scope_id' => 3]] : []
-        );
+        kintai_test_assignments(findByUser: fn(int $id): array => $id === 9 ? [['role_id' => 1, 'scope_type' => 'store', 'scope_id' => 3]] : []);
         kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 0], getPermissions: fn() => ['shifts.view', 'employees.view'], getGlobalPermissionKeys: fn() => []);
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findActive')->willReturn([['id' => 3], ['id' => 4]]);
@@ -51,7 +48,7 @@ final class ExportAccessTest extends TestCase
             default => [],
         });
 
-        $this->access = new ExportAccess(new PermissionService($assignments), $stores, $storeUsers);
+        $this->access = new ExportAccess(new PermissionService(), $stores, $storeUsers);
     }
 
     private function dataset(string $permission, bool $self = false, bool $perPerson = true): ExportDataset

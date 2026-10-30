@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\DailyReport\Controllers\Api\DailyReportController;
 use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -32,15 +32,14 @@ final class DailyReportControllerTest extends TestCase
     private DailyReportRepositoryInterface&Stub $reports;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?DailyReportController $controller = null;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
 
         $this->stores->method('findById')->willReturnCallback(fn($a0) => $a0 === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
     }
@@ -53,7 +52,7 @@ final class DailyReportControllerTest extends TestCase
                 $this->reports,
                 $this->stores,
                 $this->storeUsers,
-                new DailyReportPermissionService(new PermissionService($this->assignments)),
+                new DailyReportPermissionService(new PermissionService()),
             );
         }
 
@@ -71,12 +70,12 @@ final class DailyReportControllerTest extends TestCase
 
     private function noPermissions(): void
     {
-        $this->assignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
     }
 
     private function grant(string $key, int $userId = 20, int $storeId = 1): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? [$key] : []);

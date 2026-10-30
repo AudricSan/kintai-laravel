@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web;
 
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\RoleDashboardLayout;
 use App\Models\Role;
 use App\Models\UserDashboardLayout;
@@ -32,7 +32,6 @@ final class DashboardLayoutsControllerTest extends TestCase
         kintai_test_user(7);
         kintai_test_roles(findById: fn(int $id): ?array => $id === 2 ? ['id' => 2, 'name' => 'Manager'] : null);
         $resolver = new DashboardLayoutResolver(
-            $this->createStub(RoleAssignmentRepositoryInterface::class),
         );
         $this->controller = new DashboardLayoutsController($resolver, new AuditLogger());
     }

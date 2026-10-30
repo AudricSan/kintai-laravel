@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Models\IcalToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -59,7 +59,6 @@ final class IcalControllerFeedTest extends TestCase
                 $this->users,
                 $this->storeUsers,
                 $this->stores,
-                $this->createStub(RoleAssignmentRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
             ),
             new AuditLogger(),

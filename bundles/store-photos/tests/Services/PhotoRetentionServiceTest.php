@@ -10,7 +10,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use PHPUnit\Framework\TestCase;
 
@@ -24,6 +24,7 @@ final class PhotoRetentionServiceTest extends TestCase
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->dir = sys_get_temp_dir() . '/kintai-photo-retention-' . bin2hex(random_bytes(4)) . '/';
         mkdir($this->dir . '5/10', 0777, true);
         file_put_contents($this->dir . '5/10/photo_1.jpg', 'a');
@@ -45,10 +46,9 @@ final class PhotoRetentionServiceTest extends TestCase
     /** PermissionService (classe finale) dont les Owners sont les utilisateurs donnés (rôle système en portée globale). */
     private function permissions(array $ownerIds): PermissionService
     {
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByScope')->willReturn(array_map(fn(int $id): array => ['user_id' => $id, 'role_id' => 1, 'scope_type' => 'global'], $ownerIds));
+        kintai_test_assignments(findByScope: fn() => array_map(fn(int $id): array => ['user_id' => $id, 'role_id' => 1, 'scope_type' => 'global'], $ownerIds));
         kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 1]);
-        return new PermissionService($assignments);
+        return new PermissionService();
     }
 
     public function testArchivesNotifiesOnceAndPurges(): void

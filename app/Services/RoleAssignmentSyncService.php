@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 
 /**
@@ -17,7 +17,6 @@ use App\Models\Role;
 final class RoleAssignmentSyncService
 {
     public function __construct(
-        private readonly RoleAssignmentRepositoryInterface $assignments,
     ) {}
 
     /**
@@ -113,16 +112,16 @@ final class RoleAssignmentSyncService
         }
 
         $storeAssignments = array_values(array_filter(
-            $this->assignments->findByUser($userId),
+            RoleAssignment::findByUser($userId),
             fn($a) => $a['scope_type'] === 'store' && (int) $a['scope_id'] === $storeId,
         ));
         foreach ($storeAssignments as $a) {
             if ((int) $a['role_id'] !== $roleId) {
-                $this->assignments->revoke((int) $a['id']);
+                RoleAssignment::revoke((int) $a['id']);
             }
         }
         if (!in_array($roleId, array_map(fn($a) => (int) $a['role_id'], $storeAssignments), true)) {
-            $this->assignments->assign($userId, $roleId, 'store', $storeId);
+            RoleAssignment::assign($userId, $roleId, 'store', $storeId);
         }
         return $role;
     }
@@ -135,14 +134,14 @@ final class RoleAssignmentSyncService
      */
     public function storeRoleMapForStore(int $storeId): array
     {
-        return $this->buildRoleMap($this->assignments->findByScope('store', $storeId), 'user_id');
+        return $this->buildRoleMap(RoleAssignment::findByScope('store', $storeId), 'user_id');
     }
 
     /** Map store_id → ['role_id', 'name', 'is_managing'] des rôles store-scope d'un utilisateur. */
     public function storeRoleMapForUser(int $userId): array
     {
         $storeAssignments = array_values(array_filter(
-            $this->assignments->findByUser($userId),
+            RoleAssignment::findByUser($userId),
             fn($a) => $a['scope_type'] === 'store' && $a['scope_id'] !== null,
         ));
         return $this->buildRoleMap($storeAssignments, 'scope_id');
@@ -196,27 +195,27 @@ final class RoleAssignmentSyncService
         }
         $ownerRoleId = (int) $ownerRole['id'];
         $existing = array_values(array_filter(
-            $this->assignments->findByUser($userId),
+            RoleAssignment::findByUser($userId),
             fn($a) => $a['scope_type'] === 'global' && (int) $a['role_id'] === $ownerRoleId,
         ));
 
         if ($isAdmin) {
             if ($existing === []) {
-                $this->assignments->assign($userId, $ownerRoleId, 'global', null);
+                RoleAssignment::assign($userId, $ownerRoleId, 'global', null);
             }
             return;
         }
         foreach ($existing as $a) {
-            $this->assignments->revoke((int) $a['id']);
+            RoleAssignment::revoke((int) $a['id']);
         }
     }
 
     /** Retire toute affectation de rôle store-scope pour cet utilisateur sur ce store. */
     public function revokeStoreRole(int $userId, int $storeId): void
     {
-        foreach ($this->assignments->findByUser($userId) as $a) {
+        foreach (RoleAssignment::findByUser($userId) as $a) {
             if ($a['scope_type'] === 'store' && (int) $a['scope_id'] === $storeId) {
-                $this->assignments->revoke((int) $a['id']);
+                RoleAssignment::revoke((int) $a['id']);
             }
         }
     }

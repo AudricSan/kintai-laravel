@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -49,7 +49,6 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
             $storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
-                $this->createStub(RoleAssignmentRepositoryInterface::class),
             ),
         );
 

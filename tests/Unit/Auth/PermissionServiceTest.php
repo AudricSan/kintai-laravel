@@ -8,24 +8,22 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Auth\PermissionService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 
 final class PermissionServiceTest extends TestCase
 {
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?PermissionService $service = null;
 
     protected function setUp(): void
     {
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function service(): PermissionService
     {
         if ($this->service === null) {
-            $this->service     = new PermissionService($this->assignments);
+            $this->service     = new PermissionService();
         }
 
         return $this->service;
@@ -51,10 +49,9 @@ final class PermissionServiceTest extends TestCase
 
     public function testCanReturnsTrueForSystemRoleRegardlessOfPermissionsTable(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 10 ? $this->role(10, isSystem: true) : null);
 
         $this->assertTrue($this->service()->can(['id' => 1], 'settings.update', 5));
@@ -66,51 +63,46 @@ final class PermissionServiceTest extends TestCase
 
     public function testCanReturnsTrueWhenRoleGrantsPermissionOnMatchingStore(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['employees.create'] : []);
         $this->assertTrue($this->service()->can(['id' => 2], 'employees.create', 5));
     }
 
     public function testCanReturnsFalseWhenStoreDoesNotMatch(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn() => $this->role(20), getPermissions: fn() => ['employees.create']);
         $this->assertFalse($this->service()->can(['id' => 2], 'employees.create', 6));
     }
 
     public function testCanReturnsFalseWhenRoleDoesNotGrantPermission(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['employees.view'] : []);
         $this->assertFalse($this->service()->can(['id' => 2], 'employees.delete', 5));
     }
 
     public function testCanWithNullStoreMatchesAnyScope(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['employees.view'] : []);
         $this->assertTrue($this->service()->can(['id' => 2], 'employees.view'));
     }
 
     public function testCanUnionsPermissionsAcrossMultipleRoles(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(3)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 3 ? [
             ['id' => 1, 'user_id' => 3, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
             ['id' => 2, 'user_id' => 3, 'role_id' => 21, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => array_column([
             [20, $this->role(20)],
             [21, $this->role(21)],
@@ -127,12 +119,11 @@ final class PermissionServiceTest extends TestCase
 
     public function testScopedStoreIdsReturnsStoresGrantingThatPermission(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(4)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 4 ? [
             ['id' => 1, 'user_id' => 4, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
             ['id' => 2, 'user_id' => 4, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 6],
             ['id' => 3, 'user_id' => 4, 'role_id' => 21, 'scope_type' => 'store', 'scope_id' => 7],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => array_column([
             [20, $this->role(20)],
             [21, $this->role(21)],
@@ -146,10 +137,9 @@ final class PermissionServiceTest extends TestCase
 
     public function testScopedStoreIdsExcludesGlobalAssignments(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn() => $this->role(10, isSystem: true));
         $this->assertSame([], $this->service()->scopedStoreIds(1, 'employees.view'));
     }
@@ -160,10 +150,9 @@ final class PermissionServiceTest extends TestCase
 
     public function testRestrictToScopeKeepsOnlyItemsFromScopedStores(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['timeoff.view'] : []);
         $items = [
             ['id' => 1, 'store_id' => 5],
@@ -177,10 +166,9 @@ final class PermissionServiceTest extends TestCase
 
     public function testRestrictToScopeReturnsEverythingForGlobalRole(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 10 ? $this->role(10, isSystem: true) : null);
         $items = [
             ['id' => 1, 'store_id' => 5],
@@ -194,9 +182,7 @@ final class PermissionServiceTest extends TestCase
 
     public function testRestrictToScopeReturnsEmptyWithoutAnyGrant(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(3)->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 3 ? [] : []);
         $items = [['id' => 1, 'store_id' => 5]];
 
         $this->assertSame([], $this->service()->restrictToScope(['id' => 3], 'timeoff.view', $items));
@@ -211,20 +197,18 @@ final class PermissionServiceTest extends TestCase
 
     public function testCanTreatsGlobalScopedPermissionAsMatchingAnyStore(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['shifts.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 20 ? ['shifts.view'] : []);
         $this->assertTrue($this->service()->can(['id' => 2], 'shifts.view', 999));
     }
 
     public function testCanStillRestrictsLocallyScopedPermissionToItsStore(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['shifts.view', 'shifts.update'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 20 ? ['shifts.view'] : []);
         $this->assertFalse($this->service()->can(['id' => 2], 'shifts.update', 999));
         $this->assertTrue($this->service()->can(['id' => 2], 'shifts.update', 3));
@@ -232,30 +216,27 @@ final class PermissionServiceTest extends TestCase
 
     public function testScopedStoreIdsExcludesStoreForGloballyScopedPermission(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['shifts.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 20 ? ['shifts.view'] : []);
         $this->assertSame([], $this->service()->scopedStoreIds(2, 'shifts.view'));
     }
 
     public function testScopedStoreIdsStillIncludesStoreForLocallyScopedPermission(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getPermissions: fn(int $id) => $id === 20 ? ['shifts.view', 'shifts.update'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 20 ? ['shifts.view'] : []);
         $this->assertSame([3], $this->service()->scopedStoreIds(2, 'shifts.update'));
     }
 
     public function testGlobalScopeAssignmentUnaffectedByPermissionScopeFlag(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 10 ? $this->role(10) : null, getPermissions: fn(int $id) => $id === 10 ? ['shifts.update'] : []);
 
         $this->assertTrue($this->service()->can(['id' => 1], 'shifts.update', 999));
@@ -270,22 +251,20 @@ final class PermissionServiceTest extends TestCase
 
     public function testHasAnyGlobalPermissionGrantTrueForStoreScopedAssignmentWithGloballyFlaggedPermission(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         // Repro directe du bug : photos.view marquée globale sur un rôle dont
         // l'affectation reste store-scope sur le magasin d'origine.
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getGlobalPermissionKeys: fn(int $id) => $id === 20 ? ['photos.view'] : []);
         $this->assertTrue($this->service()->hasAnyGlobalPermissionGrant(['id' => 2]));
     }
 
     public function testHasAnyGlobalPermissionGrantTrueForSystemRole(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 10 ? $this->role(10, isSystem: true) : null);
 
         $this->assertTrue($this->service()->hasAnyGlobalPermissionGrant(['id' => 1]));
@@ -293,29 +272,25 @@ final class PermissionServiceTest extends TestCase
 
     public function testHasAnyGlobalPermissionGrantTrueRegardlessOfAssignmentScopeType(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getGlobalPermissionKeys: fn(int $id) => $id === 20 ? ['photos.view'] : []);
         $this->assertTrue($this->service()->hasAnyGlobalPermissionGrant(['id' => 2]));
     }
 
     public function testHasAnyGlobalPermissionGrantFalseWithoutAnyGlobalPermissionOrSystemRole(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 3],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? $this->role(20) : null, getGlobalPermissionKeys: fn(int $id) => $id === 20 ? [] : []);
         $this->assertFalse($this->service()->hasAnyGlobalPermissionGrant(['id' => 2]));
     }
 
     public function testHasAnyGlobalPermissionGrantFalseWithoutAnyAssignment(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [] : []);
         $this->assertFalse($this->service()->hasAnyGlobalPermissionGrant(['id' => 2]));
     }
 
@@ -326,10 +301,9 @@ final class PermissionServiceTest extends TestCase
     /** Gérant du magasin 5 avec un rôle (20) qui n'accorde que shifts.view. */
     private function managerWithViewOnly(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(2)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 2 ? [
             ['id' => 1, 'user_id' => 2, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 5],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $this->role($id), getPermissions: fn(int $id) => match ($id) {
             20, 31 => ['shifts.view'],
             30     => ['shifts.view', 'shifts.update'],
@@ -359,10 +333,9 @@ final class PermissionServiceTest extends TestCase
 
     public function testCanAssignRoleAlwaysAllowedForOwner(): void
     {
-        $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 10 ? $this->role(10, isSystem: true) : null, getPermissions: fn() => ['shifts.view', 'shifts.update'], getGlobalPermissionKeys: fn() => ['shifts.view']);
         $this->assertTrue($this->service()->canAssignRole(['id' => 1], 30, 5));
     }

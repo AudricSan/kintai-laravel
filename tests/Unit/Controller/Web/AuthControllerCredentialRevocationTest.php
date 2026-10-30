@@ -11,7 +11,7 @@ use App\Models\ApiToken;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -39,7 +39,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
 
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
-    private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private UserRepositoryInterface&Stub $remember;
     private AuthService $auth;
     private AuthController $controller;
@@ -49,6 +48,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         session()->put(auth()->getName(), self::USER_ID);
 
         $this->currentPassword = bin2hex(random_bytes(8));
@@ -69,16 +69,13 @@ final class AuthControllerCredentialRevocationTest extends TestCase
         });
 
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $this->remember = $this->createStub(UserRepositoryInterface::class);
 
         $this->auth = new AuthService(
             $this->users,
             $this->storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
-            $this->roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
 
@@ -101,7 +98,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker($this->remember),
-            new UserAnonymizer($this->users, $this->roleAssignments, new CredentialRevoker($this->remember), sys_get_temp_dir()),
+            new UserAnonymizer($this->users, new CredentialRevoker($this->remember), sys_get_temp_dir()),
         );
     }
 

@@ -12,7 +12,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use Illuminate\Container\Container;
 use App\Models\Availability;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -40,7 +40,6 @@ final class AdminShiftControllerTest extends TestCase
     private StoreRepositoryInterface&Stub $stores;
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
-    private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminShiftController $controller = null;
@@ -64,7 +63,6 @@ final class AdminShiftControllerTest extends TestCase
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
-        $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
@@ -75,7 +73,7 @@ final class AdminShiftControllerTest extends TestCase
         if ($this->controller === null) {
             $view = kintai_test_views(sys_get_temp_dir());
             $auditLogger = new AuditLogger();
-            $permissions = new PermissionService($this->roleAssignments);
+            $permissions = new PermissionService();
             $this->controller = new AdminShiftController(
                 $view,
                 $this->users,
@@ -806,10 +804,9 @@ final class AdminShiftControllerTest extends TestCase
 
     public function testShiftsTimelinePassesCanManageTrueForRoleGrantingShiftsUpdate(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roleAssignments->expects($this->atLeastOnce())->method('findByUser')->with(9)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 9 ? [
             ['id' => 1, 'user_id' => 9, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'slug' => 'manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view', 'shifts.update'] : []);
         $canManage = $this->renderTimelineAndCaptureCanManage(['id' => 9, 'is_admin' => false], [1]);
 
@@ -819,10 +816,9 @@ final class AdminShiftControllerTest extends TestCase
     /** Le cas exact du bug rapporté : rôle "employee" avec shifts.view seul. */
     public function testShiftsTimelinePassesCanManageFalseForViewOnlyRole(): void
     {
-        $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roleAssignments->expects($this->atLeastOnce())->method('findByUser')->with(14)->willReturn([
+        kintai_test_assignments(findByUser: fn(int $id) => $id === 14 ? [
             ['id' => 1, 'user_id' => 14, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 1],
-        ]);
+        ] : []);
         kintai_test_roles(findById: fn(int $id) => $id === 3 ? ['id' => 3, 'slug' => 'employee', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 3 ? ['shifts.view'] : []);
         $canManage = $this->renderTimelineAndCaptureCanManage(['id' => 14, 'is_admin' => false], [1]);
 

@@ -7,7 +7,7 @@ namespace App\Auth;
 use App\Database\RequestMemo;
 use App\Models\User;
 use App\Repositories\DatabaseUserRepository;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -42,7 +42,6 @@ final class AuthService
         private readonly UserRepositoryInterface $users,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
-        private readonly RoleAssignmentRepositoryInterface $roleAssignments,
     ) {}
 
     /**
@@ -257,7 +256,7 @@ final class AuthService
         }
 
         $storeIds = [];
-        foreach ($this->roleAssignments->findByUser((int) $user['id']) as $assignment) {
+        foreach (RoleAssignment::findByUser((int) $user['id']) as $assignment) {
             if ($assignment['scope_type'] !== 'store' || $assignment['scope_id'] === null) {
                 continue;
             }
@@ -296,7 +295,7 @@ final class AuthService
 
     private function hasOwnerRole(int $userId): bool
     {
-        foreach ($this->roleAssignments->findByUser($userId) as $assignment) {
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
             if ($assignment['scope_type'] !== 'global') {
                 continue;
             }

@@ -9,7 +9,7 @@ use App\Auth\PasswordPolicy;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -50,14 +50,11 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
 
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $this->users,
             $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
-            $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
 

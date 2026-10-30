@@ -7,7 +7,7 @@ namespace Tests\Unit\Core;
 use App\Auth\AuthService;
 use App\Auth\CredentialRevoker;
 use App\Models\ApiToken;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -51,15 +51,11 @@ final class AuthServiceSessionRevocationTest extends TestCase
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->users->method('findById')->willReturnCallback(fn() => $this->row);
         $this->users->method('findByEmail')->willReturnCallback(fn() => $this->row);
-
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
-
+        kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
             $this->users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
     }
@@ -109,7 +105,6 @@ final class AuthServiceSessionRevocationTest extends TestCase
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 

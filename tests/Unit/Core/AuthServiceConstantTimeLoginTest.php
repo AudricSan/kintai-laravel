@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use App\Auth\AuthService;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -43,7 +43,6 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
             $this->users,
             $this->storeUsers,
             $this->stores,
-            $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 

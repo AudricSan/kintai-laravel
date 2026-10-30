@@ -298,6 +298,55 @@ function kintai_test_role_table(array $rows): void
     }
     App\Database\RequestMemo::flush();
 }
+// Aide des tests : affectations de rôle réelles (lignes role_assignments), alimentées comme les anciens doubles du dépôt :
+// chaque réglage est une valeur ou un callable (findByUser/findByRole/findById : identifiant ; findByScope : type, identifiant)
+// appelé pour les identifiants 1 à $upTo. Les clés étrangères sont suspendues le temps de l'insertion (utilisateurs, rôles
+// et magasins fictifs).
+function kintai_test_assignments(mixed $findByUser = null, mixed $findByScope = null, mixed $findByRole = null, mixed $findById = null, int $upTo = 60): void
+{
+    kintai_test_ready('role_assignments');
+    App\Database\RequestMemo::flush();
+    $db = Illuminate\Support\Facades\DB::class;
+    $rows = [];
+    $collect = static function (mixed $list, array $implied = []) use (&$rows): void {
+        foreach (is_array($list) ? $list : [] as $row) {
+            $row = is_array($row) ? $row + $implied : $row;   // une ligne sans user_id vise l'utilisateur interrogé, etc.
+            if (is_array($row) && isset($row['user_id'], $row['role_id'])) {
+                $row += ['scope_type' => 'global', 'scope_id' => null];
+                $signature = $row['user_id'] . '|' . $row['role_id'] . '|' . $row['scope_type'] . '|' . $row['scope_id'];
+                if (isset($row['id']) && in_array($row['id'], array_column(array_diff_key($rows, [$signature => 1]), 'id'), true)) {
+                    unset($row['id']);   // même identifiant fourni pour plusieurs lignes : le suivant est attribué par la base
+                }
+                $rows[$signature] = $row;
+            }
+        }
+    };
+    $call = static fn(mixed $spec, mixed ...$args): mixed => is_callable($spec) ? $spec(...$args) : $spec;
+    for ($id = 1; $id <= $upTo; $id++) {
+        if ($findByUser !== null) { $collect($call($findByUser, $id), ['user_id' => $id]); }
+        if ($findByRole !== null) { $collect($call($findByRole, $id), ['role_id' => $id]); }
+        if ($findByScope !== null) { $collect($call($findByScope, 'store', $id), ['scope_type' => 'store', 'scope_id' => $id]); }
+        if ($findById !== null) { $collect([$call($findById, $id)]); }
+    }
+    if ($findByScope !== null) { $collect($call($findByScope, 'global', null), ['scope_type' => 'global', 'scope_id' => null]); }
+
+    $foreignKeys = (int) ($db::selectOne('PRAGMA foreign_keys')->foreign_keys ?? 1);
+    $db::statement('PRAGMA foreign_keys = OFF');
+    foreach ($rows as $row) {
+        $row = array_intersect_key($row, array_flip(['id', 'user_id', 'role_id', 'scope_type', 'scope_id']));
+        isset($row['id'])
+            ? $db::table('role_assignments')->updateOrInsert(['id' => $row['id']], $row)
+            : $db::table('role_assignments')->insert($row);
+    }
+    $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));   // l'état du test est conservé
+    App\Database\RequestMemo::flush();
+}
+// Aide des tests : suspend les clés étrangères (identifiants fictifs d'utilisateurs, de rôles ou de magasins).
+function kintai_test_fk_off(): void
+{
+    Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
+}
+
 // Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
 // « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
 function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator

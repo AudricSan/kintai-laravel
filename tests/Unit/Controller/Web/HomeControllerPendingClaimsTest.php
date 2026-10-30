@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\BundleManager;
 use Illuminate\Container\Container;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -65,10 +65,8 @@ final class HomeControllerPendingClaimsTest extends TestCase
         $storeUsersRepo->method('findByStore')->willReturn([]);
 
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
-
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
-        $permissions = new PermissionService($roleAssignments);
+        kintai_test_assignments(findByUser: fn() => []);
+        $permissions = new PermissionService();
 
         $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 

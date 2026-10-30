@@ -11,7 +11,7 @@ use App\Models\ApiToken;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -57,9 +57,7 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
         $_POST = ['password' => $password];
-
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturn($owner
+        kintai_test_assignments(findByUser: fn() => $owner
             ? [['id' => 1, 'user_id' => self::USER_ID, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]
             : []);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
@@ -68,7 +66,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             $this->users,
             $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
-            $assignments,
             $this->createStub(UserRepositoryInterface::class),
         );
 
@@ -84,7 +81,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
             new UserAnonymizer(
                 $this->users,
-                $assignments,
                 new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
                 sys_get_temp_dir(),
             ),

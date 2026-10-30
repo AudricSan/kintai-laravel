@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class UserSelectionTest extends TestCase
 {
+protected function setUp(): void    {        kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();    }
     /** @var array<int, array<string, mixed>> */
     private array $users = [
         1 => ['id' => 1, 'display_name' => 'Zoé Martin', 'email' => 'zoe@example.test', 'language' => 'fr', 'is_active' => 1],
@@ -80,8 +81,8 @@ final class UserSelectionTest extends TestCase
 
     public function testThePermissionFilterKeepsTheHoldersOnly(): void
     {
-        // Le socle de test fait de l'appelant l'Owner : tous les comptes détiennent la permission.
-        $this->assertCount(4, $this->selection()->candidates(7, 'planning_check.approve'));
+        // Seul l Owner (utilisateur 1) détient la permission : les autres comptes sont écartés.
+        $this->assertSame([1], array_column($this->selection()->candidates(7, 'planning_check.approve'), 'id'));
     }
 
     public function testResolveKeepsTheSelectionOrderAndDropsUnusableAccounts(): void

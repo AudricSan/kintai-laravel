@@ -9,7 +9,7 @@ use App\Models\AppSetting;
 use App\Models\CalendarConnection;
 use App\Auth\UserAnonymizer;
 use App\Auth\CredentialRevoker;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -136,10 +136,9 @@ final class CalendarSettingsControllerTest extends TestCase
         Shift::put(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
         $this->sync->connect($this->alice, 'RA', null);
         $this->sync->processQueue();
-        $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $roleAssignments->method('findByUser')->willReturn([]);
+        kintai_test_assignments(findByUser: fn() => []);
         $anonymizer = new UserAnonymizer(
-            new DatabaseUserRepository(), $roleAssignments,
+            new DatabaseUserRepository(),
             new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
             sys_get_temp_dir(),
             $this->sync,

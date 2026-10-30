@@ -16,7 +16,7 @@ use App\Services\StoreService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Exceptions\NotFoundException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use PHPUnit\Framework\TestCase;
 
 final class StoreServiceTest extends TestCase
@@ -26,6 +26,7 @@ final class StoreServiceTest extends TestCase
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
     }
 
@@ -202,7 +203,7 @@ final class StoreServiceTest extends TestCase
     // Suppression (audit du 13/10/2026, M8)
     // -------------------------------------------------------------------------
 
-    private function serviceWithAssignments(RoleAssignmentRepositoryInterface $assignments): StoreService
+    private function serviceWithAssignments(): StoreService
     {
         return new StoreService(
             $this->stores,
@@ -215,7 +216,6 @@ final class StoreServiceTest extends TestCase
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             null,
-            $assignments,
         );
     }
 
@@ -224,18 +224,13 @@ final class StoreServiceTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'deleted_at' => null]);
         $this->stores->expects($this->once())->method('delete')->with(7)->willReturn(1);
+        kintai_test_assignments(findByScope: fn(string $type, ?int $id) => $type === 'store' && $id === 7 ? [
+            ['id' => 21, 'user_id' => 4, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 7],
+            ['id' => 22, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 7],
+        ] : []);
+        $this->serviceWithAssignments()->deleteStore(7);
 
-        $assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByScope')->with('store', 7)->willReturn([['id' => 21], ['id' => 22]]);
-        $revoked = [];
-        $assignments->expects($this->exactly(2))->method('revoke')->willReturnCallback(function (int $id) use (&$revoked): int {
-            $revoked[] = $id;
-            return 1;
-        });
-
-        $this->serviceWithAssignments($assignments)->deleteStore(7);
-
-        $this->assertSame([21, 22], $revoked);
+        $this->assertSame(0, \App\Models\RoleAssignment::query()->where('scope_type', 'store')->where('scope_id', 7)->count(), 'rôles liés au magasin révoqués');
     }
 
     public function testDeletingAnAlreadyDeletedStoreIsNotFound(): void

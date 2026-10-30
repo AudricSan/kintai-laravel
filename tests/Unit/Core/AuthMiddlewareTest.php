@@ -11,7 +11,7 @@ use Illuminate\Container\Container;
 use App\FeatureManager;
 use App\Http\Middleware\AuthMiddleware;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -79,8 +79,7 @@ final class AuthMiddlewareTest extends TestCase
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 10, 'display_name' => 'Test']);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => $isSystemRole ? 1 : 0, 'is_manager' => $isManagerRole ? 1 : 0], getPermissions: fn() => $permissions);
-        $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $assignments->method('findByUser')->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             [
                 'id'         => 1,
                 'user_id'    => 10,
@@ -89,15 +88,14 @@ final class AuthMiddlewareTest extends TestCase
                 'scope_id'   => $isSystemRole ? null : 1,
             ],
         ]);
-
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $stores     = $this->createStub(StoreRepositoryInterface::class);
 
         $this->container->instance(AuthService::class, new AuthService(
-            $users, $storeUsers, $stores, $assignments,
+            $users, $storeUsers, $stores,
             $this->createStub(UserRepositoryInterface::class),
         ));
-        $this->container->instance(PermissionService::class, new PermissionService($assignments));
+        $this->container->instance(PermissionService::class, new PermissionService());
         $this->container->instance(StoreUserRepositoryInterface::class, $storeUsers);
         $this->container->instance(StoreRepositoryInterface::class, $stores);
     }
@@ -214,7 +212,6 @@ final class AuthMiddlewareTest extends TestCase
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         ));
 

@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
 use App\Models\Availability;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -63,7 +63,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
             new AuditLogger(),
             $this->createStub(NotificationService::class),
             $this->createStub(ShiftServiceInterface::class),
-            new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class)),
+            new PermissionService(),
             new AvailabilityGuard(),
         );
     }

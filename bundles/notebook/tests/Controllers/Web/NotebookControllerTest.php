@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\Notebook\Controllers\Web\NotebookController;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -29,17 +29,16 @@ final class NotebookControllerTest extends TestCase
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private UserRepositoryInterface&Stub $users;
     private NotificationService&Stub $notifs;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?NotebookController $controller = null;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->notes       = $this->createStub(NotebookEntryRepositoryInterface::class);
         $this->stores      = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->notifs      = $this->createStub(NotificationService::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
 
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1'], ['id' => 2, 'name' => 'Store 2']]);
         // Pas de findAll() par défaut ici : plusieurs tests le reconfigurent avec une valeur
@@ -61,7 +60,7 @@ final class NotebookControllerTest extends TestCase
                 $this->users,
                 new AuditLogger(),
                 $this->notifs,
-                new PermissionService($this->assignments),
+                new PermissionService(),
             );
         }
 
@@ -77,17 +76,15 @@ final class NotebookControllerTest extends TestCase
      */
     private function grantGlobalRole(int $userId): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(
-            fn(int $uid) => $uid === $userId
+        kintai_test_assignments(findByUser: fn(int $uid) => $uid === $userId
                 ? [['id' => 1, 'user_id' => $userId, 'role_id' => 9, 'scope_type' => 'global', 'scope_id' => null]]
-                : []
-        );
+                : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 9 ? ['id' => 9, 'is_system' => 1] : null);
     }
 
     private function grantStoreScopedRole(int $userId, int $storeId, array $permissions): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
+        kintai_test_assignments(findByUser: fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? $permissions : [], getGlobalPermissionKeys: fn($a0) => $a0 === 5 ? [] : []);
@@ -207,9 +204,7 @@ final class NotebookControllerTest extends TestCase
         // Deux utilisateurs globalement scopés (ex. deux Owners) : les deux doivent être
         // notifiés, pas seulement l'auteur — vérifie que notifyMembers() ne s'arrête pas
         // au premier destinataire trouvé.
-        $this->assignments->method('findByUser')->willReturnCallback(
-            fn(int $uid) => [['id' => 1, 'user_id' => $uid, 'role_id' => 9, 'scope_type' => 'global', 'scope_id' => null]]
-        );
+        kintai_test_assignments(findByUser: fn(int $uid) => [['id' => 1, 'user_id' => $uid, 'role_id' => 9, 'scope_type' => 'global', 'scope_id' => null]]);
         kintai_test_roles(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'is_system' => 1] : null);
         $_POST = ['content' => 'Pour tous'];
 
@@ -414,7 +409,7 @@ final class NotebookControllerTest extends TestCase
             $this->users,
             new AuditLogger(),
             $this->notifs,
-            new PermissionService($this->assignments),
+            new PermissionService(),
         );
 
         $this->notes->method('findVisibleForStores')->willReturn([
@@ -445,7 +440,7 @@ final class NotebookControllerTest extends TestCase
             $this->users,
             new AuditLogger(),
             $this->notifs,
-            new PermissionService($this->assignments),
+            new PermissionService(),
         );
 
         $this->notes->method('findVisibleForStores')->willReturn([

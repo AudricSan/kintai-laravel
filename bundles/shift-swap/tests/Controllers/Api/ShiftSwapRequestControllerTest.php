@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftSwap\Controllers\Api\ShiftSwapRequestControlle
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use Illuminate\Http\Request;
@@ -25,17 +25,15 @@ use PHPUnit\Framework\TestCase;
 final class ShiftSwapRequestControllerTest extends TestCase
 {
     private ShiftSwapRequestRepositoryInterface&MockObject $swapRequests;
-    private RoleAssignmentRepositoryInterface&MockObject $assignments;
     private ShiftSwapRequestController $controller;
 
     protected function setUp(): void
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
-        $this->assignments  = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->controller   = new ShiftSwapRequestController(
             $this->swapRequests,
             new AuditLogger(),
-            new PermissionService($this->assignments)
+            new PermissionService()
         );
     }
 
@@ -48,7 +46,7 @@ final class ShiftSwapRequestControllerTest extends TestCase
 
     private function requestAsStoreManager(int $userId, int $storeId): Request
     {
-        $this->assignments->method('findByUser')->with($userId)->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ]);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 20 ? ['swaps.view', 'swaps.update', 'swaps.delete'] : []);

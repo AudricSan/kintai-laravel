@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -24,7 +24,6 @@ final class StoreService implements StoreServiceInterface
         private readonly PlanLimitService $planLimits,
         private readonly ?RouteSlugService $routeSlugs = null,
         // Facultatif pour les tests qui construisent le service à la main.
-        private readonly ?RoleAssignmentRepositoryInterface $roleAssignments = null,
     ) {}
 
     public function getStoresForAdmin(?array $managedIds, string $sort = 'name_asc'): array
@@ -224,10 +223,8 @@ final class StoreService implements StoreServiceInterface
         $this->stores->delete($storeId);
 
         // Un rôle limité à ce magasin ne donnerait plus de droits que sur un magasin invisible : retiré.
-        if ($this->roleAssignments !== null) {
-            foreach ($this->roleAssignments->findByScope('store', $storeId) as $assignment) {
-                $this->roleAssignments->revoke((int) $assignment['id']);
-            }
+        foreach (RoleAssignment::findByScope('store', $storeId) as $assignment) {
+            RoleAssignment::revoke((int) $assignment['id']);
         }
     }
 

@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\TimeOff\Controllers\Api\TimeoffRequestController;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use Illuminate\Http\Request;
@@ -27,18 +27,16 @@ use PHPUnit\Framework\TestCase;
 final class TimeoffRequestControllerTest extends TestCase
 {
     private TimeoffRequestRepositoryInterface&MockObject $timeoffRequests;
-    private RoleAssignmentRepositoryInterface&MockObject $assignments;
     private TimeoffRequestController $controller;
     private StoreUserRepositoryInterface&Stub $storeUsers;
 
     protected function setUp(): void
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
-        $this->assignments     = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->controller      = new TimeoffRequestController(
             $this->timeoffRequests,
             new AuditLogger(),
-            new PermissionService($this->assignments),
+            new PermissionService(),
             $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class)
         );
     }
@@ -52,7 +50,7 @@ final class TimeoffRequestControllerTest extends TestCase
 
     private function requestAsStoreManager(int $userId, int $storeId): Request
     {
-        $this->assignments->method('findByUser')->with($userId)->willReturn([
+        kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ]);
         kintai_test_roles(findById: fn(int $id) => $id === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 20 ? ['timeoff.view', 'timeoff.update', 'timeoff.delete'] : []);

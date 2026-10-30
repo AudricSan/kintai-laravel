@@ -14,7 +14,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Extension\Sales;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 use App\Models\Shift;
@@ -80,7 +80,6 @@ final class AdminSalaryReportControllerTest extends TestCase
                 new AuditLogger(),
                 $this->storeStatsService,
                 new PermissionService(
-                    $this->createStub(RoleAssignmentRepositoryInterface::class),
                 ),
             );
         }

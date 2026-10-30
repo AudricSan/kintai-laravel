@@ -9,7 +9,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -19,13 +19,11 @@ use PHPUnit\Framework\TestCase;
 final class NotebookControllerTest extends TestCase
 {
     private NotebookEntryRepositoryInterface&Stub $notes;
-    private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?NotebookController $controller = null;
 
     protected function setUp(): void
     {
         $this->notes       = $this->createStub(NotebookEntryRepositoryInterface::class);
-        $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -34,7 +32,7 @@ final class NotebookControllerTest extends TestCase
         if ($this->controller === null) {
             $this->controller = new NotebookController(
                 $this->notes,
-                new PermissionService($this->assignments),
+                new PermissionService(),
             );
         }
 
@@ -48,22 +46,18 @@ final class NotebookControllerTest extends TestCase
 
     private function grantStoreScoped(int $userId, int $storeId, array $permissions): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(
-            fn(int $uid) => $uid === $userId
+        kintai_test_assignments(findByUser: fn(int $uid) => $uid === $userId
                 ? [['id' => 1, 'user_id' => $uid, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId]]
-                : []
-        );
+                : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? $permissions : [], getGlobalPermissionKeys: fn($a0) => $a0 === 5 ? [] : []);
     }
 
     /** Rôle système en portée globale (Owner) : aucune restriction de magasin. */
     private function grantGlobal(int $userId): void
     {
-        $this->assignments->method('findByUser')->willReturnCallback(
-            fn(int $uid) => $uid === $userId
+        kintai_test_assignments(findByUser: fn(int $uid) => $uid === $userId
                 ? [['id' => 1, 'user_id' => $uid, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null]]
-                : []
-        );
+                : []);
         kintai_test_roles(findById: fn($a0) => $a0 === 1 ? ['id' => 1, 'is_system' => 1] : null, getGlobalPermissionKeys: fn($a0) => $a0 === 1 ? [] : []);
     }
 

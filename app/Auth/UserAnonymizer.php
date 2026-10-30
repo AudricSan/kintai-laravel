@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Repositories\RoleAssignmentRepositoryInterface;
+use App\Models\RoleAssignment;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\CalendarSyncService;
 
@@ -23,7 +23,6 @@ final class UserAnonymizer
 
     public function __construct(
         private readonly UserRepositoryInterface $users,
-        private readonly RoleAssignmentRepositoryInterface $roleAssignments,
         private readonly CredentialRevoker $revoker,
         private readonly ?string $avatarDir = null,
         private readonly ?CalendarSyncService $calendar = null,
@@ -77,8 +76,8 @@ final class UserAnonymizer
         ]);
 
         // Un compte supprimé ne garde aucun rôle (sinon un Owner « supprimé » compterait encore comme Owner).
-        foreach ($this->roleAssignments->findByUser($userId) as $assignment) {
-            $this->roleAssignments->revoke((int) $assignment['id']);
+        foreach (RoleAssignment::findByUser($userId) as $assignment) {
+            RoleAssignment::revoke((int) $assignment['id']);
         }
 
         // Cookies « rester connecté » et jetons d'API ; les sessions ouvertes sont refusées (compte inactif).
