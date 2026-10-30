@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\AuthService;
 use Illuminate\Container\Container;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -56,7 +56,6 @@ final class AuthControllerSwitchRefererTest extends TestCase
             $users,
             $this->createStub(StoreRepositoryInterface::class),
             $storeUsers,
-            $this->createStub(AvailabilityRepositoryInterface::class),
             $languages,
             new AvatarImageOptimizer(),
         );

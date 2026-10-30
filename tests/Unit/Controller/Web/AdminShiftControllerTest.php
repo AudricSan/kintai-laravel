@@ -11,7 +11,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use Illuminate\Container\Container;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -86,7 +86,7 @@ final class AdminShiftControllerTest extends TestCase
                 $this->notifs,
                 $this->shiftService,
                 $permissions,
-                new AvailabilityGuard($this->createStub(AvailabilityRepositoryInterface::class)),
+                new AvailabilityGuard(),
                 $this->publication,
             );
         }

@@ -99,6 +99,19 @@ function kintai_test_route_slugs(array $employeeCodes = []): void
         App\Models\User::where('id', $id)->update(['employee_code' => $code]);
     }
 }
+// Aide des tests : base neuve où ces employés ont ces disponibilités hebdomadaires dans le magasin 1.
+function kintai_test_availabilities(array $userIds, array $rows): void
+{
+    kintai_test_database();
+    kintai_test_migrate();
+    Illuminate\Support\Facades\DB::table('stores')->insertOrIgnore(['id' => 1, 'name' => 'Magasin', 'code' => 'M1']);
+    foreach ($userIds as $userId) {
+        kintai_test_user((int) $userId);
+        foreach ($rows as $row) {
+            App\Models\Availability::create($row + ['user_id' => $userId, 'store_id' => 1, 'start_time' => '00:00', 'end_time' => '23:59']);
+        }
+    }
+}
 // Aide des tests : exécute une commande Artisan (ses services viennent du conteneur de test) ; renvoie [code de sortie, sortie].
 function kintai_test_command(Illuminate\Console\Command $command, array $input = []): array
 {

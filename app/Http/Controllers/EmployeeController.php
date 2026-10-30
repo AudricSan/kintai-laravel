@@ -8,7 +8,7 @@ use kintai\Contract\Extension\DashboardWidget;
 use App\Extension\DashboardStats;
 use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
@@ -48,7 +48,6 @@ final class EmployeeController
         private readonly UserRepositoryInterface $users,
         private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
-        private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
         // Disposition de l'utilisateur, sinon défaut de son rôle ; mises en page nommées (null : disposition enregistrée seule).
@@ -545,15 +544,15 @@ final class EmployeeController
             return redirect()->away($this->base() . '/profile?tab=availability&error=forbidden');
         }
 
-        $oldAvailabilities = $this->availabilities->findByUserAndStore($userId, $storeId);
-        $this->availabilities->deleteByUserAndStore($userId, $storeId);
+        $oldAvailabilities = Availability::findByUserAndStore($userId, $storeId);
+        Availability::deleteByUserAndStore($userId, $storeId);
 
         $days = $body['days'] ?? [];
         foreach (range(1, 7) as $dow) {
             $dayData = $days[$dow] ?? [];
             $isAvail = isset($dayData['available']) ? 1 : 0;
             if ($isAvail && !empty($dayData['start_time']) && !empty($dayData['end_time'])) {
-                $this->availabilities->save([
+                Availability::put([
                     'store_id'     => $storeId,
                     'user_id'      => $userId,
                     'day_of_week'  => $dow,
@@ -562,7 +561,7 @@ final class EmployeeController
                     'is_available' => 1,
                 ]);
             } else {
-                $this->availabilities->save([
+                Availability::put([
                     'store_id'     => $storeId,
                     'user_id'      => $userId,
                     'day_of_week'  => $dow,
@@ -573,7 +572,7 @@ final class EmployeeController
             }
         }
 
-        $newAvailabilities = $this->availabilities->findByUserAndStore($userId, $storeId);
+        $newAvailabilities = Availability::findByUserAndStore($userId, $storeId);
         $this->auditLogger->logUpdate($request, 'availability.updated', 'availability', null, $oldAvailabilities, $newAvailabilities, ['store_id' => $storeId], $storeId);
 
         return redirect()->away($this->base() . '/profile?tab=availability&store_id=' . $storeId . '&success=saved');

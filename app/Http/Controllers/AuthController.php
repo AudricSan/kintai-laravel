@@ -18,7 +18,7 @@ use App\Services\NotificationMailer;
 use App\Services\NotificationPreferenceService;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Services\Calendar\GoogleCalendarSettings;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
@@ -46,7 +46,6 @@ final class AuthController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
-        private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly LanguageRepositoryInterface $languages,
         private readonly AvatarImageOptimizer $avatarOptimizer,
         // Optionnel pour ne pas casser les tests qui construisent le contrôleur à la main ;
@@ -271,7 +270,7 @@ final class AuthController
         }
         $existing = [];
         if ($storeId > 0) {
-            foreach ($this->availabilities->findByUserAndStore($userId, $storeId) as $a) {
+            foreach (Availability::findByUserAndStore($userId, $storeId) as $a) {
                 $existing[(int) $a['day_of_week']] = $a;
             }
         }
@@ -581,7 +580,7 @@ final class AuthController
                 'hobbies'           => $user['hobbies'] ?? null,
             ],
             'memberships' => $this->storeUsers->findByUser($userId),
-            'availabilities' => $this->availabilities->findByUser($userId),
+            'availabilities' => Availability::findByUser($userId),
         ];
 
         $this->auditLogger->log($request, 'user.data_export', 'user', $userId, [], null, $userId);

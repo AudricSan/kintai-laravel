@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
 use App\Models\ApiToken;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -82,7 +82,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
             $storeUsers,
-            $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),

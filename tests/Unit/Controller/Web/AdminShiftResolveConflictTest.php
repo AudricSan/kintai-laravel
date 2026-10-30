@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -64,7 +64,7 @@ final class AdminShiftResolveConflictTest extends TestCase
             $this->notifs,
             $this->createStub(ShiftServiceInterface::class),
             new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
-            new AvailabilityGuard($this->createStub(AvailabilityRepositoryInterface::class)),
+            new AvailabilityGuard(),
         );
     }
 

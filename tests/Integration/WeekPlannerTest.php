@@ -9,7 +9,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\DatabaseAvailabilityRepository;
+use App\Models\Availability;
 use App\Repositories\DatabaseShiftRepository;
 use App\Repositories\DatabaseShiftTypeRepository;
 use App\Models\ShiftWeekTemplate;
@@ -72,7 +72,7 @@ final class WeekPlannerTest extends TestCase
             new DatabaseShiftTypeRepository(),
             new DatabaseStoreUserRepository(),
             new DatabaseUserRepository(),
-            new AvailabilityGuard(new DatabaseAvailabilityRepository()),
+            new AvailabilityGuard(),
         );
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Services\AvailabilityGuard;
 use PHPUnit\Framework\TestCase;
 
@@ -14,10 +14,9 @@ final class AvailabilityGuardTest extends TestCase
     /** @param list<array<string, mixed>> $rows */
     private function guard(array $rows): AvailabilityGuard
     {
-        $repo = $this->createStub(AvailabilityRepositoryInterface::class);
-        $repo->method('findByUserAndStore')->willReturn($rows);
+        kintai_test_availabilities([7], $rows);
 
-        return new AvailabilityGuard($repo);
+        return new AvailabilityGuard();
     }
 
     public function testADayMarkedUnavailableIsReported(): void

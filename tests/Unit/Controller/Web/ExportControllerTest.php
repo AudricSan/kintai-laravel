@@ -16,7 +16,7 @@ use App\Export\PayrollExport;
 use App\Export\ShiftsExport;
 use App\Export\ShiftTypesExport;
 use App\Export\StoresExport;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -78,7 +78,7 @@ final class ExportControllerTest extends TestCase
         $schedule  = new ScheduleExportService();
         $this->bind(ShiftsExport::class, new ShiftsExport($shifts, $types, $schedule, $directory));
         $this->bind(EmployeesExport::class, new EmployeesExport($storeUsers, $directory));
-        $this->bind(AvailabilitiesExport::class, new AvailabilitiesExport($this->createStub(AvailabilityRepositoryInterface::class), $directory));
+        $this->bind(AvailabilitiesExport::class, new AvailabilitiesExport($directory));
         $this->bind(ShiftTypesExport::class, new ShiftTypesExport($types, $directory));
         $this->bind(StoresExport::class, new StoresExport($directory));
         $this->bind(PayrollExport::class, new PayrollExport($shifts, $types, $this->createStub(UserShiftTypeRateRepositoryInterface::class), new ShiftWageCalculator(), $directory));

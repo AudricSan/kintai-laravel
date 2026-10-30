@@ -10,7 +10,7 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -111,7 +111,6 @@ final class AuthControllerProfileFieldsTest extends TestCase
             $this->users,
             $stores,
             $storeUsers,
-            $this->createStub(AvailabilityRepositoryInterface::class),
             $languages,
             new AvatarImageOptimizer(),
         );

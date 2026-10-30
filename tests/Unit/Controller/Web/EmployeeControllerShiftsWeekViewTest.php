@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\DevicePushToken;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
@@ -70,7 +70,6 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
             $users,
             $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
-            $this->createStub(AvailabilityRepositoryInterface::class),
             new NotificationService(
                 new PushNotificationService([]),
                 kintai_test_translator(),

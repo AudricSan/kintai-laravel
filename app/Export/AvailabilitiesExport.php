@@ -6,13 +6,12 @@ namespace App\Export;
 
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 
 /** Jeu de données « Disponibilités » : les créneaux hebdomadaires déclarés par chaque employé, un par ligne. */
 final class AvailabilitiesExport implements ExportRowsProvider
 {
     public function __construct(
-        private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly ExportDirectory $directory,
     ) {}
 
@@ -20,7 +19,7 @@ final class AvailabilitiesExport implements ExportRowsProvider
     {
         $rows = [];
         foreach ($query->storeIds as $storeId) {
-            foreach ($this->availabilities->findByStore($storeId) as $a) {
+            foreach (Availability::findByStore($storeId) as $a) {
                 $userId = (int) ($a['user_id'] ?? 0);
                 if (!$query->includesUser($userId)) {
                     continue;

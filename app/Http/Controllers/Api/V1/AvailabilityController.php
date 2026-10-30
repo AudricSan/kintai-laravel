@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Api\Paginator;
 use App\Auth\PermissionService;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -16,7 +16,6 @@ use App\Validation\PayloadValidator;
 final class AvailabilityController
 {
     public function __construct(
-        private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
     ) {}
@@ -29,9 +28,9 @@ final class AvailabilityController
         $userId  = $request->query('user_id');
 
         if ($userId !== null) {
-            $items = $this->availabilities->findByUser((int) $userId);
+            $items = Availability::findByUser((int) $userId);
         } elseif ($storeId !== null) {
-            $items = $this->availabilities->findByStore((int) $storeId);
+            $items = Availability::findByStore((int) $storeId);
         } else {
             $items = [];
         }
@@ -53,7 +52,7 @@ final class AvailabilityController
         $data = PayloadValidator::validate($request->json()->all() ?? [], ApiPayloadRules::availability());
         $this->permissions->requireOnStore($this->authUser($request), 'shifts.update', $data['store_id']);
 
-        $saved = $this->availabilities->save($data);
+        $saved = Availability::put($data);
         $this->auditLogger->log($request, 'availability.created', 'availability', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: (int) $data['store_id']);
         return response()->json($saved, 201);
     }
@@ -70,7 +69,7 @@ final class AvailabilityController
             $this->permissions->requireOnStore($this->authUser($request), 'shifts.update', $data['store_id']);
         }
 
-        $saved = $this->availabilities->save(array_merge($data, ['id' => $id]));
+        $saved = Availability::put(array_merge($data, ['id' => $id]));
         $this->auditLogger->logUpdate($request, 'availability.updated', 'availability', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: (int) ($saved['store_id'] ?? 0) ?: null);
         return response()->json($saved);
     }
@@ -81,7 +80,7 @@ final class AvailabilityController
         $old = $this->requireAvailability($request, 'shifts.update');
         $id  = (int) $old['id'];
 
-        $this->availabilities->delete($id);
+        Availability::remove($id);
         $this->auditLogger->log($request, 'availability.deleted', 'availability', resourceId: $id, storeId: (int) $old['store_id'] ?: null);
         return response()->noContent();
     }
@@ -96,7 +95,7 @@ final class AvailabilityController
     {
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
-            fn(int $id) => $this->availabilities->findById($id),
+            fn(int $id) => Availability::findById($id),
             (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: __('error_availability_not_found'),

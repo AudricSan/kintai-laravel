@@ -12,7 +12,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\ValidationException;
 use App\Models\ApiToken;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -222,12 +222,14 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testAvailabilityCreationIgnoresIdAndChecksStore(): void
     {
-        $availabilities = $this->createMock(AvailabilityRepositoryInterface::class);
-        $availabilities->expects($this->never())->method('save');
-        $controller = new AvailabilityController($availabilities, new AuditLogger(), $this->permissions);
+        $controller = new AvailabilityController(new AuditLogger(), $this->permissions);
 
-        $this->expectException(ForbiddenException::class);
-        $controller->store($this->request(self::MANAGER, [], ['id' => 4, 'store_id' => self::STORE_B, 'user_id' => 30, 'day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '17:00']));
+        try {
+            $controller->store($this->request(self::MANAGER, [], ['id' => 4, 'store_id' => self::STORE_B, 'user_id' => 30, 'day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '17:00']));
+            $this->fail('disponibilité créée dans un magasin non géré');
+        } catch (ForbiddenException) {
+            $this->assertSame(0, \App\Models\Availability::count());
+        }
     }
 
     // ----------------------------------------------------------------- stores
@@ -435,12 +437,14 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testAvailabilityRefusesAnInvalidDayOfWeek(): void
     {
-        $availabilities = $this->createMock(AvailabilityRepositoryInterface::class);
-        $availabilities->expects($this->never())->method('save');
-        $controller = new AvailabilityController($availabilities, new AuditLogger(), $this->permissions);
+        $controller = new AvailabilityController(new AuditLogger(), $this->permissions);
 
-        $this->expectException(ValidationException::class);
-        $controller->store($this->request(self::MANAGER, [], ['store_id' => self::STORE_A, 'user_id' => 30, 'day_of_week' => 7, 'start_time' => '09:00', 'end_time' => '17:00']));
+        try {
+            $controller->store($this->request(self::MANAGER, [], ['store_id' => self::STORE_A, 'user_id' => 30, 'day_of_week' => 7, 'start_time' => '09:00', 'end_time' => '17:00']));
+            $this->fail('jour de la semaine invalide accepté');
+        } catch (ValidationException) {
+            $this->assertSame(0, \App\Models\Availability::count());
+        }
     }
 
     // ------------------------------------------- suppression = anonymisation (audit M8)

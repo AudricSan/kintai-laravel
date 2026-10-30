@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Auth\AuthService;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
@@ -88,7 +88,6 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
             $users,
             $stores,
             $storeUsers,
-            $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             null,

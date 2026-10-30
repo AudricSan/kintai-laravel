@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\AuthService;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -51,7 +51,6 @@ final class AuthControllerLoginTest extends TestCase
                 $this->users,
                 $stores,
                 $storeUsers,
-                $this->createStub(AvailabilityRepositoryInterface::class),
                 $this->createStub(LanguageRepositoryInterface::class),
                 new AvatarImageOptimizer(),
             );

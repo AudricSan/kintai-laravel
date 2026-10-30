@@ -12,7 +12,7 @@ use App\Export\PayrollExport;
 use App\Export\ShiftsExport;
 use App\Export\ShiftTypesExport;
 use App\Export\StoresExport;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -104,12 +104,16 @@ final class CoreExportProvidersTest extends TestCase
 
     public function testAvailabilitiesAreFilteredByPerson(): void
     {
-        $repo = $this->createStub(AvailabilityRepositoryInterface::class);
-        $repo->method('findByStore')->willReturn([
+        kintai_test_availabilities([], []);
+        \Illuminate\Support\Facades\DB::table('stores')->insertOrIgnore(['id' => 3, 'name' => 'Magasin 3', 'code' => 'M3']);
+        foreach ([
             ['user_id' => 5, 'day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '17:00', 'is_available' => 1],
             ['user_id' => 6, 'day_of_week' => 2, 'start_time' => '10:00', 'end_time' => '12:00', 'is_available' => 0],
-        ]);
-        $export = new AvailabilitiesExport($repo, $this->directory);
+        ] as $row) {
+            kintai_test_user($row['user_id']);
+            \App\Models\Availability::create($row + ['store_id' => 3]);
+        }
+        $export = new AvailabilitiesExport($this->directory);
 
         $rows = [...$export->rows($this->query([6]))];
 

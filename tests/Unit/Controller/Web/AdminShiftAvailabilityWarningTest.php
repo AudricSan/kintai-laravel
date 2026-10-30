@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
-use App\Repositories\AvailabilityRepositoryInterface;
+use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -46,9 +46,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
             }
             touch($file);
         }
-
-        $availabilities = $this->createStub(AvailabilityRepositoryInterface::class);
-        $availabilities->method('findByUserAndStore')->willReturn([
+        kintai_test_availabilities([5, 7, 9], [
             ['day_of_week' => 7, 'is_available' => 0, 'start_time' => '00:00', 'end_time' => '23:59'],
             ['day_of_week' => 1, 'is_available' => 1, 'start_time' => '09:00', 'end_time' => '17:00'],
         ]);
@@ -72,7 +70,7 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
             $this->createStub(NotificationService::class),
             $this->createStub(ShiftServiceInterface::class),
             new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
-            new AvailabilityGuard($availabilities),
+            new AvailabilityGuard(),
         );
     }
 
