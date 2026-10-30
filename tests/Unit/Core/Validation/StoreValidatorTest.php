@@ -34,19 +34,19 @@ final class StoreValidatorTest extends TestCase
 
     public function testCurrencySymbolStyleDefaultsToValidWhenAbsent(): void
     {
-        $result = $this->validator->validate($this->validData());
-        $this->assertTrue($result->isValid());
+        $result = $this->validator->make($this->validData());
+        $this->assertTrue($result->passes());
     }
 
     public function testCurrencySymbolStyleAcceptsKanjiAndInternational(): void
     {
-        $this->assertTrue($this->validator->validate($this->validData(['currency_symbol_style' => 'kanji']))->isValid());
-        $this->assertTrue($this->validator->validate($this->validData(['currency_symbol_style' => 'international']))->isValid());
+        $this->assertTrue($this->validator->make($this->validData(['currency_symbol_style' => 'kanji']))->passes());
+        $this->assertTrue($this->validator->make($this->validData(['currency_symbol_style' => 'international']))->passes());
     }
 
     public function testCurrencySymbolStyleRejectsUnknownValue(): void
     {
-        $result = $this->validator->validate($this->validData(['currency_symbol_style' => 'romaji']));
-        $this->assertFalse($result->isValid());
+        $result = $this->validator->make($this->validData(['currency_symbol_style' => 'romaji']));
+        $this->assertFalse($result->passes());
     }
 }

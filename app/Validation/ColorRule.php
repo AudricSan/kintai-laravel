@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Validation;
 
-use App\Exceptions\ValidationException;
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
  * Règle unique pour toute couleur saisie par un utilisateur (types de shift, comptes, rôles).
@@ -12,25 +13,19 @@ use App\Exceptions\ValidationException;
  * Seul le format hexadécimal #RGB / #RRGGBB est accepté : une valeur libre finissait telle quelle dans
  * un attribut style="" (injection CSS stockée, par exemple « red;position:fixed;… »).
  */
-final class ColorRule
+final class ColorRule implements ValidationRule
 {
+    /** Règle de Laravel : Validator::make($data, ["color" => [new ColorRule()]]). */
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (!self::isValid($value)) {
+            $fail('val_field_invalid')->translate(['field' => $attribute]);
+        }
+    }
+
     public static function isValid(mixed $value): bool
     {
         return is_string($value) && preg_match('/\A#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\z/', $value) === 1;
-    }
-
-    /**
-     * Refuse (422) toute valeur qui n'est pas une couleur hexadécimale.
-     * Avec $nullable, null et la chaîne vide sont acceptés (couleur facultative).
-     */
-    public static function assert(mixed $value, string $field = 'color', bool $nullable = false): void
-    {
-        if ($nullable && ($value === null || $value === '')) {
-            return;
-        }
-        if (!self::isValid($value)) {
-            throw new ValidationException([$field => __('error_invalid_color')]);
-        }
     }
 
     /** Valeur sûre à injecter dans un attribut : la couleur si elle est valide, sinon le repli. */

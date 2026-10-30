@@ -65,10 +65,10 @@ final class StoreTimezoneTest extends TestCase
 
     public function testTheFormRefusesAnUnknownZoneButAcceptsTheCommonSpelling(): void
     {
-        $this->assertSame([], StoreValidator::timezoneErrors(['timezone' => 'UTC+9']));
-        $this->assertSame([], StoreValidator::timezoneErrors(['timezone' => 'Europe/Paris']));
-        $this->assertSame([], StoreValidator::timezoneErrors([]), 'champ absent : repli sur le fuseau de l’instance');
-        $this->assertCount(1, StoreValidator::timezoneErrors(['timezone' => 'Atlantide']));
+        $this->assertTrue(StoreValidator::forUpdate(['timezone' => 'UTC+9'])->passes());
+        $this->assertTrue(StoreValidator::forUpdate(['timezone' => 'Europe/Paris'])->passes());
+        $this->assertTrue(StoreValidator::forUpdate([])->passes(), 'champ absent : repli sur le fuseau de l’instance');
+        $this->assertTrue(StoreValidator::forUpdate(['timezone' => 'Atlantide'])->fails());
     }
 
     public function testTheIcalFeedHonoursAStoreSavedAsUtcPlusNine(): void

@@ -78,8 +78,7 @@ final class StoreService implements StoreServiceInterface
     {
         $this->planLimits->assertCanCreateStore();
 
-        $validator = new StoreValidator($this->languages);
-        $validator->validate($data)->throwIfInvalid();
+        ValidationException::check((new StoreValidator($this->languages))->make($data));
         $this->assertCodeAvailable(strtoupper(trim((string) ($data['code'] ?? ''))), 0);
         $manualSlug = $this->validatedManualSlug($data, 0);
 
@@ -153,20 +152,9 @@ final class StoreService implements StoreServiceInterface
             throw new NotFoundException(__('error_store_not_found'));
         }
 
-        // Seule la devise est revalidée ici (voir StoreValidator::currencyErrors()) : une valeur forgée hors de la
-        // liste du formulaire finissait affichée telle quelle dans les pages de statistiques et de rentabilité.
-        $currencyErrors = StoreValidator::currencyErrors($data);
-        if ($currencyErrors !== []) {
-            throw new ValidationException(['currency' => $currencyErrors[0]], $currencyErrors[0]);
-        }
-        $timezoneErrors = StoreValidator::timezoneErrors($data);
-        if ($timezoneErrors !== []) {
-            throw new ValidationException(['timezone' => $timezoneErrors[0]], $timezoneErrors[0]);
-        }
-        $timezoneErrors = StoreValidator::timezoneErrors($data);
-        if ($timezoneErrors !== []) {
-            throw new ValidationException(['timezone' => $timezoneErrors[0]], $timezoneErrors[0]);
-        }
+        // Seules la devise et le fuseau horaire sont revalidés ici (voir StoreValidator::forUpdate()) : une valeur forgée
+        // hors de la liste du formulaire finissait affichée telle quelle dans les pages de statistiques et de rentabilité.
+        ValidationException::check(StoreValidator::forUpdate($data));
         $this->assertCodeAvailable(strtoupper(trim((string) ($data['code'] ?? $store['code'] ?? ''))), $storeId);
 
         $storeData = array_merge($store, [

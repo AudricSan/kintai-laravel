@@ -27,7 +27,7 @@ use App\Services\EmployeeStatsService;
 use App\Services\PdfCjkFontResolver;
 use App\Services\PlanLimitService;
 use App\Services\RoleAssignmentSyncService;
-use App\Validation\ColorRule;
+use App\Validation\PayloadValidator;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use App\Http\Controllers\HasAdminAccess;
 use App\Routing\EmployeeRouteBinder;
@@ -412,7 +412,7 @@ final class AdminUserController
 
     public function storeUser(Request $request): Response
     {
-        ColorRule::assert($request->post('color', '#3B82F6'));
+        PayloadValidator::validate(['color' => $request->post('color', '#3B82F6')], ['color' => ['type' => 'color']]);
         try {
             $this->planLimits->assertCanCreateEmployee();
         } catch (PlanLimitExceededException) {
@@ -527,7 +527,7 @@ final class AdminUserController
         $empCode     = strtoupper(trim($request->post('employee_code', ''))) ?: null;
         $password    = $request->post('password', '');
         $color       = $request->post('color', '#3B82F6');
-        ColorRule::assert($color);
+        PayloadValidator::validate(['color' => $color], ['color' => ['type' => 'color']]);
         // Seul un requérant déjà Owner peut créer un autre compte Owner (voir
         // storeUser()/updateUser() pour la même garde).
         $isAdmin     = !empty($request->attributes->get('auth_user')['is_admin']) && $request->post('is_admin') === '1';
@@ -766,7 +766,7 @@ final class AdminUserController
             throw new NotFoundException(__('error_user_not_found'));
         }
         $this->assertCanActOnUser($request, (int) $user['id'], 'employees.update');
-        ColorRule::assert($request->post('color', $user['color'] ?? '#3B82F6'));
+        PayloadValidator::validate(['color' => $request->post('color', $user['color'] ?? '#3B82F6')], ['color' => ['type' => 'color']]);
 
         // Un Owner ne se désactive pas lui-même, et le dernier Owner actif ne peut être ni désactivé ni dégradé.
         // Champ absent de la requête : état actuel conservé (audit du 13/10/2026, M12). Avant, une requête sans

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Validation;
 
-use App\Exceptions\ValidationException;
 use App\Validation\ColorRule;
 use App\Models\Role;
 use App\Models\ShiftType;
 use App\Models\User;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Illuminate\Support\Facades\Validator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -46,7 +46,7 @@ final class ColorRuleTest extends TestCase
     public function testValidHexColorsAreAccepted(mixed $color): void
     {
         $this->assertTrue(ColorRule::isValid($color));
-        ColorRule::assert($color);
+        $this->assertTrue(Validator::make(['color' => $color], ['color' => [new ColorRule()]])->passes());
         $this->assertSame($color, ColorRule::safe($color));
     }
 
@@ -56,18 +56,15 @@ final class ColorRuleTest extends TestCase
         $this->assertFalse(ColorRule::isValid($color));
         $this->assertSame('#123456', ColorRule::safe($color, '#123456'));
 
-        $this->expectException(ValidationException::class);
-        ColorRule::assert($color);
+        $this->assertTrue(Validator::make(['color' => $color], ['color' => ['filled', new ColorRule()]])->fails());
     }
 
     public function testNullableColorAcceptsNullAndEmptyString(): void
     {
-        ColorRule::assert(null, 'color', true);
-        ColorRule::assert('', 'color', true);
-        $this->addToAssertionCount(1);
-
-        $this->expectException(ValidationException::class);
-        ColorRule::assert('red', 'color', true);
+        $rules = ['color' => ['nullable', new ColorRule()]];
+        $this->assertTrue(Validator::make(['color' => null], $rules)->passes());
+        $this->assertTrue(Validator::make(['color' => ''], $rules)->passes());
+        $this->assertTrue(Validator::make(['color' => 'red'], $rules)->fails());
     }
 
     public function testSafeColorHelperFallsBackOnInvalidValue(): void

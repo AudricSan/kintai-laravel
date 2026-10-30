@@ -9,7 +9,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\ShiftType;
 use App\Models\Store;
 use Illuminate\Http\Request;
-use App\Validation\ColorRule;
+use App\Validation\PayloadValidator;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Http\Controllers\HasAdminAccess;
@@ -84,7 +84,7 @@ final class AdminShiftTypeController
 
     public function storeShiftType(Request $request): Response
     {
-        ColorRule::assert($request->post('color', '#6366f1'));
+        PayloadValidator::validate(['color' => $request->post('color', '#6366f1')], ['color' => ['type' => 'color']]);
         $storeIds = $this->postedStoreIds($request);
         if ($storeIds === []) {
             return redirect()->away($this->base() . '/admin/shift-types/create')->with('error', 'store_required');
@@ -152,7 +152,7 @@ final class AdminShiftTypeController
             $submittedStoreIds = array_values(array_unique(array_merge($submittedStoreIds, $outOfScopeStoreIds)));
         }
 
-        ColorRule::assert($request->post('color', $type['color'] ?? '#6366f1'));
+        PayloadValidator::validate(['color' => $request->post('color', $type['color'] ?? '#6366f1')], ['color' => ['type' => 'color']]);
 
         $newData = array_merge($type, [
             'code'        => strtoupper(trim($request->post('code', $type['code'] ?? ''))),

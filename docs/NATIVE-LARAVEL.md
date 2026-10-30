@@ -68,3 +68,11 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
    son `.env` doit recevoir `APP_KEY=` puis `php artisan key:generate`.
 3. **Variables d'e-mail** : `MAIL_DRIVER` devient `MAIL_MAILER` (`smtp` ou `sendmail`) et `MAIL_ENCRYPTION` devient
    `MAIL_SCHEME` (`smtps` = TLS direct, `smtp` = STARTTLS). Un `.env` existant doit être mis à jour.
+## Validation (31/10/2026)
+
+Le contrôle des saisies est celui du validateur de Laravel : `PayloadValidator` (corps JSON de l'API) et `StoreValidator`
+(formulaire magasin) construisent un `Validator::make(...)` ; `ColorRule` est une règle `ValidationRule`. Les erreurs sont
+portées par `App\Exceptions\ValidationException::check()` (422, un message par champ), alias du contrat des bundles.
+`ValidationResult` et `ValidatorInterface` n'existent plus. Les refus métier des contrôleurs (unicité, appartenance à un
+magasin, état d'une demande) restent des `ValidationException` explicites : ce ne sont pas des contrôles de format.
+Les dépôts JSON de langues et de traductions (`lang/*.json`) restent des classes de fichiers : il n'y a pas de table.

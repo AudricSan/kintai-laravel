@@ -14,7 +14,7 @@ use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Validation\ColorRule;
+use App\Validation\PayloadValidator;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
@@ -105,7 +105,7 @@ final class AdminRoleController
             return redirect()->away($this->base() . '/admin/roles/create')->with('error', 'invalid_name');
         }
 
-        ColorRule::assert($request->post('color', ''), 'color', true);
+        PayloadValidator::validate(['color' => $request->post('color', '')], ['color' => ['type' => 'color', 'nullable' => true]]);
 
         $saved = Role::put([
             'name'        => $name,
@@ -161,7 +161,7 @@ final class AdminRoleController
             return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit')->with('error', 'invalid_name');
         }
 
-        ColorRule::assert($request->post('color', ''), 'color', true);
+        PayloadValidator::validate(['color' => $request->post('color', '')], ['color' => ['type' => 'color', 'nullable' => true]]);
 
         // Champ absent de la requête : valeur actuelle conservée (audit du 13/10/2026, M12).
         $newRole = Role::put([

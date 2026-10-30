@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Validation;
 
 use App\Exceptions\ValidationException;
+use Closure;
+use Illuminate\Support\Facades\Validator;
 
 /**
- * Validation des corps JSON de l'API : liste blanche, types, bornes.
+ * Validation des corps JSON de l'API : liste blanche, types, bornes. Le contrôle est celui du validateur de Laravel
+ * (Validator::make) ; cette classe traduit les règles de ApiPayloadRules en règles Laravel, ne garde que les champs
+ * déclarés et normalise les valeurs acceptées.
  *
  * Avant l'audit du 13/10/2026 (M9), les contrôleurs passaient le corps tel quel au dépôt : un champ
  * inconnu ou mal typé finissait en erreur SQL (500), et n'importe quelle colonne pouvait être écrite
@@ -36,43 +40,53 @@ final class PayloadValidator
      */
     public static function validate(array $data, array $rules, bool $partial = false): array
     {
-        $clean  = [];
-        $errors = [];
+        $input     = [];
+        $laravel   = [];
+        $messages  = [];
+        $nullables = [];
 
         foreach ($rules as $field => $rule) {
-            $present = array_key_exists($field, $data);
-            $value   = $present ? $data[$field] : null;
-            $empty   = $value === null || (is_string($value) && trim($value) === '') || $value === [];
-
-            if (!$present) {
+            $type = (string) ($rule['type'] ?? 'string');
+            if (!array_key_exists($field, $data)) {
                 if (!$partial && !empty($rule['required'])) {
-                    $errors[$field] = __('val_field_required', ['field' => $field]);
+                    $laravel[$field] = ['required'];
+                    $messages["$field.required"] = __('val_field_required', ['field' => $field]);
                 }
                 continue;
             }
 
-            if ($empty) {
-                if (!empty($rule['required'])) {
-                    $errors[$field] = __('val_field_required', ['field' => $field]);
-                } elseif (!empty($rule['nullable'])) {
-                    $clean[$field] = ($rule['type'] ?? '') === 'list' ? [] : null;
-                } else {
-                    $errors[$field] = __('val_field_invalid', ['field' => $field]);
-                }
+            $value = $data[$field];
+            // Une chaîne est rognée avant le contrôle (comme le fait TrimStrings pour une requête de formulaire).
+            if (is_string($value) && in_array($type, ['string', 'text', 'email'], true)) {
+                $value = trim($value);
+            }
+            $empty = $value === null || (is_string($value) && trim($value) === '') || $value === [];
+
+            if ($empty && empty($rule['required']) && !empty($rule['nullable'])) {
+                $nullables[$field] = $type === 'list' ? [] : null;
                 continue;
             }
 
-            $error = null;
-            $normalized = self::normalize($value, $rule, $error);
-            if ($error !== null) {
-                $errors[$field] = __($error, ['field' => $field, 'max' => (string) ($rule['max'] ?? ''), 'min' => (string) ($rule['min'] ?? '')]);
-                continue;
+            $input[$field]   = $value;
+            $laravel[$field] = self::laravelRules($type, $rule);
+            $messages        = array_merge($messages, self::messages($field, $laravel[$field], $type, $rule));
+            if ($type === 'list') {
+                // Chaque élément : une chaîne non vide de 100 caractères au plus.
+                $laravel["$field.*"] = ['string', 'min:1', 'max:100'];
+                $messages        = array_merge($messages, self::messages("$field.*", $laravel["$field.*"], 'string', []));
             }
-            $clean[$field] = $normalized;
         }
 
-        if ($errors !== []) {
-            throw new ValidationException($errors, reset($errors));
+        ValidationException::check(Validator::make($input, $laravel, $messages));
+
+        // Dans l'ordre des règles, comme le comparent les appelants.
+        $clean = [];
+        foreach (array_keys($rules) as $field) {
+            if (array_key_exists($field, $nullables)) {
+                $clean[$field] = $nullables[$field];
+            } elseif (array_key_exists($field, $input)) {
+                $clean[$field] = self::normalize($input[$field], (string) ($rules[$field]['type'] ?? 'string'));
+            }
         }
 
         return $clean;
@@ -95,132 +109,148 @@ final class PayloadValidator
         return $clean;
     }
 
-    /** @param array<string, mixed> $rule */
-    private static function normalize(mixed $value, array $rule, ?string &$error): mixed
+    /**
+     * Règles Laravel d'un champ présent.
+     *
+     * @param array<string, mixed> $rule
+     * @return list<mixed>
+     */
+    private static function laravelRules(string $type, array $rule): array
     {
-        $type = (string) ($rule['type'] ?? 'string');
+        // Présent mais vide : refusé (« filled »), sauf si le champ est obligatoire (message « obligatoire »).
+        $rules = [!empty($rule['required']) ? 'required' : 'filled'];
+        $max   = isset($rule['max']) ? 'max:' . $rule['max'] : null;
+        $min   = isset($rule['min']) ? 'min:' . $rule['min'] : null;
 
         switch ($type) {
             case 'string':
             case 'text':
             case 'email':
-                if (!is_string($value) && !is_int($value) && !is_float($value)) {
-                    $error = 'val_field_invalid';
-                    return null;
+                $rules[] = 'string';
+                if ($max !== null) {
+                    $rules[] = $max;
                 }
-                $s = trim((string) $value);
-                if (isset($rule['max']) && mb_strlen($s) > (int) $rule['max']) {
-                    $error = 'val_field_too_long';
-                    return null;
-                }
-                if ($type === 'email' && filter_var($s, FILTER_VALIDATE_EMAIL) === false) {
-                    $error = 'val_field_invalid';
-                    return null;
+                if ($type === 'email') {
+                    $rules[] = 'email';
                 }
                 // Une ligne (string) ne contient ni retour à la ligne ni caractère de contrôle.
-                if ($type !== 'text' && preg_match('/[\x00-\x1F\x7F]/', $s) === 1) {
-                    $error = 'val_field_invalid';
-                    return null;
+                if ($type !== 'text') {
+                    $rules[] = 'regex:/\A[^\x00-\x1F\x7F]*\z/';
                 }
-                if (isset($rule['pattern']) && preg_match((string) $rule['pattern'], $s) !== 1) {
-                    $error = 'val_field_invalid';
-                    return null;
+                if (isset($rule['pattern'])) {
+                    $rules[] = 'regex:' . $rule['pattern'];
                 }
-                return $s;
+                break;
 
             case 'int':
             case 'id':
-                $i = is_bool($value) ? false : filter_var($value, FILTER_VALIDATE_INT);
-                if ($i === false || ($type === 'id' && $i <= 0)) {
-                    $error = 'val_field_invalid';
-                    return null;
+                $rules[] = 'integer';
+                // filter_var() de « integer » laisse passer true (= 1) : un booléen n'est pas un entier.
+                $rules[] = static function (string $attribute, mixed $value, Closure $fail): void {
+                    if (is_bool($value)) {
+                        $fail('val_field_invalid')->translate(['field' => $attribute]);
+                    }
+                };
+                if ($type === 'id') {
+                    $rules[] = 'min:1';
                 }
-                return self::inRange($i, $rule, $error) ? $i : null;
+                if ($min !== null) {
+                    $rules[] = $min;
+                }
+                if ($max !== null) {
+                    $rules[] = $max;
+                }
+                break;
 
             case 'number':
-                if (is_bool($value) || !is_numeric($value)) {
-                    $error = 'val_field_invalid';
-                    return null;
+                $rules[] = 'numeric';
+                if ($min !== null) {
+                    $rules[] = $min;
                 }
-                $f = (float) $value;
-                if (!is_finite($f)) {
-                    $error = 'val_field_invalid';
-                    return null;
+                if ($max !== null) {
+                    $rules[] = $max;
                 }
-                return self::inRange($f, $rule, $error) ? $f : null;
+                break;
 
             case 'bool':
-                if (in_array($value, [true, 1, '1', 'true'], true)) {
-                    return 1;
-                }
-                if (in_array($value, [false, 0, '0', 'false'], true)) {
-                    return 0;
-                }
-                $error = 'val_field_invalid';
-                return null;
+                // true/false, 1/0 et leurs écritures en texte (« boolean » de Laravel refuse « true »).
+                $rules[] = static function (string $attribute, mixed $value, Closure $fail): void {
+                    if (!in_array($value, [true, 1, '1', 'true', false, 0, '0', 'false'], true)) {
+                        $fail('val_field_invalid')->translate(['field' => $attribute]);
+                    }
+                };
+                break;
 
             case 'date':
-                if (!is_string($value) || preg_match('/\A(\d{4})-(\d{2})-(\d{2})\z/', $value, $m) !== 1
-                    || !checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
-                    $error = 'val_field_invalid';
-                    return null;
-                }
-                return $value;
+                $rules[] = 'date_format:Y-m-d';
+                break;
 
             case 'time':
-                if (!is_string($value) || preg_match('/\A([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?\z/', $value, $m) !== 1) {
-                    $error = 'val_field_invalid';
-                    return null;
-                }
-                return $m[1] . ':' . $m[2];
+                $rules[] = 'date_format:H:i,H:i:s';
+                break;
 
             case 'color':
-                // Même format que ColorRule (#RGB / #RRGGBB) ; vérifié ici pour ne pas dépendre de son arrivée.
-                if (!is_string($value) || preg_match('/\A#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\z/', $value) !== 1) {
-                    $error = 'val_field_invalid';
-                    return null;
-                }
-                return $value;
+                $rules[] = new ColorRule();
+                break;
 
             case 'enum':
-                $allowed = (array) ($rule['in'] ?? []);
-                foreach ($allowed as $candidate) {
-                    if ((string) $candidate === (is_scalar($value) ? (string) $value : null)) {
-                        return $candidate;
-                    }
-                }
-                $error = 'val_field_invalid';
-                return null;
+                $rules[] = 'in:' . implode(',', array_map('strval', (array) ($rule['in'] ?? [])));
+                break;
 
             case 'list':
-                if (!is_array($value) || !array_is_list($value)) {
-                    $error = 'val_field_invalid';
-                    return null;
+                $rules[] = 'array';
+                $rules[] = 'list';
+                if ($max !== null) {
+                    $rules[] = $max;
                 }
-                foreach ($value as $item) {
-                    if (!is_string($item) || $item === '' || mb_strlen($item) > 100) {
-                        $error = 'val_field_invalid';
-                        return null;
-                    }
-                }
-                if (isset($rule['max']) && count($value) > (int) $rule['max']) {
-                    $error = 'val_field_too_long';
-                    return null;
-                }
-                return array_values(array_unique($value));
+                break;
+
+            default:
+                $rules[] = 'prohibited';
         }
 
-        $error = 'val_field_invalid';
-        return null;
+        return $rules;
     }
 
-    /** @param array<string, mixed> $rule */
-    private static function inRange(int|float $n, array $rule, ?string &$error): bool
+    /**
+     * Messages de Kintai pour les règles d'un champ : obligatoire, trop long, hors bornes, sinon format invalide.
+     *
+     * @param list<mixed>          $rules
+     * @param array<string, mixed> $rule
+     * @return array<string, string>
+     */
+    private static function messages(string $field, array $rules, string $type, array $rule): array
     {
-        if ((isset($rule['min']) && $n < $rule['min']) || (isset($rule['max']) && $n > $rule['max'])) {
-            $error = 'val_field_out_of_range';
-            return false;
+        $replace = ['field' => $field, 'max' => (string) ($rule['max'] ?? ''), 'min' => (string) ($rule['min'] ?? '')];
+        $range   = in_array($type, ['int', 'id', 'number'], true);
+        $out     = [];
+        foreach ($rules as $one) {
+            if (!is_string($one)) {
+                continue; // règle objet (ColorRule) : son message vient de l'objet
+            }
+            $name = strtolower(explode(':', $one, 2)[0]);
+            $out["$field.$name"] = match (true) {
+                $name === 'required', $name === 'filled' => __('val_field_required', $replace),
+                $name === 'max'                          => __($range ? 'val_field_out_of_range' : 'val_field_too_long', $replace),
+                $name === 'min' && $range                => __('val_field_out_of_range', $replace),
+                default                                  => __('val_field_invalid', $replace),
+            };
         }
-        return true;
+
+        return $out;
+    }
+
+    /** Valeur acceptée, mise sous sa forme de stockage. */
+    private static function normalize(mixed $value, string $type): mixed
+    {
+        return match ($type) {
+            'string', 'text', 'email' => trim((string) $value),
+            'int', 'id'               => (int) $value,
+            'number'                  => (float) $value,
+            'bool'                    => in_array($value, [true, 1, '1', 'true'], true) ? 1 : 0,
+            'time'                    => substr((string) $value, 0, 5),
+            'list'                    => array_values(array_unique($value)),
+            default                   => $value,
+        };
     }
 }
