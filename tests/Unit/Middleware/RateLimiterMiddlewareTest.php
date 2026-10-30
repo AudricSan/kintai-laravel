@@ -8,27 +8,20 @@ use App\Exceptions\HttpException;
 use App\Http\Middleware\RateLimiterMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
 /** Limiteur générique : 5 requêtes par 5 minutes, par IP et par route, succès compris. */
 final class RateLimiterMiddlewareTest extends TestCase
 {
-    private string $dir;
     private RateLimiterMiddleware $middleware;
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/kintai-ratelimit-' . bin2hex(random_bytes(4));
-        $this->middleware = new RateLimiterMiddleware(new AttemptCounter($this->dir));
+        $this->middleware = new RateLimiterMiddleware(new \Illuminate\Cache\RateLimiter(new \Illuminate\Cache\Repository(new \Illuminate\Cache\ArrayStore())));
     }
 
     protected function tearDown(): void
     {
-        foreach (glob($this->dir . '/*') ?: [] as $f) {
-            @unlink($f);
-        }
-        @rmdir($this->dir);
     }
 
     private function request(string $ip, string $uri, ?string $routeName = null): Request

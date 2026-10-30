@@ -36,7 +36,7 @@ final class PasswordResetMailLocaleTest extends TestCase
         $this->service = new PasswordResetService(
             $this->createStub(PasswordResetRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
-            new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
+            new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             null,
             $this->translator,
         );

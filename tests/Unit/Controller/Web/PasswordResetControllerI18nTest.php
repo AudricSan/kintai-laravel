@@ -47,7 +47,7 @@ final class PasswordResetControllerI18nTest extends TestCase
         $service = new PasswordResetService(
             $this->resets,
             $this->users,
-            new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
+            new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             new CredentialRevoker(
                 $this->createStub(UserRepositoryInterface::class),
                 $this->createStub(ApiTokenRepositoryInterface::class),

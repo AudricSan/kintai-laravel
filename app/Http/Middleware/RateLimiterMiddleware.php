@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Cache\RateLimiter;
 use App\Exceptions\HttpException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\AttemptCounter;
 
 /**
  * Limiteur générique : MAX_ATTEMPTS requêtes par fenêtre de WINDOW secondes, par IP et par route,
@@ -22,7 +22,7 @@ final class RateLimiterMiddleware
     private const MAX_ATTEMPTS = 5;
     private const WINDOW = 300;
 
-    public function __construct(private readonly AttemptCounter $counter = new AttemptCounter()) {}
+    public function __construct(private readonly RateLimiter $limiter) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -31,12 +31,11 @@ final class RateLimiterMiddleware
         $target = (string) ($request->routeName() ?? $request->slashPath());
         $key = 'route:' . $request->ip() . ':' . $request->method() . ':' . $target;
 
-        $retryAfter = $this->counter->retryAfter($key, self::MAX_ATTEMPTS, self::WINDOW);
-        if ($retryAfter > 0) {
-            throw new HttpException(429, __('error_too_many_attempts'), ['Retry-After' => (string) $retryAfter]);
+        if ($this->limiter->tooManyAttempts($key, self::MAX_ATTEMPTS)) {
+            throw new HttpException(429, __('error_too_many_attempts'), ['Retry-After' => (string) max(1, $this->limiter->availableIn($key))]);
         }
 
-        $this->counter->hit($key, self::WINDOW);
+        $this->limiter->hit($key, self::WINDOW);
 
         return $next($request);
     }

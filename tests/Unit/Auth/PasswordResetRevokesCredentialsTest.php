@@ -40,7 +40,7 @@ final class PasswordResetRevokesCredentialsTest extends TestCase
     {
         if ($this->service === null) {
             $mailer = new MailerService([
-                'driver' => 'native',
+                'default' => 'sendmail',
                 'from'   => ['address' => 'test@kintai.test', 'name' => 'Kintai'],
             ]);
             $this->service = new PasswordResetService(

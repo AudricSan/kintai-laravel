@@ -10,7 +10,6 @@ use App\Jobs\DeliverNotification;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
-use App\Mail\MailTransportInterface;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
@@ -101,15 +100,8 @@ final class NotificationEmailTest extends TestCase
 
     private function service(bool $configured = true, bool $withMailer = true, ?Dispatcher $bus = null): NotificationService
     {
-        $transport = new class($this) implements MailTransportInterface {
-            public function __construct(private NotificationEmailTest $test) {}
-
-            public function send(string $fromAddress, string $fromName, array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $extraHeaders = []): bool
-            {
-                return $this->test->record($to, $subject, $htmlBody, $extraHeaders);
-            }
-        };
-        $config = $configured ? ['driver' => 'native', 'from' => ['address' => 'kintai@mon-domaine.fr', 'name' => 'Kintai']] : [];
+        $transport = kintai_test_mailer(fn(array $to, string $subject, string $htmlBody, array $extraHeaders): bool => $this->record($to, $subject, $htmlBody, $extraHeaders));
+        $config = $configured ? ['default' => 'sendmail', 'from' => ['address' => 'kintai@mon-domaine.fr', 'name' => 'Kintai']] : [];
         $translations = kintai_test_real_translator();
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);

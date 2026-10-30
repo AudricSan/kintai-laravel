@@ -9,8 +9,9 @@ use Illuminate\Http\Request;
 use App\Services\EnvFileWriter;
 
 /**
- * E-mail : transport (mail() natif ou SMTP), expéditeur et identifiants, écrits dans le fichier d'environnement de
+ * E-mail : transport (sendmail ou SMTP), expéditeur et identifiants, écrits dans le fichier d'environnement de
  * l'instance (MAIL_*, même mécanisme que la langue de l'instance) puisque config/mail.php les lit de l'environnement.
+ * Le chiffrement se traduit en MAIL_SCHEME de Laravel : « ssl » = smtps (TLS direct), les autres = smtp (STARTTLS si le serveur le propose).
  * Le bouton « Envoyer un e-mail de test » essaie la configuration saisie avant de la garder.
  *
  * Le mot de passe SMTP n'est jamais réaffiché : un champ laissé vide conserve l'actuel.
@@ -57,7 +58,7 @@ final class MailStep implements SetupStepInterface
             'port'       => (string) env('MAIL_PORT', '465'),
             'username'   => (string) env('MAIL_USERNAME', ''),
             'has_password' => (string) env('MAIL_PASSWORD', '') !== '',
-            'encryption' => (string) env('MAIL_ENCRYPTION', 'ssl'),
+            'encryption' => (string) env('MAIL_SCHEME', 'smtps') === 'smtps' ? 'ssl' : 'tls',
             'encryptions' => self::ENCRYPTIONS,
         ];
     }
@@ -98,14 +99,18 @@ final class MailStep implements SetupStepInterface
         // Le mot de passe saisi vide = celui déjà enregistré.
         $password = $values['MAIL_PASSWORD'] ?? (string) env('MAIL_PASSWORD', '');
         $config = [
-            'driver' => $values['MAIL_DRIVER'],
-            'from'   => ['address' => $values['MAIL_FROM_ADDRESS'], 'name' => $values['MAIL_FROM_NAME']],
-            'smtp'   => [
-                'host'       => $values['MAIL_HOST'] ?? '',
-                'port'       => (int) ($values['MAIL_PORT'] ?? 465),
-                'username'   => $values['MAIL_USERNAME'] ?? '',
-                'password'   => $password,
-                'encryption' => $values['MAIL_ENCRYPTION'] ?? 'ssl',
+            'default' => $values['MAIL_MAILER'],
+            'from'    => ['address' => $values['MAIL_FROM_ADDRESS'], 'name' => $values['MAIL_FROM_NAME']],
+            'mailers' => [
+                'smtp'     => [
+                    'transport' => 'smtp',
+                    'scheme'    => $values['MAIL_SCHEME'] ?? 'smtps',
+                    'host'      => $values['MAIL_HOST'] ?? '',
+                    'port'      => (int) ($values['MAIL_PORT'] ?? 465),
+                    'username'  => $values['MAIL_USERNAME'] ?? '',
+                    'password'  => $password,
+                ],
+                'sendmail' => config('mail.mailers.sendmail'),
             ],
         ];
         try {
@@ -124,13 +129,13 @@ final class MailStep implements SetupStepInterface
      */
     public function validated(Request $request): array|string
     {
-        $driver = $request->post('driver', 'native') === 'smtp' ? 'smtp' : 'native';
+        $driver = $request->post('driver', 'sendmail') === 'smtp' ? 'smtp' : 'sendmail';
         $from   = trim((string) $request->post('from', ''));
         if (!filter_var($from, FILTER_VALIDATE_EMAIL)) {
             return 'setup_mail_from_invalid';
         }
         $values = [
-            'MAIL_DRIVER'       => $driver,
+            'MAIL_MAILER'       => $driver,
             'MAIL_FROM_ADDRESS' => $from,
             'MAIL_FROM_NAME'    => substr(trim((string) $request->post('from_name', 'Kintai')) ?: 'Kintai', 0, 100),
         ];
@@ -145,7 +150,7 @@ final class MailStep implements SetupStepInterface
                 'MAIL_HOST'       => $host,
                 'MAIL_PORT'       => (string) $port,
                 'MAIL_USERNAME'   => trim((string) $request->post('username', '')),
-                'MAIL_ENCRYPTION' => $enc,
+                'MAIL_SCHEME'     => $enc === 'ssl' ? 'smtps' : 'smtp',
             ];
             $password = (string) $request->post('password', '');
             if ($password !== '') {

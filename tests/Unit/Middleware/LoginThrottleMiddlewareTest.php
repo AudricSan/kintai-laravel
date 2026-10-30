@@ -9,7 +9,6 @@ use App\Exceptions\HttpException;
 use App\Http\Middleware\LoginThrottleMiddleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\AttemptCounter;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,21 +17,15 @@ use PHPUnit\Framework\TestCase;
  */
 final class LoginThrottleMiddlewareTest extends TestCase
 {
-    private string $dir;
     private LoginThrottleMiddleware $middleware;
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/kintai-throttle-' . bin2hex(random_bytes(4));
-        $this->middleware = new LoginThrottleMiddleware(new AttemptCounter($this->dir));
+        $this->middleware = new LoginThrottleMiddleware(new \Illuminate\Cache\RateLimiter(new \Illuminate\Cache\Repository(new \Illuminate\Cache\ArrayStore())));
     }
 
     protected function tearDown(): void
     {
-        foreach (glob($this->dir . '/*') ?: [] as $f) {
-            @unlink($f);
-        }
-        @rmdir($this->dir);
         $_POST = [];
     }
 

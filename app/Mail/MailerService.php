@@ -4,92 +4,131 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use Illuminate\Contracts\Mail\Mailer as MailerContract;
+use Illuminate\Mail\MailManager;
+use Illuminate\Mail\Message;
+
 /**
- * Facade mail : choisit le transport (native ou SMTP) selon config/mail.php.
- * Injectée dans tous les services qui envoient des mails.
+ * Envoi d'e-mails par le mailer de Laravel (Symfony Mailer) : SMTP ou sendmail selon config/mail.php, avec l'expéditeur
+ * réglé par l'Owner par-dessus celui du fichier. Injectée dans tous les services qui envoient des mails.
  */
 final class MailerService
 {
     /** Adresse d'expédition d'origine de config/mail.php : tant qu'elle n'est pas changée, rien n'est réellement réglé. */
     private const DEFAULT_FROM = 'noreply@example.com';
 
-    private readonly string $fromAddress;
-    private readonly string $fromName;
-    private readonly string $driver;
-    /** @var array<string, mixed> */
-    private readonly array $smtp;
-    private readonly MailTransportInterface $transport;
-    private readonly bool $injected;
+    private ?string $lastError = null;
 
-    /** @param MailTransportInterface|null $transport remplace le transport choisi par la configuration (tests) */
-    public function __construct(array $config, ?MailTransportInterface $transport = null)
-    {
-        $this->fromAddress = $config['from']['address'] ?? self::DEFAULT_FROM;
-        $this->fromName    = $config['from']['name']    ?? 'Kintai';
-        $this->driver      = (string) ($config['driver'] ?? 'native');
-        $this->smtp        = $config['smtp'] ?? [];
+    /**
+     * @param array<string, mixed> $config configuration au format de config/mail.php (« default », « mailers », « from »)
+     * @param MailerContract|null  $mailer remplace le mailer construit d'après la configuration (tests)
+     */
+    public function __construct(
+        private readonly array $config = [],
+        private readonly ?MailerContract $mailer = null,
+    ) {}
 
-        $this->injected  = $transport !== null;
-        $this->transport = $transport ?? ($this->driver === 'smtp' ? $this->smtpTransport() : new NativeTransport());
-    }
-
-    /** Transport choisi par la configuration : « smtp » ou « native ». */
+    /** Transport choisi par la configuration : « smtp » ou « sendmail ». */
     public function driver(): string
     {
-        return $this->driver === 'smtp' ? 'smtp' : 'native';
+        return ($this->config['default'] ?? 'sendmail') === 'smtp' ? 'smtp' : 'sendmail';
+    }
+
+    /** Réglages affichés par la page de test d'e-mail de l'Owner (jamais le mot de passe). */
+    public function summary(): array
+    {
+        $smtp = $this->config['mailers']['smtp'] ?? [];
+
+        return [
+            'driver' => $this->driver(),
+            'from'   => $this->config['from'] ?? [],
+            'smtp'   => [
+                'host'       => (string) ($smtp['host'] ?? ''),
+                'port'       => (string) ($smtp['port'] ?? ''),
+                'username'   => (string) ($smtp['username'] ?? ''),
+                'encryption' => ($smtp['scheme'] ?? 'smtps') === 'smtps' ? 'ssl' : 'tls',
+            ],
+        ];
     }
 
     /**
-     * L'instance a-t-elle un envoi d'e-mail réglé ? SMTP : serveur et identifiant renseignés. mail() natif : une
-     * adresse d'expédition choisie (celle d'origine ne l'est pas) ; son bon fonctionnement ne peut pas se vérifier
-     * sans envoyer (voir la page de test d'e-mail de l'Owner).
+     * L'instance a-t-elle un envoi d'e-mail réglé ? SMTP : serveur et identifiant renseignés. sendmail : une adresse
+     * d'expédition choisie (celle d'origine ne l'est pas) ; son bon fonctionnement ne peut pas se vérifier sans
+     * envoyer (voir la page de test d'e-mail de l'Owner).
      */
     public function isConfigured(): bool
     {
-        if ($this->driver === 'smtp') {
-            return trim((string) ($this->smtp['host'] ?? '')) !== '' && trim((string) ($this->smtp['username'] ?? '')) !== '';
+        if ($this->driver() === 'smtp') {
+            $smtp = $this->config['mailers']['smtp'] ?? [];
+
+            return trim((string) ($smtp['host'] ?? '')) !== '' && trim((string) ($smtp['username'] ?? '')) !== '';
         }
-        return $this->fromAddress !== self::DEFAULT_FROM && filter_var($this->fromAddress, FILTER_VALIDATE_EMAIL) !== false;
+        $from = (string) ($this->config['from']['address'] ?? self::DEFAULT_FROM);
+
+        return $from !== self::DEFAULT_FROM && filter_var($from, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    /** Message de l'erreur du dernier envoi échoué (page de test d'e-mail), null si le dernier envoi a réussi. */
+    public function lastError(): ?string
+    {
+        return $this->lastError;
     }
 
     /**
      * @param string[]              $to
      * @param string[]              $attachmentPaths  Chemins absolus vers les fichiers à joindre
-     * @param array<string, string> $headers          En-têtes ajoutés au message (List-Unsubscribe…)
+     * @param array<string, string> $headers          En-têtes ajoutés au message (List-Unsubscribe…) ; un nom ou une
+     *                                                valeur invalide (saut de ligne : injection d'en-têtes) est écarté
      * @param int|null              $timeout          Délai de connexion SMTP en secondes (30 par défaut) : un envoi fait
      *                                                pendant une requête utilisateur ne doit pas la bloquer longtemps
      */
     public function send(array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $headers = [], ?int $timeout = null): bool
     {
+        $this->lastError = null;
         $validTo = array_values(array_filter($to, fn($e) => filter_var($e, FILTER_VALIDATE_EMAIL) !== false));
         if (empty($validTo)) {
             return false;
         }
 
-        $transport = $timeout !== null && $this->driver === 'smtp' && !$this->injected
-            ? $this->smtpTransport($timeout)
-            : $this->transport;
+        $address = (string) ($this->config['from']['address'] ?? self::DEFAULT_FROM);
+        $name    = (string) ($this->config['from']['name'] ?? 'Kintai');
 
-        return $transport->send(
-            fromAddress:     $this->fromAddress,
-            fromName:        $this->fromName,
-            to:              $validTo,
-            subject:         $subject,
-            htmlBody:        $htmlBody,
-            attachmentPaths: $attachmentPaths,
-            extraHeaders:    $headers,
-        );
+        try {
+            $this->transport($timeout)->html($htmlBody, function (Message $message) use ($validTo, $subject, $address, $name, $attachmentPaths, $headers): void {
+                $message->from($address, $name)->to($validTo)->subject($subject);
+                foreach ($attachmentPaths as $path) {
+                    if (is_file($path)) {
+                        $message->attach($path);
+                    }
+                }
+                foreach ($headers as $header => $value) {
+                    if (preg_match('/^[A-Za-z][A-Za-z0-9-]*$/', (string) $header) === 1 && preg_match('/[\r\n]/', (string) $value) !== 1) {
+                        $message->getSymfonyMessage()->getHeaders()->addTextHeader((string) $header, (string) $value);
+                    }
+                }
+            });
+        } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
+            report($e);
+
+            return false;
+        }
+
+        return true;
     }
 
-    private function smtpTransport(int $timeout = 30): SmtpTransport
+    private function transport(?int $timeout): MailerContract
     {
-        return new SmtpTransport(
-            host:       (string) ($this->smtp['host']       ?? 'localhost'),
-            port:       (int)    ($this->smtp['port']       ?? 587),
-            username:   (string) ($this->smtp['username']   ?? ''),
-            password:   (string) ($this->smtp['password']   ?? ''),
-            encryption: (string) ($this->smtp['encryption'] ?? 'tls'),
-            timeout:    max(1, $timeout),
-        );
+        if ($this->mailer !== null) {
+            return $this->mailer;
+        }
+
+        $mailer = $this->driver();
+        $config = $this->config['mailers'][$mailer] ?? ['transport' => $mailer];
+        if ($timeout !== null && $mailer === 'smtp') {
+            $config['timeout'] = max(1, $timeout);
+        }
+
+        return app(MailManager::class)->build($config);
     }
 }

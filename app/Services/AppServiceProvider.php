@@ -50,8 +50,7 @@ final class AppServiceProvider extends ServiceProvider
     private function registerMail(): void
     {
         $this->app->singleton(MailerService::class, function (Container $c) {
-            $path = dirname(dirname(__DIR__)) . '/config/mail.php';
-            $config = file_exists($path) ? require $path : [];
+            $config = (array) config('mail');
             // L'expéditeur réglé par l'Owner l'emporte sur config/mail.php. Base pas encore prête (installation) :
             // la configuration du fichier s'applique telle quelle.
             try {

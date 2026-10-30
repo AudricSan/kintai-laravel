@@ -34,7 +34,6 @@ final class KintaiServiceProvider extends ServiceProvider
         \App\Extension\PendingRequests::class,
         \App\InstalledBundleManifestStore::class,
         \App\Routing\RouteSlugService::class,
-        \App\Security\AttemptCounter::class,
         \App\Services\BundleActivationService::class,
         \App\Services\BundleInstaller\BundlePermissionGranter::class,
         \App\Services\CalendarSyncService::class,

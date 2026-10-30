@@ -10,7 +10,6 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
-use App\Mail\MailTransportInterface;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
@@ -124,16 +123,11 @@ final class NotificationSettingsControllerTest extends TestCase
         $subscriptions->method('findByUser')->willReturn([['id' => 1]]);
         $devices = $this->createStub(DevicePushTokenRepositoryInterface::class);
 
-        $transport = new class($this) implements MailTransportInterface {
-            public function __construct(private NotificationSettingsControllerTest $test) {}
-
-            public function send(string $fromAddress, string $fromName, array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $extraHeaders = []): bool
-            {
-                $this->test->mails[] = ['to' => $to, 'subject' => $subject];
-                return true;
-            }
-        };
-        $mailer = new MailerService(['driver' => 'native', 'from' => ['address' => 'kintai@mon-domaine.fr']], $transport);
+        $transport = kintai_test_mailer(function (array $to, string $subject): bool {
+            $this->mails[] = ['to' => $to, 'subject' => $subject];
+            return true;
+        });
+        $mailer = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'kintai@mon-domaine.fr']], $transport);
         $publicUrl = new PublicUrlResolver($appSettings, '');
 
         $translations = kintai_test_real_translator('en', false);

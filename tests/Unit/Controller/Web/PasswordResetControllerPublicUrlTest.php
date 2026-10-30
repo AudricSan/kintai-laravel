@@ -60,7 +60,7 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
         $service = new PasswordResetService(
             $this->resets,
             $this->users,
-            new MailerService(['driver' => 'native', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
+            new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
         );
 
         return new PasswordResetController(kintai_test_views($this->viewDir), $service, new PublicUrlResolver(new AppSettingsService($repo), $env));

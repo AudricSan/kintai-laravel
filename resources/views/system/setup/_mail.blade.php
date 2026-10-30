@@ -22,7 +22,7 @@ ob_start();
     {!! csrf_field() !!}    <div class="form-group">
         <label class="form-label" for="setup-mail-driver">{!! __('setup_mail_driver') !!}</label>
         <select id="setup-mail-driver" name="driver" class="form-control">
-            <option value="native"{!! $stepData['driver'] === 'native' ? ' selected' : '' !!}>{!! __('setup_mail_driver_native') !!}</option>
+            <option value="sendmail"{!! $stepData['driver'] === 'sendmail' ? ' selected' : '' !!}>{!! __('setup_mail_driver_native') !!}</option>
             <option value="smtp"{!! $stepData['driver'] === 'smtp' ? ' selected' : '' !!}>{!! __('setup_mail_driver_smtp') !!}</option>
         </select>
     </div>

@@ -161,6 +161,15 @@ function kintai_test_flash(): array
     return $messages;
 }
 
+/**
+ * Mailer de Laravel dont le transport transmet chaque message à un rappel (voir Tests\Support\RecordingTransport) :
+ * function (array $to, string $subject, string $html, array $headers): bool.
+ */
+function kintai_test_mailer(Closure $onSend): Illuminate\Mail\Mailer
+{
+    return new Illuminate\Mail\Mailer('test', app('view'), new Tests\Support\RecordingTransport($onSend));
+}
+
 function kintai_test_views(string $path, bool $withLayout = false): Illuminate\View\Factory
 {
     $app    = $GLOBALS['kintai_test_app'];

@@ -13,7 +13,7 @@ use App\View\Components\Card;
  * @var string      $BASE_URL
  */
 
-$driver      = $mailConfig['driver'] ?? 'native';
+$driver      = $mailConfig['driver'] ?? 'sendmail';
 $from        = ($mailConfig['from']['address'] ?? '') . ' (' . ($mailConfig['from']['name'] ?? '') . ')';
 $smtp        = $mailConfig['smtp'] ?? [];
 $smtpHost    = ($smtp['host'] ?? '') . ':' . ($smtp['port'] ?? '');
@@ -43,7 +43,7 @@ ob_start();
 @endphp
 <table class="table table--compact mw-600">
     <tbody>
-        <tr><th class="w-180">{!! __('mailtest_driver') !!}</th><td><code>{{ $driver }}</code> {!! $driver === 'native' ? Badge::make(__('mailtest_driver_native_badge'))->warning()->render() : Badge::make(__('mailtest_driver_smtp_badge'))->info()->render() !!}</td></tr>
+        <tr><th class="w-180">{!! __('mailtest_driver') !!}</th><td><code>{{ $driver }}</code> {!! $driver === 'sendmail' ? Badge::make(__('mailtest_driver_native_badge'))->warning()->render() : Badge::make(__('mailtest_driver_smtp_badge'))->info()->render() !!}</td></tr>
         <tr><th>{!! __('mailtest_from') !!}</th><td><code>{{ $from }}</code> {!! $hasPh($mailConfig['from']['address'] ?? '') ? Badge::make(__('mailtest_placeholder_badge'))->danger()->render() : '' !!}</td></tr>
         @if ($driver === 'smtp')
         <tr><th>{!! __('mailtest_smtp_server') !!}</th><td><code>{{ $smtpHost }}</code> {!! $hasPh($smtp['host'] ?? '') ? Badge::make(__('mailtest_placeholder_badge'))->danger()->render() : '' !!}</td></tr>
@@ -61,7 +61,7 @@ ob_start();
         @endif
     </tbody>
 </table>
-@if ($driver === 'native')
+@if ($driver === 'sendmail')
     <div class="alert alert--warning mt-sm">
         {!! __('mailtest_driver_native_warning') !!}    </div>
 @endif
@@ -70,14 +70,14 @@ ob_start();
 @php echo Card::make()
     ->header(__('mailtest_htaccess_card'))
     ->body('<p class="mb-sm text-muted">' . __('mailtest_htaccess_intro') . '</p>
-        <pre class="code-block">SetEnv MAIL_DRIVER      smtp
+        <pre class="code-block">SetEnv MAIL_MAILER      smtp
 SetEnv MAIL_FROM_ADDRESS noreply@votredomaine.com
 SetEnv MAIL_FROM_NAME   Kintai
 SetEnv MAIL_HOST        pro1.mail.ovh.net
 SetEnv MAIL_PORT        465
 SetEnv MAIL_USERNAME    noreply@votredomaine.com
 SetEnv MAIL_PASSWORD    votre_mot_de_passe_smtp
-SetEnv MAIL_ENCRYPTION  ssl</pre>
+SetEnv MAIL_SCHEME      smtps</pre>
         <p class="form-hint mt-sm">' . __('mailtest_ovh_gmail_hint') . '</p>')
     ->render() @endphp
 

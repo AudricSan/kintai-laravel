@@ -23,7 +23,7 @@ final class MailSenderSettingTest extends TestCase
     /** @return array<string, mixed> */
     private function fileConfig(): array
     {
-        return ['driver' => 'native', 'from' => ['address' => 'noreply@example.com', 'name' => 'Kintai']];
+        return ['default' => 'sendmail', 'from' => ['address' => 'noreply@example.com', 'name' => 'Kintai']];
     }
 
     public function testWithoutSettingTheFileConfigurationApplies(): void
@@ -40,7 +40,7 @@ final class MailSenderSettingTest extends TestCase
 
         $this->assertSame('rapports@monentreprise.fr', $config['from']['address']);
         $this->assertSame('Mon entreprise', $config['from']['name']);
-        $this->assertSame('native', $config['driver']);
+        $this->assertSame('sendmail', $config['default']);
     }
 
     public function testAnInvalidStoredAddressIsIgnored(): void
@@ -59,7 +59,7 @@ final class MailSenderSettingTest extends TestCase
         $this->assertSame('Équipe RH', $config['from']['name']);
     }
 
-    public function testOwnerAddressMakesNativeMailConfigured(): void
+    public function testOwnerAddressMakesSendmailConfigured(): void
     {
         $file = $this->settings()->mailConfig($this->fileConfig());
         $owner = $this->settings(['mail_from_address' => 'rapports@monentreprise.fr'])->mailConfig($this->fileConfig());

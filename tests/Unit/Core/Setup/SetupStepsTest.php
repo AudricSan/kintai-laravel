@@ -53,7 +53,7 @@ final class SetupStepsTest extends TestCase
     protected function tearDown(): void
     {
         $_POST = [];
-        foreach (['MAIL_DRIVER', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_ENCRYPTION', 'MAIL_PASSWORD'] as $key) {
+        foreach (['MAIL_MAILER', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_SCHEME', 'MAIL_PASSWORD'] as $key) {
             putenv($key);
             unset($_ENV[$key], $_SERVER[$key]);
         }
@@ -135,7 +135,7 @@ final class SetupStepsTest extends TestCase
 
     private function mail(?\Closure $factory = null): MailStep
     {
-        $mailer = new MailerService(['driver' => 'native', 'from' => ['address' => 'noreply@example.com']]);
+        $mailer = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@example.com']]);
         $step = new MailStep($mailer, new EnvFileWriter($this->envDir));
         if ($factory !== null) {
             $step->useMailerFactory($factory);
@@ -153,10 +153,10 @@ final class SetupStepsTest extends TestCase
 
         $this->assertSame([], $errors);
         $env = (string) file_get_contents($this->envDir . '/.env');
-        $this->assertStringContainsString('MAIL_DRIVER=smtp', $env);
+        $this->assertStringContainsString('MAIL_MAILER=smtp', $env);
         $this->assertStringContainsString('MAIL_HOST=smtp.exemple.fr', $env);
         $this->assertStringContainsString('MAIL_PORT=587', $env);
-        $this->assertStringContainsString('MAIL_ENCRYPTION=tls', $env);
+        $this->assertStringContainsString('MAIL_SCHEME=smtp', $env);
         $this->assertStringContainsString('MAIL_FROM_NAME="Ma Boutique"', $env);
         $this->assertStringNotContainsString('MAIL_PASSWORD', $env, 'mot de passe vide = actuel conservé, jamais écrasé');
         $this->assertStringContainsString('APP_ENV=local', $env, 'les autres lignes restent');
@@ -171,7 +171,7 @@ final class SetupStepsTest extends TestCase
 
     public function testMailValidationErrors(): void
     {
-        $this->assertSame(['setup_mail_from_invalid'], $this->mail()->handle($this->post(['driver' => 'native', 'from' => 'nope']), 1));
+        $this->assertSame(['setup_mail_from_invalid'], $this->mail()->handle($this->post(['default' => 'sendmail', 'from' => 'nope']), 1));
         $this->assertSame(['setup_mail_smtp_invalid'], $this->mail()->handle($this->post(['driver' => 'smtp', 'from' => 'a@exemple.fr', 'host' => '', 'port' => '587', 'encryption' => 'tls']), 1));
         $this->assertSame(['setup_mail_smtp_invalid'], $this->mail()->handle($this->post(['driver' => 'smtp', 'from' => 'a@exemple.fr', 'host' => 'bad host;', 'port' => '587', 'encryption' => 'tls']), 1));
         $this->assertSame(['setup_mail_smtp_invalid'], $this->mail()->handle($this->post(['driver' => 'smtp', 'from' => 'a@exemple.fr', 'host' => 'smtp.exemple.fr', 'port' => '70000', 'encryption' => 'tls']), 1));
@@ -180,9 +180,9 @@ final class SetupStepsTest extends TestCase
 
     public function testAnUnwritableEnvironmentFileIsReported(): void
     {
-        $step = new MailStep(new MailerService(['driver' => 'native']), new EnvFileWriter($this->envDir . '/absent/dossier'));
+        $step = new MailStep(new MailerService(['default' => 'sendmail']), new EnvFileWriter($this->envDir . '/absent/dossier'));
 
-        $this->assertSame(['setup_mail_not_saved'], $step->handle($this->post(['driver' => 'native', 'from' => 'a@exemple.fr']), 1));
+        $this->assertSame(['setup_mail_not_saved'], $step->handle($this->post(['default' => 'sendmail', 'from' => 'a@exemple.fr']), 1));
     }
 
     public function testTheTestEmailTriesTheEnteredSettingsWithoutSavingThem(): void
@@ -190,30 +190,25 @@ final class SetupStepsTest extends TestCase
         $sent = [];
         $factory = function (array $config) use (&$sent): MailerService {
             $sent['config'] = $config;
-            return new MailerService($config, new class($sent) implements \App\Mail\MailTransportInterface {
-                public function __construct(private array &$sent) {}
-
-                public function send(string $fromAddress, string $fromName, array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $extraHeaders = []): bool
-                {
-                    $this->sent['to'] = $to;
-                    return true;
-                }
-            });
+            return new MailerService($config, kintai_test_mailer(function (array $to) use (&$sent): bool {
+                $sent['to'] = $to;
+                return true;
+            }));
         };
 
         $result = $this->mail($factory)->sendTest($this->post(['driver' => 'smtp', 'from' => 'a@exemple.fr', 'host' => 'smtp.exemple.fr', 'port' => '587', 'encryption' => 'tls', 'password' => 'p', 'test_to' => 'moi@exemple.fr']));
 
         $this->assertSame(['success' => true, 'error' => null], $result);
         $this->assertSame(['moi@exemple.fr'], $sent['to']);
-        $this->assertSame('smtp.exemple.fr', $sent['config']['smtp']['host']);
-        $this->assertSame('p', $sent['config']['smtp']['password']);
+        $this->assertSame('smtp.exemple.fr', $sent['config']['mailers']['smtp']['host']);
+        $this->assertSame('p', $sent['config']['mailers']['smtp']['password']);
         $this->assertStringNotContainsString('MAIL_', (string) file_get_contents($this->envDir . '/.env'));
     }
 
     public function testTheTestEmailNeedsValidSettingsAndRecipient(): void
     {
-        $this->assertSame('setup_mail_from_invalid', $this->mail()->sendTest($this->post(['driver' => 'native', 'from' => 'x']))['error']);
-        $this->assertSame('mail_test_error_invalid_email', $this->mail()->sendTest($this->post(['driver' => 'native', 'from' => 'a@exemple.fr', 'test_to' => 'nope']))['error']);
+        $this->assertSame('setup_mail_from_invalid', $this->mail()->sendTest($this->post(['default' => 'sendmail', 'from' => 'x']))['error']);
+        $this->assertSame('mail_test_error_invalid_email', $this->mail()->sendTest($this->post(['default' => 'sendmail', 'from' => 'a@exemple.fr', 'test_to' => 'nope']))['error']);
     }
 
     // ── Premier magasin ─────────────────────────────────────────────────────────────────────────────────────────
@@ -275,7 +270,7 @@ final class SetupStepsTest extends TestCase
         $vapid = new VapidKeyStore($this->store);
         $subscriptions = $this->createStub(WebPushSubscriptionRepositoryInterface::class);
         $devices = $this->createStub(DevicePushTokenRepositoryInterface::class);
-        $mailer = new MailerService(['driver' => 'native', 'from' => ['address' => 'noreply@example.com']]);
+        $mailer = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@example.com']]);
         $status = new NotificationChannelStatus($vapid, $subscriptions, $devices, $mailer, new PublicUrlResolver($this->settings, ''), $this->createStub(UserRepositoryInterface::class), []);
         return new NotificationsStep($status, $notifications);
     }

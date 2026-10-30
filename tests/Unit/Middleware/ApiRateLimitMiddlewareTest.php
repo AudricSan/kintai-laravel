@@ -10,7 +10,6 @@ use App\Http\Middleware\ApiRateLimitMiddleware;
 use App\Repositories\AppSettingsRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\AttemptCounter;
 use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
@@ -20,31 +19,27 @@ use PHPUnit\Framework\TestCase;
  */
 final class ApiRateLimitMiddlewareTest extends TestCase
 {
-    private string $dir;
-
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/kintai-api-ratelimit-' . bin2hex(random_bytes(4));
     }
 
     protected function tearDown(): void
     {
-        foreach (glob($this->dir . '/*') ?: [] as $f) {
-            @unlink($f);
-        }
-        @rmdir($this->dir);
         $_SERVER = [];
     }
 
+    private \Illuminate\Cache\ArrayStore $store;
+
     private function middleware(?string $setting): ApiRateLimitMiddleware
     {
+        $this->store = new \Illuminate\Cache\ArrayStore();
         $repo = $this->createStub(AppSettingsRepositoryInterface::class);
         $repo->method('all')->willReturn($setting === null ? [] : [ApiRateLimitMiddleware::SETTING_KEY => $setting]);
 
         $container = new \Tests\Support\TestContainer();
         $container->instance(AppSettingsService::class, new AppSettingsService($repo));
 
-        return new ApiRateLimitMiddleware($container, new AttemptCounter($this->dir));
+        return new ApiRateLimitMiddleware($container, new \Illuminate\Cache\RateLimiter(new \Illuminate\Cache\Repository($this->store)));
     }
 
     private function request(string $uri, ?string $token = null, string $ip = '10.0.0.1'): Request
@@ -147,13 +142,12 @@ final class ApiRateLimitMiddlewareTest extends TestCase
         $this->assertFalse($response->headers->has('X-RateLimit-Limit'));
     }
 
-    public function testTheRawTokenNeverEndsUpInTheCounterFiles(): void
+    public function testTheRawTokenNeverEndsUpInTheCounterKeys(): void
     {
         $this->pass($this->middleware('5'), $this->request('/api/v1/shifts', 'secret-token-value'));
 
-        foreach (glob($this->dir . '/*') ?: [] as $file) {
-            $this->assertStringNotContainsString('secret-token-value', basename($file) . file_get_contents($file));
-        }
-        $this->addToAssertionCount(1);
+        $keys = array_keys((new \ReflectionProperty($this->store, 'storage'))->getValue($this->store));
+        $this->assertNotSame([], $keys);
+        $this->assertStringNotContainsString('secret-token-value', implode('|', $keys));
     }
 }

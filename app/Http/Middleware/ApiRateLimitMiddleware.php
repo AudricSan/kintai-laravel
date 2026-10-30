@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Container\Container;
 use App\Exceptions\HttpException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\AttemptCounter;
 use App\Services\AppSettingsService;
 
 /**
@@ -32,14 +32,10 @@ final class ApiRateLimitMiddleware
     public const IP_FACTOR = 10;
     private const WINDOW = 60;
 
-    private readonly AttemptCounter $counter;
-
     public function __construct(
         private readonly Container $container,
-        ?AttemptCounter $counter = null,
-    ) {
-        $this->counter = $counter ?? new AttemptCounter();
-    }
+        private readonly RateLimiter $limiter,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -56,8 +52,8 @@ final class ApiRateLimitMiddleware
         $ipKey = 'api-ip:' . $request->ip();
 
         $retryAfter = max(
-            $this->counter->retryAfter($key, $limit, self::WINDOW),
-            $this->counter->retryAfter($ipKey, $limit * self::IP_FACTOR, self::WINDOW),
+            $this->limiter->tooManyAttempts($key, $limit) ? max(1, $this->limiter->availableIn($key)) : 0,
+            $this->limiter->tooManyAttempts($ipKey, $limit * self::IP_FACTOR) ? max(1, $this->limiter->availableIn($ipKey)) : 0,
         );
         if ($retryAfter > 0) {
             throw new HttpException(429, __('error_too_many_requests'), [
@@ -67,8 +63,8 @@ final class ApiRateLimitMiddleware
             ]);
         }
 
-        $used = $this->counter->hit($key, self::WINDOW);
-        $this->counter->hit($ipKey, self::WINDOW);
+        $used = $this->limiter->hit($key, self::WINDOW);
+        $this->limiter->hit($ipKey, self::WINDOW);
 
         $response = $next($request);
         $response->headers->set('X-RateLimit-Limit', (string) $limit);

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Cache\RateLimiter;
 use App\Exceptions\HttpException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Security\AttemptCounter;
 
 /**
  * Freine la recherche de mots de passe sur les routes de connexion (web et API).
@@ -33,7 +33,7 @@ final class LoginThrottleMiddleware
     public const ACCOUNT_MAX_FAILURES = 10;
     public const WINDOW = 900; // 15 minutes
 
-    public function __construct(private readonly AttemptCounter $counter = new AttemptCounter()) {}
+    public function __construct(private readonly RateLimiter $limiter) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -42,8 +42,8 @@ final class LoginThrottleMiddleware
         $accountKey = $identifier !== null ? 'login:account:' . $identifier : null;
 
         $retryAfter = max(
-            $this->counter->retryAfter($ipKey, self::IP_MAX_FAILURES, self::WINDOW),
-            $accountKey !== null ? $this->counter->retryAfter($accountKey, self::ACCOUNT_MAX_FAILURES, self::WINDOW) : 0,
+            $this->retryAfter($ipKey, self::IP_MAX_FAILURES),
+            $accountKey !== null ? $this->retryAfter($accountKey, self::ACCOUNT_MAX_FAILURES) : 0,
         );
         if ($retryAfter > 0) {
             throw new HttpException(429, __('error_too_many_attempts'), ['Retry-After' => (string) $retryAfter]);
@@ -52,16 +52,22 @@ final class LoginThrottleMiddleware
         $response = $next($request);
 
         if ($request->attributes->get('auth_failed') === true) {
-            $this->counter->hit($ipKey, self::WINDOW);
+            $this->limiter->hit($ipKey, self::WINDOW);
             if ($accountKey !== null) {
-                $this->counter->hit($accountKey, self::WINDOW);
+                $this->limiter->hit($accountKey, self::WINDOW);
             }
         } elseif ($accountKey !== null && $response->status() < 400) {
             // Connexion réussie : on repart de zéro pour ce compte (le compteur d'IP, lui, reste).
-            $this->counter->clear($accountKey);
+            $this->limiter->clear($accountKey);
         }
 
         return $response;
+    }
+
+    /** Secondes avant que $key repasse sous $max échecs : 0 si elle n'est pas bloquée (valeur de Retry-After). */
+    private function retryAfter(string $key, int $max): int
+    {
+        return $this->limiter->tooManyAttempts($key, $max) ? max(1, $this->limiter->availableIn($key)) : 0;
     }
 
     /**

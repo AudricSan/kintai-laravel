@@ -53,7 +53,7 @@ final class SetupWizardRenderTest extends TestCase
     public function testProgressBarShowsEveryStepWithItsState(): void
     {
         $html = $this->render('mail', ['stepData' => [
-            'driver' => 'native', 'configured' => false, 'from' => '', 'from_name' => 'Kintai', 'host' => '', 'port' => '465', 'username' => '',
+            'driver' => 'sendmail', 'configured' => false, 'from' => '', 'from_name' => 'Kintai', 'host' => '', 'port' => '465', 'username' => '',
             'has_password' => false, 'encryption' => 'ssl', 'encryptions' => ['ssl', 'tls', 'none'],
         ]]);
 
@@ -73,7 +73,7 @@ final class SetupWizardRenderTest extends TestCase
             'store' => ['existing' => ['Paris'], 'timezones' => ['UTC', 'Asia/Tokyo'], 'currencies' => ['EUR', 'JPY'], 'defaults' => ['timezone' => 'UTC', 'currency' => 'EUR', 'type' => 'retail']],
             'notifications' => ['status' => [
                 'web_push' => ['available' => true, 'has_keys' => true, 'missing_extensions' => [], 'subscriptions' => 0],
-                'email' => ['available' => false, 'configured' => false, 'driver' => 'native', 'has_public_url' => false],
+                'email' => ['available' => false, 'configured' => false, 'driver' => 'sendmail', 'has_public_url' => false],
                 'mobile' => ['available' => false, 'enabled' => false, 'has_project' => false, 'has_credentials' => false],
             ]],
             'operations' => ['backup_auto' => true, 'backup_keep' => 10, 'update_channel' => 'release', 'channels' => ['release', 'beta', 'alpha'],
