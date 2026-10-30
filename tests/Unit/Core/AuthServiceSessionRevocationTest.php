@@ -6,7 +6,7 @@ namespace Tests\Unit\Core;
 
 use App\Auth\AuthService;
 use App\Auth\CredentialRevoker;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthServiceSessionRevocationTest extends TestCase
 {
+    use \Tests\Support\ApiTokenExpectations;
+
     private UserRepositoryInterface&Stub $users;
     /** @var array<string, mixed> Ligne « en base » que findById() renvoie, modifiable par chaque test. */
     private array $row;
@@ -144,9 +146,8 @@ final class AuthServiceSessionRevocationTest extends TestCase
     {
         $remember = $this->createMock(UserRepositoryInterface::class);
         $remember->expects($this->once())->method('revokeRememberToken')->with(42);
-        $api = $this->createMock(ApiTokenRepositoryInterface::class);
-        $api->expects($this->once())->method('deleteByUserId')->with(42)->willReturn(3);
+        $this->expectApiTokensRevoked(42);
 
-        (new CredentialRevoker($remember, $api))->revokeAllFor(42);
+        (new CredentialRevoker($remember))->revokeAllFor(42);
     }
 }

@@ -30,7 +30,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Auth\UserAnonymizer;
 use App\Auth\CredentialRevoker;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use PHPUnit\Framework\TestCase;
 
 final class AdminUserControllerTest extends TestCase
@@ -1303,7 +1303,7 @@ final class AdminUserControllerTest extends TestCase
                 new UserAnonymizer(
                     $this->users,
                     $this->roleAssignments,
-                    new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+                    new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
                     sys_get_temp_dir(),
                 ),
             );

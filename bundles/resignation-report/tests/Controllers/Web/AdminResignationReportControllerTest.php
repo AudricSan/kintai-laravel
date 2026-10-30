@@ -40,6 +40,8 @@ final class AdminResignationReportControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $viewDir = sys_get_temp_dir() . '/kintai-resignation-report-views';
         $this->ensureViewFile($viewDir, 'reports-resignation');
         $this->ensureViewFile($viewDir, 'reports-resignation-show');
@@ -77,7 +79,6 @@ final class AdminResignationReportControllerTest extends TestCase
                     $this->assignments,
                     new \App\Auth\CredentialRevoker(
                         $this->createStub(\App\Repositories\UserRepositoryInterface::class),
-                        $this->createStub(\App\Repositories\ApiTokenRepositoryInterface::class),
                     ),
                     sys_get_temp_dir(),
                 ),

@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Api\V1;
 
 use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -22,18 +22,30 @@ use PHPUnit\Framework\TestCase;
 final class AuthControllerTest extends TestCase
 {
     private UserRepositoryInterface&Stub     $users;
-    private ApiTokenRepositoryInterface&Stub $tokens;
     private AuthService $auth;
     private ?AuthController $controller = null;
 
+    private bool $noTokenExpected = false;
+
+    protected function assertPostConditions(): void
+    {
+        if ($this->noTokenExpected) {
+            $this->assertSame(0, ApiToken::count(), 'aucun jeton émis');
+        }
+    }
+
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        foreach ([1, 3, 7, 99] as $userId) {
+            kintai_test_user($userId);
+        }
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $stores     = $this->createStub(StoreRepositoryInterface::class);
         $roles           = $this->createStub(RoleRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->users  = $this->createStub(UserRepositoryInterface::class);
-        $this->tokens = $this->createStub(ApiTokenRepositoryInterface::class);
 
         $this->auth       = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments);
     }
@@ -42,7 +54,7 @@ final class AuthControllerTest extends TestCase
     private function controller(): AuthController
     {
         if ($this->controller === null) {
-            $this->controller = new AuthController($this->auth, $this->tokens, $this->users, new AuditLogger());
+            $this->controller = new AuthController($this->auth, $this->users, new AuditLogger());
         }
 
         return $this->controller;
@@ -145,12 +157,6 @@ final class AuthControllerTest extends TestCase
             'is_active'     => true,
             'deleted_at'    => null,
         ]);
-        $this->tokens->method('save')->willReturn([
-            'id'         => 1,
-            'user_id'    => 7,
-            'token'      => 'rawtoken',
-            'expires_at' => null,
-        ]);
 
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: [
             'email'    => 'alice@example.com',
@@ -179,14 +185,13 @@ final class AuthControllerTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('weakPasswords')]
     public function testWeakPasswordGetsNoTokenAndMustBeChangedOnTheWeb(string $password): void
     {
-        $this->tokens = $this->createMock(ApiTokenRepositoryInterface::class);
         $row = [
             'id' => 9, 'email' => 'weak@example.com', 'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 4]),
             'is_active' => true, 'deleted_at' => null,
         ];
         $this->users->method('findByEmail')->willReturn($row);
         $this->users->method('findById')->willReturn($row);
-        $this->tokens->expects($this->never())->method('save');
+        $this->noTokenExpected = true;
 
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'weak@example.com', 'password' => $password]);
         $response = $this->controller()->login($req);
@@ -214,11 +219,10 @@ final class AuthControllerTest extends TestCase
         $users->method('findById')->willReturn($row);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-        $tokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        $tokens->expects($this->never())->method('save');
+        $this->noTokenExpected = true;
 
         $auth       = new AuthService($users, $storeUsers, $stores, $this->createStub(RoleRepositoryInterface::class), $roleAssignments);
-        $controller = new AuthController($auth, $tokens, $users, new AuditLogger());
+        $controller = new AuthController($auth, $users, new AuditLogger());
 
         $response = $controller->login($this->makeRequest('POST', '/api/v1/auth/login', json: [
             'employee_code' => '057', 'store_code' => '21836', 'password' => '0000',
@@ -241,18 +245,13 @@ final class AuthControllerTest extends TestCase
             'id' => 1, 'email' => 'x@x.com', 'password_hash' => $hash, 'is_active' => true, 'deleted_at' => null,
         ]);
 
-        $capturedToken = null;
-        $this->tokens->method('save')->willReturnCallback(function ($data) use (&$capturedToken) {
-            $capturedToken = $data['token'];
-            return array_merge($data, ['id' => 1]);
-        });
 
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: [
             'email' => 'x@x.com', 'password' => 'long-enough-pass',
         ]);
         $this->controller()->login($req);
 
-        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $capturedToken);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', ApiToken::first()['token']);
     }
 
     // -------------------------------------------------------------------------
@@ -261,20 +260,19 @@ final class AuthControllerTest extends TestCase
 
     public function testLogoutDeletesToken(): void
     {
-        $this->tokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        $this->tokens->expects($this->once())->method('delete')->with(42);
+        ApiToken::create(['id' => 42, 'user_id' => 7, 'token' => hash('sha256', uniqid('', true)), 'name' => 'test']);
 
         $req = $this->makeRequest('POST', '/api/v1/auth/logout');
         $req->attributes->set('api_token', ['id' => 42]);
 
         $response = $this->controller()->logout($req);
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertNull(ApiToken::findById(42));
     }
 
     public function testLogoutWithoutTokenAttributeIsGraceful(): void
     {
-        $this->tokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        $this->tokens->expects($this->never())->method('delete');
+        ApiToken::create(['id' => 42, 'user_id' => 7, 'token' => hash('sha256', uniqid('', true)), 'name' => 'test']);
 
         $req      = $this->makeRequest('POST', '/api/v1/auth/logout');
         $response = $this->controller()->logout($req);
@@ -307,10 +305,8 @@ final class AuthControllerTest extends TestCase
 
     public function testListTokensHidesRawToken(): void
     {
-        $this->tokens->method('findByUserId')->willReturn([
-            ['id' => 1, 'user_id' => 3, 'token' => 'secret1', 'name' => 'CI'],
-            ['id' => 2, 'user_id' => 3, 'token' => 'secret2', 'name' => 'App'],
-        ]);
+        ApiToken::create(['id' => 1, 'user_id' => 3, 'token' => hash('sha256', 'secret1'), 'name' => 'CI']);
+        ApiToken::create(['id' => 2, 'user_id' => 3, 'token' => hash('sha256', 'secret2'), 'name' => 'App']);
 
         $req = $this->makeRequest('GET', '/api/v1/auth/tokens');
         $req->attributes->set('auth_user', ['id' => 3]);
@@ -331,9 +327,7 @@ final class AuthControllerTest extends TestCase
 
     public function testRevokeTokenDeletesWhenOwnerMatches(): void
     {
-        $this->tokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        $this->tokens->method('findById')->willReturn(['id' => 5, 'user_id' => 3]);
-        $this->tokens->expects($this->once())->method('delete')->with(5);
+        ApiToken::create(['id' => 5, 'user_id' => 3, 'token' => hash('sha256', uniqid('', true)), 'name' => 'test']);
 
         $req = $this->makeRequest('DELETE', '/api/v1/auth/tokens/5');
         $req->setRouteParams(['id' => '5']);
@@ -341,11 +335,12 @@ final class AuthControllerTest extends TestCase
 
         $response = $this->controller()->revokeToken($req);
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertNull(ApiToken::findById(5));
     }
 
     public function testRevokeTokenThrowsWhenOwnerMismatch(): void
     {
-        $this->tokens->method('findById')->willReturn(['id' => 5, 'user_id' => 99]);
+        ApiToken::create(['id' => 5, 'user_id' => 99, 'token' => hash('sha256', uniqid('', true)), 'name' => 'test']);
 
         $req = $this->makeRequest('DELETE', '/api/v1/auth/tokens/5');
         $req->setRouteParams(['id' => '5']);
@@ -357,7 +352,6 @@ final class AuthControllerTest extends TestCase
 
     public function testRevokeTokenThrowsWhenTokenNotFound(): void
     {
-        $this->tokens->method('findById')->willReturn(null);
 
         $req = $this->makeRequest('DELETE', '/api/v1/auth/tokens/999');
         $req->setRouteParams(['id' => '999']);
@@ -413,16 +407,11 @@ final class AuthControllerTest extends TestCase
         $this->users->method('findByEmail')->willReturn($row);
         $this->users->method('findById')->willReturn($row);
 
-        $saved = null;
-        $this->tokens->method('save')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved = $d;
-            return $d + ['id' => 1];
-        });
 
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'alice@example.com', 'password' => 'secret-passphrase'] + $extra);
         $response = $this->controller()->login($req);
 
-        return [$response, $saved];
+        return [$response, ApiToken::orderByDesc('id')->first()?->toArray()];
     }
 
     public function testTokenWithoutExpiresInExpiresAfterNinetyDays(): void
@@ -458,8 +447,7 @@ final class AuthControllerTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidExpiresIn')]
     public function testInvalidExpiresInIsRejectedWithoutIssuingAToken(mixed $expiresIn): void
     {
-        $this->tokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        $this->tokens->expects($this->never())->method('save');
+        $this->noTokenExpected = true;
 
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'alice@example.com', 'password' => 'x', 'expires_in' => $expiresIn]);
         $response = $this->controller()->login($req);

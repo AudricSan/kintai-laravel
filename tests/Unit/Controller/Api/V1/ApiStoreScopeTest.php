@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Auth\UserTargetGuard;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\ValidationException;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\IcalToken;
@@ -45,6 +45,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class ApiStoreScopeTest extends TestCase
 {
+    use \Tests\Support\ApiTokenExpectations;
+
     private const OWNER   = 1;
     private const MANAGER = 2;
     private const STORE_A = 5; // magasin du gérant
@@ -57,6 +59,8 @@ final class ApiStoreScopeTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturnCallback(fn(int $uid): array => match ($uid) {
             self::OWNER   => [['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]],
@@ -279,9 +283,8 @@ final class ApiStoreScopeTest extends TestCase
         }))->willReturn(['id' => 31, 'password_hash' => 'secret']);
         $remember = $this->createMock(UserRepositoryInterface::class);
         $remember->expects($this->once())->method('revokeRememberToken')->with(31);
-        $apiTokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        $apiTokens->expects($this->once())->method('deleteByUserId')->with(31);
-        $revoker = new CredentialRevoker($remember, $apiTokens);
+        $this->expectApiTokensRevoked(31);
+        $revoker = new CredentialRevoker($remember);
 
         $response = $this->userController($revoker)->update($this->request(
             self::MANAGER,
@@ -458,7 +461,7 @@ final class ApiStoreScopeTest extends TestCase
             $this->users,
             new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
         );
-        $revoker = new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class));
+        $revoker = new CredentialRevoker($this->createStub(UserRepositoryInterface::class));
         $controller = new UserController(
             $this->users, new AuditLogger(), $planLimits, $this->permissions, $this->storeUsers,
             new OwnerGuard($this->permissions, $this->users), $revoker,

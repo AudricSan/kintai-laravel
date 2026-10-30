@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -20,12 +20,11 @@ final class CredentialRevoker
 {
     public function __construct(
         private readonly UserRepositoryInterface $users,
-        private readonly ApiTokenRepositoryInterface $apiTokens,
     ) {}
 
     public function revokeAllFor(int $userId): void
     {
         $this->users->revokeRememberToken($userId);
-        $this->apiTokens->deleteByUserId($userId);
+        ApiToken::deleteByUserId($userId);
     }
 }

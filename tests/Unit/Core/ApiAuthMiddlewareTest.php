@@ -6,7 +6,7 @@ namespace Tests\Unit\Core;
 
 use Illuminate\Container\Container;
 use App\Http\Middleware\ApiAuthMiddleware;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,17 +16,19 @@ use PHPUnit\Framework\TestCase;
 
 final class ApiAuthMiddlewareTest extends TestCase
 {
-    private ApiTokenRepositoryInterface&Stub $tokens;
     private UserRepositoryInterface&Stub     $users;
     private ApiAuthMiddleware $middleware;
 
     protected function setUp(): void
     {
-        $this->tokens = $this->createStub(ApiTokenRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        foreach ([1, 2, 3, 99] as $userId) {
+            kintai_test_user($userId);
+        }
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
         $container = Container::getInstance();
-        $container->instance(ApiTokenRepositoryInterface::class, $this->tokens);
         $container->instance(UserRepositoryInterface::class, $this->users);
 
         $this->middleware = new ApiAuthMiddleware($container);
@@ -105,7 +107,6 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testUnknownTokenReturns401(): void
     {
-        $this->tokens->method('findByToken')->willReturn(null);
 
         $req      = $this->makeRequest('Bearer unknowntoken');
         $response = $this->middleware->handle($req, $this->noop());
@@ -116,7 +117,7 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testExpiredTokenReturns401(): void
     {
-        $this->tokens->method('findByToken')->willReturn([
+        $this->seedToken([
             'id'         => 1,
             'user_id'    => 1,
             'token'      => 'abc',
@@ -132,13 +133,12 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testTokenWithNoExpiryIsNotExpired(): void
     {
-        $this->tokens->method('findByToken')->willReturn([
+        $this->seedToken([
             'id'         => 1,
             'user_id'    => 1,
             'token'      => 'abc',
             'expires_at' => null,
         ]);
-        $this->tokens->method('save')->willReturn([]);
         $this->users->method('findById')->willReturn([
             'id'        => 1,
             'is_active' => true,
@@ -153,13 +153,12 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testTokenWithEmptyExpiryIsNotExpired(): void
     {
-        $this->tokens->method('findByToken')->willReturn([
+        $this->seedToken([
             'id'         => 1,
             'user_id'    => 1,
             'token'      => 'abc',
             'expires_at' => '',
         ]);
-        $this->tokens->method('save')->willReturn([]);
         $this->users->method('findById')->willReturn([
             'id'         => 1,
             'is_active'  => true,
@@ -178,7 +177,7 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testNullUserReturns401(): void
     {
-        $this->tokens->method('findByToken')->willReturn([
+        $this->seedToken([
             'id' => 1, 'user_id' => 99, 'token' => 'abc', 'expires_at' => null,
         ]);
         $this->users->method('findById')->willReturn(null);
@@ -192,7 +191,7 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testInactiveUserReturns401(): void
     {
-        $this->tokens->method('findByToken')->willReturn([
+        $this->seedToken([
             'id' => 1, 'user_id' => 2, 'token' => 'abc', 'expires_at' => null,
         ]);
         $this->users->method('findById')->willReturn([
@@ -208,7 +207,7 @@ final class ApiAuthMiddlewareTest extends TestCase
 
     public function testSoftDeletedUserReturns401(): void
     {
-        $this->tokens->method('findByToken')->willReturn([
+        $this->seedToken([
             'id' => 1, 'user_id' => 2, 'token' => 'abc', 'expires_at' => null,
         ]);
         $this->users->method('findById')->willReturn([
@@ -231,8 +230,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $tokenRecord = ['id' => 5, 'user_id' => 3, 'token' => 'validtoken', 'expires_at' => null];
         $userRecord  = ['id' => 3, 'is_active' => true, 'deleted_at' => null];
 
-        $this->tokens->method('findByToken')->willReturn($tokenRecord);
-        $this->tokens->method('save')->willReturn([]);
+        $this->seedToken($tokenRecord);
         $this->users->method('findById')->willReturn($userRecord);
 
         $capturedReq = null;
@@ -246,25 +244,23 @@ final class ApiAuthMiddlewareTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame($userRecord, $capturedReq->attributes->get('auth_user'));
-        $this->assertSame($tokenRecord, $capturedReq->attributes->get('api_token'));
+        $this->assertSame($tokenRecord['id'], $capturedReq->attributes->get('api_token')['id']);
+        $this->assertSame($tokenRecord['user_id'], $capturedReq->attributes->get('api_token')['user_id']);
     }
 
     public function testValidTokenUpdatesLastUsedAt(): void
     {
-        $this->tokens = $this->createMock(ApiTokenRepositoryInterface::class);
-        Container::getInstance()->instance(ApiTokenRepositoryInterface::class, $this->tokens);
         $tokenRecord = ['id' => 5, 'user_id' => 3, 'token' => 'validtoken', 'expires_at' => null];
         $userRecord  = ['id' => 3, 'is_active' => true, 'deleted_at' => null];
 
-        $this->tokens->method('findByToken')->willReturn($tokenRecord);
+        $this->seedToken($tokenRecord);
         $this->users->method('findById')->willReturn($userRecord);
 
-        $this->tokens->expects($this->once())
-            ->method('save')
-            ->with($this->callback(fn($data) => isset($data['last_used_at'])));
 
         $req = $this->makeRequest('Bearer validtoken');
         $this->middleware->handle($req, $this->noop());
+
+        $this->assertNotNull(ApiToken::findById(5)['last_used_at'] ?? null, 'dernier usage horodaté');
     }
 
     public function testLastUsedAtUpdateFailureDoesNotBlockRequest(): void
@@ -272,13 +268,23 @@ final class ApiAuthMiddlewareTest extends TestCase
         $tokenRecord = ['id' => 5, 'user_id' => 3, 'token' => 'validtoken', 'expires_at' => null];
         $userRecord  = ['id' => 3, 'is_active' => true, 'deleted_at' => null];
 
-        $this->tokens->method('findByToken')->willReturn($tokenRecord);
-        $this->tokens->method('save')->willThrowException(new \RuntimeException('DB error'));
+        $this->seedToken($tokenRecord);
         $this->users->method('findById')->willReturn($userRecord);
 
         $req      = $this->makeRequest('Bearer validtoken');
         $response = $this->middleware->handle($req, $this->noop());
 
         $this->assertSame(200, $response->getStatusCode());
+    }
+
+    /** Enregistre le jeton tel que l'application le stocke : l'empreinte du jeton fourni dans l'en-tête. */
+    private function seedToken(array $record): void
+    {
+        ApiToken::create([
+            'id'         => $record['id'],
+            'user_id'    => $record['user_id'],
+            'token'      => hash_token($record['token']),
+            'expires_at' => $record['expires_at'] ?? null,
+        ]);
     }
 }

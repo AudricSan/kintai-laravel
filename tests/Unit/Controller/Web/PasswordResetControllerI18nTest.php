@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -51,7 +51,6 @@ final class PasswordResetControllerI18nTest extends TestCase
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             new CredentialRevoker(
                 $this->createStub(UserRepositoryInterface::class),
-                $this->createStub(ApiTokenRepositoryInterface::class),
             ),
         );
 

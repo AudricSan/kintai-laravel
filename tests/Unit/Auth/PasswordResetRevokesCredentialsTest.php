@@ -6,7 +6,7 @@ namespace Tests\Unit\Auth;
 
 use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\PasswordResetService;
@@ -21,10 +21,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class PasswordResetRevokesCredentialsTest extends TestCase
 {
+    use \Tests\Support\ApiTokenExpectations;
+
     private ?int $expectedTokens = null;
     private UserRepositoryInterface&Stub $users;
     private UserRepositoryInterface&Stub $remember;
-    private ApiTokenRepositoryInterface&Stub $api;
     private ?PasswordResetService $service = null;
 
     protected function setUp(): void
@@ -33,7 +34,6 @@ final class PasswordResetRevokesCredentialsTest extends TestCase
         kintai_test_migrate();
         $this->users    = $this->createStub(UserRepositoryInterface::class);
         $this->remember = $this->createStub(UserRepositoryInterface::class);
-        $this->api      = $this->createStub(ApiTokenRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -47,7 +47,7 @@ final class PasswordResetRevokesCredentialsTest extends TestCase
             $this->service = new PasswordResetService(
                 $this->users,
                 $mailer,
-                new CredentialRevoker($this->remember, $this->api),
+                new CredentialRevoker($this->remember),
             );
         }
 
@@ -72,12 +72,11 @@ final class PasswordResetRevokesCredentialsTest extends TestCase
     public function testSuccessfulResetRevokesRememberCookiesAndApiTokens(): void
     {
         $this->remember = $this->createMock(UserRepositoryInterface::class);
-        $this->api = $this->createMock(ApiTokenRepositoryInterface::class);
         $this->seedToken($this->validRecord());
         $this->users->method('findByEmail')->willReturn($this->user());
 
         $this->remember->expects($this->once())->method('revokeRememberToken')->with(7);
-        $this->api->expects($this->once())->method('deleteByUserId')->with(7)->willReturn(0);
+        $this->expectApiTokensRevoked(7);
 
         $this->assertTrue($this->service()->reset('abc', self::newPassword()));
     }
@@ -85,10 +84,9 @@ final class PasswordResetRevokesCredentialsTest extends TestCase
     public function testFailedResetRevokesNothing(): void
     {
         $this->remember = $this->createMock(UserRepositoryInterface::class);
-        $this->api = $this->createMock(ApiTokenRepositoryInterface::class);
 
         $this->remember->expects($this->never())->method('revokeRememberToken');
-        $this->api->expects($this->never())->method('deleteByUserId');
+        $this->expectApiTokensKept(1);
 
         $this->assertFalse($this->service()->reset('bad', self::newPassword()));
     }

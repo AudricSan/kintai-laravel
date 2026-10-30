@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
@@ -33,13 +33,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthControllerCredentialRevocationTest extends TestCase
 {
+    use \Tests\Support\ApiTokenExpectations;
+
     private const USER_ID = 7;
 
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private UserRepositoryInterface&Stub $remember;
-    private ApiTokenRepositoryInterface&Stub $api;
     private AuthService $auth;
     private AuthController $controller;
     private string $currentPassword;
@@ -72,7 +73,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
         $this->roleAssignments->method('findByUser')->willReturn([]);
 
         $this->remember = $this->createStub(UserRepositoryInterface::class);
-        $this->api      = $this->createStub(ApiTokenRepositoryInterface::class);
 
         $this->auth = new AuthService(
             $this->users,
@@ -102,15 +102,14 @@ final class AuthControllerCredentialRevocationTest extends TestCase
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
-            new CredentialRevoker($this->remember, $this->api),
-            new UserAnonymizer($this->users, $this->roleAssignments, new CredentialRevoker($this->remember, $this->api), sys_get_temp_dir()),
+            new CredentialRevoker($this->remember),
+            new UserAnonymizer($this->users, $this->roleAssignments, new CredentialRevoker($this->remember), sys_get_temp_dir()),
         );
     }
 
     private function useTokenMocks(): void
     {
         $this->remember = $this->createMock(UserRepositoryInterface::class);
-        $this->api      = $this->createMock(ApiTokenRepositoryInterface::class);
         $this->buildController();
     }
 
@@ -130,7 +129,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     {
         $this->useTokenMocks();
         $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::USER_ID);
-        $this->api->expects($this->once())->method('deleteByUserId')->with(self::USER_ID)->willReturn(0);
+        $this->expectApiTokensRevoked(self::USER_ID);
 
         $this->changePassword($this->currentPassword, bin2hex(random_bytes(8)));
     }
@@ -149,7 +148,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     {
         $this->useTokenMocks();
         $this->remember->expects($this->never())->method('revokeRememberToken');
-        $this->api->expects($this->never())->method('deleteByUserId');
+        $this->expectApiTokensKept(1);
 
         $this->changePassword(bin2hex(random_bytes(8)), bin2hex(random_bytes(8)));
     }
@@ -158,7 +157,7 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     {
         $this->useTokenMocks();
         $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::USER_ID);
-        $this->api->expects($this->once())->method('deleteByUserId')->with(self::USER_ID)->willReturn(0);
+        $this->expectApiTokensRevoked(self::USER_ID);
 
         $_POST = ['password' => $this->currentPassword];
         $this->controller->deleteAccount(Request::capture());

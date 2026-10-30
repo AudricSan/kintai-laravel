@@ -6,7 +6,7 @@ namespace Tests\Unit\Core;
 
 use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -19,10 +19,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class UserAnonymizerTest extends TestCase
 {
+    use \Tests\Support\ApiTokenExpectations;
+
     private UserRepositoryInterface&Stub $users;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
     private UserRepositoryInterface&Stub $remember;
-    private ApiTokenRepositoryInterface&Stub $api;
     private string $avatarDir;
 
     protected function setUp(): void
@@ -30,7 +31,6 @@ final class UserAnonymizerTest extends TestCase
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->remember    = $this->createStub(UserRepositoryInterface::class);
-        $this->api         = $this->createStub(ApiTokenRepositoryInterface::class);
         $this->avatarDir   = sys_get_temp_dir() . '/kintai-avatars-' . bin2hex(random_bytes(4));
         mkdir($this->avatarDir);
     }
@@ -45,7 +45,7 @@ final class UserAnonymizerTest extends TestCase
 
     private function anonymizer(): UserAnonymizer
     {
-        return new UserAnonymizer($this->users, $this->assignments, new CredentialRevoker($this->remember, $this->api), $this->avatarDir);
+        return new UserAnonymizer($this->users, $this->assignments, new CredentialRevoker($this->remember), $this->avatarDir);
     }
 
     public function testPersonalDataIsErasedAndTheAccountMarkedDeletedButNeverRemoved(): void
@@ -82,7 +82,6 @@ final class UserAnonymizerTest extends TestCase
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->remember = $this->createMock(UserRepositoryInterface::class);
-        $this->api = $this->createMock(ApiTokenRepositoryInterface::class);
         $this->users->method('findById')->willReturn(['id' => 12]);
         $this->users->method('save')->willReturnArgument(0);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(12)->willReturn([['id' => 3], ['id' => 4]]);
@@ -93,7 +92,7 @@ final class UserAnonymizerTest extends TestCase
             return 1;
         });
         $this->remember->expects($this->once())->method('revokeRememberToken')->with(12);
-        $this->api->expects($this->once())->method('deleteByUserId')->with(12)->willReturn(0);
+        $this->expectApiTokensRevoked(12);
 
         $this->anonymizer()->anonymize(12);
 
@@ -114,10 +113,9 @@ final class UserAnonymizerTest extends TestCase
     public function testAnUnknownAccountIsIgnored(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->api = $this->createMock(ApiTokenRepositoryInterface::class);
         $this->users->method('findById')->willReturn(null);
         $this->users->expects($this->never())->method('save');
-        $this->api->expects($this->never())->method('deleteByUserId');
+        $this->expectApiTokensKept(1);
 
         $this->anonymizer()->anonymize(404);
     }

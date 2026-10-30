@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
@@ -38,6 +38,8 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
     protected function setUp(): void
     {
         session()->put(auth()->getName(), self::USER_ID);
+        kintai_test_database();
+        kintai_test_migrate();
     }
 
     protected function tearDown(): void
@@ -83,11 +85,11 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
-            new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+            new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
             new UserAnonymizer(
                 $this->users,
                 $assignments,
-                new CredentialRevoker($this->createStub(UserRepositoryInterface::class), $this->createStub(ApiTokenRepositoryInterface::class)),
+                new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
                 sys_get_temp_dir(),
             ),
         );

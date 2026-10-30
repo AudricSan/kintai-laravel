@@ -9,7 +9,7 @@ use App\Auth\UserAnonymizer;
 use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -38,12 +38,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class AdminUserControllerCredentialRevocationTest extends TestCase
 {
+    use \Tests\Support\ApiTokenExpectations;
+
     private const TARGET_ID = 7;
 
     private AdminUserController $controller;
     private UserRepositoryInterface&Stub $users;
     private UserRepositoryInterface&MockObject $remember;
-    private ApiTokenRepositoryInterface&MockObject $api;
 
     protected function setUp(): void
     {
@@ -71,7 +72,6 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
         $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
 
         $this->remember = $this->createMock(UserRepositoryInterface::class);
-        $this->api      = $this->createMock(ApiTokenRepositoryInterface::class);
 
         $this->controller = new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
@@ -90,8 +90,8 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
                 new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
             ),
             new OwnerGuard(new PermissionService($roleAssignments, $roles), $this->users),
-            new CredentialRevoker($this->remember, $this->api),
-            new UserAnonymizer($this->users, $roleAssignments, new CredentialRevoker($this->remember, $this->api), sys_get_temp_dir()),
+            new CredentialRevoker($this->remember),
+            new UserAnonymizer($this->users, $roleAssignments, new CredentialRevoker($this->remember), sys_get_temp_dir()),
         );
     }
 
@@ -112,13 +112,13 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
     private function expectRevocation(): void
     {
         $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::TARGET_ID);
-        $this->api->expects($this->once())->method('deleteByUserId')->with(self::TARGET_ID)->willReturn(0);
+        $this->expectApiTokensRevoked(self::TARGET_ID);
     }
 
     private function expectNoRevocation(): void
     {
         $this->remember->expects($this->never())->method('revokeRememberToken');
-        $this->api->expects($this->never())->method('deleteByUserId');
+        $this->expectApiTokensKept(1);
     }
 
     public function testResetPasswordRevokesCredentials(): void

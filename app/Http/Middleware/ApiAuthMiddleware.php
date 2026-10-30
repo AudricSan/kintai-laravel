@@ -6,7 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Container\Container;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,9 +28,7 @@ final class ApiAuthMiddleware
             return response()->json(['error' => __('error_token_missing'), 'code' => 'MISSING_TOKEN'], 401);
         }
 
-        /** @var ApiTokenRepositoryInterface $tokens */
-        $tokens = $this->container->make(ApiTokenRepositoryInterface::class);
-        $record = $tokens->findByToken(hash_token($token));
+        $record = ApiToken::findByToken(hash_token($token));
 
         if ($record === null) {
             return response()->json(['error' => __('error_token_invalid'), 'code' => 'INVALID_TOKEN'], 401);
@@ -50,7 +48,7 @@ final class ApiAuthMiddleware
 
         // Mettre à jour last_used_at sans bloquer la requête en cas d'échec
         try {
-            $tokens->save(array_merge($record, ['last_used_at' => date('Y-m-d H:i:s')]));
+            ApiToken::put(array_merge($record, ['last_used_at' => date('Y-m-d H:i:s')]));
         } catch (\Throwable) {
         }
 

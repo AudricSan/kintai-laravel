@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Auth\AuthService;
 use App\Auth\PasswordPolicy;
 use App\Exceptions\NotFoundException;
-use App\Repositories\ApiTokenRepositoryInterface;
+use App\Models\ApiToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +23,6 @@ final class AuthController
 
     public function __construct(
         private readonly AuthService $auth,
-        private readonly ApiTokenRepositoryInterface $tokens,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -96,7 +95,7 @@ final class AuthController
         $rawToken  = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + $ttl);
 
-        $record = $this->tokens->save([
+        $record = ApiToken::put([
             'user_id'    => (int) $user['id'],
             'token'      => hash_token($rawToken),
             'name'       => $name,
@@ -124,7 +123,7 @@ final class AuthController
     {
         $tokenRecord = $request->attributes->get('api_token');
         if ($tokenRecord !== null) {
-            $this->tokens->delete((int) $tokenRecord['id']);
+            ApiToken::remove((int) $tokenRecord['id']);
             $this->auditLogger->log($request, 'api_token.revoked', 'api_token', (int) $tokenRecord['id'], [], null, (int) ($tokenRecord['user_id'] ?? 0) ?: null);
         }
 
@@ -142,7 +141,7 @@ final class AuthController
     public function listTokens(Request $request): Response
     {
         $user   = $request->attributes->get('auth_user');
-        $tokens = $this->tokens->findByUserId((int) $user['id']);
+        $tokens = ApiToken::findByUserId((int) $user['id']);
 
         return response()->json(array_map(fn($t) => $this->sanitizeToken($t), $tokens));
     }
@@ -152,13 +151,13 @@ final class AuthController
     {
         $id          = (int) $request->route('id');
         $user        = $request->attributes->get('auth_user');
-        $tokenRecord = $this->tokens->findById($id);
+        $tokenRecord = ApiToken::findById($id);
 
         if ($tokenRecord === null || (int) $tokenRecord['user_id'] !== (int) $user['id']) {
             throw new NotFoundException(__('error_token_not_found'));
         }
 
-        $this->tokens->delete($id);
+        ApiToken::remove($id);
         $this->auditLogger->log($request, 'api_token.revoked', 'api_token', $id, [], null, (int) $user['id']);
         return response()->noContent();
     }
