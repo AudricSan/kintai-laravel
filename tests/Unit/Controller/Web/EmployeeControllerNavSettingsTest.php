@@ -12,8 +12,8 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
+use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
@@ -33,12 +33,12 @@ use PHPUnit\Framework\TestCase;
 
 final class EmployeeControllerNavSettingsTest extends TestCase
 {
-    private UserNavPrefsRepositoryInterface&MockObject $navPrefs;
+    use \Tests\Support\PrefsExpectations;
+
     private EmployeeController $controller;
 
     protected function setUp(): void
     {
-        $this->navPrefs = $this->createMock(UserNavPrefsRepositoryInterface::class);
 
         $this->controller = new EmployeeController(
             kintai_test_views(sys_get_temp_dir()),
@@ -50,14 +50,12 @@ final class EmployeeControllerNavSettingsTest extends TestCase
             $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
             $this->createStub(AvailabilityRepositoryInterface::class),
-            $this->createStub(UserDashboardPrefsRepositoryInterface::class),
             new NotificationService(
                 $this->createStub(NotificationRepositoryInterface::class),
                 new PushNotificationService([]),
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
             ),
-            $this->navPrefs,
             new PermissionService(
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
                 $this->createStub(RoleRepositoryInterface::class),
@@ -78,16 +76,12 @@ final class EmployeeControllerNavSettingsTest extends TestCase
      */
     public function testSaveNavSettingsOnlyHidesItemsActuallyOfferedInTheForm(): void
     {
-        $this->navPrefs->method('getHidden')->with(9)->willReturn([]);
-        $this->navPrefs->method('getSectionOrder')->with(9)->willReturn([]);
-        $this->navPrefs->method('getBottomNavItems')->with(9)->willReturn([]);
-
         $_POST = [
             'nav_available' => ['messages'],
             'nav'           => [],
         ];
 
-        $this->navPrefs->expects($this->once())->method('saveHidden')->with(9, ['messages']);
+        $this->expectNavHidden(9, ['messages']);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
@@ -98,17 +92,14 @@ final class EmployeeControllerNavSettingsTest extends TestCase
     public function testSaveNavSettingsKeepsPreviouslyHiddenItemsNotOfferedThisTime(): void
     {
         // 'swaps' était déjà masqué par choix de l'employé.
-        $this->navPrefs->method('getHidden')->with(9)->willReturn(['swaps']);
-        $this->navPrefs->method('getSectionOrder')->with(9)->willReturn([]);
-        $this->navPrefs->method('getBottomNavItems')->with(9)->willReturn([]);
-
+        \App\Models\UserNavPref::saveHidden(9, ['swaps']);
         // Seule 'messages' est proposée cette fois (feature réactivée), laissée cochée.
         $_POST = [
             'nav_available' => ['messages'],
             'nav'           => ['messages' => '1'],
         ];
 
-        $this->navPrefs->expects($this->once())->method('saveHidden')->with(9, ['swaps']);
+        $this->expectNavHidden(9, ['swaps']);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);

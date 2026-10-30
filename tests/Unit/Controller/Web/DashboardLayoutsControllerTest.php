@@ -8,7 +8,7 @@ use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Models\UserDashboardLayout;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\DashboardLayoutResolver;
@@ -20,7 +20,8 @@ use PHPUnit\Framework\TestCase;
 #[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
 final class DashboardLayoutsControllerTest extends TestCase
 {
-    private UserDashboardPrefsRepositoryInterface&MockObject $prefs;
+    use \Tests\Support\PrefsExpectations;
+
     private RoleRepositoryInterface $roles;
     private DashboardLayoutsController $controller;
 
@@ -29,16 +30,16 @@ final class DashboardLayoutsControllerTest extends TestCase
         session()->flush();
         kintai_test_database();
         kintai_test_migrate();
-        $this->prefs       = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
+        kintai_test_user(1);
+        kintai_test_user(7);
+        $this->roles      = $this->createStub(RoleRepositoryInterface::class);
         $this->roles->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 2 ? ['id' => 2, 'name' => 'Manager'] : null);
 
         $resolver = new DashboardLayoutResolver(
-            $this->prefs,
             $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->roles,
         );
-        $this->controller = new DashboardLayoutsController($this->prefs, $this->roles, $resolver, new AuditLogger());
+        $this->controller = new DashboardLayoutsController($this->roles, $resolver, new AuditLogger());
     }
 
     protected function tearDown(): void
@@ -74,8 +75,8 @@ final class DashboardLayoutsControllerTest extends TestCase
     public function testCreateSnapshotsTheCurrentLayoutAndMakesItActive(): void
     {
         $current = ['order' => ['kpi_counters'], 'widths' => ['kpi_counters' => 4]];
-        $this->prefs->method('getLayout')->with(7, 'admin')->willReturn($current);
-        $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', $current);
+        $this->seedLayout(7, 'admin', $current);
+        $this->expectLayout(7, 'admin', $current);
 
         $response = $this->controller->manageManager($this->request(['action' => 'create', 'name' => '  Matin ']));
 
@@ -109,7 +110,7 @@ final class DashboardLayoutsControllerTest extends TestCase
     public function testActivateCopiesTheLayoutIntoTheCurrentOne(): void
     {
         $id = $this->stored();
-        $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', ['order' => ['shifts_today'], 'widths' => []]);
+        $this->expectLayout(7, 'admin', ['order' => ['shifts_today'], 'widths' => []]);
 
         $this->controller->manageManager($this->request(['action' => 'activate', 'id' => (string) $id]));
 
@@ -119,7 +120,7 @@ final class DashboardLayoutsControllerTest extends TestCase
     {
         $others   = $this->stored(userId: 99);
         $employee = $this->stored(type: 'employee');
-        $this->prefs->expects($this->never())->method('saveLayout');
+        $this->expectNoPrefsWrite();
 
         foreach (['activate', 'delete', 'rename'] as $action) {
             foreach ([$others, $employee, 404] as $id) {
@@ -143,14 +144,16 @@ final class DashboardLayoutsControllerTest extends TestCase
     public function testEmployeeDashboardUsesItsOwnType(): void
     {
         $id = $this->stored(type: 'employee');
-        $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'employee', $this->anything());
 
         $this->controller->manageEmployee($this->request(['action' => 'activate', 'id' => (string) $id]));
+
+        $this->assertSame(['order' => ['shifts_today'], 'widths' => []], \App\Models\UserDashboardPref::getLayout(7, 'employee'));
+        $this->assertNull(\App\Models\UserDashboardPref::getLayout(7, 'admin'), 'le tableau de bord admin n\'est pas touché');
     }
     public function testRoleDefaultIsOwnerOnlyAndUsesTheOwnersCurrentLayout(): void
     {
         $current = ['order' => ['kpi_counters'], 'widths' => []];
-        $this->prefs->method('getLayout')->with(1, 'admin')->willReturn($current);
+        $this->seedLayout(1, 'admin', $current);
 
         // Un gestionnaire non Owner est refusé.
         $this->controller->manageManager($this->request(['action' => 'role_default', 'role_id' => '2'], ['id' => 7, 'is_admin' => 0]));
@@ -166,7 +169,6 @@ final class DashboardLayoutsControllerTest extends TestCase
 
     public function testRoleDefaultNeedsACustomizedLayoutAndCanBeCleared(): void
     {
-        $this->prefs->method('getLayout')->willReturn(null);
         RoleDashboardLayout::put(2, 'admin', ['order' => ['kpi_counters'], 'widths' => []]);
 
         $this->controller->manageManager($this->request(['action' => 'role_default', 'role_id' => '2'], ['id' => 1, 'is_admin' => 1]));

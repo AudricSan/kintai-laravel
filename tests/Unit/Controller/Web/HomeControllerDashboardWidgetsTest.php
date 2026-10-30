@@ -11,7 +11,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
@@ -31,15 +31,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class HomeControllerDashboardWidgetsTest extends TestCase
 {
-    private UserDashboardPrefsRepositoryInterface&MockObject $dashboardPrefs;
+    use \Tests\Support\PrefsExpectations;
+
     private HomeController $controller;
 
     protected function setUp(): void
     {
         $this->ensureViewFile('dashboard.index');
         $this->ensureViewFile('layout.app');
-
-        $this->dashboardPrefs = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findAll')->willReturn([]);
@@ -63,7 +62,6 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
             $stores,
             $shifts,
             $shiftTypes,
-            $this->dashboardPrefs,
             $storeUsers,
             $storeStats,
             $dashboardAlerts,
@@ -79,7 +77,7 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
     public function testWidgetsUncheckedAndSavedByTheUserStayHiddenOnNextLoad(): void
     {
         // L'utilisateur n'a gardé que 'kpi_counters' coché lors de la dernière sauvegarde.
-        $this->dashboardPrefs->method('getEnabledWidgets')->with(1, 'admin')->willReturn(['kpi_counters']);
+        $this->seedWidgets(1, 'admin', ['kpi_counters']);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => 1]);

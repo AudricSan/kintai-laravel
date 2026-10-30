@@ -11,7 +11,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +31,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class HomeControllerWeeklyHoursTrendTest extends TestCase
 {
+    use \Tests\Support\PrefsExpectations;
+
     protected function setUp(): void
     {
         $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['weeks' => \$store_stats_hours_by_week ?? null]);");
@@ -47,12 +49,10 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
         $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
         $shiftsRepo->method('findAllByDate')->willReturn([]);
-
-        $dashboardPrefs = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
         // Widget "store_stats_summary" uniquement : ce test porte sur la tendance
         // hebdomadaire de ce widget précis, pas sur financial_overview/hr_absenteeism
         // (storeStats() n'est pas mocké pour couvrir leurs appels ici).
-        $dashboardPrefs->method('getEnabledWidgets')->willReturn(['store_stats_summary']);
+        $this->seedWidgets(1, 'admin', ['store_stats_summary']);
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsersRepo->method('findByStore')->willReturn([]);
@@ -76,7 +76,6 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
             $storesRepo,
             $shiftsRepo,
             $shiftTypesRepo,
-            $dashboardPrefs,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

@@ -13,7 +13,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
@@ -34,6 +34,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class HomeControllerPendingClaimsTest extends TestCase
 {
+    use \Tests\Support\PrefsExpectations;
+
     protected function setUp(): void
     {
         $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['stats' => \$stats]);");
@@ -59,9 +61,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
         $shiftsRepo->method('findAllByDate')->willReturn([]);
 
         $shiftTypesRepo = $this->createStub(ShiftTypeRepositoryInterface::class);
-
-        $dashboardPrefs = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
-        $dashboardPrefs->method('getEnabledWidgets')->willReturn(['kpi_counters']);
+        $this->seedWidgets(99, 'admin', ['kpi_counters']);
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsersRepo->method('findByStore')->willReturn([]);
@@ -87,7 +87,6 @@ final class HomeControllerPendingClaimsTest extends TestCase
             $storesRepo,
             $shiftsRepo,
             $shiftTypesRepo,
-            $dashboardPrefs,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

@@ -7,13 +7,15 @@ namespace Tests\Unit\Services;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Services\DashboardLayoutResolver;
 use PHPUnit\Framework\TestCase;
 
 /** Disposition affichée : celle de l'utilisateur, sinon le défaut de son rôle (système d'abord), sinon le défaut du Core. */
 final class DashboardLayoutResolverTest extends TestCase
 {
+    use \Tests\Support\PrefsExpectations;
+
     /**
      * @param array<string, mixed>|null    $userLayout
      * @param array<int, array<string, mixed>> $roleDefaults role_id => disposition (admin)
@@ -21,11 +23,10 @@ final class DashboardLayoutResolverTest extends TestCase
      */
     private function resolver(?array $userLayout, array $roleDefaults, array $userRoles, array $systemRoles = []): DashboardLayoutResolver
     {
-        $prefs = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
-        $prefs->method('getLayout')->willReturn($userLayout);
-
         kintai_test_database();
         kintai_test_migrate();
+        kintai_test_user(7);
+        $this->seedLayout(7, 'admin', $userLayout);
         foreach ($roleDefaults as $roleId => $layout) {
             RoleDashboardLayout::put($roleId, 'admin', $layout);
         }
@@ -37,7 +38,7 @@ final class DashboardLayoutResolverTest extends TestCase
         $roles->method('findById')->willReturnCallback(fn(int $id): array => ['id' => $id, 'name' => 'Role ' . $id, 'is_system' => in_array($id, $systemRoles, true) ? 1 : 0]);
         $roles->method('findAll')->willReturn([['id' => 1, 'name' => 'Owner'], ['id' => 2, 'name' => 'Manager']]);
 
-        return new DashboardLayoutResolver($prefs, $assignments, $roles);
+        return new DashboardLayoutResolver($assignments, $roles);
     }
 
     public function testTheUsersOwnLayoutAlwaysWins(): void

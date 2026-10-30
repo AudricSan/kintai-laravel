@@ -11,7 +11,7 @@ use Illuminate\Container\Container;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Routing\Routes;
@@ -118,7 +118,7 @@ final class AuthMiddleware
         $view->share('employee_month_stats', $employeeStats->calculate((int) ($user['id'] ?? 0), $month));
 
         // Préférences de navigation (tous les utilisateurs)
-        $navPrefs = $this->container->make(UserNavPrefsRepositoryInterface::class);
+        $navPrefs = $this->container->make(UserNavPref::class);
         $uid = (int) ($user['id'] ?? 0);
         $view->share('user_nav_hidden', $navPrefs->getHidden($uid));
         $view->share('user_nav_section_order', $navPrefs->getSectionOrder($uid));

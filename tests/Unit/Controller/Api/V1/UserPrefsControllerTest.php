@@ -7,8 +7,8 @@ namespace Tests\Unit\Controller\Api\V1;
 use App\Auth\UserTargetGuard;
 use App\Exceptions\ValidationException;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
+use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Tests\Support\ApiOwnerAuth;
@@ -21,14 +21,12 @@ use PHPUnit\Framework\TestCase;
 /** Préférences d'affichage par l'API : listes de chaînes et type de tableau de bord contrôlés (audit M9). */
 final class UserPrefsControllerTest extends TestCase
 {
-    private UserDashboardPrefsRepositoryInterface&Stub $dashboard;
-    private UserNavPrefsRepositoryInterface&Stub $nav;
+    use \Tests\Support\PrefsExpectations;
+
     private ?UserPrefsController $controller = null;
 
     protected function setUp(): void
     {
-        $this->dashboard = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
-        $this->nav       = $this->createStub(UserNavPrefsRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -40,8 +38,6 @@ final class UserPrefsControllerTest extends TestCase
             $users->method('findById')->willReturn(['id' => 20]);
             $storeUsers->method('findByUser')->willReturn([]);
             $this->controller = new UserPrefsController(
-                $this->dashboard,
-                $this->nav,
                 new UserTargetGuard($users, $storeUsers, ApiOwnerAuth::permissions($this)),
             );
         }
@@ -59,8 +55,7 @@ final class UserPrefsControllerTest extends TestCase
 
     public function testDashboardWidgetsAreSaved(): void
     {
-        $this->dashboard = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->dashboard->expects($this->once())->method('saveWidgets')->with(20, ['stats', 'shifts'], 'employee');
+        $this->expectWidgets(20, ['stats', 'shifts'], 'employee');
 
         $response = $this->controller()->saveDashboardPrefs($this->request(['dashboard_type' => 'employee', 'widgets' => ['stats', 'shifts']]));
 
@@ -80,8 +75,7 @@ final class UserPrefsControllerTest extends TestCase
     #[DataProvider('invalidDashboardPrefs')]
     public function testInvalidDashboardPrefsAreRefused(array $body): void
     {
-        $this->dashboard = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->dashboard->expects($this->never())->method('saveWidgets');
+        $this->expectNoPrefsWrite();
 
         $this->expectException(ValidationException::class);
         $this->controller()->saveDashboardPrefs($this->request($body));
@@ -89,10 +83,8 @@ final class UserPrefsControllerTest extends TestCase
 
     public function testLayoutIsSavedWithoutTouchingTheEnabledWidgets(): void
     {
-        $this->dashboard = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->dashboard->expects($this->never())->method('saveWidgets');
-        $this->dashboard->expects($this->once())->method('saveLayout')
-            ->with(20, 'admin', ['order' => ['shifts_today', 'kpi_counters'], 'widths' => ['shifts_today' => 'half']]);
+        $this->expectNoPrefsWrite();
+        $this->expectLayout(20, 'admin', ['order' => ['shifts_today', 'kpi_counters'], 'widths' => ['shifts_today' => 'half']]);
 
         $response = $this->controller()->saveDashboardPrefs($this->request([
             'dashboard_type' => 'admin',
@@ -104,16 +96,14 @@ final class UserPrefsControllerTest extends TestCase
 
     public function testANullLayoutResetsIt(): void
     {
-        $this->dashboard = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->dashboard->expects($this->once())->method('saveLayout')->with(20, 'employee', null);
+        $this->expectLayout(20, 'employee', null);
 
         $this->controller()->saveDashboardPrefs($this->request(['dashboard_type' => 'employee', 'layout' => null]));
     }
 
     public function testALayoutThatIsNotAnObjectIsRefused(): void
     {
-        $this->dashboard = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->dashboard->expects($this->never())->method('saveLayout');
+        $this->expectNoPrefsWrite();
 
         $this->expectException(ValidationException::class);
         $this->controller()->saveDashboardPrefs($this->request(['layout' => ['kpi_counters']]));
@@ -121,7 +111,7 @@ final class UserPrefsControllerTest extends TestCase
 
     public function testGetReturnsTheLayout(): void
     {
-        $this->dashboard->method('getLayout')->willReturn(['order' => ['kpi_counters'], 'widths' => []]);
+        $this->seedLayout(20, 'admin', ['order' => ['kpi_counters'], 'widths' => []]);
 
         $req = $this->request([]);
         $response = $this->controller()->getDashboardPrefs($req);
@@ -131,9 +121,6 @@ final class UserPrefsControllerTest extends TestCase
 
     public function testNavPrefsMustBeAListOfStrings(): void
     {
-        $this->nav = $this->createMock(UserNavPrefsRepositoryInterface::class);
-        $this->nav->expects($this->never())->method('saveHidden');
-
         $this->expectException(ValidationException::class);
         $this->controller()->saveNavPrefs($this->request(['hidden' => ['a' => 'b']]));
     }

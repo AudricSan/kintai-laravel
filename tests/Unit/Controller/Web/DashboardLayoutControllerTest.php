@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web;
 
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Exceptions\ValidationException;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -14,13 +14,16 @@ use PHPUnit\Framework\TestCase;
 
 final class DashboardLayoutControllerTest extends TestCase
 {
-    private UserDashboardPrefsRepositoryInterface&MockObject $prefs;
+    use \Tests\Support\PrefsExpectations;
+
     private DashboardLayoutController $controller;
 
     protected function setUp(): void
     {
-        $this->prefs = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->controller = new DashboardLayoutController($this->prefs, new AuditLogger());
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(7);
+        $this->controller = new DashboardLayoutController(new AuditLogger());
     }
 
     private function request(array $body): Request
@@ -34,12 +37,8 @@ final class DashboardLayoutControllerTest extends TestCase
     public function testManagerLayoutIsMergedIntoTheSavedOne(): void
     {
         // dashboard_alerts, store_stats_summary… (et les widgets employé « emp_ ») ne sont pas affichés : ils gardent leur place.
-        $this->prefs->method('getLayout')->with(7, 'admin')->willReturn(null);
-        $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', [
-            'order'  => ['shifts_today', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'hr_absenteeism', 'kpi_counters',
-                         'emp_shifts_today', 'emp_upcoming', 'emp_monthly_stats'],
-            'widths' => ['shifts_today' => 'half', 'kpi_counters' => 'full'],
-        ]);
+        $this->seedLayout(7, 'admin', null);
+        $this->expectLayout(7, 'admin', [ 'order' => ['shifts_today', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'hr_absenteeism', 'kpi_counters', 'emp_shifts_today', 'emp_upcoming', 'emp_monthly_stats'], 'widths' => ['shifts_today' => 'half', 'kpi_counters' => 'full'], ]);
 
         $response = $this->controller->saveManager($this->request([
             'order'  => ['shifts_today', 'kpi_counters'],
@@ -51,17 +50,14 @@ final class DashboardLayoutControllerTest extends TestCase
 
     public function testEmployeeLayoutGoesToTheEmployeeDashboard(): void
     {
-        $this->prefs->method('getLayout')->willReturn(null);
-        $this->prefs->expects($this->once())->method('saveLayout')
-            ->with(7, 'employee', ['order' => ['upcoming', 'shifts_today', 'monthly_stats'], 'widths' => []]);
+        $this->expectLayout(7, 'employee', ['order' => ['upcoming', 'shifts_today', 'monthly_stats'], 'widths' => []]);
 
         $this->controller->saveEmployee($this->request(['order' => ['upcoming', 'shifts_today', 'monthly_stats']]));
     }
 
     public function testResetForgetsTheLayout(): void
     {
-        $this->prefs->expects($this->never())->method('getLayout');
-        $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', null);
+        $this->expectLayout(7, 'admin', null);
 
         $response = $this->controller->saveManager($this->request(['reset' => true]));
 
@@ -72,14 +68,10 @@ final class DashboardLayoutControllerTest extends TestCase
     {
         // shifts_today était masqué ; les autres widgets gardent leur ordre et leur largeur.
         $saved = ['order' => ['hr_absenteeism', 'kpi_counters'], 'widths' => ['hr_absenteeism' => 'full', 'kpi_counters' => 'half']];
-        $this->prefs->method('getEnabledWidgets')->with(7, 'admin')->willReturn(['kpi_counters', 'hr_absenteeism']);
-        $this->prefs->method('getLayout')->with(7, 'admin')->willReturn($saved);
-        $this->prefs->expects($this->once())->method('saveWidgets')->with(7, ['kpi_counters', 'hr_absenteeism', 'shifts_today'], 'admin');
-        $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', [
-            'order'  => ['hr_absenteeism', 'kpi_counters', 'dashboard_alerts', 'store_stats_summary', 'financial_overview',
-                         'emp_shifts_today', 'emp_upcoming', 'emp_monthly_stats', 'shifts_today'],
-            'widths' => $saved['widths'],
-        ]);
+        $this->seedWidgets(7, 'admin', ['kpi_counters', 'hr_absenteeism']);
+        $this->seedLayout(7, 'admin', $saved);
+        $this->expectWidgets(7, ['kpi_counters', 'hr_absenteeism', 'shifts_today'], 'admin');
+        $this->expectLayout(7, 'admin', [ 'order' => ['hr_absenteeism', 'kpi_counters', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'emp_shifts_today', 'emp_upcoming', 'emp_monthly_stats', 'shifts_today'], 'widths' => $saved['widths'], ]);
 
         $response = $this->controller->widgetsManager($this->request(['add' => 'shifts_today']));
 
@@ -89,17 +81,14 @@ final class DashboardLayoutControllerTest extends TestCase
     public function testManagerCanAddHisEmployeeWidgets(): void
     {
         // Sans préférences : les widgets du gérant sont affichés par défaut, pas ses widgets employé.
-        $this->prefs->method('getEnabledWidgets')->willReturn(null);
-        $this->prefs->method('getLayout')->willReturn(null);
-        $this->prefs->expects($this->once())->method('saveWidgets')
-            ->with(7, ['kpi_counters', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'hr_absenteeism', 'shifts_today', 'emp_upcoming'], 'admin');
+        $this->expectWidgets(7, ['kpi_counters', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'hr_absenteeism', 'shifts_today', 'emp_upcoming'], 'admin');
 
         $this->controller->widgetsManager($this->request(['add' => 'emp_upcoming']));
     }
 
     public function testEmployeeCannotAddManagerWidgets(): void
     {
-        $this->prefs->expects($this->never())->method('saveWidgets');
+        $this->expectNoPrefsWrite();
 
         foreach (['kpi_counters', 'emp_upcoming'] as $key) {
             try {
@@ -114,25 +103,23 @@ final class DashboardLayoutControllerTest extends TestCase
     public function testRemovedWidgetLeavesTheLayoutUntouched(): void
     {
         // Sans préférences : tous les widgets du gérant sont affichés, on en retire un.
-        $this->prefs->method('getEnabledWidgets')->willReturn(null);
-        $this->prefs->expects($this->never())->method('saveLayout');
-        $this->prefs->expects($this->once())->method('saveWidgets')
-            ->with(7, ['kpi_counters', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'hr_absenteeism'], 'admin');
+        $this->expectNoPrefsWrite();
+        $this->expectWidgets(7, ['kpi_counters', 'dashboard_alerts', 'store_stats_summary', 'financial_overview', 'hr_absenteeism'], 'admin');
 
         $this->controller->widgetsManager($this->request(['remove' => 'shifts_today']));
     }
 
     public function testEmployeeWidgetsGoToTheEmployeeDashboard(): void
     {
-        $this->prefs->method('getEnabledWidgets')->with(7, 'employee')->willReturn(['upcoming']);
-        $this->prefs->expects($this->once())->method('saveWidgets')->with(7, [], 'employee');
+        $this->seedWidgets(7, 'employee', ['upcoming']);
+        $this->expectWidgets(7, [], 'employee');
 
         $this->controller->widgetsEmployee($this->request(['remove' => 'upcoming']));
     }
 
     public function testUnknownWidgetIsRejected(): void
     {
-        $this->prefs->expects($this->never())->method('saveWidgets');
+        $this->expectNoPrefsWrite();
         $this->expectException(ValidationException::class);
 
         $this->controller->widgetsManager($this->request(['add' => 'not_a_widget']));
@@ -141,11 +128,7 @@ final class DashboardLayoutControllerTest extends TestCase
     /** Hauteurs, widgets repliés et densité envoyés par la page sont enregistrés avec l'ordre et les largeurs. */
     public function testSizeFoldingAndDensityAreSaved(): void
     {
-        $this->prefs->method('getLayout')->with(7, 'employee')->willReturn(null);
-        $saved = null;
-        $this->prefs->expects($this->once())->method('saveLayout')->willReturnCallback(function (int $uid, string $type, ?array $layout) use (&$saved): void {
-            $saved = $layout;
-        });
+        $this->seedLayout(7, 'employee', null);
 
         $this->controller->saveEmployee($this->request([
             'order'     => ['shifts_today', 'upcoming'],
@@ -155,6 +138,7 @@ final class DashboardLayoutControllerTest extends TestCase
             'density'   => 'compact',
         ]));
 
+        $saved = \App\Models\UserDashboardPref::getLayout(7, 'employee');
         $this->assertSame(4, $saved['widths']['shifts_today']);
         $this->assertSame(8, $saved['widths']['upcoming']);
         $this->assertSame(['shifts_today' => 2], $saved['heights']);
@@ -164,11 +148,6 @@ final class DashboardLayoutControllerTest extends TestCase
 
     public function testOutOfRangeSizesAreIgnored(): void
     {
-        $this->prefs->method('getLayout')->willReturn(null);
-        $saved = null;
-        $this->prefs->method('saveLayout')->willReturnCallback(function (int $uid, string $type, ?array $layout) use (&$saved): void {
-            $saved = $layout;
-        });
 
         $this->controller->saveEmployee($this->request([
             'order'   => ['shifts_today'],
@@ -176,6 +155,7 @@ final class DashboardLayoutControllerTest extends TestCase
             'heights' => ['shifts_today' => 99],
         ]));
 
+        $saved = \App\Models\UserDashboardPref::getLayout(7, 'employee');
         $this->assertArrayNotHasKey('shifts_today', $saved['widths']);
         $this->assertArrayNotHasKey('heights', $saved);
     }

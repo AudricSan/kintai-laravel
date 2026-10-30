@@ -12,7 +12,7 @@ use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -28,6 +28,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 {
+    use \Tests\Support\PrefsExpectations;
+
     private const USER_ID = 7;
 
     private $users;
@@ -49,12 +51,6 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-
-        $navPrefs = $this->createStub(UserNavPrefsRepositoryInterface::class);
-        $navPrefs->method('getHidden')->willReturn([]);
-        $navPrefs->method('getSectionOrder')->willReturn([]);
-        $navPrefs->method('getBottomNavItems')->willReturn([]);
-
         $auth = new AuthService(
             $this->users,
             $storeUsers,
@@ -71,7 +67,6 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
             $storeUsers,
-            $navPrefs,
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\System;
 
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -21,7 +21,6 @@ final class AdminController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserNavPrefsRepositoryInterface $navPrefs,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -32,15 +31,15 @@ final class AdminController
         $userId    = (int) $user['id'];
 
         $defaultSections = $isOwner ? self::NAV_OWNER_SECTIONS : self::NAV_MANAGER_SECTIONS;
-        $hidden          = $this->navPrefs->getHidden($userId);
-        $rawOrder        = $this->navPrefs->getSectionOrder($userId);
+        $hidden          = UserNavPref::getHiddenRow($userId);
+        $rawOrder        = UserNavPref::getSectionOrder($userId);
         $sectionOrder    = array_values(array_unique(array_merge(
             array_intersect($rawOrder, $defaultSections),
             $defaultSections
         )));
 
         // Barre mobile : choix calculés par la vue depuis la navigation réelle ; anciennes clés converties.
-        $bottomNavSaved   = \App\Extension\Navigation::migrateLegacyMobileKeys($this->navPrefs->getBottomNavItems($userId));
+        $bottomNavSaved   = \App\Extension\Navigation::migrateLegacyMobileKeys(UserNavPref::getBottomNavItems($userId));
         $bottomNavItems   = !empty($bottomNavSaved) ? $bottomNavSaved : \App\Extension\Navigation::MOBILE_DEFAULT_MANAGER;
 
         return response($this->view->make('system.nav-settings', [
@@ -61,9 +60,9 @@ final class AdminController
 
         $defaultSections = $isOwner ? self::NAV_OWNER_SECTIONS : self::NAV_MANAGER_SECTIONS;
 
-        $oldHidden = $this->navPrefs->getHidden($userId);
-        $oldOrder  = $this->navPrefs->getSectionOrder($userId);
-        $oldBottom = $this->navPrefs->getBottomNavItems($userId);
+        $oldHidden = UserNavPref::getHiddenRow($userId);
+        $oldOrder  = UserNavPref::getSectionOrder($userId);
+        $oldBottom = UserNavPref::getBottomNavItems($userId);
 
         // Seules les clés réellement proposées dans le formulaire (filtrées par store_features
         // côté vue) doivent voir leur état modifié ; les autres gardent leur préférence existante,
@@ -73,15 +72,15 @@ final class AdminController
         $newlyHidden = array_diff($available, $visible);
         $keptHidden  = array_diff($oldHidden, $available);
         $hidden      = array_values(array_unique(array_merge($newlyHidden, $keptHidden)));
-        $this->navPrefs->saveHidden($userId, $hidden);
+        UserNavPref::saveHidden($userId, $hidden);
 
         if ($request->post('reset_section_order')) {
-            $this->navPrefs->saveSectionOrder($userId, []);
+            UserNavPref::saveSectionOrder($userId, []);
         } else {
             $rawOrder     = array_values((array) $request->post('section_order', []));
             $sectionOrder = array_values(array_intersect($rawOrder, $defaultSections));
             if (!empty($sectionOrder)) {
-                $this->navPrefs->saveSectionOrder($userId, $sectionOrder);
+                UserNavPref::saveSectionOrder($userId, $sectionOrder);
             }
         }
 
@@ -90,7 +89,7 @@ final class AdminController
         $bottomItems  = array_values(array_intersect($rawBottom, $pool));
         $count        = count($bottomItems);
         if ($count >= 2 && $count <= 4) {
-            $this->navPrefs->saveBottomNavItems($userId, $bottomItems);
+            UserNavPref::saveBottomNavItems($userId, $bottomItems);
         }
 
         $this->auditLogger->logUpdate($request, 'nav_settings.updated', 'user_nav_prefs', $userId,

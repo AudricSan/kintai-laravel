@@ -11,7 +11,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
@@ -28,6 +28,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class HomeControllerFinancialHrWidgetsTest extends TestCase
 {
+    use \Tests\Support\PrefsExpectations;
+
     protected function setUp(): void
     {
         $this->ensureViewFile(
@@ -52,9 +54,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
 
         $shiftTypesRepo = $this->createStub(ShiftTypeRepositoryInterface::class);
         $shiftTypesRepo->method('findByStore')->willReturn([]);
-
-        $dashboardPrefs = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
-        $dashboardPrefs->method('getEnabledWidgets')->willReturn($enabledWidgets);
+        $this->seedWidgets(1, 'admin', $enabledWidgets);
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsersRepo->method('findByStore')->willReturn([]);
@@ -90,7 +90,6 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
             $storesRepo,
             $shiftsRepo,
             $shiftTypesRepo,
-            $dashboardPrefs,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

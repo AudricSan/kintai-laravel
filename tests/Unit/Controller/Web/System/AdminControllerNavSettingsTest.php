@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web\System;
 
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\System\AdminController;
@@ -14,16 +14,15 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminControllerNavSettingsTest extends TestCase
 {
-    private UserNavPrefsRepositoryInterface&MockObject $navPrefs;
+    use \Tests\Support\PrefsExpectations;
+
     private AdminController $controller;
 
     protected function setUp(): void
     {
-        $this->navPrefs = $this->createMock(UserNavPrefsRepositoryInterface::class);
 
         $this->controller = new AdminController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->navPrefs,
             new AuditLogger(),
         );
     }
@@ -43,10 +42,6 @@ final class AdminControllerNavSettingsTest extends TestCase
     {
         $user = ['id' => 7, 'is_admin' => false];
 
-        $this->navPrefs->method('getHidden')->with(7)->willReturn([]);
-        $this->navPrefs->method('getSectionOrder')->with(7)->willReturn([]);
-        $this->navPrefs->method('getBottomNavItems')->with(7)->willReturn([]);
-
         // Seule 'messages' était proposée dans le formulaire (les autres features étaient
         // désactivées pour ce magasin) ; l'utilisateur l'a décochée pour la masquer.
         $_POST = [
@@ -54,7 +49,7 @@ final class AdminControllerNavSettingsTest extends TestCase
             'nav'           => [],
         ];
 
-        $this->navPrefs->expects($this->once())->method('saveHidden')->with(7, ['messages']);
+        $this->expectNavHidden(7, ['messages']);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', $user);
@@ -67,17 +62,14 @@ final class AdminControllerNavSettingsTest extends TestCase
         $user = ['id' => 7, 'is_admin' => false];
 
         // 'daily_reports' était déjà masqué par choix de l'utilisateur.
-        $this->navPrefs->method('getHidden')->with(7)->willReturn(['daily_reports']);
-        $this->navPrefs->method('getSectionOrder')->with(7)->willReturn([]);
-        $this->navPrefs->method('getBottomNavItems')->with(7)->willReturn([]);
-
+        \App\Models\UserNavPref::saveHidden(7, ['daily_reports']);
         // Seule 'messages' est proposée cette fois (feature réactivée), l'utilisateur la laisse cochée.
         $_POST = [
             'nav_available' => ['messages'],
             'nav'           => ['messages' => '1'],
         ];
 
-        $this->navPrefs->expects($this->once())->method('saveHidden')->with(7, ['daily_reports']);
+        $this->expectNavHidden(7, ['daily_reports']);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', $user);

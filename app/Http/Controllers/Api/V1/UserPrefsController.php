@@ -7,8 +7,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Auth\UserTargetGuard;
 use App\Exceptions\ValidationException;
 use App\Extension\DashboardLayout;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
+use App\Models\UserNavPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Validation\ApiPayloadRules;
@@ -17,8 +17,6 @@ use App\Validation\PayloadValidator;
 final class UserPrefsController
 {
     public function __construct(
-        private readonly UserDashboardPrefsRepositoryInterface $dashboardPrefs,
-        private readonly UserNavPrefsRepositoryInterface $navPrefs,
         private readonly UserTargetGuard $guard,
     ) {}
 
@@ -32,8 +30,8 @@ final class UserPrefsController
         return response()->json([
             'user_id'        => $userId,
             'dashboard_type' => $dashboardType,
-            'widgets'        => $this->dashboardPrefs->getEnabledWidgets($userId, $dashboardType),
-            'layout'         => $this->dashboardPrefs->getLayout($userId, $dashboardType),
+            'widgets'        => UserDashboardPref::getEnabledWidgets($userId, $dashboardType),
+            'layout'         => UserDashboardPref::getLayout($userId, $dashboardType),
         ]);
     }
 
@@ -53,21 +51,21 @@ final class UserPrefsController
         $dashboardType = (string) ($data['dashboard_type'] ?? 'admin');
 
         if (array_key_exists('widgets', $payload)) {
-            $this->dashboardPrefs->saveWidgets($userId, $data['widgets'] ?? [], $dashboardType);
+            UserDashboardPref::saveWidgets($userId, $data['widgets'] ?? [], $dashboardType);
         }
         if (array_key_exists('layout', $payload)) {
             $layout = $payload['layout'];
             if ($layout !== null && (!is_array($layout) || array_is_list($layout) && $layout !== [])) {
                 throw new ValidationException(['layout' => [__('val_field_invalid', ['field' => 'layout'])]]);
             }
-            $this->dashboardPrefs->saveLayout($userId, $dashboardType, $layout === null ? null : DashboardLayout::normalize($layout));
+            UserDashboardPref::saveLayout($userId, $dashboardType, $layout === null ? null : DashboardLayout::normalize($layout));
         }
 
         return response()->json([
             'user_id'        => $userId,
             'dashboard_type' => $dashboardType,
-            'widgets'        => $this->dashboardPrefs->getEnabledWidgets($userId, $dashboardType),
-            'layout'         => $this->dashboardPrefs->getLayout($userId, $dashboardType),
+            'widgets'        => UserDashboardPref::getEnabledWidgets($userId, $dashboardType),
+            'layout'         => UserDashboardPref::getLayout($userId, $dashboardType),
         ]);
     }
 
@@ -79,7 +77,7 @@ final class UserPrefsController
 
         return response()->json([
             'user_id' => $userId,
-            'hidden'  => $this->navPrefs->getHidden($userId),
+            'hidden'  => UserNavPref::getHiddenRow($userId),
         ]);
     }
 
@@ -92,7 +90,7 @@ final class UserPrefsController
         $data   = PayloadValidator::validate($request->json()->all() ?? [], ApiPayloadRules::navPrefs());
         $hidden = $data['hidden'] ?? [];
 
-        $this->navPrefs->saveHidden($userId, $hidden);
+        UserNavPref::saveHidden($userId, $hidden);
 
         return response()->json(['user_id' => $userId, 'hidden' => $hidden]);
     }

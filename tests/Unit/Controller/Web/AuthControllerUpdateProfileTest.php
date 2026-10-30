@@ -12,7 +12,7 @@ use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -72,7 +72,6 @@ final class AuthControllerUpdateProfileTest extends TestCase
             $users,
             $stores,
             $storeUsers,
-            $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $languages,
             new AvatarImageOptimizer(),
@@ -109,7 +108,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
 
         $controller = new AuthController(
-            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers, $this->createStub(UserNavPrefsRepositoryInterface::class),
+            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers,
             $this->createStub(AvailabilityRepositoryInterface::class), $languages, new AvatarImageOptimizer(),
         );
 

@@ -18,7 +18,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
@@ -41,6 +41,8 @@ final class AuthMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->container = new \Tests\Support\TestContainer();
         $this->view      = kintai_test_views(sys_get_temp_dir());
         $this->container->instance(ViewFactory::class, $this->view);
@@ -54,10 +56,6 @@ final class AuthMiddlewareTest extends TestCase
         $this->container->instance(
             LanguageRepositoryInterface::class,
             $this->createStub(LanguageRepositoryInterface::class),
-        );
-        $this->container->instance(
-            UserNavPrefsRepositoryInterface::class,
-            $this->createStub(UserNavPrefsRepositoryInterface::class),
         );
         $this->container->instance(EmployeeStatsService::class, new EmployeeStatsService(
             $this->createStub(ShiftRepositoryInterface::class),

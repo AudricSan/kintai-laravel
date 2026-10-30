@@ -11,7 +11,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +29,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class HomeControllerScopingTest extends TestCase
 {
+    use \Tests\Support\PrefsExpectations;
+
     protected function setUp(): void
     {
         $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['stats' => \$stats, 'shifts_today' => \$shifts_today]);");
@@ -49,15 +51,10 @@ final class HomeControllerScopingTest extends TestCase
 
         $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
         $shiftsRepo->method('findAllByDate')->willReturn($shiftsToday);
-
-        $dashboardPrefs = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
         // Widgets financial_overview/hr_absenteeism exclus : ces tests portent sur le
         // scoping managed_store_ids, pas sur le calcul RH/financier (storeStats() n'est
         // pas mocké pour ces widgets ici, voir HomeControllerFinancialHrWidgetsTest).
-        $dashboardPrefs->method('getEnabledWidgets')->willReturn([
-            'kpi_counters', 'store_stats_summary',
-            'shifts_today', 'pending_timeoff', 'timeclocks_today',
-        ]);
+        foreach ([1, 99] as $uid) $this->seedWidgets($uid, 'admin', [ 'kpi_counters', 'store_stats_summary', 'shifts_today', 'pending_timeoff', 'timeclocks_today', ]);
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsersRepo->method('findByStore')->willReturnCallback(
@@ -88,7 +85,6 @@ final class HomeControllerScopingTest extends TestCase
             $storesRepo,
             $shiftsRepo,
             $shiftTypesRepo,
-            $dashboardPrefs,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

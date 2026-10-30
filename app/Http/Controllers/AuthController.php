@@ -25,7 +25,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserNavPref;
 use App\Models\WebPushSubscription;
 use App\Http\Controllers\HasBaseUrl;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -46,7 +46,6 @@ final class AuthController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
-        private readonly UserNavPrefsRepositoryInterface $navPrefs,
         private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly LanguageRepositoryInterface $languages,
         private readonly AvatarImageOptimizer $avatarOptimizer,
@@ -289,14 +288,14 @@ final class AuthController
             $bnDefault   = \App\Extension\Navigation::MOBILE_DEFAULT_EMPLOYEE;
         }
 
-        $navHidden   = $this->navPrefs->getHidden($userId);
-        $navRawOrder = $this->navPrefs->getSectionOrder($userId);
+        $navHidden   = UserNavPref::getHiddenRow($userId);
+        $navRawOrder = UserNavPref::getSectionOrder($userId);
         $navSecOrder = array_values(array_unique(array_merge(
             array_intersect($navRawOrder, $defaultSecs),
             $defaultSecs
         )));
 
-        $bnSaved   = \App\Extension\Navigation::migrateLegacyMobileKeys($this->navPrefs->getBottomNavItems($userId));
+        $bnSaved   = \App\Extension\Navigation::migrateLegacyMobileKeys(UserNavPref::getBottomNavItems($userId));
         $bnItems   = !empty($bnSaved) ? $bnSaved : $bnDefault;
 
         return response($this->view->make('auth.profile', [

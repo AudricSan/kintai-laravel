@@ -8,7 +8,7 @@ use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Models\UserDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 
 /**
  * Disposition d'un tableau de bord à afficher pour un utilisateur : celle qu'il a enregistrée, sinon la mise en page par
@@ -21,7 +21,6 @@ use App\Repositories\UserDashboardPrefsRepositoryInterface;
 final class DashboardLayoutResolver
 {
     public function __construct(
-        private readonly UserDashboardPrefsRepositoryInterface $prefs,
         private readonly RoleAssignmentRepositoryInterface $assignments,
         private readonly RoleRepositoryInterface $roles,
     ) {}
@@ -52,7 +51,7 @@ final class DashboardLayoutResolver
     /** @return array<string, mixed>|null */
     public function layoutFor(int $userId, string $dashboardType): ?array
     {
-        return $this->prefs->getLayout($userId, $dashboardType) ?? $this->roleDefault($userId, $dashboardType);
+        return UserDashboardPref::getLayout($userId, $dashboardType) ?? $this->roleDefault($userId, $dashboardType);
     }
 
     /** Défaut du rôle de l'utilisateur, ou null : « Revenir au défaut de mon rôle ». @return array<string, mixed>|null */

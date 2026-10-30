@@ -9,7 +9,7 @@ use App\Exceptions\ValidationException;
 use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
 use App\Models\UserDashboardLayout;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -24,7 +24,6 @@ use App\Services\AuditLogger;
 final class DashboardLayoutController
 {
     public function __construct(
-        private readonly UserDashboardPrefsRepositoryInterface $dashboardPrefs,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -61,7 +60,7 @@ final class DashboardLayoutController
         $body   = $request->json()->all() ?? [];
 
         if (($body['reset'] ?? false) === true) {
-            $this->dashboardPrefs->saveLayout($userId, $dashboardType, null);
+            UserDashboardPref::saveLayout($userId, $dashboardType, null);
             // Revenir au défaut : la disposition en cours n'est plus celle d'une mise en page nommée.
             // Mises en page nommées : plus aucune n'est active.
             UserDashboardLayout::deactivateAll($userId, $dashboardType);
@@ -70,13 +69,13 @@ final class DashboardLayoutController
 
         $layout = DashboardLayout::update(
             $offered,
-            $this->dashboardPrefs->getLayout($userId, $dashboardType),
+            UserDashboardPref::getLayout($userId, $dashboardType),
             is_array($body['order'] ?? null) ? array_values($body['order']) : [],
             is_array($body['widths'] ?? null) ? $body['widths'] : [],
             // Hauteurs, widgets repliés et densité : seulement ce que la page envoie (le reste est conservé).
             array_intersect_key($body, array_flip(['heights', 'collapsed', 'density'])),
         );
-        $this->dashboardPrefs->saveLayout($userId, $dashboardType, $layout);
+        UserDashboardPref::saveLayout($userId, $dashboardType, $layout);
         // Mises en page nommées : la modification est reportée sur celle qui est active.
         UserDashboardLayout::updateActive($userId, $dashboardType, $layout);
 
@@ -98,16 +97,16 @@ final class DashboardLayoutController
             throw new ValidationException(['widget' => __('dashboard_widget_unknown')]);
         }
 
-        $previous = $this->dashboardPrefs->getEnabledWidgets($userId, $dashboardType);
+        $previous = UserDashboardPref::getEnabledWidgets($userId, $dashboardType);
         $widgets  = DashboardWidgets::toggle($defaults, $previous, $key, $add);
-        $this->dashboardPrefs->saveWidgets($userId, $widgets, $dashboardType);
+        UserDashboardPref::saveWidgets($userId, $widgets, $dashboardType);
 
         // Un widget ajouté arrive en fin de tableau de bord, sans toucher à la place des autres.
         if ($add) {
-            $this->dashboardPrefs->saveLayout(
+            UserDashboardPref::saveLayout(
                 $userId,
                 $dashboardType,
-                DashboardLayout::moveToEnd($offered, $this->dashboardPrefs->getLayout($userId, $dashboardType), $key),
+                DashboardLayout::moveToEnd($offered, UserDashboardPref::getLayout($userId, $dashboardType), $key),
             );
         }
 

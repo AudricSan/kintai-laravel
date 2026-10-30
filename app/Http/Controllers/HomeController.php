@@ -14,7 +14,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Extension\Attendances;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -67,7 +67,6 @@ final class HomeController
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
-        private readonly UserDashboardPrefsRepositoryInterface $dashboardPrefs,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreStatsServiceInterface $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
@@ -151,7 +150,7 @@ final class HomeController
         $dashWidgets = DashboardWidgets::current();
         $widgetKeys  = self::offeredWidgetKeys($dashWidgets);
         $sizes       = $dashWidgets->sizes(DashboardWidget::MANAGER, self::ADMIN_WIDGETS);
-        $saved = $this->dashboardPrefs->getEnabledWidgets((int) $user['id'], 'admin');
+        $saved = UserDashboardPref::getEnabledWidgets((int) $user['id'], 'admin');
         $enabledAll = array_flip(array_values(
             $saved !== null
                 ? array_intersect($saved, $widgetKeys)
@@ -247,7 +246,7 @@ final class HomeController
             'enabled_widgets'     => $enabledWidgets,
             'enabled_widgets_all' => $enabledAll,
             'all_widgets'         => $widgetKeys,
-            'widget_layout'       => DashboardLayout::resolve($widgetKeys, $this->layoutResolver?->layoutFor((int) $user['id'], 'admin') ?? $this->dashboardPrefs->getLayout((int) $user['id'], 'admin'), self::ADMIN_WIDGET_WIDTHS + $sizes['widths'], $sizes['heights']),
+            'widget_layout'       => DashboardLayout::resolve($widgetKeys, $this->layoutResolver?->layoutFor((int) $user['id'], 'admin') ?? UserDashboardPref::getLayout((int) $user['id'], 'admin'), self::ADMIN_WIDGET_WIDTHS + $sizes['widths'], $sizes['heights']),
             'dashboard_layouts'   => $this->layoutResolver?->namedLayouts((int) $user['id'], 'admin') ?? [],
             'dashboard_layouts_route' => 'admin.dashboard.layouts',
             'dashboard_roles'     => !empty($user['is_admin']) ? ($this->layoutResolver?->roleOptions('admin') ?? []) : [],

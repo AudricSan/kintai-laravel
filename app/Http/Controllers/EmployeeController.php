@@ -15,8 +15,8 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
+use App\Models\UserNavPref;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Auth\PermissionService;
 use Illuminate\Http\Request;
@@ -49,9 +49,7 @@ final class EmployeeController
         private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
         private readonly AvailabilityRepositoryInterface $availabilities,
-        private readonly UserDashboardPrefsRepositoryInterface $dashboardPrefs,
         private readonly NotificationService $notifs,
-        private readonly UserNavPrefsRepositoryInterface $navPrefs,
         private readonly PermissionService $permissions,
         // Disposition de l'utilisateur, sinon défaut de son rôle ; mises en page nommées (null : disposition enregistrée seule).
         private readonly ?DashboardLayoutResolver $layoutResolver = null,
@@ -80,7 +78,7 @@ final class EmployeeController
         $dashWidgets = DashboardWidgets::current();
         $widgetKeys  = $dashWidgets->keys(DashboardWidget::EMPLOYEE, self::EMPLOYEE_WIDGETS);
         $sizes       = $dashWidgets->sizes(DashboardWidget::EMPLOYEE, self::EMPLOYEE_WIDGETS);
-        $saved       = $this->dashboardPrefs->getEnabledWidgets($userId, 'employee');
+        $saved       = UserDashboardPref::getEnabledWidgets($userId, 'employee');
         $enabledAll  = array_flip(array_values(
             $saved !== null
                 ? array_intersect($saved, $widgetKeys)
@@ -123,7 +121,7 @@ final class EmployeeController
             'enabled_widgets'  => $enabledWidgets,
             'enabled_widgets_all' => $enabledAll,
             'all_widgets'      => $widgetKeys,
-            'widget_layout'    => DashboardLayout::resolve($widgetKeys, $this->layoutResolver?->layoutFor($userId, 'employee') ?? $this->dashboardPrefs->getLayout($userId, 'employee'), $sizes['widths'], $sizes['heights']),
+            'widget_layout'    => DashboardLayout::resolve($widgetKeys, $this->layoutResolver?->layoutFor($userId, 'employee') ?? UserDashboardPref::getLayout($userId, 'employee'), $sizes['widths'], $sizes['heights']),
             'dashboard_layouts' => $this->layoutResolver?->namedLayouts($userId, 'employee') ?? [],
             'dashboard_layouts_route' => 'employee.dashboard.layouts',
             'dashboard_roles'  => !empty($user['is_admin']) ? ($this->layoutResolver?->roleOptions('employee') ?? []) : [],
@@ -605,9 +603,9 @@ final class EmployeeController
     {
         $user    = $request->attributes->get('auth_user');
         $userId  = (int) $user['id'];
-        $oldHidden = $this->navPrefs->getHidden($userId);
-        $oldSectionOrder = $this->navPrefs->getSectionOrder($userId);
-        $oldBottomNav = $this->navPrefs->getBottomNavItems($userId);
+        $oldHidden = UserNavPref::getHiddenRow($userId);
+        $oldSectionOrder = UserNavPref::getSectionOrder($userId);
+        $oldBottomNav = UserNavPref::getBottomNavItems($userId);
 
         // Seules les clés réellement proposées dans le formulaire (filtrées par store_features
         // côté vue) doivent voir leur état modifié ; les autres gardent leur préférence existante,
@@ -617,15 +615,15 @@ final class EmployeeController
         $newlyHidden = array_diff($available, $visible);
         $keptHidden  = array_diff($oldHidden, $available);
         $hidden      = array_values(array_unique(array_merge($newlyHidden, $keptHidden)));
-        $this->navPrefs->saveHidden($userId, $hidden);
+        UserNavPref::saveHidden($userId, $hidden);
 
         if ($request->post('reset_section_order')) {
-            $this->navPrefs->saveSectionOrder($userId, []);
+            UserNavPref::saveSectionOrder($userId, []);
         } else {
             $rawOrder     = array_values((array) $request->post('section_order', []));
             $sectionOrder = array_values(array_intersect($rawOrder, self::NAV_EMPLOYEE_SECTIONS));
             if (!empty($sectionOrder)) {
-                $this->navPrefs->saveSectionOrder($userId, $sectionOrder);
+                UserNavPref::saveSectionOrder($userId, $sectionOrder);
             }
         }
 
@@ -633,7 +631,7 @@ final class EmployeeController
         $bottomItems = array_values(array_intersect($rawBottom, \App\Extension\Navigation::current()->mobileKeys(false)));
         $count       = count($bottomItems);
         if ($count >= 2 && $count <= 4) {
-            $this->navPrefs->saveBottomNavItems($userId, $bottomItems);
+            UserNavPref::saveBottomNavItems($userId, $bottomItems);
         }
 
         $this->auditLogger->logUpdate($request, 'nav_settings.updated', 'user_nav_prefs', $userId, [

@@ -17,8 +17,8 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
-use App\Repositories\UserNavPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
+use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use Illuminate\Http\Request;
@@ -71,14 +71,12 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
             $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
             $this->createStub(AvailabilityRepositoryInterface::class),
-            $this->createStub(UserDashboardPrefsRepositoryInterface::class),
             new NotificationService(
                 $this->createStub(NotificationRepositoryInterface::class),
                 new PushNotificationService([]),
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
             ),
-            $this->createStub(UserNavPrefsRepositoryInterface::class),
             new PermissionService(
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
                 $this->createStub(RoleRepositoryInterface::class),

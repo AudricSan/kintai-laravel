@@ -8,7 +8,7 @@ use App\Extension\DashboardLayout;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Models\UserDashboardLayout;
-use App\Repositories\UserDashboardPrefsRepositoryInterface;
+use App\Models\UserDashboardPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -35,7 +35,6 @@ final class DashboardLayoutsController
     public const NAME_MAX = 60;
 
     public function __construct(
-        private readonly UserDashboardPrefsRepositoryInterface $prefs,
         private readonly RoleRepositoryInterface $roles,
         private readonly DashboardLayoutResolver $resolver,
         private readonly AuditLogger $auditLogger,
@@ -63,7 +62,7 @@ final class DashboardLayoutsController
         $error = match ($action) {
             'create'   => $this->create($userId, $dashboardType, trim((string) $request->post('name', ''))),
             'activate' => $this->owned($userId, $dashboardType, (int) $request->post('id', 0), function (array $layout) use ($userId, $dashboardType): void {
-                $this->prefs->saveLayout($userId, $dashboardType, $layout['layout']);
+                UserDashboardPref::saveLayout($userId, $dashboardType, $layout['layout']);
                 UserDashboardLayout::activate($layout['id']);
             }),
             'rename'   => $this->rename($userId, $dashboardType, (int) $request->post('id', 0), trim((string) $request->post('name', ''))),
@@ -96,10 +95,10 @@ final class DashboardLayoutsController
                 return 'dashboard_layouts_name_taken';
             }
         }
-        $current = $this->prefs->getLayout($userId, $dashboardType) ?? $this->resolver->roleDefault($userId, $dashboardType) ?? DashboardLayout::normalize([]);
+        $current = UserDashboardPref::getLayout($userId, $dashboardType) ?? $this->resolver->roleDefault($userId, $dashboardType) ?? DashboardLayout::normalize([]);
         UserDashboardLayout::createActive($userId, $dashboardType, $name, $current);
         // La disposition en cours devient celle de la mise en page créée (elle en est l'instantané).
-        $this->prefs->saveLayout($userId, $dashboardType, $current);
+        UserDashboardPref::saveLayout($userId, $dashboardType, $current);
         return null;
     }
 
@@ -145,7 +144,7 @@ final class DashboardLayoutsController
             RoleDashboardLayout::where('role_id', $roleId)->where('dashboard_type', $dashboardType)->delete();
             return null;
         }
-        $current = $this->prefs->getLayout((int) $user['id'], $dashboardType);
+        $current = UserDashboardPref::getLayout((int) $user['id'], $dashboardType);
         if ($current === null) {
             return 'dashboard_layouts_customize_first';
         }
