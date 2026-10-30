@@ -16,5 +16,5 @@
     "namespace": "kintai\\Bundles\\Installed\\Notebook",
     "entry_class": "kintai\\Bundles\\Installed\\Notebook\\NotebookBundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/AudricSan/kintai-bundle-notebook"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/notebook"
 }

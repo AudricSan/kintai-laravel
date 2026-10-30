@@ -10,5 +10,5 @@
     "namespace": "kintai\\Bundles\\Installed\\PlanningCheck",
     "entry_class": "kintai\\Bundles\\Installed\\PlanningCheck\\PlanningCheckBundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/AudricSan/kintai-bundle-planning-check"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/planning-check"
 }

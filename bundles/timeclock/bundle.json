@@ -16,5 +16,5 @@
     "namespace": "kintai\\Bundles\\Installed\\Timeclock",
     "entry_class": "kintai\\Bundles\\Installed\\Timeclock\\TimeclockBundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/AudricSan/kintai-bundle-timeclock"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/timeclock"
 }

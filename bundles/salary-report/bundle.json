@@ -16,5 +16,5 @@
     "namespace": "kintai\\Bundles\\Installed\\SalaryReport",
     "entry_class": "kintai\\Bundles\\Installed\\SalaryReport\\SalaryReportBundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/AudricSan/kintai-bundle-salary-report"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/salary-report"
 }

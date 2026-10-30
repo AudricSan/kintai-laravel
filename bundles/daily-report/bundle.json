@@ -16,5 +16,5 @@
     "namespace": "kintai\\Bundles\\Installed\\DailyReport",
     "entry_class": "kintai\\Bundles\\Installed\\DailyReport\\DailyReportBundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/AudricSan/kintai-bundle-daily-report"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/daily-report"
 }

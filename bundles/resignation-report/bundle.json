@@ -16,5 +16,5 @@
     "namespace": "kintai\\Bundles\\Installed\\ResignationReport",
     "entry_class": "kintai\\Bundles\\Installed\\ResignationReport\\ResignationReportBundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/AudricSan/kintai-bundle-resignation-report"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/resignation-report"
 }
