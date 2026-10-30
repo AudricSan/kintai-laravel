@@ -81,9 +81,7 @@ final class NotebookControllerTest extends TestCase
 
     private function withJsonBody(Request $req, array $body): Request
     {
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $body);
+        kintai_test_set_json($req, $body);
         return $req;
     }
 

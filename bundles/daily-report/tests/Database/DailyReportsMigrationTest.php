@@ -6,11 +6,11 @@ namespace Tests\Bundles\DailyReport\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Migration du bundle (reprise du Core à l'extraction), jouée par le vrai BundleMigrationRunner : crée la table avec le
+ * Migration du bundle (reprise du Core à l'extraction), jouée par le vrai BundleMigrationHarness : crée la table avec le
  * schéma qu'utilise le code sur une installation neuve, ne touche pas à celle d'une instance existante.
  */
 final class DailyReportsMigrationTest extends TestCase
@@ -20,16 +20,11 @@ final class DailyReportsMigrationTest extends TestCase
         return dirname(__DIR__, 2) . '/database/migrations';
     }
 
-    /** @return array{0: BundleMigrationRunner, 1: Capsule} */
+    /** @return array{0: BundleMigrationHarness, 1: Capsule} */
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }

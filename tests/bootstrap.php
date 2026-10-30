@@ -170,6 +170,20 @@ function kintai_test_mailer(Closure $onSend): Illuminate\Mail\Mailer
     return new Illuminate\Mail\Mailer('test', app('view'), new Tests\Support\RecordingTransport($onSend));
 }
 
+/** Donne un corps JSON à une requête déjà construite (Request::capture() des tests). */
+function kintai_test_set_json(Illuminate\Http\Request $request, array $json): void
+{
+    (new ReflectionProperty(Symfony\Component\HttpFoundation\Request::class, 'content'))->setValue($request, json_encode($json));
+    $request->headers->set('Content-Type', 'application/json');
+    (new ReflectionProperty(Illuminate\Http\Request::class, 'json'))->setValue($request, null);
+}
+
+/** Route qui répond à cette méthode et ce chemin dans le routeur courant des tests. */
+function kintai_test_match(string $method, string $path): Illuminate\Routing\Route
+{
+    return app('router')->getRoutes()->match(Illuminate\Http\Request::create($path, $method));
+}
+
 function kintai_test_views(string $path, bool $withLayout = false): Illuminate\View\Factory
 {
     $app    = $GLOBALS['kintai_test_app'];

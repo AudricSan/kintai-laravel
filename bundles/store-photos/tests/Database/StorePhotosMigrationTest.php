@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Tests\Bundles\StorePhoto\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Migration du bundle (reprise du Core à l'extraction), jouée par le vrai BundleMigrationRunner : crée les tables sur
+ * Migration du bundle (reprise du Core à l'extraction), jouée par le vrai BundleMigrationHarness : crée les tables sur
  * une installation neuve, ne touche pas à celles d'une instance existante.
  */
 final class StorePhotosMigrationTest extends TestCase
@@ -19,16 +19,11 @@ final class StorePhotosMigrationTest extends TestCase
         return dirname(__DIR__, 2) . '/database/migrations';
     }
 
-    /** @return array{0: BundleMigrationRunner, 1: Capsule} */
+    /** @return array{0: BundleMigrationHarness, 1: Capsule} */
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }

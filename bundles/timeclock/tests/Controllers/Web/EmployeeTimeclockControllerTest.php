@@ -6,7 +6,7 @@ namespace Tests\Bundles\Timeclock\Controllers\Web;
 
 
 use kintai\Bundles\Installed\Timeclock\Controllers\Web\EmployeeTimeclockController;
-use App\Container;
+use Tests\Support\TestContainer;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\LogRepositoryInterface;
@@ -31,6 +31,7 @@ final class EmployeeTimeclockControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
         $viewDir = sys_get_temp_dir() . '/kintai-timeclock-views';
         $this->ensureViewFile($viewDir, 'employee-timeclock');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
@@ -40,7 +41,7 @@ final class EmployeeTimeclockControllerTest extends TestCase
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }
@@ -66,6 +67,7 @@ final class EmployeeTimeclockControllerTest extends TestCase
 
     protected function tearDown(): void
     {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
         $_GET = [];
         $_POST = [];
         $_SERVER = [];

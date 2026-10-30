@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Services\TimeclockWidget;
 use kintai\Contract\Bundle;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Extension\DashboardWidget;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;

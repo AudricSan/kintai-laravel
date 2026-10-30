@@ -6,12 +6,12 @@ namespace Tests\Bundles\TimeOff\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\TimeOff\Repositories\DatabaseTimeoffRequestRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Migrations du bundle, jouées par le vrai BundleMigrationRunner, sur les trois états possibles d'une base :
+ * Migrations du bundle, jouées par le vrai BundleMigrationHarness, sur les trois états possibles d'une base :
  * installation neuve, table de l'ancien schéma SQL (reviewed_by / reviewed_at / review_notes) et table de la migration
  * du Core (processed_by / processed_at / admin_note). Dans les trois cas, le code peut enregistrer une demande traitée,
  * et les demandes de l'ancien schéma gardent qui les a traitées.
@@ -20,16 +20,11 @@ final class TimeoffRequestsMigrationTest extends TestCase
 {
     private const MIGRATIONS = ['2026_10_14_000001_create_timeoff_requests_table', '2026_10_14_000002_align_timeoff_requests_table'];
 
-    /** @return array{0: BundleMigrationRunner, 1: Capsule} */
+    /** @return array{0: BundleMigrationHarness, 1: Capsule} */
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }

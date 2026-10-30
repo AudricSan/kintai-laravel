@@ -6,7 +6,7 @@ namespace Tests\Bundles\SalaryReport\Controllers\Web;
 
 use kintai\Bundles\Installed\SalaryReport\Controllers\Web\AdminSalaryReportController;
 use App\Auth\PermissionService;
-use App\Container;
+use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use kintai\Contract\Provider\DailySales;
 use kintai\Contract\Provider\SalesProvider;
@@ -68,7 +68,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
 
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }
@@ -253,7 +253,7 @@ final class AdminSalaryReportControllerTest extends TestCase
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
         $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
         $req = Request::capture();
@@ -406,7 +406,7 @@ final class AdminSalaryReportControllerTest extends TestCase
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
         $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
         $req = Request::capture();

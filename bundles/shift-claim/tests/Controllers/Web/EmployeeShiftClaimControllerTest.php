@@ -244,7 +244,7 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '50']);
 
-        $this->assertStringContainsString('success=claimed', $this->controller()->claimShift($req)->headers()['Location'] ?? '');
+        $this->assertStringContainsString('success=claimed', $this->controller()->claimShift($req)->headers->get('Location') ?? '');
     }
 
     public function testHolderCannotClaimOwnPublishedShift(): void
@@ -262,7 +262,7 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 5]);
         $req->setRouteParams(['id' => '50']);
 
-        $this->assertStringContainsString('error=own_shift', $this->controller()->claimShift($req)->headers()['Location'] ?? '');
+        $this->assertStringContainsString('error=own_shift', $this->controller()->claimShift($req)->headers->get('Location') ?? '');
     }
 
     public function testClaimShiftRejectsAlreadyClaimedShift(): void

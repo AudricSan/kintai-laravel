@@ -6,7 +6,7 @@ namespace Tests\Bundles\StorePhoto\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\StorePhoto\Repositories\DatabaseStorePhotoRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,10 +21,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
         $this->capsule = $capsule;
 
         // Tables du Core référencées par les clés étrangères du bundle.
@@ -37,8 +34,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
             $table->increments('id');
         });
 
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $runner = new BundleMigrationHarness();
         $runner->runPendingFor('store-photos', dirname(__DIR__, 2) . '/database/migrations');
 
         $capsule->table('stores')->insert(['name' => 'Store A']);

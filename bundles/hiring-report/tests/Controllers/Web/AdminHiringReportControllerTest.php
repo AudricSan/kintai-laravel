@@ -6,7 +6,7 @@ namespace Tests\Bundles\HiringReport\Controllers\Web;
 
 
 use kintai\Bundles\Installed\HiringReport\Controllers\Web\AdminHiringReportController;
-use App\Container;
+use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use App\Repositories\LogRepositoryInterface;
@@ -44,7 +44,7 @@ final class AdminHiringReportControllerTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }
@@ -143,7 +143,7 @@ final class AdminHiringReportControllerTest extends TestCase
     {
         $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
         $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
         $req = Request::capture();

@@ -15,7 +15,7 @@ $_id = (int) $store['id'];
 $_days = [1 => 'planning_check_day_1', 2 => 'planning_check_day_2', 3 => 'planning_check_day_3', 4 => 'planning_check_day_4', 5 => 'planning_check_day_5', 6 => 'planning_check_day_6', 7 => 'planning_check_day_7'];
 $_error = (string) ($_GET['error'] ?? '');
 ?>
-<?php include __DIR__ . "/_assets.php"; ?>
+<?php include app('view')->getFinder()->find('planning-check::_assets'); ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= htmlspecialchars($title) ?> — <?= htmlspecialchars((string) $store['name']) ?></h2>
     <div class="page-header__actions">

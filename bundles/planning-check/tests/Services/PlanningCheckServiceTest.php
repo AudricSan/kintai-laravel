@@ -55,10 +55,7 @@ final class PlanningCheckServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
         $loader = new class($capsule) {
             public function __construct(public Capsule $capsule) {}
 
@@ -118,10 +115,10 @@ final class PlanningCheckServiceTest extends TestCase
             $this->notifications[] = compact('ids', 'type', 'replace', 'ref', 'link');
         });
 
-        $translations = new TranslationService($this->createStub(TranslationRepositoryInterface::class), $this->createStub(LanguageRepositoryInterface::class));
+        $translations = kintai_test_real_translator('en', false);
         $test = $this;
         $pdf = new class(kintai_test_views('/nonexistent'), $translations, $test) extends PlanningPdfService {
-            public function __construct(ViewFactory $view, TranslationService $translations, private PlanningCheckServiceTest $test)
+            public function __construct(ViewFactory $view, \Illuminate\Contracts\Translation\Translator $translations, private PlanningCheckServiceTest $test)
             {
                 parent::__construct($view, $translations);
             }

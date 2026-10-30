@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\Messaging;
 
 use kintai\Contract\Bundle;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
 use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;

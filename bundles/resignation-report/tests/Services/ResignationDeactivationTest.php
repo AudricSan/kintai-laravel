@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ResignationReport\Cron\ResignationDeactivateJob;
 use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -27,12 +27,8 @@ final class ResignationDeactivationTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
         $runner->runPendingFor('resignation-report', dirname(__DIR__, 2) . '/database/migrations');
 
         $this->accounts = [5 => ['id' => 5, 'is_active' => 1], 6 => ['id' => 6, 'is_active' => 1], 7 => ['id' => 7, 'is_active' => 1]];

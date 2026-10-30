@@ -6,7 +6,7 @@ namespace Tests\Bundles\Timeclock\Controllers\Web;
 
 
 use kintai\Bundles\Installed\Timeclock\Controllers\Web\AdminTimeclockController;
-use App\Container;
+use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use App\Repositories\LogRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -39,7 +39,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->users = $this->createStub(UserRepositoryInterface::class);
 
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
     }

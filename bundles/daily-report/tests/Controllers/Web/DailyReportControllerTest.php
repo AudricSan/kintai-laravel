@@ -68,10 +68,7 @@ final class DailyReportControllerTest extends TestCase
     private function controller(): DailyReportController
     {
         if ($this->controller === null) {
-            $translations = new TranslationService(
-                $this->createStub(TranslationRepositoryInterface::class),
-                $this->createStub(LanguageRepositoryInterface::class),
-            );
+            $translations = kintai_test_real_translator('en', false);
             $permissionService = new PermissionService($this->assignments, $this->roles);
             $permissions = new DailyReportPermissionService($permissionService);
             $pdfService = new DailyReportPdfService(

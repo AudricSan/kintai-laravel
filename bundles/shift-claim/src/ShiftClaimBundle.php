@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\ShiftClaim\Providers\PendingClaimsProvider;
 use kintai\Bundles\Installed\ShiftClaim\Services\WithdrawPendingClaimsOnClose;
 use kintai\Contract\Bundle;
 use kintai\Contract\Event\OpenShiftClosed;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\ShiftFormSection;
 use kintai\Contract\Extension\StoreFeature;

@@ -10,8 +10,8 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**

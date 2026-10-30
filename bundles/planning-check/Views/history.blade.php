@@ -20,7 +20,7 @@ $_success = ['submitted' => __('planning_check_flash_submitted'), 'validated' =>
 $_labels = ['pending' => 'planning_check_status_pending', 'submitted' => 'planning_check_status_submitted', 'validated' => 'planning_check_status_validated', 'rejected' => 'planning_check_status_rejected', 'escalated' => 'planning_check_status_escalated'];
 $_errorCode = (string) ($_GET['pc_error'] ?? '');
 ?>
-<?php include __DIR__ . "/_assets.php"; ?>
+<?php include app('view')->getFinder()->find('planning-check::_assets'); ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= htmlspecialchars($title) ?> — <?= htmlspecialchars((string) $store['name']) ?></h2>
     <div class="page-header__actions">

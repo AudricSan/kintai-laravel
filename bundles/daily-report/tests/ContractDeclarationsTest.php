@@ -11,7 +11,7 @@ use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInter
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
-use App\Container;
+use Tests\Support\TestContainer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -110,7 +110,7 @@ final class ContractDeclarationsTest extends TestCase
 
     public function testSalesProvider(): void
     {
-        $container = Container::getInstance();
+        $container = \Illuminate\Container\Container::getInstance();
         $container->instance(DailyReportRepositoryInterface::class, $this->createStub(DailyReportRepositoryInterface::class));
         $container->instance(StoreRepositoryInterface::class, $this->createStub(StoreRepositoryInterface::class));
 

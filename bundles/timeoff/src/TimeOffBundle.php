@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\TimeOff\Repositories\DatabaseTimeoffRequestReposito
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Services\PendingTimeoffWidget;
 use kintai\Contract\Bundle;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Extension\DashboardStat;
 use kintai\Contract\Extension\DashboardWidget;
 use kintai\Contract\Extension\NavItem;

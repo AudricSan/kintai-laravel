@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Tests\Bundles\Notebook\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Exécute la vraie migration du bundle (database/migrations/) via le vrai
- * BundleMigrationRunner du Core — exactement le mécanisme que
+ * BundleMigrationHarness du Core — exactement le mécanisme que
  * BundleInstallerService::activate() déclenche à l'installation, voir
  * docs/creating-a-bundle.md "Database migrations" du repo principal Kintai.
  */
@@ -23,15 +23,9 @@ final class NotebookEntriesMigrationTest extends TestCase
 
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
 
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        $capsuleProp = new \ReflectionProperty(BundleMigrationRunner::class, 'capsule');
-        $capsuleProp->setAccessible(true);
-        $capsuleProp->setValue($runner, $capsule);
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }
@@ -55,14 +49,6 @@ final class NotebookEntriesMigrationTest extends TestCase
     {
         [$runner, $capsule] = $this->freshRunner();
         $runner->runPendingFor('notebook', $this->migrationsPath());
-
-        // author_id doit référencer un user existant (contrainte FK) pour que l'insertion
-        // passe sur un moteur qui l'applique réellement (MySQL — SQLite ne l'impose pas ici,
-        // voir CLAUDE.md du repo principal, mais on insère quand même une ligne users cohérente).
-        $capsule->getConnection()->getSchemaBuilder()->create('users', function ($table) {
-            $table->increments('id');
-        });
-        $capsule->table('users')->insert(['id' => 1]);
 
         $id = $capsule->table('notebook_entries')->insertGetId([
             'author_id'  => 1,

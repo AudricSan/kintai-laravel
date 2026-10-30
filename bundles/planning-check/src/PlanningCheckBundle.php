@@ -14,7 +14,7 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningPdfService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;

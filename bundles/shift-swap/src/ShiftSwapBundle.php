@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\DatabaseShiftSwapRequestRepo
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Services\PendingSwapsWidget;
 use kintai\Contract\Bundle;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\DashboardStat;
 use kintai\Contract\Extension\DashboardWidget;

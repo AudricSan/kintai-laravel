@@ -6,11 +6,10 @@ namespace Tests\Bundles\ShiftSwap;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use App\Container;
-use App\Http\Middleware\PermissionMiddleware;
-use App\Http\Middleware\ApiAuthMiddleware;
-use App\Http\Middleware\AuthMiddleware;
-use App\Router;
+use Tests\Support\TestContainer;
+use kintai\Contract\Http\Middleware\PermissionMiddleware;
+use kintai\Contract\Http\Middleware\ApiAuthMiddleware;
+use kintai\Contract\Http\Middleware\AuthMiddleware;
 
 /**
  * Régression : les routes /admin/swap-requests, /employee/swaps et
@@ -19,10 +18,9 @@ use App\Router;
  */
 final class ShiftSwapRoutesTest extends TestCase
 {
-    private function loadRoutes(): Router
+    private function loadRoutes(): \Illuminate\Routing\Router
     {
-        $router = new Router();
-        $container = new Container();
+        $router = kintai_test_router();
         require dirname(__DIR__, 1) . '/routes.php';
 
         return $router;
@@ -31,9 +29,10 @@ final class ShiftSwapRoutesTest extends TestCase
     #[DataProvider('employeeRoutesProvider')]
     public function testEmployeeRoutesRequireAuth(string $method, string $path): void
     {
-        [$route] = $this->loadRoutes()->dispatch($method, $path);
+        $this->loadRoutes();
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(AuthMiddleware::class, $route->middleware);
+        $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
     }
 
     public static function employeeRoutesProvider(): array
@@ -51,10 +50,11 @@ final class ShiftSwapRoutesTest extends TestCase
     #[DataProvider('adminRoutesProvider')]
     public function testAdminRoutesRequireAdminAuth(string $method, string $path): void
     {
-        [$route] = $this->loadRoutes()->dispatch($method, $path);
+        $this->loadRoutes();
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(AuthMiddleware::class, $route->middleware);
-        $this->assertContains(PermissionMiddleware::class, $route->middleware);
+        $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
+        $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware());
     }
 
     public static function adminRoutesProvider(): array
@@ -72,9 +72,10 @@ final class ShiftSwapRoutesTest extends TestCase
     #[DataProvider('apiRoutesProvider')]
     public function testApiRoutesRequireBearerToken(string $method, string $path): void
     {
-        [$route] = $this->loadRoutes()->dispatch($method, $path);
+        $this->loadRoutes();
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(ApiAuthMiddleware::class, $route->middleware);
+        $this->assertContains(ApiAuthMiddleware::class, $route->gatherMiddleware());
     }
 
     public static function apiRoutesProvider(): array

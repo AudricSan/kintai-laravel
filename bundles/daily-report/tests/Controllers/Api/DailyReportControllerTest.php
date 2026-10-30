@@ -65,9 +65,7 @@ final class DailyReportControllerTest extends TestCase
     private function requestWithJson(array $json, array $routeParams = [], array $authUser = ['id' => 20]): Request
     {
         $req = Request::capture();
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $json);
+        kintai_test_set_json($req, $json);
         $req->setRouteParams($routeParams);
         $req->attributes->set('auth_user', $authUser);
         return $req;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\TimeOff;
 
 use kintai\Bundles\Installed\TimeOff\Providers\TimeoffAbsenceProvider;
-use App\Container;
+use Tests\Support\TestContainer;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -23,7 +23,7 @@ final class TimeoffAbsenceProviderTest extends TestCase
         $repo->method('findByUser')->willReturnCallback(fn(int $u) => array_values(array_filter($rows, fn($r) => $r['user_id'] === $u)));
         $repo->method('findByStore')->willReturnCallback(fn(int $s) => array_values(array_filter($rows, fn($r) => $r['store_id'] === $s)));
         $repo->method('findAll')->willReturn($rows);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(TimeoffRequestRepositoryInterface::class, $repo);
         return new TimeoffAbsenceProvider($container);
     }

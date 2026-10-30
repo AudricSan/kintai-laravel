@@ -51,7 +51,7 @@ final class ShiftSwapMassAssignmentTest extends TestCase
     {
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => self::ME]);
-        (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $json);
+        kintai_test_set_json($req, $json);
         return $req;
     }
 

@@ -6,7 +6,7 @@ namespace Tests\Bundles\Timeclock\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,15 +17,11 @@ final class DatabaseTimeclockRepositoryTest extends TestCase
 {
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
         // Tables référencées par les clés étrangères de timeclocks.
         $capsule->getConnection()->unprepared('CREATE TABLE users (id INTEGER PRIMARY KEY); CREATE TABLE stores (id INTEGER PRIMARY KEY); CREATE TABLE shifts (id INTEGER PRIMARY KEY);');
 
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $runner = new BundleMigrationHarness();
         $runner->runPendingFor('timeclock', dirname(__DIR__, 2) . '/database/migrations');
     }
 

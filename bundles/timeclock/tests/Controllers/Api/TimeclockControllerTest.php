@@ -157,9 +157,7 @@ final class TimeclockControllerTest extends TestCase
     private function requestWithJson(array $json): Request
     {
         $req = Request::capture();
-        $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-        $ref->setAccessible(true);
-        $ref->setValue($req, $json);
+        kintai_test_set_json($req, $json);
         return $req;
     }
 

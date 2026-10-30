@@ -2,7 +2,6 @@
 @section('content')
 <?php
 
-declare(strict_types=1);
 
 use kintai\Contract\View\Components\Badge;
 use kintai\Contract\View\Components\Button;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\ShiftSwap\Providers;
 
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Provider\Swap;
 use kintai\Contract\Provider\SwapProvider;

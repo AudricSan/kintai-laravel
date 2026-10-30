@@ -9,8 +9,8 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 
 /**

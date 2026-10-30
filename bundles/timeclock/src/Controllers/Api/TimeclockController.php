@@ -10,8 +10,8 @@ use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**

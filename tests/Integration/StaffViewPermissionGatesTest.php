@@ -245,7 +245,18 @@ final class StaffViewPermissionGatesTest extends TestCase
     #[RunInSeparateProcess]
     public function testEmployeeStatsHasNoBundleLinkWithoutActiveBundle(): void
     {
-        $this->assertStringNotContainsString('reports/salary/create', $this->renderEmployeeStats());
+        $container = Container::getInstance();
+        $manager = FakeBundleManagerFactory::withActiveSlugs([], []);
+        $container->instance(BundleManager::class, $manager);
+        $container->instance(ExtensionRegistry::class, new ExtensionRegistry($manager));
+        try {
+            $html = $this->renderEmployeeStats();
+        } finally {
+            $container->offsetUnset(BundleManager::class);
+            $container->offsetUnset(ExtensionRegistry::class);
+        }
+
+        $this->assertStringNotContainsString('reports/salary/create', $html);
     }
 
     /** … et présent, en bouton principal de l'en-tête, avec salary-report actif. */

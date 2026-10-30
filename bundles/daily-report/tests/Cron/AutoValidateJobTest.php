@@ -41,10 +41,7 @@ final class AutoValidateJobTest extends TestCase
         $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $pdfService = new DailyReportPdfService(
             kintai_test_views(dirname(__DIR__, 2) . '/Views'),
-            new TranslationService(
-                $this->createStub(TranslationRepositoryInterface::class),
-                $this->createStub(LanguageRepositoryInterface::class),
-            ),
+            kintai_test_real_translator('en', false),
             $shifts,
             $shiftTypes,
             $users,
@@ -57,10 +54,7 @@ final class AutoValidateJobTest extends TestCase
         $mailService = new DailyReportMailService(
             $permissions,
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
-            new TranslationService(
-                $this->createStub(TranslationRepositoryInterface::class),
-                $this->createStub(LanguageRepositoryInterface::class),
-            ),
+            kintai_test_real_translator('en', false),
             new \App\Services\UserSelection(
                 $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
                 $users,

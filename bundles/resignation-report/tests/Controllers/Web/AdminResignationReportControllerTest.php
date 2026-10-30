@@ -12,7 +12,7 @@ if (!defined('BASE_PATH')) {
 use kintai\Bundles\Installed\ResignationReport\Controllers\Web\AdminResignationReportController;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use App\Auth\PermissionService;
-use App\Container;
+use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use App\Repositories\LogRepositoryInterface;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
@@ -55,7 +55,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         $this->logRepo = $this->createStub(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
 
@@ -83,7 +83,7 @@ final class AdminResignationReportControllerTest extends TestCase
                     $this->users,
                     $this->assignments,
                     new \App\Auth\CredentialRevoker(
-                        $this->createStub(\App\Repositories\RememberTokenRepositoryInterface::class),
+                        $this->createStub(\App\Repositories\UserRepositoryInterface::class),
                         $this->createStub(\App\Repositories\ApiTokenRepositoryInterface::class),
                     ),
                     sys_get_temp_dir(),
@@ -303,7 +303,7 @@ final class AdminResignationReportControllerTest extends TestCase
     {
         $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
         $this->logRepo = $this->createMock(LogRepositoryInterface::class);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(LogRepositoryInterface::class, $this->logRepo);
         Log::setContainer($container);
         $req = Request::capture();

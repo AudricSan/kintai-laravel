@@ -6,10 +6,9 @@ namespace Tests\Bundles\StorePhoto;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use App\Container;
-use App\Http\Middleware\PermissionMiddleware;
-use App\Http\Middleware\AuthMiddleware;
-use App\Router;
+use Tests\Support\TestContainer;
+use kintai\Contract\Http\Middleware\PermissionMiddleware;
+use kintai\Contract\Http\Middleware\AuthMiddleware;
 
 /**
  * Régression : les routes /admin/photos du bundle StorePhoto doivent rester
@@ -21,14 +20,13 @@ final class StorePhotoRoutesTest extends TestCase
     #[DataProvider('photosRoutesProvider')]
     public function testPhotosRoutesRequireAdminAuth(string $method, string $path): void
     {
-        $router = new Router();
-        $container = new Container();
+        $router = kintai_test_router();
         require dirname(__DIR__, 1) . '/routes.php';
 
-        [$route] = $router->dispatch($method, $path);
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(AuthMiddleware::class, $route->middleware, "$method $path must require auth");
-        $this->assertContains(PermissionMiddleware::class, $route->middleware, "$method $path must require admin");
+        $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware(), "$method $path must require auth");
+        $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware(), "$method $path must require admin");
     }
 
     public static function photosRoutesProvider(): array

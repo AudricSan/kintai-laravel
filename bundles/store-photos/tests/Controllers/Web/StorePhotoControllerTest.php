@@ -607,9 +607,7 @@ final class StorePhotoControllerTest extends TestCase
 
     private function assertRedirectLocation(Response $response, string $expected): void
     {
-        $ref = new \ReflectionProperty($response, 'headers');
-        $ref->setAccessible(true);
-        $this->assertSame($expected, $ref->getValue($response)['Location'] ?? null);
+        $this->assertSame($expected, $response->headers->get('Location'));
     }
 
     private function ensureViewFile(string $dir, string $view): void

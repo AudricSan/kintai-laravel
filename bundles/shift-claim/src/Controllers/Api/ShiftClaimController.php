@@ -12,8 +12,8 @@ use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterfa
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 
 /**
  * Régression (audit RBAC du 11/09/2026) : mêmes correctifs que

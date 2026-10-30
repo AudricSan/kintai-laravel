@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\PlanningCheck\Views;
 
-use App\Container;
-use App\Router;
+use Tests\Support\TestContainer;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -25,13 +24,12 @@ final class HistoryResendButtonTest extends TestCase
     {
         $this->view = kintai_test_views(dirname(__DIR__, 2) . '/Views');
         $this->view->addNamespace('planning-check', dirname(__DIR__, 2) . '/Views');
-        $router = new Router();
+        $router = kintai_test_registrar();
         $router->post('/s/{id}/{cid}/resend', [\stdClass::class, 'x'], name: 'admin.planning_check.resend');
         $router->get('/s/{id}/{cid}/pdf', [\stdClass::class, 'x'], name: 'admin.planning_check.pdf');
         $router->get('/s/{id}/settings', [\stdClass::class, 'x'], name: 'admin.planning_check.settings');
         $router->post('/s/{id}/send-now', [\stdClass::class, 'x'], name: 'admin.planning_check.send_now');
         $router->post('/s/{id}/recheck', [\stdClass::class, 'x'], name: 'admin.planning_check.recheck');
-        Container::getInstance()->instance(Router::class, $router);
         $_GET = [];
     }
 

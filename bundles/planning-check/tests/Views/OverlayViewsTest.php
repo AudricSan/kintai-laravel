@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\PlanningCheck\Views;
 
-use App\Container;
-use App\Router;
+use Tests\Support\TestContainer;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -22,14 +21,13 @@ final class OverlayViewsTest extends TestCase
     {
         $this->view = kintai_test_views(dirname(__DIR__, 2) . '/Views');
         $this->view->addNamespace('planning-check', dirname(__DIR__, 2) . '/Views');
-        $router = new Router();
+        $router = kintai_test_registrar();
         foreach ([
             'admin.planning_check.submit' => '/s/{id}/submit', 'admin.planning_check.edit' => '/s/{id}/edit', 'admin.planning_check.resume' => '/s/{id}/resume',
             'admin.planning_check.approve' => '/s/{id}/{cid}/approve', 'admin.planning_check.reject' => '/s/{id}/{cid}/reject',
         ] as $name => $path) {
             $router->post($path, [\stdClass::class, 'x'], name: $name);
         }
-        Container::getInstance()->instance(Router::class, $router);
     }
 
     /** @return array<string, mixed> */

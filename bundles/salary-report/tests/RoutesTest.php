@@ -6,10 +6,9 @@ namespace Tests\Bundles\SalaryReport;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use App\Container;
-use App\Http\Middleware\PermissionMiddleware;
-use App\Http\Middleware\AuthMiddleware;
-use App\Router;
+use Tests\Support\TestContainer;
+use kintai\Contract\Http\Middleware\PermissionMiddleware;
+use kintai\Contract\Http\Middleware\AuthMiddleware;
 
 /**
  * Régression : les routes /admin/reports/salary et
@@ -17,10 +16,9 @@ use App\Router;
  */
 final class RoutesTest extends TestCase
 {
-    private function loadRoutes(): Router
+    private function loadRoutes(): \Illuminate\Routing\Router
     {
-        $router = new Router();
-        $container = new Container();
+        $router = kintai_test_router();
         require dirname(__DIR__) . '/routes.php';
 
         return $router;
@@ -29,10 +27,11 @@ final class RoutesTest extends TestCase
     #[DataProvider('adminRoutesProvider')]
     public function testAdminRoutesRequireAdminAuth(string $method, string $path): void
     {
-        [$route] = $this->loadRoutes()->dispatch($method, $path);
+        $this->loadRoutes();
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(AuthMiddleware::class, $route->middleware);
-        $this->assertContains(PermissionMiddleware::class, $route->middleware);
+        $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
+        $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware());
     }
 
     public static function adminRoutesProvider(): array

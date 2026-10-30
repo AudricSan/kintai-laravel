@@ -22,13 +22,7 @@ final class DatabaseShiftClaimRepositoryTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection([
-            'driver'   => 'sqlite',
-            'database' => ':memory:',
-        ]);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
 
         $capsule->getConnection()->getSchemaBuilder()->create('shift_claims', function ($table) {
             $table->increments('id');
@@ -39,6 +33,7 @@ final class DatabaseShiftClaimRepositoryTest extends TestCase
             $table->timestamp('claimed_at')->nullable();
             $table->timestamp('resolved_at')->nullable();
             $table->integer('resolved_by')->nullable();
+            $table->timestamps();
         });
 
         $this->repo = new DatabaseShiftClaimRepository();

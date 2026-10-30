@@ -6,8 +6,8 @@ namespace kintai\Bundles\Installed\PlanningCheck\Cron;
 
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;
 use kintai\Contract\Cron\CronJob;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
 
 /**

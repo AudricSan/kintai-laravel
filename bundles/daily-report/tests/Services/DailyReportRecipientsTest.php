@@ -80,7 +80,7 @@ final class DailyReportRecipientsTest extends TestCase
         return new DailyReportMailService(
             new DailyReportPermissionService($permissions),
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test']], $transport),
-            new TranslationService($this->createStub(TranslationRepositoryInterface::class), $this->createStub(LanguageRepositoryInterface::class)),
+            kintai_test_real_translator('en', false),
             new UserSelection($storeUsers, $users, $permissions),
         );
     }

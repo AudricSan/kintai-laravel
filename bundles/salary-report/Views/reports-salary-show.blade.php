@@ -2,7 +2,6 @@
 @section('content')
 <?php
 
-declare(strict_types=1);
 
 use kintai\Contract\View\Components\Badge;
 use kintai\Contract\View\Components\Button;
@@ -109,7 +108,7 @@ ob_start();
 // (données fournies par reportShowExtras()/StoreStatsService::buildPayslipData(),
 // recalculées à la volée, comme l'ancienne fiche de paie autonome).
 if (isset($shiftRows)):
-    include __DIR__ . '/_payslip-helpers.php';
+    include app('view')->getFinder()->find('salary-report::_payslip-helpers');
     ob_start();
     ?>
     <?php if (empty($shiftRows)): ?>

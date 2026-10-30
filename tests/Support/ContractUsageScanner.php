@@ -67,13 +67,23 @@ final class ContractUsageScanner
         foreach ($files as $file) {
             foreach (self::calls($tokens[$file], false) as [$name, $line]) {
                 $lower = strtolower($name);
-                if (isset($allowed[$name]) || isset($native[$lower]) || isset($own[$lower]) || in_array($lower, ['isset', 'empty', 'list', 'array', 'exit', 'die', 'unset', 'echo', 'print', 'eval', 'include', 'require'], true)) {
+                if (isset($allowed[$name]) || isset($native[$lower]) || isset($own[$lower]) || self::isLaravelHelper($name) || in_array($lower, ['isset', 'empty', 'list', 'array', 'exit', 'die', 'unset', 'echo', 'print', 'eval', 'include', 'require'], true)) {
                     continue;
                 }
                 $violations[] = str_replace('\\', '/', $file) . ':' . $line . ' : ' . $name;
             }
         }
         return $violations;
+    }
+
+    /** Fonction d'aide de Laravel (response(), redirect(), session()…) : les bundles sont des composants Laravel. */
+    private static function isLaravelHelper(string $name): bool
+    {
+        if (!function_exists($name)) {
+            return false;
+        }
+
+        return str_contains(str_replace('\\', '/', (string) (new \ReflectionFunction($name))->getFileName()), '/vendor/laravel/');
     }
 
     /**

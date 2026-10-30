@@ -52,10 +52,10 @@ $bodyFont = $locale === 'ja'
 <meta charset="UTF-8">
 <style nonce="<?= csp_nonce() ?>">
 <?php
-echo file_get_contents(dirname(__DIR__, 4) . '/public/assets/css/pdf/pdf-base.css');
+echo file_get_contents(public_path('assets/css/pdf/pdf-base.css'));
 echo file_get_contents(bundle_asset_path('daily-report', 'css/pdf-daily-report.css') ?? '');
-echo file_get_contents(dirname(__DIR__, 4) . '/public/assets/css/pdf/pdf-brand.css');
-echo file_get_contents(dirname(__DIR__, 4) . '/public/assets/css/pdf/pdf-preview.css');
+echo file_get_contents(public_path('assets/css/pdf/pdf-brand.css'));
+echo file_get_contents(public_path('assets/css/pdf/pdf-preview.css'));
 ?>
 <?php if ($locale === 'ja'): ?>
 body { font-family: sun-exta, Arial, sans-serif; }
@@ -64,7 +64,7 @@ body { font-family: sun-exta, Arial, sans-serif; }
 </head>
 <body>
 
-<?php include __DIR__ . '/../../../UI/View/_partials/_pdf-preview-toolbar.php'; ?>
+<?php echo view('_partials._pdf-preview-toolbar', get_defined_vars())->render(); ?>
 <div class="pdf-preview-page">
 
 <!-- En-tête -->

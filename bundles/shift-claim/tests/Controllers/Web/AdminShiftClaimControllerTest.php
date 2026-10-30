@@ -379,11 +379,9 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->assertNull($reverted['resolved_by']);
     }
 
-    private function locationOf(\App\Response $response): string
+    private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $headersRef = new \ReflectionProperty($response, 'headers');
-        $headersRef->setAccessible(true);
-        return $headersRef->getValue($response)['Location'] ?? '';
+        return (string) $response->headers->get('Location', '');
     }
 
     public function testRejectShiftClaimSetsRejectedStatus(): void

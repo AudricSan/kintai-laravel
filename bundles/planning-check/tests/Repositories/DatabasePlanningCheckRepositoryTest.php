@@ -15,10 +15,7 @@ final class DatabasePlanningCheckRepositoryTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
+        $capsule = kintai_test_database();
 
         // Les migrations lisent $this->capsule : on les charge depuis un objet qui le porte, comme le MigrationRunner du Core.
         $loader = new class($capsule) {

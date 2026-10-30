@@ -107,9 +107,7 @@ final class NotebookControllerTest extends TestCase
 
     private function redirectLocation(Response $response): string
     {
-        $ref = new \ReflectionProperty(Response::class, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return (string) $response->headers->get('Location', '');
     }
 
     protected function tearDown(): void
@@ -408,8 +406,7 @@ final class NotebookControllerTest extends TestCase
     {
         $this->grantGlobalRole(1);
         $viewDir = sys_get_temp_dir() . '/kintai-notebook-view-' . uniqid();
-        $this->ensureViewFile($viewDir, 'notebook.php', '<?php ?>');
-        $this->ensureViewFile($viewDir . '/layout', 'app.php', '<?php echo json_encode(array_column($entries, "id")); ?>');
+        $this->ensureViewFile($viewDir, 'notebook.php', '<?php echo json_encode(array_column($entries, "id")); ?>');
 
         $view = kintai_test_views($viewDir);
         $view->addNamespace('notebook', $viewDir);
@@ -440,8 +437,7 @@ final class NotebookControllerTest extends TestCase
     {
         $this->grantGlobalRole(1);
         $viewDir = sys_get_temp_dir() . '/kintai-notebook-view-' . uniqid();
-        $this->ensureViewFile($viewDir, 'notebook.php', '<?php ?>');
-        $this->ensureViewFile($viewDir . '/layout', 'app.php', '<?php echo json_encode(array_column($entries, "id")); ?>');
+        $this->ensureViewFile($viewDir, 'notebook.php', '<?php echo json_encode(array_column($entries, "id")); ?>');
 
         $view = kintai_test_views($viewDir);
         $view->addNamespace('notebook', $viewDir);

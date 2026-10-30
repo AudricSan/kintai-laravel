@@ -14,7 +14,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Contract\Auth\AuthService;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Contract\Data\ShiftTypeRepositoryInterface;

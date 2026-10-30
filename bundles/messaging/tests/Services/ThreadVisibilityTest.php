@@ -7,7 +7,7 @@ namespace Tests\Bundles\Messaging\Services;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,12 +21,8 @@ final class ThreadVisibilityTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
         $runner->runPendingFor('messaging', dirname(__DIR__, 2) . '/database/migrations');
 
         $this->repo = new DatabaseMessageRepository();

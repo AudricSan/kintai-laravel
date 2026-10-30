@@ -273,11 +273,9 @@ final class AdminSwapControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    private function location(\App\Response $response): string
+    private function location(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty(\App\Response::class, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return (string) $response->headers->get('Location', '');
     }
 
     private function pendingSwap(): array

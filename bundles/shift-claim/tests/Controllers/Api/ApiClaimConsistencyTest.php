@@ -50,7 +50,7 @@ final class ApiClaimConsistencyTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => $caller]);
         $req->setRouteParams($params);
-        (new \ReflectionProperty(Request::class, 'jsonBody'))->setValue($req, $json);
+        kintai_test_set_json($req, $json);
         return $req;
     }
 

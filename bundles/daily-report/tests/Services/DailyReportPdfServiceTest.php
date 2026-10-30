@@ -36,10 +36,7 @@ final class DailyReportPdfServiceTest extends TestCase
         if ($this->service === null) {
             $this->service = new DailyReportPdfService(
                 kintai_test_views('/nonexistent/views'),
-                new TranslationService(
-                    $this->createStub(TranslationRepositoryInterface::class),
-                    $this->createStub(LanguageRepositoryInterface::class),
-                ),
+                kintai_test_real_translator('en', false),
                 $this->shifts,
                 $this->shiftTypes,
                 $this->users,

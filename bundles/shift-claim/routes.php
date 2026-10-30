@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Middleware\AuthMiddleware;
-use App\Http\Middleware\ApiAuthMiddleware;
-use App\Http\Middleware\ApiPermissionMiddleware;
-use App\Http\Middleware\PermissionMiddleware;
+use kintai\Contract\Http\Middleware\AuthMiddleware;
+use kintai\Contract\Http\Middleware\ApiAuthMiddleware;
+use kintai\Contract\Http\Middleware\ApiPermissionMiddleware;
+use kintai\Contract\Http\Middleware\PermissionMiddleware;
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\EmployeeShiftClaimController;
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\AdminShiftClaimController;
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Api\ShiftClaimController as ApiShiftClaimController;

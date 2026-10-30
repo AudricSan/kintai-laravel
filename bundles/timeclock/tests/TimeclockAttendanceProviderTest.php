@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\Timeclock;
 
 use kintai\Bundles\Installed\Timeclock\Providers\TimeclockAttendanceProvider;
-use App\Container;
+use Tests\Support\TestContainer;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -28,7 +28,7 @@ final class TimeclockAttendanceProviderTest extends TestCase
             $rows,
             fn($r) => $r['store_id'] === $s && $r['shift_date'] >= $from && $r['shift_date'] <= $to
         )));
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(TimeclockRepositoryInterface::class, $this->repo);
         return new TimeclockAttendanceProvider($container);
     }

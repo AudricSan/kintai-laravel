@@ -229,11 +229,9 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->assertSame(302, $this->controller()->storeTimeoffForEmployee($req)->getStatusCode());
     }
 
-    private function location(\App\Response $response): string
+    private function location(\Symfony\Component\HttpFoundation\Response $response): string
     {
-        $ref = new \ReflectionProperty(\App\Response::class, 'headers');
-        $ref->setAccessible(true);
-        return $ref->getValue($response)['Location'] ?? '';
+        return (string) $response->headers->get('Location', '');
     }
 
     public function testDeleteTimeoffRemovesRecordRegardlessOfStatus(): void

@@ -6,7 +6,7 @@
  * @var list<array<string, mixed>>      $stores magasins consultables (planning_check_enabled)
  */
 ?>
-<?php include __DIR__ . "/_assets.php"; ?>
+<?php include app('view')->getFinder()->find('planning-check::_assets'); ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= htmlspecialchars($title) ?></h2>
 </div>

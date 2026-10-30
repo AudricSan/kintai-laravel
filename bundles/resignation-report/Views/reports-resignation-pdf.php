@@ -16,16 +16,16 @@
 <meta charset="UTF-8">
 <style nonce="<?= csp_nonce() ?>">
 <?php
-echo file_get_contents(dirname(__DIR__, 4) . '/public/assets/css/pdf/pdf-base.css');
-echo file_get_contents(dirname(__DIR__, 4) . '/public/assets/css/pdf/pdf-brand.css');
-echo file_get_contents(dirname(__DIR__, 4) . '/public/assets/css/pdf/pdf-preview.css');
+echo file_get_contents(public_path('assets/css/pdf/pdf-base.css'));
+echo file_get_contents(public_path('assets/css/pdf/pdf-brand.css'));
+echo file_get_contents(public_path('assets/css/pdf/pdf-preview.css'));
 echo file_get_contents(bundle_asset_path('resignation-report', 'css/pdf-resignation-report.css') ?? '');
 ?>
 </style>
 </head>
 <body>
 
-<?php include __DIR__ . '/../../../UI/View/_partials/_pdf-preview-toolbar.php'; ?>
+<?php echo view('_partials._pdf-preview-toolbar', get_defined_vars())->render(); ?>
 <div class="pdf-preview-page">
 
 <h1><?= __('resignation_report_pdf_title') ?></h1>

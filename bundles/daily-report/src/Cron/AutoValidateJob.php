@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\DailyReport\Cron;
 
 use kintai\Contract\Cron\CronJob;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService;
 

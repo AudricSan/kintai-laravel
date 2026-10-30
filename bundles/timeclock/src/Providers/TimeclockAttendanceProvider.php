@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Timeclock\Providers;
 
-use Illuminate\Container\Container;
+use kintai\Contract\Container;
 use kintai\Contract\Provider\Attendance;
 use kintai\Contract\Provider\AttendanceProvider;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;

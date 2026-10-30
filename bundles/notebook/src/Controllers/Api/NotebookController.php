@@ -7,8 +7,8 @@ namespace kintai\Bundles\Installed\Notebook\Controllers\Api;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use kintai\Contract\Http\Request;
+use kintai\Contract\Http\Response;
 
 final class NotebookController
 {

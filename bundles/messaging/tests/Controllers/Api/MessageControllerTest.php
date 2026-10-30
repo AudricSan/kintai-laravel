@@ -55,9 +55,7 @@ final class MessageControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => $userId]);
         if ($json !== []) {
-            $ref = new \ReflectionProperty(Request::class, 'jsonBody');
-            $ref->setAccessible(true);
-            $ref->setValue($req, $json);
+            kintai_test_set_json($req, $json);
         }
         return $req;
     }

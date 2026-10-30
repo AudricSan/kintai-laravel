@@ -6,12 +6,11 @@ namespace Tests\Bundles\DailyReport;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use App\Container;
-use App\Http\Middleware\ApiAuthMiddleware;
-use App\Http\Middleware\ApiPermissionMiddleware;
-use App\Http\Middleware\AuthMiddleware;
-use App\Http\Middleware\PermissionMiddleware;
-use App\Router;
+use Tests\Support\TestContainer;
+use kintai\Contract\Http\Middleware\ApiAuthMiddleware;
+use kintai\Contract\Http\Middleware\ApiPermissionMiddleware;
+use kintai\Contract\Http\Middleware\AuthMiddleware;
+use kintai\Contract\Http\Middleware\PermissionMiddleware;
 
 /**
  * Régression : les routes du bundle DailyReport doivent rester protégées par
@@ -30,10 +29,9 @@ use App\Router;
  */
 final class DailyReportRoutesTest extends TestCase
 {
-    private function loadRoutes(): Router
+    private function loadRoutes(): \Illuminate\Routing\Router
     {
-        $router = new Router();
-        $container = new Container();
+        $router = kintai_test_router();
         require dirname(__DIR__, 1) . '/routes.php';
 
         return $router;
@@ -42,12 +40,13 @@ final class DailyReportRoutesTest extends TestCase
     #[DataProvider('selfServiceRoutesProvider')]
     public function testSelfServiceRoutesAreAuthenticatedAndPermissionChecked(string $method, string $path): void
     {
-        [$route] = $this->loadRoutes()->dispatch($method, $path);
+        $this->loadRoutes();
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(AuthMiddleware::class, $route->middleware);
-        $this->assertContains(PermissionMiddleware::class, $route->middleware);
-        $this->assertIsArray($route->permission, "$path doit déclarer une règle 'membership' (accès en libre-service par appartenance au store).");
-        $this->assertTrue($route->permission['membership'] ?? false, "$path doit rester en libre-service (règle 'membership') pour qu'un simple employé puisse soumettre son propre rapport.");
+        $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
+        $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware());
+        $this->assertIsArray(\App\Http\Routing\Routes::permission($route), "$path doit déclarer une règle 'membership' (accès en libre-service par appartenance au store).");
+        $this->assertTrue(\App\Http\Routing\Routes::permission($route)['membership'] ?? false, "$path doit rester en libre-service (règle 'membership') pour qu'un simple employé puisse soumettre son propre rapport.");
     }
 
     public static function selfServiceRoutesProvider(): array
@@ -67,20 +66,22 @@ final class DailyReportRoutesTest extends TestCase
 
     public function testIndexAllRouteRequiresPermission(): void
     {
-        [$route] = $this->loadRoutes()->dispatch('GET', '/admin/daily-reports');
+        $this->loadRoutes();
+        $route = kintai_test_match('GET', '/admin/daily-reports');
 
-        $this->assertContains(AuthMiddleware::class, $route->middleware);
-        $this->assertContains(PermissionMiddleware::class, $route->middleware);
-        $this->assertSame('daily_reports.view', $route->permission);
+        $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
+        $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware());
+        $this->assertSame('daily_reports.view', \App\Http\Routing\Routes::permission($route));
     }
 
     #[DataProvider('apiRoutesProvider')]
     public function testApiRoutesRequireTokenAuthAndPermission(string $method, string $path): void
     {
-        [$route] = $this->loadRoutes()->dispatch($method, $path);
+        $this->loadRoutes();
+        $route = kintai_test_match($method, $path);
 
-        $this->assertContains(ApiAuthMiddleware::class, $route->middleware);
-        $this->assertContains(ApiPermissionMiddleware::class, $route->middleware);
+        $this->assertContains(ApiAuthMiddleware::class, $route->gatherMiddleware());
+        $this->assertContains(ApiPermissionMiddleware::class, $route->gatherMiddleware());
     }
 
     public static function apiRoutesProvider(): array

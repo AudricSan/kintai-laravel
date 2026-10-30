@@ -6,7 +6,7 @@ namespace Tests\Bundles\ResignationReport\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,13 +19,8 @@ final class ResignationReportFilterTest extends TestCase
 {
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
         $runner->runPendingFor('resignation-report', dirname(__DIR__, 2) . '/database/migrations');
 
         $now = date('Y-m-d H:i:s');

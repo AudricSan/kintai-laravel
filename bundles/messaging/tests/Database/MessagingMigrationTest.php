@@ -6,12 +6,12 @@ namespace Tests\Bundles\Messaging\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Migrations du bundle, jouées par le vrai BundleMigrationRunner, sur les trois états possibles d'une base :
+ * Migrations du bundle, jouées par le vrai BundleMigrationHarness, sur les trois états possibles d'une base :
  * installation neuve, tables de l'ancien schéma SQL (thread_messages.sent_at, colonnes manquantes) et tables de
  * l'ancienne migration du Core (thread_messages.created_at sans sent_at). Dans les trois cas, le schéma obtenu est
  * celui qu'utilise le code : le web (sent_at) comme l'API (created_at des participants) peuvent écrire.
@@ -25,16 +25,11 @@ final class MessagingMigrationTest extends TestCase
         return dirname(__DIR__, 2) . '/database/migrations';
     }
 
-    /** @return array{0: BundleMigrationRunner, 1: Capsule} */
+    /** @return array{0: BundleMigrationHarness, 1: Capsule} */
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }

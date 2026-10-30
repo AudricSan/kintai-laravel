@@ -6,12 +6,12 @@ namespace Tests\Bundles\ShiftSwap\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\DatabaseShiftSwapRequestRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Migrations du bundle, jouées par le vrai BundleMigrationRunner, sur les trois états possibles d'une base :
+ * Migrations du bundle, jouées par le vrai BundleMigrationHarness, sur les trois états possibles d'une base :
  * installation neuve, table de l'ancien schéma SQL (target_id obligatoire, reviewed_*, peer_accepted_at ; créer un
  * échange y échouait) et table de la migration du Core (déjà au bon schéma). Dans les trois cas, le code peut créer et
  * lire une demande ; les lignes de l'ancien schéma sont recopiées.
@@ -25,16 +25,11 @@ final class ShiftSwapRequestsMigrationTest extends TestCase
         return dirname(__DIR__, 2) . '/database/migrations';
     }
 
-    /** @return array{0: BundleMigrationRunner, 1: Capsule} */
+    /** @return array{0: BundleMigrationHarness, 1: Capsule} */
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }

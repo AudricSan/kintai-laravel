@@ -6,12 +6,12 @@ namespace Tests\Bundles\Timeclock\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
-use App\Database\BundleMigrationRunner;
+use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Migrations du bundle, jouées par le vrai BundleMigrationRunner, sur les trois états possibles d'une base :
+ * Migrations du bundle, jouées par le vrai BundleMigrationHarness, sur les trois états possibles d'une base :
  * installation neuve, table de l'ancien schéma SQL (sans shift_id, clock_in_ip, clock_out_ip) et table de la migration
  * du Core (déjà complète). Dans les trois cas, la table a toutes les colonnes et les pointages existants restent.
  */
@@ -19,16 +19,11 @@ final class TimeclocksMigrationTest extends TestCase
 {
     private const MIGRATIONS = ['2026_10_14_000001_create_timeclocks_table', '2026_10_14_000002_align_timeclocks_table'];
 
-    /** @return array{0: BundleMigrationRunner, 1: Capsule} */
+    /** @return array{0: BundleMigrationHarness, 1: Capsule} */
     private function freshRunner(): array
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $runner = (new \ReflectionClass(BundleMigrationRunner::class))->newInstanceWithoutConstructor();
-        (new \ReflectionProperty(BundleMigrationRunner::class, 'capsule'))->setValue($runner, $capsule);
+        $capsule = kintai_test_database();
+        $runner = new BundleMigrationHarness();
 
         return [$runner, $capsule];
     }

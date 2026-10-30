@@ -7,7 +7,7 @@ namespace Tests\Bundles\ShiftSwap\Providers;
 use kintai\Bundles\Installed\ShiftSwap\Providers\SwapRequestsProvider;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Provider\Swap;
-use App\Container;
+use Tests\Support\TestContainer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -22,7 +22,7 @@ final class SwapRequestsProviderTest extends TestCase
             ['id' => 1, 'store_id' => 4, 'requester_id' => 7, 'target_user_id' => 8, 'created_at' => '2026-09-30 10:00:00', 'status' => 'pending'],
             ['id' => 2, 'store_id' => 4, 'requester_id' => 7, 'target_user_id' => 9, 'created_at' => '2026-10-02 10:00:00', 'status' => 'accepted'],
         ]);
-        $container = new Container();
+        $container = new TestContainer();
         $container->instance(ShiftSwapRequestRepositoryInterface::class, $repo);
 
         $swaps = (new SwapRequestsProvider($container))->swaps([4], '2026-10-01', '2026-10-31');
