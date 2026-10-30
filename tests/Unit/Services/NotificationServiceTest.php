@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Repositories\DatabaseNotificationRepository;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\UserRepositoryInterface;
@@ -69,7 +69,7 @@ final class NotificationServiceTest extends TestCase
 
         // FCM désactivé (config vide) : PushNotificationService::sendToUser() est un
         // no-op immédiat, aucun appel réseau n'a lieu dans ce test.
-        $push = new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class));
+        $push = new PushNotificationService([]);
 
         $translations = kintai_test_real_translator();
 

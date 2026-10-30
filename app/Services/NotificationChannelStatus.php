@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Mail\MailerService;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\WebPushSubscription;
 
@@ -20,7 +20,6 @@ final class NotificationChannelStatus
      */
     public function __construct(
         private readonly VapidKeyStore $vapid,
-        private readonly DevicePushTokenRepositoryInterface $devices,
         private readonly MailerService $mailer,
         private readonly PublicUrlResolver $publicUrl,
         private readonly UserRepositoryInterface $users,
@@ -81,7 +80,7 @@ final class NotificationChannelStatus
         if ($status['web_push']['available'] && WebPushSubscription::findByUser($userId) !== []) {
             $channels[] = 'web_push';
         }
-        if ($status['mobile']['available'] && $this->devices->findByUser($userId) !== []) {
+        if ($status['mobile']['available'] && DevicePushToken::findByUser($userId) !== []) {
             $channels[] = 'mobile';
         }
         $email = (string) ($this->users->findById($userId)['email'] ?? '');

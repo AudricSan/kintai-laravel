@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
 use App\Repositories\DatabaseNotificationRepository;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -92,7 +92,6 @@ final class NotificationSettingsControllerTest extends TestCase
         $appSettings    = new AppSettingsService($this->settings);
         $vapid          = new VapidKeyStore($this->settings);
         $vapid->ensure();
-        $devices = $this->createStub(DevicePushTokenRepositoryInterface::class);
 
         $transport = kintai_test_mailer(function (array $to, string $subject): bool {
             $this->mails[] = ['to' => $to, 'subject' => $subject];
@@ -109,7 +108,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
         $notifications = new NotificationService(
             new DatabaseNotificationRepository(),
-            new PushNotificationService([], $devices),
+            new PushNotificationService([]),
             $translations,
             $users,
             $registry,
@@ -120,7 +119,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
         $this->view = kintai_test_views(BASE_PATH . '/resources/views');
         $this->view->share('BASE_URL', '');
-        $this->status = new NotificationChannelStatus($vapid, $devices, $mailer, $publicUrl, $users, []);
+        $this->status = new NotificationChannelStatus($vapid, $mailer, $publicUrl, $users, []);
         $this->controller = new NotificationSettingsController(
             $this->view,
             $appSettings,

@@ -6,7 +6,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 
 /**
  * Envoie des notifications push via Firebase Cloud Messaging (API HTTP v1), qui
@@ -32,7 +32,6 @@ final class PushNotificationService
 
     public function __construct(
         array $config,
-        private readonly DevicePushTokenRepositoryInterface $tokens,
         ?callable $transport = null,
     ) {
         $this->enabled         = (bool) ($config['fcm']['enabled'] ?? false);
@@ -49,7 +48,7 @@ final class PushNotificationService
         }
 
         // Les navigateurs ont leur propre canal (WebPushService) ; d'anciennes lignes « web » n'ont jamais fonctionné.
-        $devices = array_filter($this->tokens->findByUser($userId), static fn(array $d) => ($d['platform'] ?? '') !== 'web');
+        $devices = array_filter(DevicePushToken::findByUser($userId), static fn(array $d) => ($d['platform'] ?? '') !== 'web');
         if ($devices === []) {
             return;
         }
@@ -111,7 +110,7 @@ final class PushNotificationService
         }
 
         if ($response['status'] === 200) {
-            $this->tokens->touchLastUsed((int) $device['id']);
+            DevicePushToken::touchLastUsed((int) $device['id']);
             return;
         }
 
@@ -121,7 +120,7 @@ final class PushNotificationService
         $decoded = json_decode($response['body'], true);
         $status  = $decoded['error']['status'] ?? null;
         if ($response['status'] === 404 || $status === 'UNREGISTERED' || $status === 'NOT_FOUND') {
-            $this->tokens->deleteByToken((string) $device['token']);
+            DevicePushToken::deleteByToken((string) $device['token']);
             return;
         }
 

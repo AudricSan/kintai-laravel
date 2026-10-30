@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\IcalTokenRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
@@ -54,7 +54,7 @@ final class EmployeeControllerNavSettingsTest extends TestCase
             $this->createStub(UserDashboardPrefsRepositoryInterface::class),
             new NotificationService(
                 $this->createStub(NotificationRepositoryInterface::class),
-                new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class)),
+                new PushNotificationService([]),
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
             ),

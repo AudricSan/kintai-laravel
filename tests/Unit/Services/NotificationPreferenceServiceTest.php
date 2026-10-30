@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Contract\Extension\NotificationType;
 use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\DatabaseNotificationRepository;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\UserRepositoryInterface;
@@ -41,35 +40,19 @@ final class NotificationPreferenceServiceTest extends TestCase
     /** @var array<int, array<string, mixed>> */
     private array $usersById = [];
     private \DateTimeImmutable $now;
+    private int $pushCounter = 0;
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $schema = $capsule->getConnection()->getSchemaBuilder();
-        $schema->create('notification_preferences', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id');
-            $table->string('type', 64);
-            $table->string('channel', 16);
-            $table->boolean('enabled');
-            $table->unique(['user_id', 'type', 'channel']);
-        });
-        $schema->create('notifications', function ($table) {
-            $table->increments('id');
-            $table->integer('user_id');
-            $table->string('type');
-            $table->string('body_key')->nullable();
-            $table->text('params')->nullable();
-            $table->text('body')->nullable();
-            $table->string('link', 500)->nullable();
-            $table->string('reference_type', 40)->nullable();
-            $table->integer('reference_id')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
+        kintai_test_database();
+        kintai_test_migrate();
+        foreach ([7, 8] as $userId) {
+            kintai_test_user($userId);
+        }
+        \Illuminate\Support\Facades\DB::listen(function ($query): void {
+            if (str_starts_with($query->sql, 'select') && str_contains($query->sql, 'device_push_tokens')) {
+                $this->pushCounter++;
+            }
         });
 
         $bundle = new class extends Bundle {
@@ -310,12 +293,9 @@ final class NotificationPreferenceServiceTest extends TestCase
     /** @return array{NotificationService, int} service et nombre de recherches d'appareils (= push tentés) */
     private function notifier(?NotificationPreferenceService $prefs, int &$pushAttempts): NotificationService
     {
-        $tokens = $this->createStub(DevicePushTokenRepositoryInterface::class);
-        $tokens->method('findByUser')->willReturnCallback(function () use (&$pushAttempts) {
-            $pushAttempts++;
-            return [];
-        });
-        $push = new PushNotificationService(['fcm' => ['enabled' => true, 'project_id' => 'kintai-test', 'credentials_path' => '']], $tokens);
+        // Un push tenté = une recherche des appareils de l'utilisateur (comptée par l'écouteur de setUp).
+        $this->pushCounter = &$pushAttempts;
+        $push = new PushNotificationService(['fcm' => ['enabled' => true, 'project_id' => 'kintai-test', 'credentials_path' => '']]);
 
         $translations = kintai_test_real_translator();
 

@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Auth\UserTargetGuard;
 use App\Exceptions\ValidationException;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,7 +16,6 @@ final class PushTokenController
     private const PLATFORMS = ['android', 'ios'];
 
     public function __construct(
-        private readonly DevicePushTokenRepositoryInterface $tokens,
         private readonly UserTargetGuard $guard,
     ) {}
 
@@ -42,7 +41,7 @@ final class PushTokenController
             throw new ValidationException(['platform' => [__('validation_platform_invalid')]]);
         }
 
-        $record = $this->tokens->save([
+        $record = DevicePushToken::put([
             'user_id'  => $userId,
             'token'    => $token,
             'platform' => $platform ?: null,
@@ -65,7 +64,7 @@ final class PushTokenController
             throw new ValidationException(['token' => [__('validation_device_token_required')]]);
         }
 
-        $this->tokens->deleteByToken($token, $userId);
+        DevicePushToken::deleteByToken($token, $userId);
         return response()->noContent();
     }
 }

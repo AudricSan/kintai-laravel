@@ -11,7 +11,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
 use App\Repositories\DatabaseNotificationRepository;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\UserRepositoryInterface;
@@ -116,7 +116,7 @@ final class NotificationEmailTest extends TestCase
 
         return new NotificationService(
             new DatabaseNotificationRepository(),
-            new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class)),
+            new PushNotificationService([]),
             $translations,
             $users,
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),

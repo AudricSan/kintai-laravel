@@ -41,13 +41,13 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 - **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle,
   tests sur base SQLite en mémoire avec `kintai_test_database()` / `kintai_test_migrate()` / `kintai_test_user()`).
-  Faits : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
-  `RoleDashboardLayout`. Restent 26
-  interfaces (`app/Repositories`), de la plus petite à la plus utilisée : `RouteSlug`, `BundleRegistry`,
-  `CalendarSync`, `UserDashboardLayout`, `InstalledBundle`, `WebPushSubscription`,
-  `DevicePushToken`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`, `Log`, `Availability`,
-  `UserShiftTypeRate`, `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `User`
-  (227 fichiers). Chaque conversion remplace aussi les doubles de test par des tests sur base réelle.
+  Faits (13) : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
+  `RoleDashboardLayout`, `BundleRegistry`, `InstalledBundle`, `UserDashboardLayout`, `CalendarSync` (3 modèles),
+  `WebPushSubscription`, `DevicePushToken`. Restent, de la plus petite à la plus utilisée : `RouteSlug`, `ApiToken`,
+  `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`, `Log` (lecture), `Availability`, `UserShiftTypeRate`,
+  `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `User` (187 fichiers).
+  Chaque conversion remplace aussi les doubles de test par des tests sur base réelle. Outil : les méthodes du
+  repository deviennent des méthodes statiques du modèle (noms réservés par Eloquent renommés : `save` → `put`…).
 - **Tâches planifiées** (plus de `CronRunner`) : commandes Artisan `kintai:*` planifiées par `Schedule` (`routes/console.php` pour le Core, `register()` du bundle pour les siennes) ;
   `/cron/run/{tâche}` avec jeton lance la commande `kintai:{tâche}` si elle est planifiée, pour les hébergements qui ne savent appeler qu'une URL.
 - **Messages `?success=` / `?error=`** : codes dans l'URL traduits par `Flash` (35 vues, 139 redirections) ; les textes

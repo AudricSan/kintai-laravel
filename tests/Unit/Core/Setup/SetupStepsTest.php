@@ -7,7 +7,7 @@ namespace Tests\Unit\Core\Setup;
 use App\Exceptions\PlanLimitExceededException;
 use App\Exceptions\ValidationException;
 use App\Mail\MailerService;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -267,9 +267,8 @@ final class SetupStepsTest extends TestCase
     private function notificationsStep(NotificationService $notifications): NotificationsStep
     {
         $vapid = new VapidKeyStore($this->store);
-        $devices = $this->createStub(DevicePushTokenRepositoryInterface::class);
         $mailer = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@example.com']]);
-        $status = new NotificationChannelStatus($vapid, $devices, $mailer, new PublicUrlResolver($this->settings, ''), $this->createStub(UserRepositoryInterface::class), []);
+        $status = new NotificationChannelStatus($vapid, $mailer, new PublicUrlResolver($this->settings, ''), $this->createStub(UserRepositoryInterface::class), []);
         return new NotificationsStep($status, $notifications);
     }
 

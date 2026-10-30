@@ -8,7 +8,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\DatabaseNotificationRepository;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\UserRepositoryInterface;
@@ -77,7 +77,7 @@ final class NotificationServiceWebPushTest extends TestCase
 
         $this->service = new NotificationService(
             new DatabaseNotificationRepository(),
-            new PushNotificationService([], $this->createStub(DevicePushTokenRepositoryInterface::class)),
+            new PushNotificationService([]),
             kintai_test_real_translator(),
             $users,
             $registry,

@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Services\PushNotificationService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 final class PushNotificationServiceTest extends TestCase
 {
-    private DevicePushTokenRepositoryInterface&MockObject $tokens;
 
     protected function setUp(): void
     {
-        $this->tokens = $this->createMock(DevicePushTokenRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(1);
+    }
+
+    private function device(string $token, string $platform = 'android'): DevicePushToken
+    {
+        return DevicePushToken::create(['user_id' => 1, 'token' => $token, 'platform' => $platform]);
     }
 
     private function enabledConfig(): array
@@ -25,30 +31,24 @@ final class PushNotificationServiceTest extends TestCase
 
     public function testSendToUserIsNoopWhenDisabled(): void
     {
-        $this->tokens->expects($this->never())->method('findByUser');
-
-        $service = new PushNotificationService(['fcm' => ['enabled' => false]], $this->tokens);
+        $service = new PushNotificationService(['fcm' => ['enabled' => false]]);
         $service->sendToUser(1, 'Titre', 'Corps');
+
+        $this->assertSame(0, DevicePushToken::count());
     }
 
     public function testSendToUserIsNoopWhenNoDeviceRegistered(): void
     {
-        $this->tokens->method('findByUser')->with(1)->willReturn([]);
-        $this->tokens->expects($this->never())->method('touchLastUsed');
-
         // Aucun jeton enregistré : ne doit jamais tenter d'obtenir un token d'accès
         // (ce qui échouerait de toute façon, credentials_path vide ici).
-        $service = new PushNotificationService($this->enabledConfig(), $this->tokens);
+        $service = new PushNotificationService($this->enabledConfig());
         $service->sendToUser(1, 'Titre', 'Corps');
-    }
 
+        $this->assertSame(0, DevicePushToken::count());
+    }
     public function testSendToUserIsNoopWhenCredentialsMissing(): void
     {
-        $this->tokens->method('findByUser')->with(1)->willReturn([
-            ['id' => 10, 'user_id' => 1, 'token' => 'device-token-abc'],
-        ]);
-        $this->tokens->expects($this->never())->method('touchLastUsed');
-        $this->tokens->expects($this->never())->method('deleteByToken');
+        $this->device('device-token-abc');
 
         // credentials_path vide → loadCredentials() échoue → sendToUser() s'arrête
         // avant tout appel réseau (le transport ne doit jamais être invoqué).
@@ -58,7 +58,7 @@ final class PushNotificationServiceTest extends TestCase
             return ['status' => 200, 'body' => '{}'];
         };
 
-        $service = new PushNotificationService($this->enabledConfig(), $this->tokens, $transport);
+        $service = new PushNotificationService($this->enabledConfig(), $transport);
         $service->sendToUser(1, 'Titre', 'Corps');
 
         $this->assertFalse($transportCalled);
@@ -68,11 +68,7 @@ final class PushNotificationServiceTest extends TestCase
     {
         $credentials = $this->writeFakeCredentials();
 
-        $this->tokens->method('findByUser')->with(1)->willReturn([
-            ['id' => 10, 'user_id' => 1, 'token' => 'stale-device-token'],
-        ]);
-        $this->tokens->expects($this->once())->method('deleteByToken')->with('stale-device-token');
-        $this->tokens->expects($this->never())->method('touchLastUsed');
+        $this->device('stale-device-token');
 
         $calls = [];
         $transport = function (string $url, array $headers, string $body) use (&$calls) {
@@ -85,10 +81,11 @@ final class PushNotificationServiceTest extends TestCase
 
         $config = $this->enabledConfig();
         $config['fcm']['credentials_path'] = $credentials;
-        $service = new PushNotificationService($config, $this->tokens, $transport);
+        $service = new PushNotificationService($config, $transport);
         $service->sendToUser(1, 'Titre', 'Corps');
 
         $this->assertCount(2, $calls); // 1 échange de token + 1 envoi FCM
+        $this->assertSame(0, DevicePushToken::count(), 'jeton révoqué supprimé');
 
         @unlink($credentials);
     }
@@ -97,11 +94,7 @@ final class PushNotificationServiceTest extends TestCase
     {
         $credentials = $this->writeFakeCredentials();
 
-        $this->tokens->method('findByUser')->with(1)->willReturn([
-            ['id' => 10, 'user_id' => 1, 'token' => 'valid-device-token'],
-        ]);
-        $this->tokens->expects($this->once())->method('touchLastUsed')->with(10);
-        $this->tokens->expects($this->never())->method('deleteByToken');
+        $this->device('valid-device-token');
 
         $transport = function (string $url) {
             if (str_contains($url, 'oauth2.googleapis.com')) {
@@ -112,9 +105,10 @@ final class PushNotificationServiceTest extends TestCase
 
         $config = $this->enabledConfig();
         $config['fcm']['credentials_path'] = $credentials;
-        $service = new PushNotificationService($config, $this->tokens, $transport);
+        $service = new PushNotificationService($config, $transport);
         $service->sendToUser(1, 'Titre', 'Corps');
 
+        $this->assertNotNull(DevicePushToken::first()->last_used_at, 'envoi horodaté');
         @unlink($credentials);
     }
 
@@ -122,11 +116,7 @@ final class PushNotificationServiceTest extends TestCase
     {
         // Les navigateurs ont leur propre canal (WebPushService) : une ancienne ligne « web » ne reçoit plus rien.
         $credentials = $this->writeFakeCredentials();
-        $this->tokens->method('findByUser')->with(1)->willReturn([
-            ['id' => 10, 'user_id' => 1, 'token' => 'old-web-token', 'platform' => 'web'],
-        ]);
-        $this->tokens->expects($this->never())->method('touchLastUsed');
-        $this->tokens->expects($this->never())->method('deleteByToken');
+        $this->device('old-web-token', 'web');
 
         $calls = [];
         $transport = function (string $url) use (&$calls) {
@@ -136,7 +126,7 @@ final class PushNotificationServiceTest extends TestCase
         $config = $this->enabledConfig();
         $config['fcm']['credentials_path'] = $credentials;
 
-        (new PushNotificationService($config, $this->tokens, $transport))->sendToUser(1, 'Titre', 'Corps');
+        (new PushNotificationService($config, $transport))->sendToUser(1, 'Titre', 'Corps');
 
         $this->assertSame([], $calls);
         @unlink($credentials);

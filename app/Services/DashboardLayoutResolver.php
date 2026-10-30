@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
+use App\Models\UserDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
 
@@ -28,7 +29,7 @@ final class DashboardLayoutResolver
     /** Mises en page nommées de l'utilisateur pour ce tableau de bord (panneau « Personnaliser »). */
     public function namedLayouts(int $userId, string $dashboardType): array
     {
-        return $this->named->forUser($userId, $dashboardType);
+        return UserDashboardLayout::forUser($userId, $dashboardType);
     }
 
     /**

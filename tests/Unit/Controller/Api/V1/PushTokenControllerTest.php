@@ -9,7 +9,7 @@ use App\Auth\UserTargetGuard;
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\V1\PushTokenController;
@@ -19,13 +19,14 @@ use PHPUnit\Framework\TestCase;
 
 final class PushTokenControllerTest extends TestCase
 {
-    private DevicePushTokenRepositoryInterface&Stub $tokens;
     private UserRepositoryInterface&Stub $users;
     private ?PushTokenController $controller = null;
 
     protected function setUp(): void
     {
-        $this->tokens = $this->createStub(DevicePushTokenRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(20);
         $this->users  = $this->createStub(UserRepositoryInterface::class);
     }
 
@@ -35,7 +36,7 @@ final class PushTokenControllerTest extends TestCase
         if ($this->controller === null) {
             $storeUsers   = $this->createStub(StoreUserRepositoryInterface::class);
             $storeUsers->method('findByUser')->willReturn([]);
-            $this->controller = new PushTokenController($this->tokens, new UserTargetGuard($this->users, $storeUsers, ApiOwnerAuth::permissions($this)));
+            $this->controller = new PushTokenController(new UserTargetGuard($this->users, $storeUsers, ApiOwnerAuth::permissions($this)));
         }
 
         return $this->controller;
@@ -43,17 +44,17 @@ final class PushTokenControllerTest extends TestCase
 
     public function testStoreRegistersDeviceToken(): void
     {
-        $this->tokens = $this->createMock(DevicePushTokenRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20]);
-        $this->tokens->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d) => $d['user_id'] === 20 && $d['token'] === 'device-abc' && $d['platform'] === 'android'
-        ))->willReturn(['id' => 1, 'user_id' => 20, 'token' => 'device-abc', 'platform' => 'android']);
 
         $req = $this->requestWithJson(['token' => 'device-abc', 'platform' => 'android'], ['user_id' => '20']);
         $response = $this->controller()->store($req);
 
         $this->assertSame(201, $response->getStatusCode());
+        $saved = DevicePushToken::first();
+        $this->assertSame(20, (int) $saved->user_id);
+        $this->assertSame('device-abc', $saved->token);
+        $this->assertSame('android', $saved->platform);
     }
 
     public function testStoreRejectsMissingToken(): void
@@ -91,15 +92,15 @@ final class PushTokenControllerTest extends TestCase
 
     public function testDestroyUnregistersToken(): void
     {
-        $this->tokens = $this->createMock(DevicePushTokenRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20]);
-        $this->tokens->expects($this->once())->method('deleteByToken')->with('device-abc', 20);
+        DevicePushToken::put(['user_id' => 20, 'token' => 'device-abc', 'platform' => 'android']);
 
         $req = $this->requestWithJson(['token' => 'device-abc'], ['user_id' => '20']);
         $response = $this->controller()->destroy($req);
 
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame(0, DevicePushToken::count());
     }
 
     private function requestWithJson(array $json, array $routeParams = []): Request

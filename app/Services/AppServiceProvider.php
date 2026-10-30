@@ -20,7 +20,7 @@ use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\DevicePushTokenRepositoryInterface;
+use App\Models\DevicePushToken;
 use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\BundleRegistry\BundleRegistryClient;
 use Illuminate\Contracts\Bus\Dispatcher;
@@ -56,7 +56,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PushNotificationService::class, function (Container $c) {
             $path = dirname(dirname(__DIR__)) . '/config/push.php';
             $config = file_exists($path) ? require $path : [];
-            return new PushNotificationService($config, $c->make(DevicePushTokenRepositoryInterface::class));
+            return new PushNotificationService($config, $c->make(DevicePushToken::class));
         });
     }
 
@@ -102,7 +102,6 @@ final class AppServiceProvider extends ServiceProvider
 
             return new NotificationChannelStatus(
                 $c->make(VapidKeyStore::class),
-                $c->make(DevicePushTokenRepositoryInterface::class),
                 $c->make(MailerService::class),
                 $c->make(PublicUrlResolver::class),
                 $c->make(UserRepositoryInterface::class),
