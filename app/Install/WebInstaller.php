@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Schema;
 use App\Auth\PasswordHasher;
 use App\InstalledBundleManifestStore;
 use App\Database\DemoDataSeeder;
-use App\Repositories\InstalledBundleRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;

@@ -8,7 +8,7 @@ use App\BundleDiscoveryService;
 use App\InstalledBundleManifestStore;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Models\BundleRegistry;
-use App\Repositories\InstalledBundleRepositoryInterface;
+use Tests\Support\InstalledBundleExpectations;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
@@ -28,7 +28,8 @@ if (!defined('BASE_PATH')) {
 
 final class BundleMarketControllerTest extends TestCase
 {
-    private InstalledBundleRepositoryInterface&Stub $installedBundles;
+    use InstalledBundleExpectations;
+
     private AppSettingsRepositoryInterface&Stub $appSettings;
     private ?\Closure $registryFetcher = null;
     private ?\Closure $releaseFetcher = null;
@@ -42,7 +43,8 @@ final class BundleMarketControllerTest extends TestCase
         $this->ensureViewFile('system.bundle-market');
         $this->ensureViewFile('layout.app');
         kintai_test_registries([]);
-        $this->installedBundles = $this->createStub(InstalledBundleRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
         $this->appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
         $this->appSettings->method('all')->willReturn([]);
 
@@ -69,7 +71,6 @@ final class BundleMarketControllerTest extends TestCase
 
         $installer = new BundleInstallerService(
             new UpdateService($this->fakeCoreBasePath),
-            $this->installedBundles,
             new InstalledBundleManifestStore($this->bundlesDir . '/installed.json'),
             $this->bundlesDir,
             $this->releaseFetcher,
@@ -79,7 +80,6 @@ final class BundleMarketControllerTest extends TestCase
         return new BundleMarketController(
             kintai_test_views(sys_get_temp_dir()),
             $catalog,
-            $this->installedBundles,
             $installer,
             new AuditLogger(),
             $this->appSettings,
@@ -183,9 +183,7 @@ final class BundleMarketControllerTest extends TestCase
                 'versions'        => ['1.1.0', '1.0.0'],
             ]],
         ]);
-        $this->installedBundles->method('all')->willReturn([
-            ['slug' => 'feedback', 'active_version' => '1.0.0', 'source_registry_url' => null],
-        ]);
+        $this->seedInstalled('feedback', '1.0.0');
 
         $response = $this->makeController()->market(Request::capture());
 
@@ -219,9 +217,7 @@ final class BundleMarketControllerTest extends TestCase
                 ],
             ]],
         ]);
-        $this->installedBundles->method('all')->willReturn([
-            ['slug' => 'daily-report', 'active_version' => '1.0.0', 'source_registry_url' => null],
-        ]);
+        $this->seedInstalled('daily-report', '1.0.0');
 
         $response = $this->makeController()->market(Request::capture());
 
@@ -304,7 +300,6 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testInstallSucceedsForAThirdPartyBundleWithExplicitConfirmation(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip();
         $this->releaseFetcher = fn() => 'https://example.test/fake.zip';
         $this->zipDownloader = function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); };
@@ -316,7 +311,7 @@ final class BundleMarketControllerTest extends TestCase
             'confirm_third_party' => '1',
         ];
 
-        $this->installedBundles->expects($this->once())->method('upsert')->with('fake-bundle', '1.0.0', null);
+        $this->expectInstalledUpsert('fake-bundle', '1.0.0', null);
 
         $response = $this->makeController()->install(Request::capture());
 
@@ -362,9 +357,8 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testInstallSucceedsWhenTheArchiveMatchesTheCommitPinnedByTheRegistry(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::PINNED_COMMIT);
-        $this->installedBundles->expects($this->once())->method('upsert');
+        $this->expectInstalledUpsert('fake-bundle');
 
         $response = $this->makeController()->install(Request::capture());
 
@@ -373,10 +367,9 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testInstallIsRefusedWhenTheTagWasMovedAfterTheRegistryPinnedIt(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         // Le registry épingle PINNED_COMMIT ; GitHub sert l'archive d'un autre commit (tag déplacé).
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::OTHER_COMMIT);
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $response = $this->makeController()->install(Request::capture());
 
@@ -390,10 +383,9 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testInstallIsRefusedWhenTheRegistryCannotBeReadToCheckThePin(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         // Sinon, empêcher la lecture du registry suffirait à désactiver la vérification.
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::OTHER_COMMIT, registryReachable: false);
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $response = $this->makeController()->install(Request::capture());
 
@@ -402,9 +394,8 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testInstallStillWorksWhenTheRegistryDoesNotPinThisVersion(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $this->arrangePinnedInstall(null, self::OTHER_COMMIT);
-        $this->installedBundles->expects($this->once())->method('upsert');
+        $this->expectInstalledUpsert('fake-bundle');
 
         $response = $this->makeController()->install(Request::capture());
 
@@ -413,12 +404,11 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testTheExpectedCommitComesFromTheRegistryNotFromTheRequest(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         // Un formulaire ne doit pas pouvoir choisir ce qu'on vérifie : un champ « commit » forgé est ignoré.
         $this->arrangePinnedInstall(self::PINNED_COMMIT, self::OTHER_COMMIT);
         $_POST['commit'] = self::OTHER_COMMIT;
         $_POST['expected_commit'] = self::OTHER_COMMIT;
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $response = $this->makeController()->install(Request::capture());
 
@@ -437,10 +427,9 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testUninstallRedirectsWithErrorWhenSlugIsMissing(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $_POST = ['slug' => ''];
 
-        $this->installedBundles->expects($this->never())->method('delete');
+        $this->expectNoInstalledChange();
 
         $response = $this->makeController()->uninstall(Request::capture());
 
@@ -449,12 +438,10 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testUninstallFailsForABundleNotManagedByTheInstaller(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $this->appSettings->method('all')->willReturn([]);
         $_POST = ['slug' => 'daily-report'];
-        $this->installedBundles->method('find')->willReturn(null);
-        $this->installedBundles->expects($this->never())->method('delete');
+        $this->expectNoInstalledChange();
         $this->appSettings->expects($this->never())->method('set');
 
         $response = $this->makeController()->uninstall(Request::capture());
@@ -464,13 +451,12 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testUninstallRemovesTheBundleAndClearsItFromEnabledBundles(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $this->appSettings->method('all')->willReturn([]);
         mkdir($this->bundlesDir . '/feedback/1.0.0', 0777, true);
         $_POST = ['slug' => 'feedback'];
-        $this->installedBundles->method('find')->willReturn(['slug' => 'feedback', 'active_version' => '1.0.0', 'source_registry_url' => null]);
-        $this->installedBundles->expects($this->once())->method('delete')->with('feedback');
+        $this->seedInstalled('feedback', '1.0.0');
+        $this->expectInstalledDelete('feedback');
         $this->appSettings->expects($this->atLeastOnce())->method('get')->with('enabled_bundles')->willReturn(json_encode(['feedback', 'messaging']));
         $this->appSettings->expects($this->once())->method('set')
             ->with('enabled_bundles', $this->callback(fn(string $json) => json_decode($json, true) === ['messaging']));

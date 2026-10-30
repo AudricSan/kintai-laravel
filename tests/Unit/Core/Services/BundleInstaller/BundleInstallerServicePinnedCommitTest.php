@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Core\Services\BundleInstaller;
 
 use App\InstalledBundleManifestStore;
-use App\Repositories\InstalledBundleRepositoryInterface;
+use Tests\Support\InstalledBundleExpectations;
 use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\UpdateService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -23,13 +23,14 @@ if (!defined('BASE_PATH')) {
  */
 final class BundleInstallerServicePinnedCommitTest extends TestCase
 {
+    use InstalledBundleExpectations;
+
     private const PINNED = '7f99e084014e8258003a8b2a8fd4d8a188cfa5c3';
     private const OTHER  = '0123456789abcdef0123456789abcdef01234567';
     private const REPO   = 'https://github.com/AudricSan/kintai-bundle-fake';
 
     private string $bundlesDir;
     private string $fakeCoreBasePath;
-    private InstalledBundleRepositoryInterface&Stub $installedBundles;
 
     protected function setUp(): void
     {
@@ -40,7 +41,9 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
         mkdir($this->fakeCoreBasePath . '/config', 0777, true);
         file_put_contents($this->fakeCoreBasePath . '/config/app.php', "<?php\nreturn ['version' => '0.5.0'];\n");
 
-        $this->installedBundles = $this->createStub(InstalledBundleRepositoryInterface::class);
+        kintai_test_database();
+
+        kintai_test_migrate();
     }
 
     /** Un zipball GitHub valide portant `$commit` dans son commentaire et son dossier racine. */
@@ -74,7 +77,6 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
     {
         return new BundleInstallerService(
             new UpdateService($this->fakeCoreBasePath),
-            $this->installedBundles,
             new InstalledBundleManifestStore($this->bundlesDir . '/installed.json'),
             $this->bundlesDir,
             fn() => 'https://example.test/fake.zip',
@@ -84,8 +86,7 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
 
     public function testInstallSucceedsWhenTheArchiveMatchesThePinnedCommit(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
-        $this->installedBundles->expects($this->once())->method('upsert');
+        $this->expectInstalledUpsert('fake-bundle');
 
         $result = $this->service($this->githubZip(self::PINNED))
             ->install('fake-bundle', self::REPO, '1.0.0', null, null, self::PINNED);
@@ -96,9 +97,8 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
 
     public function testInstallIsRefusedWhenTheTagWasMovedToAnotherCommit(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         // GitHub sert l'archive du commit ACTUEL du tag ; le registry en a épinglé un autre.
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $result = $this->service($this->githubZip(self::OTHER))
             ->install('fake-bundle', self::REPO, '1.0.0', null, null, self::PINNED);
@@ -119,8 +119,7 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
 
     public function testInstallWithoutAPinStillWorksForRegistriesThatDoNotPinCommits(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
-        $this->installedBundles->expects($this->once())->method('upsert');
+        $this->expectInstalledUpsert('fake-bundle');
 
         $result = $this->service($this->githubZip(self::OTHER))
             ->install('fake-bundle', self::REPO, '1.0.0');
@@ -139,8 +138,7 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
 
     public function testAnArchiveWithNoReadableCommitIsRefusedWhenAPinExists(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         // Archive sans commentaire et dont le dossier racine ne porte aucun sha.
         $path = sys_get_temp_dir() . '/kintai-nocommit-' . uniqid() . '.zip';

@@ -8,7 +8,7 @@ use App\BundleDiscoveryService;
 use App\LicenseServiceProvider;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Models\BundleRegistry;
-use App\Repositories\InstalledBundleRepositoryInterface;
+use App\Models\InstalledBundle;
 use Illuminate\Container\Container;
 use App\Services\BundleActivationService;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +35,6 @@ final class BundleMarketController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly BundleCatalogService $catalog,
-        private readonly InstalledBundleRepositoryInterface $installedBundles,
         private readonly BundleInstallerService $installer,
         private readonly AuditLogger $auditLogger,
         private readonly AppSettingsRepositoryInterface $appSettings,
@@ -106,7 +105,7 @@ final class BundleMarketController
     public function market(Request $request): Response
     {
         $installed = [];
-        foreach ($this->installedBundles->all() as $row) {
+        foreach (InstalledBundle::orderBy('slug')->get() as $row) {
             $installed[$row['slug']] = $row['active_version'];
         }
 

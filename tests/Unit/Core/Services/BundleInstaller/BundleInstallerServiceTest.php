@@ -7,7 +7,7 @@ namespace Tests\Unit\Core\Services\BundleInstaller;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Migrations\Migrator;
 use App\InstalledBundleManifestStore;
-use App\Repositories\InstalledBundleRepositoryInterface;
+use Tests\Support\InstalledBundleExpectations;
 use App\Repositories\RoleRepositoryInterface;
 use App\Services\BundleInstaller\BundlePermissionGranter;
 use App\Services\BundleInstaller\BundleInstallerService;
@@ -22,9 +22,10 @@ if (!defined('BASE_PATH')) {
 
 final class BundleInstallerServiceTest extends TestCase
 {
+    use InstalledBundleExpectations;
+
     private string $bundlesDir;
     private string $fakeCoreBasePath;
-    private InstalledBundleRepositoryInterface&Stub $installedBundles;
     private InstalledBundleManifestStore $manifestStore;
 
     protected function setUp(): void
@@ -36,7 +37,9 @@ final class BundleInstallerServiceTest extends TestCase
         mkdir($this->fakeCoreBasePath . '/config', 0777, true);
         file_put_contents($this->fakeCoreBasePath . '/config/app.php', "<?php\nreturn ['version' => '0.5.0'];\n");
 
-        $this->installedBundles = $this->createStub(InstalledBundleRepositoryInterface::class);
+        kintai_test_database();
+
+        kintai_test_migrate();
         $this->manifestStore = new InstalledBundleManifestStore($this->bundlesDir . '/installed.json');
     }
 
@@ -48,7 +51,6 @@ final class BundleInstallerServiceTest extends TestCase
     ): BundleInstallerService {
         return new BundleInstallerService(
             new UpdateService($this->fakeCoreBasePath),
-            $this->installedBundles,
             $this->manifestStore,
             $this->bundlesDir,
             $releaseFetcher,
@@ -67,6 +69,7 @@ final class BundleInstallerServiceTest extends TestCase
     private function makeMigrator(): array
     {
         $capsule = kintai_test_database();
+        kintai_test_migrate();
 
         return [$GLOBALS['kintai_test_app']->make('migrator'), $capsule];
     }
@@ -122,25 +125,23 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testInstallRejectsANonGithubRepositoryUrl(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $service = $this->makeService(null, null);
 
         $result = $service->install('fake-bundle', 'https://gitlab.com/someone/fake-bundle', '1.0.0');
 
         $this->assertFalse($result->success);
         $this->assertStringContainsString('non reconnue', (string) $result->error);
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
     }
 
     public function testInstallRejectsWhenReleaseCannotBeResolved(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $service = $this->makeService(fn() => null, null);
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
 
         $this->assertFalse($result->success);
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
     }
 
     public function testInstallRejectsWhenDownloadFails(): void
@@ -217,15 +218,13 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testInstallActivatesAValidBundle(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip();
         $service = $this->makeService(
             fn(string $repo, string $version) => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
         );
 
-        $this->installedBundles->expects($this->once())->method('upsert')
-            ->with('fake-bundle', '1.0.0', 'https://example.test/registry.json');
+        $this->expectInstalledUpsert('fake-bundle', '1.0.0', 'https://example.test/registry.json');
 
         $result = $service->install(
             'fake-bundle',
@@ -247,14 +246,13 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testDryRunDoesNotActivateNorPersistAnything(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip();
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
         );
 
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $result = $service->dryRun('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
 
@@ -266,10 +264,9 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testRollbackRepointsToAnAlreadyPresentVersion(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         mkdir($this->bundlesDir . '/fake-bundle/1.0.0', 0777, true);
-        $this->installedBundles->method('find')->willReturn(['slug' => 'fake-bundle', 'active_version' => '1.1.0', 'source_registry_url' => null]);
-        $this->installedBundles->expects($this->once())->method('upsert')->with('fake-bundle', '1.0.0', null);
+        $this->seedInstalled('fake-bundle', '1.1.0');
+        $this->expectInstalledUpsert('fake-bundle', '1.0.0', null);
 
         $service = $this->makeService(null, null);
 
@@ -279,8 +276,7 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testRollbackFailsWhenTheVersionIsNotOnDisk(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $service = $this->makeService(null, null);
 
@@ -289,13 +285,12 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testUninstallRemovesFilesManifestEntryAndDatabaseRow(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         mkdir($this->bundlesDir . '/fake-bundle/1.0.0', 0777, true);
         file_put_contents($this->bundlesDir . '/fake-bundle/1.0.0/bundle.json', '{}');
         $this->manifestStore->setActiveVersion('fake-bundle', '1.0.0');
 
-        $this->installedBundles->method('find')->willReturn(['slug' => 'fake-bundle', 'active_version' => '1.0.0', 'source_registry_url' => null]);
-        $this->installedBundles->expects($this->once())->method('delete')->with('fake-bundle');
+        $this->seedInstalled('fake-bundle', '1.0.0');
+        $this->expectInstalledDelete('fake-bundle');
 
         $service = $this->makeService(null, null);
 
@@ -306,9 +301,7 @@ final class BundleInstallerServiceTest extends TestCase
 
     public function testUninstallFailsForABundleNotManagedByTheInstaller(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
-        $this->installedBundles->method('find')->willReturn(null);
-        $this->installedBundles->expects($this->never())->method('delete');
+        $this->expectNoInstalledChange();
 
         $service = $this->makeService(null, null);
 
@@ -348,15 +341,11 @@ PHP);
 
         $this->assertTrue($result->success);
         $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('fake_table'));
-        $this->assertSame(
-            ['2026_09_25_000001_create_fake_table'],
-            $capsule->table('migrations')->pluck('migration')->toArray(),
-        );
+        $this->assertContains('2026_09_25_000001_create_fake_table', $capsule->table('migrations')->pluck('migration')->toArray());
     }
 
     public function testInstallRollsBackTheBundleDirectoryWhenMigrationsFail(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip([], true, <<<'PHP'
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Schema;
@@ -381,7 +370,7 @@ PHP);
             $migrator,
         );
 
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
 
@@ -411,17 +400,17 @@ return new class extends Migration {
     }
 };');
         $this->manifestStore->setActiveVersion('fake-bundle', '1.0.0');
-        $this->installedBundles->method('find')->willReturn(['slug' => 'fake-bundle', 'active_version' => '1.0.0', 'source_registry_url' => null]);
-
         [$migrator, $capsule] = $this->makeMigrator();
-        $migrator->getRepository()->createRepository();
+        $this->seedInstalled('fake-bundle', '1.0.0');
         $migrator->run([$migrations]);
         $capsule->table('migrations')->insert(['migration' => '2026_01_01_000000_core', 'batch' => 9]);
 
         $this->assertTrue($this->makeService(null, null, $migrator)->uninstall('fake-bundle'));
 
         // Seul le suivi du bundle disparaît : celui des autres migrations et les tables restent.
-        $this->assertSame(['2026_01_01_000000_core'], $capsule->table('migrations')->pluck('migration')->toArray());
+        $tracked = $capsule->table('migrations')->pluck('migration')->toArray();
+        $this->assertNotContains('2026_09_25_000001_create_other_table', $tracked);
+        $this->assertNotEmpty($tracked, 'les migrations du Cœur restent suivies');
         $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('other_table'));
     }
 
@@ -453,7 +442,6 @@ return new class extends Migration {
         $roles->method('getGlobalPermissionKeys')->willReturn([]);
         $roles->expects($this->once())->method('savePermissions')
             ->with(2, ['shifts.view', 'fake_items.view', 'fake_items.manage'], []);
-        $this->installedBundles->method('find')->willReturn(null);
 
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
@@ -472,7 +460,7 @@ return new class extends Migration {
         $zipPath = $this->buildBundleDeclaringPermissions('NoGrantOnUpdate');
         $roles = $this->createMock(RoleRepositoryInterface::class);
         $roles->expects($this->never())->method('savePermissions');
-        $this->installedBundles->method('find')->willReturn(['slug' => 'fake-bundle', 'active_version' => '0.9.0', 'source_registry_url' => null]);
+        $this->seedInstalled('fake-bundle', '0.9.0');
 
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
@@ -491,7 +479,6 @@ return new class extends Migration {
         $zipPath = $this->buildFixtureZip();
         $roles = $this->createMock(RoleRepositoryInterface::class);
         $roles->expects($this->never())->method('savePermissions');
-        $this->installedBundles->method('find')->willReturn(null);
 
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
@@ -527,14 +514,13 @@ return new class extends Migration {
 
     public function testInstallFromABundlesRepositoryKeepsOnlyTheBundlesFolder(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip(directory: 'fake-bundle');
         $service = $this->makeService(
             fn(string $repo, string $version) => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
         );
 
-        $this->installedBundles->expects($this->once())->method('upsert')->with('fake-bundle', '1.0.0', null);
+        $this->expectInstalledUpsert('fake-bundle', '1.0.0', null);
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-laravel-bundles/tree/main/fake-bundle', '1.0.0');
 
@@ -548,14 +534,13 @@ return new class extends Migration {
 
     public function testInstallFromABundlesRepositoryFailsWhenTheFolderIsMissing(): void
     {
-        $this->installedBundles = $this->createMock(InstalledBundleRepositoryInterface::class);
         $zipPath = $this->buildFixtureZip(directory: 'fake-bundle');
         $service = $this->makeService(
             fn(string $repo, string $version) => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
         );
 
-        $this->installedBundles->expects($this->never())->method('upsert');
+        $this->expectNoInstalledChange();
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-laravel-bundles/tree/main/missing', '1.0.0');
 

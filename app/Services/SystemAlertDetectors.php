@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\InstalledBundleRepositoryInterface;
+use App\Models\InstalledBundle;
 use App\Services\BundleRegistry\BundleCatalogService;
 
 /** Détecteurs réels des notifications système : mise à jour, migrations, bundles, sauvegarde, canaux, quota. */
@@ -15,7 +15,6 @@ final class SystemAlertDetectors implements SystemAlertSourceInterface
         private readonly GithubUpdateService $github,
         private readonly UpdateService $updates,
         private readonly BundleCatalogService $catalog,
-        private readonly InstalledBundleRepositoryInterface $installedBundles,
         private readonly BackupService $backups,
         private readonly NotificationChannelStatus $channels,
         private readonly PlanLimitService $limits,
@@ -55,7 +54,7 @@ final class SystemAlertDetectors implements SystemAlertSourceInterface
     private function bundleUpdates(): ?array
     {
         $installed = [];
-        foreach ($this->installedBundles->all() as $row) {
+        foreach (InstalledBundle::orderBy('slug')->get() as $row) {
             $installed[(string) $row['slug']] = (string) $row['active_version'];
         }
         if ($installed === []) {

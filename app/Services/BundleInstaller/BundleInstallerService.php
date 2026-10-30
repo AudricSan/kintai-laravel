@@ -8,7 +8,7 @@ use App\InstalledBundleAutoloader;
 use App\Bundles\BundleManifest;
 use Illuminate\Database\Migrations\Migrator;
 use App\InstalledBundleManifestStore;
-use App\Repositories\InstalledBundleRepositoryInterface;
+use App\Models\InstalledBundle;
 use App\Services\HttpFetcher;
 use Illuminate\Support\Facades\Log;
 use App\Services\UpdateService;
@@ -40,7 +40,6 @@ final class BundleInstallerService
      */
     public function __construct(
         private readonly UpdateService $updateService,
-        private readonly InstalledBundleRepositoryInterface $installedBundles,
         private readonly InstalledBundleManifestStore $manifestStore = new InstalledBundleManifestStore(),
         private readonly ?string $bundlesDir = null,
         private readonly ?\Closure $releaseFetcher = null,
@@ -113,7 +112,7 @@ final class BundleInstallerService
             return false;
         }
 
-        if ($this->installedBundles->find($slug) === null) {
+        if (InstalledBundle::find($slug) === null) {
             $this->lastError = "Le bundle {$slug} n'est pas géré par l'installateur (bundle du monorepo ou déjà désinstallé).";
             return false;
         }
@@ -121,7 +120,7 @@ final class BundleInstallerService
         $this->forgetMigrations($slug);
         $this->removeDirIfExists($this->bundlesDir() . "/{$slug}");
         $this->manifestStore->remove($slug);
-        $this->installedBundles->delete($slug);
+        InstalledBundle::destroy($slug);
 
         Log::info('bundle_uninstalled', ['slug' => $slug]);
 
@@ -145,9 +144,9 @@ final class BundleInstallerService
             return false;
         }
 
-        $existing = $this->installedBundles->find($slug);
+        $existing = InstalledBundle::find($slug);
         $this->manifestStore->setActiveVersion($slug, $version);
-        $this->installedBundles->upsert($slug, $version, $existing['source_registry_url'] ?? null);
+        InstalledBundle::updateOrCreate(['slug' => $slug], ['active_version' => $version, 'source_registry_url' => $existing['source_registry_url'] ?? null]);
 
         return true;
     }
@@ -349,7 +348,7 @@ final class BundleInstallerService
 
     private function activate(string $slug, string $version, string $extractedRoot, ?string $sourceRegistryUrl, string $entryClass): void
     {
-        $firstInstall = $this->installedBundles->find($slug) === null;
+        $firstInstall = InstalledBundle::find($slug) === null;
         $finalDir = $this->bundlesDir() . "/{$slug}/{$version}";
         $this->removeDirIfExists($finalDir);
 
@@ -372,7 +371,7 @@ final class BundleInstallerService
         }
 
         $this->manifestStore->setActiveVersion($slug, $version);
-        $this->installedBundles->upsert($slug, $version, $sourceRegistryUrl);
+        InstalledBundle::updateOrCreate(['slug' => $slug], ['active_version' => $version, 'source_registry_url' => $sourceRegistryUrl]);
 
         if ($firstInstall && $this->permissionGranter !== null) {
             try {
