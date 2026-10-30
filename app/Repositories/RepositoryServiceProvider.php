@@ -32,7 +32,6 @@ final class RepositoryServiceProvider extends ServiceProvider
         $this->app->singleton(RoleRepositoryInterface::class, fn() => new DatabaseRoleRepository());
         $this->app->singleton(RoleAssignmentRepositoryInterface::class, fn() => new DatabaseRoleAssignmentRepository());
         $this->app->singleton(DevicePushTokenRepositoryInterface::class, fn() => new DatabaseDevicePushTokenRepository());
-        $this->app->singleton(BundleRegistryRepositoryInterface::class, fn() => new DatabaseBundleRegistryRepository());
         $this->app->singleton(InstalledBundleRepositoryInterface::class, fn() => new DatabaseInstalledBundleRepository());
 
         // Traductions : fichiers JSON de Laravel (lang/{code}.json) ; la liste des langues est lang/languages.json.

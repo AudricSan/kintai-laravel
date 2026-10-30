@@ -7,7 +7,7 @@ namespace App\Http\Controllers\System;
 use App\BundleDiscoveryService;
 use App\LicenseServiceProvider;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\BundleRegistryRepositoryInterface;
+use App\Models\BundleRegistry;
 use App\Repositories\InstalledBundleRepositoryInterface;
 use Illuminate\Container\Container;
 use App\Services\BundleActivationService;
@@ -34,7 +34,6 @@ final class BundleMarketController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly BundleRegistryRepositoryInterface $registries,
         private readonly BundleCatalogService $catalog,
         private readonly InstalledBundleRepositoryInterface $installedBundles,
         private readonly BundleInstallerService $installer,
@@ -51,7 +50,7 @@ final class BundleMarketController
     {
         return response($this->view->make('system.bundle-registries', [
             'title'      => __('bundle_registries'),
-            'registries' => $this->registries->all(),
+            'registries' => BundleRegistry::orderBy('id')->get(),
             'error'      => $request->query('error'),
             'success'    => $request->query('success'),
         ])->render());
@@ -67,11 +66,11 @@ final class BundleMarketController
             return redirect()->away($this->base() . '/admin/bundles/registries?error=invalid');
         }
 
-        if ($this->registries->existsByUrl($url)) {
+        if (BundleRegistry::where('url', $url)->exists()) {
             return redirect()->away($this->base() . '/admin/bundles/registries?error=duplicate');
         }
 
-        $created = $this->registries->create($name, $url);
+        $created = BundleRegistry::create(['name' => $name, 'url' => $url, 'is_official' => false, 'created_at' => date('Y-m-d H:i:s')]);
 
         $this->auditLogger->log($request, 'bundle_registry.created', 'bundle_registry', $created['id'], [
             'name' => $name,
@@ -85,7 +84,7 @@ final class BundleMarketController
     public function destroy(Request $request): Response
     {
         $id = (int) $request->route('id');
-        $registry = $this->registries->find($id);
+        $registry = BundleRegistry::find($id);
         if (!$registry) {
             return redirect()->away($this->base() . '/admin/bundles/registries');
         }
@@ -93,7 +92,7 @@ final class BundleMarketController
             return redirect()->away($this->base() . '/admin/bundles/registries?error=delete_official_forbidden');
         }
 
-        $this->registries->delete($id);
+        BundleRegistry::destroy($id);
 
         $this->auditLogger->log($request, 'bundle_registry.deleted', 'bundle_registry', $id, [
             'name' => $registry['name'],

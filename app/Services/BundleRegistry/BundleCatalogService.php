@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\BundleRegistry;
 
-use App\Repositories\BundleRegistryRepositoryInterface;
+use App\Models\BundleRegistry;
 
 /**
  * Agrège les listings de tous les registries configurés en un seul
@@ -14,7 +14,6 @@ use App\Repositories\BundleRegistryRepositoryInterface;
 final class BundleCatalogService
 {
     public function __construct(
-        private readonly BundleRegistryRepositoryInterface $registries,
         private readonly BundleRegistryClient $client,
     ) {
     }
@@ -25,7 +24,7 @@ final class BundleCatalogService
     public function listAvailableBundles(): array
     {
         $catalog = [];
-        foreach ($this->registries->all() as $registry) {
+        foreach (BundleRegistry::orderBy('id')->get() as $registry) {
             $listing = $this->client->fetchListing($registry['url']);
             if ($listing === null) {
                 continue;
@@ -54,14 +53,14 @@ final class BundleCatalogService
     public function resolvePin(?string $registryUrl, string $slug, string $version): array
     {
         $targets = [];
-        foreach ($this->registries->all() as $registry) {
+        foreach (BundleRegistry::orderBy('id')->get() as $registry) {
             if ($registryUrl === null || $registryUrl === '' || $registry['url'] === $registryUrl) {
                 $targets[] = $registry['url'];
             }
         }
         // URL de registry inconnue de cette instance : on retombe sur tous les registries configurés.
         if ($targets === [] && $registryUrl !== null && $registryUrl !== '') {
-            foreach ($this->registries->all() as $registry) {
+            foreach (BundleRegistry::orderBy('id')->get() as $registry) {
                 $targets[] = $registry['url'];
             }
         }

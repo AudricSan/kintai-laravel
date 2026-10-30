@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web\System;
 use App\BundleDiscoveryService;
 use App\InstalledBundleManifestStore;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\BundleRegistryRepositoryInterface;
+use App\Models\BundleRegistry;
 use App\Repositories\InstalledBundleRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
@@ -28,7 +28,6 @@ if (!defined('BASE_PATH')) {
 
 final class BundleMarketControllerTest extends TestCase
 {
-    private BundleRegistryRepositoryInterface&Stub $registries;
     private InstalledBundleRepositoryInterface&Stub $installedBundles;
     private AppSettingsRepositoryInterface&Stub $appSettings;
     private ?\Closure $registryFetcher = null;
@@ -42,7 +41,7 @@ final class BundleMarketControllerTest extends TestCase
         $this->ensureViewFile('system.bundle-registries');
         $this->ensureViewFile('system.bundle-market');
         $this->ensureViewFile('layout.app');
-        $this->registries = $this->createStub(BundleRegistryRepositoryInterface::class);
+        kintai_test_registries([]);
         $this->installedBundles = $this->createStub(InstalledBundleRepositoryInterface::class);
         $this->appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
         $this->appSettings->method('all')->willReturn([]);
@@ -65,7 +64,6 @@ final class BundleMarketControllerTest extends TestCase
     private function makeController(): BundleMarketController
     {
         $catalog = new BundleCatalogService(
-            $this->registries,
             new BundleRegistryClient($this->registryFetcher),
         );
 
@@ -80,7 +78,6 @@ final class BundleMarketControllerTest extends TestCase
 
         return new BundleMarketController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->registries,
             $catalog,
             $this->installedBundles,
             $installer,
@@ -97,8 +94,6 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testIndexRendersPage(): void
     {
-        $this->registries->method('all')->willReturn([]);
-
         $response = $this->makeController()->index(Request::capture());
 
         $this->assertSame(200, $response->getStatusCode());
@@ -106,10 +101,8 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testStoreRejectsInvalidUrl(): void
     {
-        $this->registries = $this->createMock(BundleRegistryRepositoryInterface::class);
         $_POST = ['name' => 'Mon registry', 'url' => 'not-a-url'];
 
-        $this->registries->expects($this->never())->method('create');
 
         $response = $this->makeController()->store(Request::capture());
 
@@ -119,10 +112,8 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testStoreRejectsNonHttpsUrl(): void
     {
-        $this->registries = $this->createMock(BundleRegistryRepositoryInterface::class);
         $_POST = ['name' => 'Mon registry', 'url' => 'http://example.test/registry.json'];
 
-        $this->registries->expects($this->never())->method('create');
 
         $response = $this->makeController()->store(Request::capture());
 
@@ -131,11 +122,9 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testStoreRejectsDuplicateUrl(): void
     {
-        $this->registries = $this->createMock(BundleRegistryRepositoryInterface::class);
         $_POST = ['name' => 'Mon registry', 'url' => 'https://example.test/registry.json'];
-        $this->registries->method('existsByUrl')->willReturn(true);
+        BundleRegistry::create(['name' => 'Déjà là', 'url' => 'https://example.test/registry.json', 'is_official' => false]);
 
-        $this->registries->expects($this->never())->method('create');
 
         $response = $this->makeController()->store(Request::capture());
 
@@ -144,49 +133,43 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testStoreCreatesRegistryAndRedirectsToSuccess(): void
     {
-        $this->registries = $this->createMock(BundleRegistryRepositoryInterface::class);
         $_POST = ['name' => 'Mon registry', 'url' => 'https://example.test/registry.json'];
-        $this->registries->method('existsByUrl')->willReturn(false);
-        $this->registries->expects($this->once())->method('create')
-            ->with('Mon registry', 'https://example.test/registry.json')
-            ->willReturn(['id' => 3, 'name' => 'Mon registry', 'url' => 'https://example.test/registry.json', 'is_official' => false]);
 
         $response = $this->makeController()->store(Request::capture());
 
         $this->assertStringContainsString('success=created', $this->locationOf($response));
+        $this->assertSame(['Mon registry'], BundleRegistry::where('is_official', false)->pluck('name')->all());
     }
 
     public function testDestroyRefusesToDeleteTheOfficialRegistry(): void
     {
-        $this->registries = $this->createMock(BundleRegistryRepositoryInterface::class);
-        $this->registries->method('find')->willReturn(['id' => 1, 'name' => 'Officiel', 'url' => 'https://example.test/official.json', 'is_official' => true]);
-        $this->registries->expects($this->never())->method('delete');
+        $official = BundleRegistry::create(['name' => 'Officiel', 'url' => 'https://example.test/official.json', 'is_official' => true]);
 
         $req = Request::capture();
-        $req->setRouteParams(['id' => '1']);
+        $req->setRouteParams(['id' => (string) $official->id]);
 
         $response = $this->makeController()->destroy($req);
 
         $this->assertStringContainsString('error=delete_official_forbidden', $this->locationOf($response));
+        $this->assertNotNull(BundleRegistry::find($official->id));
     }
 
     public function testDestroyDeletesANonOfficialRegistry(): void
     {
-        $this->registries = $this->createMock(BundleRegistryRepositoryInterface::class);
-        $this->registries->method('find')->willReturn(['id' => 2, 'name' => 'Perso', 'url' => 'https://example.test/perso.json', 'is_official' => false]);
-        $this->registries->expects($this->once())->method('delete')->with(2);
+        $perso = BundleRegistry::create(['name' => 'Perso', 'url' => 'https://example.test/perso.json', 'is_official' => false]);
 
         $req = Request::capture();
-        $req->setRouteParams(['id' => '2']);
+        $req->setRouteParams(['id' => (string) $perso->id]);
 
         $response = $this->makeController()->destroy($req);
 
         $this->assertStringContainsString('success=deleted', $this->locationOf($response));
+        $this->assertNull(BundleRegistry::find($perso->id));
     }
 
     public function testMarketRendersCatalogAggregatedFromRegistries(): void
     {
-        $this->registries->method('all')->willReturn([
+        kintai_test_registries([
             ['id' => 1, 'name' => 'Registry officiel', 'url' => 'https://example.test/registry.json', 'is_official' => true],
         ]);
         $this->registryFetcher = fn(string $url) => json_encode([
@@ -218,7 +201,7 @@ final class BundleMarketControllerTest extends TestCase
     {
         $this->appSettings->method('all')->willReturn(['bundle_update_channel' => 'alpha']);
 
-        $this->registries->method('all')->willReturn([
+        kintai_test_registries([
             ['id' => 1, 'name' => 'Registry officiel', 'url' => 'https://example.test/registry.json', 'is_official' => true],
         ]);
         $this->registryFetcher = fn(string $url) => json_encode([
@@ -307,8 +290,7 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testInstallRejectsAThirdPartyBundleWithoutExplicitConfirmation(): void
     {
-        $this->registries->method('all')->willReturn([]);
-        $_POST = [
+                $_POST = [
             'slug'            => 'unofficial-bundle',
             'repository_url'  => 'https://github.com/someone/unofficial-bundle',
             'version'         => '1.0.0',
@@ -348,7 +330,7 @@ final class BundleMarketControllerTest extends TestCase
     /** Configure un registry officiel qui épingle (ou non) le commit de fake-bundle 1.0.0, et l'archive servie. */
     private function arrangePinnedInstall(?string $pinnedCommit, ?string $servedCommit, bool $registryReachable = true): void
     {
-        $this->registries->method('all')->willReturn([
+        kintai_test_registries([
             ['id' => 1, 'name' => 'Registry', 'url' => self::PIN_REGISTRY_URL, 'is_official' => true],
         ]);
         $this->registryFetcher = $registryReachable

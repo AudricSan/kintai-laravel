@@ -10,4 +10,6 @@ final class BundleRegistry extends Model
     protected $table = 'bundle_registries';
     protected $guarded = [];
     public $timestamps = false;
+
+    protected $casts = ['is_official' => 'boolean'];
 }

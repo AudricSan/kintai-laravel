@@ -78,6 +78,17 @@ Illuminate\Http\Request::macro('setRouteParams', function (array $params): void 
     $this->setRouteResolver(static fn () => $route);
 });
 
+// Aide des tests : base neuve dont la table bundle_registries contient ces registries (name, url, is_official).
+function kintai_test_registries(array $rows): void
+{
+    kintai_test_database();
+    kintai_test_migrate();
+    App\Models\BundleRegistry::query()->delete();
+    foreach ($rows as $row) {
+        App\Models\BundleRegistry::create(['name' => $row['name'], 'url' => $row['url'], 'is_official' => $row['is_official'] ?? false]);
+    }
+}
+
 // Aide des tests : exécute une commande Artisan (ses services viennent du conteneur de test) ; renvoie [code de sortie, sortie].
 function kintai_test_command(Illuminate\Console\Command $command, array $input = []): array
 {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Services\BundleRegistry;
 
-use App\Repositories\BundleRegistryRepositoryInterface;
 use App\Services\BundleRegistry\BundleCatalogService;
 use App\Services\BundleRegistry\BundleRegistryClient;
 use PHPUnit\Framework\TestCase;
@@ -17,8 +16,7 @@ final class BundleCatalogServiceTest extends TestCase
 {
     public function testListAvailableBundlesAggregatesEveryActiveRegistry(): void
     {
-        $registries = $this->createStub(BundleRegistryRepositoryInterface::class);
-        $registries->method('all')->willReturn([
+        kintai_test_registries([
             ['id' => 1, 'name' => 'Registry officiel', 'url' => 'https://example.test/official.json', 'is_official' => true],
             ['id' => 2, 'name' => 'Registry perso',     'url' => 'https://example.test/perso.json',   'is_official' => false],
         ]);
@@ -41,7 +39,7 @@ final class BundleCatalogServiceTest extends TestCase
         ];
 
         $client = new BundleRegistryClient(fn(string $url) => $bodies[$url] ?? null);
-        $service = new BundleCatalogService($registries, $client);
+        $service = new BundleCatalogService($client);
 
         $catalog = $service->listAvailableBundles();
 
@@ -54,13 +52,12 @@ final class BundleCatalogServiceTest extends TestCase
 
     public function testListAvailableBundlesSkipsARegistryThatFailsToRespond(): void
     {
-        $registries = $this->createStub(BundleRegistryRepositoryInterface::class);
-        $registries->method('all')->willReturn([
+        kintai_test_registries([
             ['id' => 1, 'name' => 'Registry indisponible', 'url' => 'https://example.test/down.json', 'is_official' => false],
         ]);
 
         $client = new BundleRegistryClient(fn(string $url) => null);
-        $service = new BundleCatalogService($registries, $client);
+        $service = new BundleCatalogService($client);
 
         $this->assertSame([], $service->listAvailableBundles());
     }
@@ -73,12 +70,11 @@ final class BundleCatalogServiceTest extends TestCase
      */
     private function pinService(array $urls, array $bodies): BundleCatalogService
     {
-        $registries = $this->createStub(BundleRegistryRepositoryInterface::class);
-        $registries->method('all')->willReturn(array_map(
+        kintai_test_registries(array_map(
             static fn(string $url) => ['id' => 1, 'name' => 'R', 'url' => $url, 'is_official' => false],
             $urls,
         ));
-        return new BundleCatalogService($registries, new BundleRegistryClient(fn(string $url) => $bodies[$url] ?? null));
+        return new BundleCatalogService(new BundleRegistryClient(fn(string $url) => $bodies[$url] ?? null));
     }
 
     private function registryBody(array $commits): string
@@ -150,8 +146,8 @@ final class BundleCatalogServiceTest extends TestCase
 
     public function testIsOfficialUsesTheExistingOfficialBundlesConfig(): void
     {
+        kintai_test_registries([]);
         $service = new BundleCatalogService(
-            $this->createStub(BundleRegistryRepositoryInterface::class),
             new BundleRegistryClient(fn(string $url) => null),
         );
 
