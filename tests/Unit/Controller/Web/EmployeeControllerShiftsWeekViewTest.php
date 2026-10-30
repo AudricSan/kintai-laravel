@@ -12,7 +12,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -40,29 +40,28 @@ use PHPUnit\Framework\TestCase;
 final class EmployeeControllerShiftsWeekViewTest extends TestCase
 {
     private StoreUserRepositoryInterface $storeUsers;
-    private ShiftRepositoryInterface $shifts;
     private EmployeeController $controller;
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $viewDir = sys_get_temp_dir() . '/kintai-employee-controller-shifts-week-views';
         $this->writeViewFile($viewDir, 'scheduling.shifts', '<?= ($can_manage ?? false) ? "CAN_MANAGE_TRUE" : "CAN_MANAGE_FALSE" ?>');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
 
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-        $this->shifts      = $this->createStub(ShiftRepositoryInterface::class);
         $users             = $this->createStub(UserRepositoryInterface::class);
         $stores            = $this->createStub(StoreRepositoryInterface::class);
 
         $this->storeUsers->method('findByUser')->willReturn([]);
-        $this->shifts->method('findByUser')->willReturn([]);
+        kintai_test_shifts([]);
         $users->method('findAll')->willReturn([]);
         kintai_test_shift_types([]);
         $stores->method('findAll')->willReturn([]);
 
         $this->controller = new EmployeeController(
             kintai_test_views($viewDir),
-            $this->shifts,
             $stores,
             $this->storeUsers,
             $users,

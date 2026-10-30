@@ -8,7 +8,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
@@ -37,7 +37,6 @@ final class DailyReportController
         private readonly DailyReportMailService $mailService,
         private readonly AuditLogger $auditLogger,
         private readonly TranslationService $translations,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissionService,
         private readonly UserSelection $userSelection,
@@ -872,7 +871,7 @@ final class DailyReportController
         // utilisateur à cause d'un nom de famille en doublon dans un autre magasin)
         // ne doit jamais faire apparaître un staff d'un autre magasin dans le rapport.
         $rawShifts = array_filter(
-            $this->shifts->findByDate($storeId, $date),
+            Shift::findByDate($storeId, $date),
             fn($s) => empty($s['deleted_at'])
                 && !empty($s['user_id'])
                 && $this->storeUsers->findMembership($storeId, (int) $s['user_id']) !== null

@@ -9,7 +9,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\Attendances;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\DatabaseShiftRepository;
+use App\Models\Shift;
 use App\Models\TimesheetApproval;
 use App\Services\TimesheetService;
 use Tests\Support\FakeAttendanceProvider;
@@ -27,7 +27,6 @@ if (!defined('BASE_PATH')) {
 final class TimesheetServiceTest extends TestCase
 {
     private Capsule $capsule;
-    private DatabaseShiftRepository $shifts;
     private int $store;
     private int $alice;
     private int $bob;
@@ -51,7 +50,6 @@ final class TimesheetServiceTest extends TestCase
         }
         $this->alice  = (int) $this->capsule->table('users')->where('email', 'alice@kintai.test')->value('id');
         $this->bob    = (int) $this->capsule->table('users')->where('email', 'bob@kintai.test')->value('id');
-        $this->shifts = new DatabaseShiftRepository();
         $this->sunday = new \DateTimeImmutable('2026-11-08 23:00:00');
     }
 
@@ -66,7 +64,7 @@ final class TimesheetServiceTest extends TestCase
     {
         $cross = $end <= $start;
         $endDate = $cross ? date('Y-m-d', strtotime($date . ' +1 day')) : $date;
-        return $this->shifts->save([
+        return Shift::put([
             'store_id' => $this->store, 'user_id' => $userId, 'shift_date' => $date, 'start_time' => $start, 'end_time' => $end,
             'cross_midnight' => $cross ? 1 : 0, 'pause_minutes' => $pause,
             'starts_at' => $date . ' ' . $start . ':00', 'ends_at' => $endDate . ' ' . $end . ':00',
@@ -78,7 +76,7 @@ final class TimesheetServiceTest extends TestCase
     {
         $rows = array_map(fn(array $r): array => $r + ['store_id' => $this->store], $rows);
         $manager = FakeBundleManagerFactory::withActiveSlugs(['timeclock'], attendance: ['timeclock' => [new FakeAttendanceProvider($rows)]]);
-        return new TimesheetService($this->shifts, new Attendances(new ExtensionRegistry($manager)));
+        return new TimesheetService(new Attendances(new ExtensionRegistry($manager)));
     }
 
     /** @return array<string, mixed> la seule ligne de la semaine pour cet employé et ce jour */
@@ -194,7 +192,7 @@ final class TimesheetServiceTest extends TestCase
         $this->assertSame($this->bob, $found['approved_by']);
         $this->assertSame($week['fingerprint'], $found['fingerprint']);
 
-        $this->shifts->save(['id' => $shift['id'], 'end_time' => '18:00', 'ends_at' => '2026-11-02 18:00:00']);
+        Shift::put(['id' => $shift['id'], 'end_time' => '18:00', 'ends_at' => '2026-11-02 18:00:00']);
         $this->assertNotSame($found['fingerprint'], $service->week($this->store, '2026-11-02', $this->sunday)['fingerprint']);
 
         $this->assertSame(1, TimesheetApproval::where($key)->delete());

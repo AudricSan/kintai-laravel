@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -23,20 +23,18 @@ use PHPUnit\Framework\TestCase;
 final class EmployeeStatsServiceTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-
-    private ShiftRepositoryInterface&Stub $shifts;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private EmployeeStatsService $service;
 
     protected function setUp(): void
     {
-        $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
         $this->service = new EmployeeStatsService(
-            $this->shifts,
             $this->storeUsers,
             $this->stores,
         );
@@ -50,6 +48,7 @@ final class EmployeeStatsServiceTest extends TestCase
     private function shift(array $overrides = []): array
     {
         return array_merge([
+            'user_id'        => 1,
             'shift_date'     => date('Y-m') . '-05',
             'start_time'     => '08:00',
             'end_time'       => '16:00',
@@ -62,7 +61,7 @@ final class EmployeeStatsServiceTest extends TestCase
 
     public function testExcludesDeletedShifts(): void
     {
-        $this->shifts->method('findByUser')->willReturn([
+        kintai_test_shifts([
             $this->shift(),
             $this->shift(['shift_date' => date('Y-m') . '-06', 'deleted_at' => '2026-08-01 00:00:00']),
         ]);
@@ -76,7 +75,7 @@ final class EmployeeStatsServiceTest extends TestCase
 
     public function testDeductsPauseFromNetHours(): void
     {
-        $this->shifts->method('findByUser')->willReturn([$this->shift()]);
+        kintai_test_shifts([$this->shift()]);
 
         $stats = $this->service->calculate(1);
 
@@ -88,11 +87,10 @@ final class EmployeeStatsServiceTest extends TestCase
     {
         $this->seedRate(1, 1, 1500.0);
         $this->service = new EmployeeStatsService(
-            $this->shifts,
             $this->storeUsers,
             $this->stores,
         );
-        $this->shifts->method('findByUser')->willReturn([$this->shift()]);
+        kintai_test_shifts([$this->shift()]);
 
         $stats = $this->service->calculate(1);
 
@@ -101,7 +99,7 @@ final class EmployeeStatsServiceTest extends TestCase
 
     public function testIgnoresShiftsOutsideRequestedMonth(): void
     {
-        $this->shifts->method('findByUser')->willReturn([
+        kintai_test_shifts([
             $this->shift(['shift_date' => '2020-01-05']),
         ]);
 

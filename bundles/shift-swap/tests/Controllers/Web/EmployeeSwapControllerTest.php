@@ -7,7 +7,7 @@ namespace Tests\Bundles\ShiftSwap\Controllers\Web;
 
 use kintai\Bundles\Installed\ShiftSwap\Controllers\Web\EmployeeSwapController;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -29,7 +29,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class EmployeeSwapControllerTest extends TestCase
 {
-    private ShiftRepositoryInterface&Stub $shifts;
     private ShiftSwapRequestRepositoryInterface&Stub $swapRequests;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
@@ -38,12 +37,12 @@ final class EmployeeSwapControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $viewDir = sys_get_temp_dir() . '/kintai-shift-swap-views';
         $this->ensureViewFile($viewDir, 'swaps');
         $this->ensureViewFile($viewDir, 'swaps-form');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
-
-        $this->shifts       = $this->createStub(ShiftRepositoryInterface::class);
         $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
         $this->stores       = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers   = $this->createStub(StoreUserRepositoryInterface::class);
@@ -60,7 +59,6 @@ final class EmployeeSwapControllerTest extends TestCase
             $this->controller = new EmployeeSwapController(
                 $view,
                 $this->swapRequests,
-                $this->shifts,
                 $this->stores,
                 $this->storeUsers,
                 $this->createStub(UserRepositoryInterface::class),
@@ -95,10 +93,7 @@ final class EmployeeSwapControllerTest extends TestCase
 
         $myShift     = ['id' => 10, 'user_id' => 1, 'store_id' => 5];
         $targetShift = ['id' => 20, 'user_id' => 2, 'store_id' => 5];
-        $this->shifts->method('findById')->willReturnMap([
-            [10, $myShift],
-            [20, $targetShift],
-        ]);
+        kintai_test_shifts([$myShift, $targetShift]);
 
         $captured = null;
         $this->swapRequests->method('save')->willReturnCallback(function (array $d) use (&$captured) {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Services;
 
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\UserRepositoryInterface;
 use App\BundleManager;
@@ -29,7 +29,6 @@ final class ShiftServiceTest extends TestCase
     {
 
         $this->service = new ShiftService(
-            $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
     }

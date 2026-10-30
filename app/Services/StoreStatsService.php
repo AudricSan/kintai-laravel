@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -27,7 +27,6 @@ final class StoreStatsService implements StoreStatsServiceInterface
 
     public function __construct(
         private readonly StoreRepositoryInterface $stores,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly RoleAssignmentSyncService $roleSync,
@@ -56,7 +55,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $since = date('Y-m-d', strtotime("-{$period} days"));
         $today = date('Y-m-d');
         $shifts = array_filter(
-            $this->shifts->findByStoreBetween($storeId, $since, $today),
+            Shift::findByStoreBetween($storeId, $since, $today),
             fn($s) => empty($s['deleted_at'])
         );
 
@@ -98,7 +97,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         // Une seule lecture, limitée à la période précédente + la période courante (la précédente sert aux
         // comparaisons plus bas), au lieu de tout l'historique du store lu deux fois puis filtré en PHP.
         $windowShifts = array_values(array_filter(
-            $this->shifts->findByStoreBetween($storeId, $prevSince, $today),
+            Shift::findByStoreBetween($storeId, $prevSince, $today),
             fn($s) => empty($s['deleted_at'])
         ));
 
@@ -435,7 +434,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $today = date('Y-m-d');
 
         $allShifts = array_values(array_filter(
-            $this->shifts->findByStore($storeId),
+            Shift::findByStore($storeId),
             fn($s) => empty($s['deleted_at']) && $s['shift_date'] >= $since && $s['shift_date'] <= $today
         ));
         $n = count($allShifts);
@@ -536,7 +535,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $reports = ($this->sales ?? Sales::current())->dailySales($storeId, $from, $to);
 
         $allShifts     = array_values(array_filter(
-            $this->shifts->findByStore($storeId),
+            Shift::findByStore($storeId),
             fn($s) => empty($s['deleted_at']) && $s['shift_date'] >= $from && $s['shift_date'] <= $to
         ));
         $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
@@ -647,7 +646,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $today = date('Y-m-d');
 
         $allShifts = array_values(array_filter(
-            $this->shifts->findByStore($storeId),
+            Shift::findByStore($storeId),
             fn($s) => empty($s['deleted_at']) && (int) $s['user_id'] === $userId
         ));
 
@@ -776,7 +775,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $today = date('Y-m-d');
 
         $allShifts = array_values(array_filter(
-            $this->shifts->findByStore($storeId),
+            Shift::findByStore($storeId),
             fn($s) => empty($s['deleted_at']) && $s['shift_date'] >= $since && $s['shift_date'] <= $today
         ));
 
@@ -926,7 +925,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $today = $to;
 
         $shifts = array_values(array_filter(
-            $this->shifts->findByStore($storeId),
+            Shift::findByStore($storeId),
             fn($s) => empty($s['deleted_at'])
                 && (int) $s['user_id'] === $userId
                 && $s['shift_date'] >= $since

@@ -43,6 +43,7 @@ trait PrefsExpectations
     private function seedWidgets(int $userId, string $type, ?array $widgets): void
     {
         if ($widgets !== null) {
+            kintai_test_user($userId);
             UserDashboardPref::saveWidgets($userId, $widgets, $type);
         }
     }

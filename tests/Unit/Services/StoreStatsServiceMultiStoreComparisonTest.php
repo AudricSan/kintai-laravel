@@ -7,7 +7,7 @@ namespace Tests\Unit\Services;
 use PHPUnit\Framework\TestCase;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -26,20 +26,17 @@ use App\Services\StoreStatsService;
 final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
 {
     private StoreRepositoryInterface $stores;
-    private ShiftRepositoryInterface $shifts;
     private StoreUserRepositoryInterface $storeUsers;
     private StoreStatsService $service;
 
     protected function setUp(): void
     {
         $this->stores     = $this->createStub(StoreRepositoryInterface::class);
-        $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         kintai_test_shift_types([]);
 
         $this->service = new StoreStatsService(
             $this->stores,
-            $this->shifts,
             $this->storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
@@ -69,7 +66,7 @@ final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
             ],
             2 => [],
         ];
-        $this->shifts->method('findByStoreBetween')->willReturnCallback(fn(int $storeId) => $shiftsByStore[$storeId] ?? []);
+        kintai_test_shifts(array_merge(...array_values($shiftsByStore)));
 
         $rows = $this->service->multiStoreComparison([1, 2], 30);
 

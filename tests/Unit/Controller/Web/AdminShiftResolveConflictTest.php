@@ -9,7 +9,7 @@ use App\Exceptions\ForbiddenException;
 use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -32,7 +32,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class AdminShiftResolveConflictTest extends TestCase
 {
-    private ShiftRepositoryInterface&MockObject $shifts;
     private NotificationService&MockObject $notifs;
     private AdminShiftController $controller;
 
@@ -48,15 +47,16 @@ final class AdminShiftResolveConflictTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->shifts->method('findById')->willReturnCallback(fn(int $id) => $this->rows[$id] ?? null);
+        kintai_test_shifts(array_values($this->rows));
 
         $this->controller = new AdminShiftController(
             kintai_test_views(sys_get_temp_dir()),
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->shifts,
             $this->createStub(StoreUserRepositoryInterface::class),
             new AuditLogger(),
             $this->notifs,
@@ -78,17 +78,17 @@ final class AdminShiftResolveConflictTest extends TestCase
 
     public function testOverlappingShiftsOfTheSameEmployeeAreResolved(): void
     {
-        $this->shifts->expects($this->once())->method('delete')->with(1);
         // L'employé est prévenu, comme pour une suppression directe.
         $this->notifs->expects($this->once())->method('notify')->with(3, 'shift_deleted', 'notif_shift_deleted_body', $this->anything(), $this->greaterThan(20000101));
         $this->assertSame(302, $this->resolve(2, 1)->getStatusCode());
+        $this->assertNull(Shift::findById(1), 'shift supprimé');
     }
 
     public function testOvernightShiftOverlapIsAConflict(): void
     {
-        $this->shifts->expects($this->once())->method('delete')->with(5);
         $this->notifs->expects($this->once())->method('notify');
         $this->resolve(6, 5);
+        $this->assertNull(Shift::findById(5), 'shift supprimé');
     }
 
     /** @return array<string, array{int, int}> */
@@ -105,7 +105,6 @@ final class AdminShiftResolveConflictTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('notInConflict')]
     public function testShiftsNotInConflictAreNeverDeleted(int $keep, int $delete): void
     {
-        $this->shifts->expects($this->never())->method('delete');
         $this->notifs->expects($this->never())->method('notify');
         $this->expectException(ForbiddenException::class);
         $this->resolve($keep, $delete);
@@ -113,15 +112,12 @@ final class AdminShiftResolveConflictTest extends TestCase
 
     public function testAlreadyDeletedShiftRedirectsWithoutError(): void
     {
-        $this->shifts->expects($this->never())->method('delete');
         $this->notifs->expects($this->never())->method('notify');
         $this->assertSame(302, $this->resolve(2, 99)->getStatusCode());
     }
 
     public function testBulkResolutionNotifiesEachEmployeeWhoseShiftIsDeleted(): void
     {
-        $this->shifts->method('findBetween')->willReturn(array_values($this->rows));
-        $this->shifts->expects($this->exactly(2))->method('delete');
         $this->notifs->expects($this->exactly(2))->method('notify')->with(3, 'shift_deleted');
 
         $_POST = ['bulk' => '1', 'month' => '2026-10'];

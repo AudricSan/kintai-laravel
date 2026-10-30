@@ -10,7 +10,7 @@ use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -41,7 +41,6 @@ final class EmployeeController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -63,7 +62,7 @@ final class EmployeeController
         $today  = date('Y-m-d');
 
         // Brouillons écartés : l'employé ne voit que le planning publié (voir SchedulePublication).
-        [$shiftsToday, $upcomingShifts] = self::personalShifts(SchedulePublication::staffView($this->shifts->findByUser($userId)), $today);
+        [$shiftsToday, $upcomingShifts] = self::personalShifts(SchedulePublication::staffView(Shift::findByUser($userId)), $today);
 
         $storesMap   = [];
         foreach ($this->stores->findAllWithDeleted() as $s) {
@@ -192,7 +191,7 @@ final class EmployeeController
         $allUserIds   = array_merge([$userId], array_keys($colleagueIds));
         $shiftsByDate = [];
         foreach ($allUserIds as $uid) {
-            foreach (SchedulePublication::staffView($this->shifts->findByUser($uid)) as $s) {
+            foreach (SchedulePublication::staffView(Shift::findByUser($uid)) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d >= $monthStart && $d <= $monthEnd) {
                     $shiftsByDate[$d][] = $s;
@@ -292,7 +291,7 @@ final class EmployeeController
         $allUserIds   = array_merge([$userId], array_keys($colleagueIds));
         $shiftsByDate = [];
         foreach ($allUserIds as $uid) {
-            foreach (SchedulePublication::staffView($this->shifts->findByUser($uid)) as $s) {
+            foreach (SchedulePublication::staffView(Shift::findByUser($uid)) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d >= $weekStart && $d <= $weekEnd) {
                     $shiftsByDate[$d][] = $s;
@@ -429,7 +428,7 @@ final class EmployeeController
         $shiftsByDateUser = []; // date → uid → shift[]
         if ($filterStoreId > 0) {
             // Brouillons visibles seulement de qui gère le planning du magasin.
-            $storeShifts = $this->shifts->findByStore($filterStoreId);
+            $storeShifts = Shift::findByStore($filterStoreId);
             foreach ($canManage ? $storeShifts : SchedulePublication::staffView($storeShifts) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d < $rangeStart || $d > $rangeEnd) continue;

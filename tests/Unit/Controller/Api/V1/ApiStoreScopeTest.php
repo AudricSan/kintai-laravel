@@ -16,7 +16,7 @@ use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -53,14 +53,22 @@ final class ApiStoreScopeTest extends TestCase
     private const STORE_B = 6; // autre magasin
 
     private PermissionService $permissions;
-    private ShiftRepositoryInterface&Stub $shifts;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
+
+    /** Shift enregistré par l'action testée : celui de l'identifiant donné, sinon le dernier créé. */
+    private function savedShift(?int $id = null): array
+    {
+        $query = Shift::query();
+
+        return ($id !== null ? $query->find($id) : $query->orderByDesc('id')->first())?->toArray() ?? [];
+    }
 
     protected function setUp(): void
     {
         kintai_test_database();
         kintai_test_migrate();
+        \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturnCallback(fn(int $uid): array => match ($uid) {
             self::OWNER   => [['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]],
@@ -84,7 +92,6 @@ final class ApiStoreScopeTest extends TestCase
         $roles->method('getGlobalPermissionKeys')->willReturn([]);
 
         $this->permissions = new PermissionService($assignments, $roles);
-        $this->shifts      = $this->createStub(ShiftRepositoryInterface::class);
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
@@ -118,10 +125,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCannotUpdateShiftOfAnotherStore(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => self::STORE_B]);
-        $this->shifts->expects($this->never())->method('save');
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        kintai_test_shifts([['id' => 9, 'store_id' => self::STORE_B]]);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         // Le client déclare son propre magasin dans le corps pour passer la porte du middleware.
@@ -130,10 +135,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCannotDeleteShiftOfAnotherStore(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'store_id' => self::STORE_B]);
-        $this->shifts->expects($this->never())->method('delete');
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        kintai_test_shifts([['id' => 9, 'store_id' => self::STORE_B]]);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->destroy($this->request(self::MANAGER, ['id' => '9']));
@@ -141,10 +144,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCannotMoveOwnShiftToAnotherStore(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->atLeastOnce())->method('findById')->with(3)->willReturn(['id' => 3, 'store_id' => self::STORE_A]);
-        $this->shifts->expects($this->never())->method('save');
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        kintai_test_shifts([['id' => 3, 'store_id' => self::STORE_A]]);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->update($this->request(self::MANAGER, ['id' => '3'], ['store_id' => self::STORE_B]));
@@ -152,10 +153,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCanUpdateShiftOfOwnStore(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->atLeastOnce())->method('findById')->with(3)->willReturn(['id' => 3, 'store_id' => self::STORE_A]);
-        $this->shifts->expects($this->once())->method('save')->willReturn(['id' => 3, 'store_id' => self::STORE_A]);
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        kintai_test_shifts([['id' => 3, 'store_id' => self::STORE_A]]);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $response = $controller->update($this->request(self::MANAGER, ['id' => '3'], ['notes' => 'x']));
 
@@ -164,22 +163,19 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testShiftCreationIgnoresIdFromBody(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->once())->method('save')
-            ->with($this->callback(fn(array $d): bool => !array_key_exists('id', $d) && $d['store_id'] === self::STORE_A))
-            ->willReturn(['id' => 50, 'store_id' => self::STORE_A]);
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $response = $controller->store($this->request(self::MANAGER, [], ['id' => 9, 'store_id' => self::STORE_A, 'shift_date' => '2026-10-20', 'start_time' => '09:00', 'end_time' => '17:00']));
 
+        $saved = $this->savedShift(null);
+        $this->assertNotSame(9, $saved['id'], 'l\'identifiant du corps est ignoré');
+        $this->assertSame(self::STORE_A, $saved['store_id']);
         $this->assertSame(201, $response->getStatusCode());
     }
 
     public function testShiftCreationRequiresStoreId(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->never())->method('save');
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ValidationException::class);
         $controller->store($this->request(self::MANAGER, [], ['note' => 'sans magasin']));
@@ -187,9 +183,7 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testShiftCreationForAnotherStoreIsForbidden(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->never())->method('save');
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->store($this->request(self::MANAGER, [], ['store_id' => self::STORE_B, 'shift_date' => '2026-10-20', 'start_time' => '09:00', 'end_time' => '17:00']));
@@ -197,12 +191,11 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testShiftIndexIsRestrictedToManagedStores(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->atLeastOnce())->method('findByUser')->with(77)->willReturn([
-            ['id' => 1, 'store_id' => self::STORE_A],
-            ['id' => 2, 'store_id' => self::STORE_B],
+        kintai_test_shifts([
+            ['id' => 1, 'user_id' => 77, 'store_id' => self::STORE_A],
+            ['id' => 2, 'user_id' => 77, 'store_id' => self::STORE_B],
         ]);
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $response = $controller->index($this->requestWithQuery(self::MANAGER, ['user_id' => '77']));
 
@@ -372,41 +365,32 @@ final class ApiStoreScopeTest extends TestCase
     /** Les champs calculés d'un shift viennent du serveur : ils manquaient dans un POST client (erreur SQL). */
     public function testShiftCreationDerivesTimingAndIgnoresClientValues(): void
     {
-        $saved = null;
-        $this->shifts->method('save')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved = $d;
-            return $d + ['id' => 51];
-        });
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $controller->store($this->request(self::MANAGER, [], [
             'store_id' => self::STORE_A, 'shift_date' => '2026-10-31', 'start_time' => '22:00', 'end_time' => '04:00',
             'duration_minutes' => 99999, 'starts_at' => 'forgé', 'ical_sequence' => 50, 'created_by' => self::OWNER,
         ]));
 
+        $saved = $this->savedShift(null);
         $this->assertSame(360, $saved['duration_minutes']);
         $this->assertSame(1, $saved['cross_midnight']);
         $this->assertSame('2026-10-31 22:00:00', $saved['starts_at']);
         $this->assertSame('2026-11-01 04:00:00', $saved['ends_at']);
-        $this->assertArrayNotHasKey('ical_sequence', $saved);
-        $this->assertArrayNotHasKey('created_by', $saved);
+        $this->assertSame(0, (int) $saved['ical_sequence'], 'la séquence iCal vient du serveur');
+        $this->assertNotSame(self::OWNER, $saved['created_by'], 'l\'auteur ne vient pas du client');
     }
 
     public function testShiftUpdateRecomputesTimingFromTheStoredValues(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->atLeastOnce())->method('findById')->with(3)->willReturn([
+        kintai_test_shifts([[
             'id' => 3, 'store_id' => self::STORE_A, 'shift_date' => '2026-10-20', 'start_time' => '09:00:00', 'end_time' => '17:00:00',
-        ]);
-        $saved = null;
-        $this->shifts->method('save')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved = $d;
-            return $d;
-        });
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        ]]);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $controller->update($this->request(self::MANAGER, ['id' => '3'], ['end_time' => '18:30']));
 
+        $saved = $this->savedShift(3);
         $this->assertSame(570, $saved['duration_minutes']);
         $this->assertSame('2026-10-20 18:30:00', $saved['ends_at']);
     }
@@ -427,9 +411,7 @@ final class ApiStoreScopeTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidShifts')]
     public function testShiftCreationRefusesInvalidBodies(array $body): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->never())->method('save');
-        $controller = new ShiftController($this->shifts, new AuditLogger(), $this->permissions);
+        $controller = new ShiftController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ValidationException::class);
         $controller->store($this->request(self::MANAGER, [], $body));

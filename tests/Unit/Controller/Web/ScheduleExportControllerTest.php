@@ -11,7 +11,7 @@ use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -29,12 +29,13 @@ use PHPUnit\Framework\TestCase;
 /** Téléchargement de son propre horaire : JSON, CSV, ICS, réservé aux membres du magasin demandé. */
 final class ScheduleExportControllerTest extends TestCase
 {
-    private ShiftRepositoryInterface&Stub $shifts;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ScheduleExportController $controller;
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn($id) => $id === 9 ? ['id' => 9, 'is_active' => 1, 'first_name' => 'Aki', 'last_name' => 'Sato', 'language' => 'fr', 'password_hash' => 'x'] : null);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
@@ -43,12 +44,10 @@ final class ScheduleExportControllerTest extends TestCase
 
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findById')->willReturnCallback(fn($id) => in_array($id, [3, 4], true) ? ['id' => $id, 'code' => 'ST' . $id, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo'] : null);
-
-        $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $this->shifts->method('findByUser')->willReturn([
-            ['id' => 1, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'shift_type_id' => 7],
-            ['id' => 2, 'store_id' => 4, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
-            ['id' => 3, 'store_id' => 3, 'shift_date' => '2027-06-01', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
+        kintai_test_shifts([
+            ['id' => 1, 'user_id' => 9, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'shift_type_id' => 7],
+            ['id' => 2, 'user_id' => 9, 'store_id' => 4, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
+            ['id' => 3, 'user_id' => 9, 'store_id' => 3, 'shift_date' => '2027-06-01', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
         ]);
         kintai_test_shift_types([['id' => 7, 'name' => 'Matin']]);
 
@@ -63,7 +62,6 @@ final class ScheduleExportControllerTest extends TestCase
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
             ),
-            $this->shifts,
             $stores,
             $this->storeUsers,
             new ScheduleExportService(),

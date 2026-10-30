@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -35,6 +35,8 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['weeks' => \$store_stats_hours_by_week ?? null]);");
         $this->ensureViewFile('layout.app', "<?php echo \$content ?? '';");
     }
@@ -46,9 +48,7 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
         $storesRepo = $this->createStub(StoreRepositoryInterface::class);
         $storesRepo->method('findAll')->willReturn($stores);
-
-        $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
-        $shiftsRepo->method('findAllByDate')->willReturn([]);
+        kintai_test_shifts([]);
         // Widget "store_stats_summary" uniquement : ce test porte sur la tendance
         // hebdomadaire de ce widget précis, pas sur financial_overview/hr_absenteeism
         // (storeStats() n'est pas mocké pour couvrir leurs appels ici).
@@ -66,13 +66,12 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
         $roles->method('getPermissions')->with(5)->willReturn(['payroll.view']);
         $permissions = new PermissionService($roleAssignments, $roles);
 
-        $dashboardAlerts = new DashboardAlertService($shiftsRepo, $usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $shiftsRepo,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

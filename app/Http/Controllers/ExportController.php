@@ -13,7 +13,7 @@ use App\Export\ExportAccess;
 use App\Export\ExportWriter;
 use App\Extension\Absences;
 use App\Extension\ExportDatasets;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
@@ -46,7 +46,6 @@ final class ExportController
         private readonly ExportWriter                 $writer,
         private readonly UserSelection                $selection,
         private readonly StoreRepositoryInterface     $stores,
-        private readonly ShiftRepositoryInterface     $shifts,
         private readonly ScheduleExportService        $schedule,
         private readonly IcalService                  $ical,
         private readonly AuditLogger                  $auditLogger,
@@ -201,7 +200,7 @@ final class ExportController
             : ['id' => $personId] + ($this->selection->resolve($storeId, [$personId])[0] ?? []);
 
         $mine = array_values(array_filter(
-            $this->shifts->findByUser($personId),
+            Shift::findByUser($personId),
             static fn(array $s): bool => (int) ($s['store_id'] ?? 0) === $storeId
         ));
         $shifts = $this->schedule->select($mine, $query->from, $query->to);

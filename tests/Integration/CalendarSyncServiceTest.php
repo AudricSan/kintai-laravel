@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\Shift;
 use App\Models\CalendarConnection;
 use App\Models\CalendarEventLink;
 use App\Models\CalendarSyncQueueItem;
@@ -33,7 +34,7 @@ final class CalendarSyncServiceTest extends TestCase
 
     private function shift(int $userId, array $extra = []): array
     {
-        return $this->shifts->save($extra + [
+        return Shift::put($extra + [
             'store_id' => 1, 'user_id' => $userId, 'shift_type_id' => 1, 'shift_date' => $this->day,
             'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00',
         ]);
@@ -103,7 +104,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->connect($this->alice);
         $this->sync->processQueue();
 
-        $saved = $this->shifts->save(['id' => $shift['id'], 'end_time' => '18:00']);
+        $saved = Shift::put(['id' => $shift['id'], 'end_time' => '18:00']);
         $this->sync->shiftChanged('saved', $saved, $shift);
         $this->sync->processQueue();
 
@@ -121,7 +122,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->processQueue();
         $this->assertCount(1, $this->http->calls('POST', '/calendars/cal-1/events'));
 
-        $moved = $this->shifts->save(['id' => $shift['id'], 'user_id' => $this->bob]);
+        $moved = Shift::put(['id' => $shift['id'], 'user_id' => $this->bob]);
         $this->sync->shiftChanged('saved', $moved, $shift);
         $this->sync->processQueue();
 
@@ -136,7 +137,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->connect($this->alice);
         $this->sync->processQueue();
 
-        $this->shifts->delete((int) $shift['id']);
+        Shift::remove((int) $shift['id']);
         $this->sync->shiftChanged('deleted', $shift, null);
         $this->sync->processQueue();
 
@@ -151,7 +152,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->processQueue();
         $this->http->when('PATCH', '/events/evt-1', ['status' => 404, 'body' => '{}']);
 
-        $saved = $this->shifts->save(['id' => $shift['id'], 'notes' => 'changé']);
+        $saved = Shift::put(['id' => $shift['id'], 'notes' => 'changé']);
         $this->sync->shiftChanged('saved', $saved, $shift);
         $this->sync->processQueue();
 

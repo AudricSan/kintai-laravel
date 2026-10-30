@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\UserRepositoryInterface;
 
@@ -16,7 +16,6 @@ use kintai\Contract\Data\UserRepositoryInterface;
 final class PlanningShiftRows
 {
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly UserRepositoryInterface $users,
     ) {}
 
@@ -24,7 +23,7 @@ final class PlanningShiftRows
     public function raw(int $storeId, string $date): array
     {
         return array_values(array_filter(
-            $this->shifts->findByDate($storeId, $date),
+            Shift::findByDate($storeId, $date),
             static fn(array $s): bool => empty($s['deleted_at']),
         ));
     }

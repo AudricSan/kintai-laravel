@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -20,7 +20,6 @@ final class EmployeeStatsService
     ];
 
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
     ) {}
@@ -68,7 +67,7 @@ final class EmployeeStatsService
         $shiftDetails = [];
         $wageCalc     = new ShiftWageCalculator();
 
-        foreach ($this->shifts->findByUser($userId) as $s) {
+        foreach (Shift::findByUser($userId) as $s) {
             if (!empty($s['deleted_at'])) {
                 continue;
             }

@@ -7,7 +7,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 
 use Illuminate\Container\Container;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
 
 /**
@@ -29,7 +29,6 @@ final class SchedulePublication
 
     public function __construct(
         private readonly StoreRepositoryInterface $stores,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly ?NotificationService $notifs = null,
     ) {}
 
@@ -105,7 +104,7 @@ final class SchedulePublication
         $data = ['id' => $storeId, 'schedule_publication' => $enabled ? 1 : 0];
         if ($enabled) {
             $last = '';
-            foreach ($this->shifts->findByStore($storeId) as $s) {
+            foreach (Shift::findByStore($storeId) as $s) {
                 if (empty($s['deleted_at']) && (string) ($s['shift_date'] ?? '') > $last) {
                     $last = (string) $s['shift_date'];
                 }
@@ -138,7 +137,7 @@ final class SchedulePublication
         }
 
         $newlyVisible = [];
-        foreach ($this->shifts->findByStore($storeId) as $s) {
+        foreach (Shift::findByStore($storeId) as $s) {
             $date = (string) ($s['shift_date'] ?? '');
             if (!empty($s['deleted_at']) || $date > $until || ($from !== null && $date <= $from)) {
                 continue;

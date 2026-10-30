@@ -16,7 +16,7 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
@@ -70,7 +70,6 @@ final class PlanningCheckBundle extends Bundle
 
         $container->singleton(PlanningCheckRepositoryInterface::class, fn() => new DatabasePlanningCheckRepository());
         $container->singleton(PlanningShiftRows::class, fn(Container $c) => new PlanningShiftRows(
-            $c->make(ShiftRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
         ));
         $container->singleton(PlanningPdfService::class, fn(Container $c) => new PlanningPdfService(

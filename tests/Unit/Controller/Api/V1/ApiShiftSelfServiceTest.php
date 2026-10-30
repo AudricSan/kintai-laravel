@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Api\V1;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\Api\V1\ShiftController;
@@ -25,14 +25,14 @@ final class ApiShiftSelfServiceTest extends TestCase
 
     private function controller(): ShiftController
     {
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
         $all = [
             ['id' => 1, 'store_id' => 1, 'user_id' => self::EMPLOYEE, 'shift_date' => '2026-10-20'],
             ['id' => 2, 'store_id' => 1, 'user_id' => 4, 'shift_date' => '2026-10-20'],
             ['id' => 3, 'store_id' => 2, 'user_id' => self::EMPLOYEE, 'shift_date' => '2026-10-21'],
         ];
-        $shifts->method('findByUser')->willReturnCallback(fn(int $u) => array_values(array_filter($all, fn($s) => $s['user_id'] === $u)));
-        $shifts->method('findByStore')->willReturnCallback(fn(int $st) => array_values(array_filter($all, fn($s) => $s['store_id'] === $st)));
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_shifts($all);
 
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === self::MANAGER
@@ -43,7 +43,7 @@ final class ApiShiftSelfServiceTest extends TestCase
         $roles->method('getPermissions')->willReturn(['shifts.view']);
         $roles->method('getGlobalPermissionKeys')->willReturn([]);
 
-        return new ShiftController($shifts, new AuditLogger(), new PermissionService($assignments, $roles));
+        return new ShiftController(new AuditLogger(), new PermissionService($assignments, $roles));
     }
 
     /** @return list<int> */

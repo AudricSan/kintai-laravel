@@ -199,7 +199,7 @@ function kintai_test_shift_types(array $rows): void
         $storeIds = $row['store_ids'] ?? [1, 2, 3, 4, 5];
         unset($row['store_ids']);
         $id = $row['id'] ?? null;
-        $row += ['name' => 'Type', 'code' => 'T' . ($id ?? uniqid()), 'start_time' => '08:00', 'end_time' => '16:00', 'is_active' => 1];
+        $row += ['name' => 'Type', 'code' => 'T' . ($id ?? uniqid()), 'start_time' => '00:00', 'end_time' => '23:59', 'is_active' => 1];
         $id = $id ?? (int) Illuminate\Support\Facades\DB::table('shift_types')->max('id') + 1;
         $row['id'] = $id;
         Illuminate\Support\Facades\DB::table('shift_types')->updateOrInsert(['id' => $id], $row);
@@ -219,6 +219,32 @@ function kintai_test_shift_type_stores(?int $shiftTypeId, array $storeIds): void
         Illuminate\Support\Facades\DB::table('shift_type_stores')->where('shift_type_id', $id)->delete();
         foreach ($storeIds as $storeId) {
             Illuminate\Support\Facades\DB::table('shift_type_stores')->insert(['shift_type_id' => $id, 'store_id' => $storeId]);
+        }
+    }
+}
+// Aide des tests : shifts réels (lignes shifts). Le magasin, l'employé et le type de shift référencés sont créés au besoin ;
+// les colonnes obligatoires prennent des valeurs par défaut.
+function kintai_test_shifts(array $rows): void
+{
+    kintai_test_ready('shifts');
+    $db = Illuminate\Support\Facades\DB::class;
+    foreach ($rows as $row) {
+        $row += ['store_id' => 1, 'user_id' => null, 'shift_date' => '2026-01-01', 'start_time' => '09:00', 'end_time' => '17:00'];
+        $db::table('stores')->insertOrIgnore(['id' => $row['store_id'], 'name' => 'Magasin ' . $row['store_id'], 'code' => 'M' . $row['store_id']]);
+        if ($row['user_id'] !== null) {
+            kintai_test_user((int) $row['user_id']);
+        }
+        if (!empty($row['shift_type_id'])) {
+            $db::table('shift_types')->insertOrIgnore(['id' => $row['shift_type_id'], 'name' => 'Type ' . $row['shift_type_id'], 'code' => 'T' . $row['shift_type_id'], 'start_time' => '08:00', 'end_time' => '16:00']);
+        }
+        $row += [
+            'starts_at' => $row['shift_date'] . ' ' . $row['start_time'],
+            'ends_at'   => $row['shift_date'] . ' ' . $row['end_time'],
+        ];
+        if (isset($row['id'])) {
+            $db::table('shifts')->updateOrInsert(['id' => $row['id']], $row);
+        } else {
+            $db::table('shifts')->insert($row);
         }
     }
 }

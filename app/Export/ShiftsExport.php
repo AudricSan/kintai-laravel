@@ -6,7 +6,7 @@ namespace App\Export;
 
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Services\ScheduleExportService;
 
@@ -14,7 +14,6 @@ use App\Services\ScheduleExportService;
 final class ShiftsExport implements ExportRowsProvider
 {
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly ScheduleExportService $schedule,
         private readonly ExportDirectory $directory,
     ) {}
@@ -30,7 +29,7 @@ final class ShiftsExport implements ExportRowsProvider
         foreach ($query->storeIds as $storeId) {
             $store = $this->directory->store($storeId) ?? ['id' => $storeId];
             $mine  = array_values(array_filter(
-                $this->shifts->findByStoreBetween($storeId, $query->from, $query->to),
+                Shift::findByStoreBetween($storeId, $query->from, $query->to),
                 fn(array $s): bool => isset($s['user_id']) && $query->includesUser((int) $s['user_id'])
             ));
 

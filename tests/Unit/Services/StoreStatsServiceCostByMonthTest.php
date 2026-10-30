@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -25,13 +25,12 @@ use PHPUnit\Framework\TestCase;
 final class StoreStatsServiceCostByMonthTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-
-    private ShiftRepositoryInterface&Stub $shifts;
     private ?StoreStatsService $service = null;
 
     protected function setUp(): void
     {
-        $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -49,7 +48,6 @@ final class StoreStatsServiceCostByMonthTest extends TestCase
             $this->seedRate(10, 2, 1500.0);
             $this->service = new StoreStatsService(
                 $this->createStub(StoreRepositoryInterface::class),
-                $this->shifts,
                 $storeUsers,
                 $users,
                 new RoleAssignmentSyncService(
@@ -82,9 +80,7 @@ final class StoreStatsServiceCostByMonthTest extends TestCase
             $this->shift(4, 12, 1, $d(70), 240),       // pas membre du store : taux du type
             $this->shift(5, 11, 1, $d(3), 480, 0, '2026-01-01 00:00:00'), // supprimé
         ];
-        $this->shifts->method('findByStoreBetween')->willReturnCallback(
-            fn(int $store, string $from, string $to) => array_values(array_filter($shifts, fn($s) => $s['shift_date'] >= $from && $s['shift_date'] <= $to))
-        );
+        kintai_test_shifts($shifts);
 
         foreach ([7, 30, 90, 180] as $period) {
             $this->assertSame(
@@ -97,10 +93,16 @@ final class StoreStatsServiceCostByMonthTest extends TestCase
 
     public function testTheResultIsCachedForTheRequest(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->once())->method('findByStoreBetween')->willReturn([]);
+        kintai_test_shifts([]);
 
-        $this->service()->costByMonth(1, 180);
-        $this->service()->costByMonth(1, 180);
+        $service = $this->service();
+        $service->costByMonth(1, 180);
+        $db = \Illuminate\Support\Facades\DB::connection();
+        $db->flushQueryLog();
+        $db->enableQueryLog();
+        $service->costByMonth(1, 180);
+        $db->disableQueryLog();
+
+        $this->assertSame([], $db->getQueryLog(), 'le second appel vient du cache');
     }
 }

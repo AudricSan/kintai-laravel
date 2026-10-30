@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\ShiftSwap\Controllers\Web;
 
 use kintai\Contract\Exceptions\ForbiddenException;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
@@ -27,7 +27,6 @@ final class EmployeeSwapController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -72,7 +71,7 @@ final class EmployeeSwapController
         $today  = date('Y-m-d');
 
         $myShifts = array_values(array_filter(
-            $this->shifts->findByUser($userId),
+            Shift::findByUser($userId),
             fn($s) => ($s['shift_date'] ?? '') >= $today
         ));
         usort($myShifts, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
@@ -98,7 +97,7 @@ final class EmployeeSwapController
         $targetShifts = [];
         if ($targetId > 0 && isset($colleagues[$targetId])) {
             $targetShifts = array_values(array_filter(
-                $this->shifts->findByUser($targetId),
+                Shift::findByUser($targetId),
                 fn($s) => ($s['shift_date'] ?? '') >= $today
             ));
             usort($targetShifts, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
@@ -132,12 +131,12 @@ final class EmployeeSwapController
         $targetShiftId = (int) $request->post('target_shift_id', 0);
         $reason        = $request->post('reason', '') ?: null;
 
-        $myShift = $this->shifts->findById($myShiftId);
+        $myShift = Shift::findById($myShiftId);
         if ($myShift === null || (int) $myShift['user_id'] !== $userId) {
             throw new ForbiddenException(__('error_shift_not_found'));
         }
 
-        $targetShift = $this->shifts->findById($targetShiftId);
+        $targetShift = Shift::findById($targetShiftId);
         if ($targetShift === null || (int) $targetShift['user_id'] !== $targetId) {
             throw new ForbiddenException(__('shift_swap_error_target_shift_not_found'));
         }
@@ -195,8 +194,8 @@ final class EmployeeSwapController
             'requester_id' => $swap['requester_id'] ?? null,
         ], (int) ($swap['store_id'] ?? 0) ?: null);
 
-        $myShift     = $this->shifts->findById((int) ($swap['requester_shift_id'] ?? 0));
-        $targetShift = $this->shifts->findById((int) ($swap['target_shift_id'] ?? 0));
+        $myShift     = Shift::findById((int) ($swap['requester_shift_id'] ?? 0));
+        $targetShift = Shift::findById((int) ($swap['target_shift_id'] ?? 0));
         $this->notifs->notify(
             (int) ($swap['requester_id'] ?? 0),
             'swap_peer_accepted',
@@ -228,8 +227,8 @@ final class EmployeeSwapController
             'requester_id' => $swap['requester_id'] ?? null,
         ], (int) ($swap['store_id'] ?? 0) ?: null);
 
-        $myShift     = $this->shifts->findById((int) ($swap['requester_shift_id'] ?? 0));
-        $targetShift = $this->shifts->findById((int) ($swap['target_shift_id'] ?? 0));
+        $myShift     = Shift::findById((int) ($swap['requester_shift_id'] ?? 0));
+        $targetShift = Shift::findById((int) ($swap['target_shift_id'] ?? 0));
         $this->notifs->notify(
             (int) ($swap['requester_id'] ?? 0),
             'swap_peer_refused',
@@ -259,8 +258,8 @@ final class EmployeeSwapController
         $this->swapRequests->save($cancelledSwap);
         $this->auditLogger->logUpdate($request, 'swap.cancelled', 'shift_swap_request', (int) $swap['id'], $swap, $cancelledSwap, []);
 
-        $myShift     = $this->shifts->findById((int) ($swap['requester_shift_id'] ?? 0));
-        $targetShift = $this->shifts->findById((int) ($swap['target_shift_id'] ?? 0));
+        $myShift     = Shift::findById((int) ($swap['requester_shift_id'] ?? 0));
+        $targetShift = Shift::findById((int) ($swap['target_shift_id'] ?? 0));
         $this->notifs->notify(
             (int) ($swap['target_user_id'] ?? 0),
             'swap_cancelled',
@@ -299,7 +298,7 @@ final class EmployeeSwapController
     private function buildShiftsMap(): array
     {
         $map = [];
-        foreach ($this->shifts->findAll() as $s) {
+        foreach (Shift::findAll() as $s) {
             $map[(int) $s['id']] = $s;
         }
         return $map;

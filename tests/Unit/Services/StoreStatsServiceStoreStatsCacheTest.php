@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -26,13 +26,12 @@ use PHPUnit\Framework\TestCase;
 final class StoreStatsServiceStoreStatsCacheTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-
-    private ShiftRepositoryInterface&Stub $shifts;
     private ?StoreStatsService $service = null;
 
     protected function setUp(): void
     {
-        $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -48,7 +47,6 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
             ]);
             $this->service = new StoreStatsService(
                 $this->createStub(StoreRepositoryInterface::class),
-                $this->shifts,
                 $storeUsers,
                 $users,
                 new RoleAssignmentSyncService(
@@ -71,43 +69,61 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
         ];
     }
 
+    /** Requêtes SELECT émises sur la table des shifts pendant $work. @return list<string> */
+    private function shiftQueries(callable $work): array
+    {
+        $db = \Illuminate\Support\Facades\DB::connection();
+        $db->flushQueryLog();
+        $db->enableQueryLog();
+        $work();
+        $db->disableQueryLog();
+
+        return array_values(array_filter(array_column($db->getQueryLog(), 'query'), fn(string $q): bool => str_starts_with($q, 'select') && str_contains($q, 'from "shifts"')));
+    }
+
     public function testTheWholeHistoryIsNeverLoaded(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->never())->method('findByStore');
-        $this->shifts->expects($this->once())->method('findByStoreBetween')
-            ->with(1, date('Y-m-d', strtotime('-60 days')), date('Y-m-d'))
-            ->willReturn([]);
+        kintai_test_shifts([]);
 
-        $this->service()->storeStats(1, 30);
+        $queries = $this->shiftQueries(fn() => $this->service()->storeStats(1, 30));
+
+        $this->assertCount(1, $queries, 'une seule lecture, bornée par date');
+        $this->assertStringContainsString('"shift_date" between', $queries[0]);
     }
 
     public function testTheSameStatsAreComputedOnlyOncePerRequest(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->once())->method('findByStoreBetween')->willReturn([]);
+        kintai_test_shifts([]);
 
-        $first  = $this->service()->storeStats(1, 30);
-        $second = $this->service()->storeStats(1, 30);
+        $service = $this->service();
+        $first   = $service->storeStats(1, 30);
+        $queries = $this->shiftQueries(function () use ($service, &$second): void {
+            $second = $service->storeStats(1, 30);
+        });
 
         $this->assertSame($first, $second);
+        $this->assertSame([], $queries, 'le second appel vient du cache');
     }
 
     public function testDifferentArgumentsAreNotServedFromTheSameCacheEntry(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->exactly(3))->method('findByStoreBetween')->willReturn([]);
+        kintai_test_shifts([]);
 
-        $this->service()->storeStats(1, 30);
-        $this->service()->storeStats(1, 180);
-        $this->service()->storeStats(1, 30, 240, 600);
+        $service = $this->service();
+        $queries = $this->shiftQueries(function () use ($service): void {
+            $service->storeStats(1, 30);
+            $service->storeStats(1, 180);
+            $service->storeStats(1, 30, 240, 600);
+        });
+
+        $this->assertCount(3, $queries);
     }
 
     public function testCurrentAndPreviousPeriodsAreSplitFromTheSingleRead(): void
     {
         // 2 shifts dans la période courante, 1 dans la précédente, 1 supprimé : même découpage qu'avant.
         $deleted = array_merge($this->shift(4, date('Y-m-d', strtotime('-2 days'))), ['deleted_at' => '2026-01-01 00:00:00']);
-        $this->shifts->method('findByStoreBetween')->willReturn([
+        kintai_test_shifts([
             $this->shift(1, date('Y-m-d', strtotime('-1 day'))),
             $this->shift(2, date('Y-m-d', strtotime('-10 days'))),
             $this->shift(3, date('Y-m-d', strtotime('-45 days'))),
@@ -121,7 +137,7 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
     public function testTheUsersListNeverCarriesPasswordHashes(): void
     {
         // usersMap part jusqu'aux vues et aux exports : le hachage du mot de passe n'a rien à y faire.
-        $this->shifts->method('findByStoreBetween')->willReturn([]);
+        kintai_test_shifts([]);
 
         $user = $this->service()->storeStats(1, 30)['usersMap'][10];
 

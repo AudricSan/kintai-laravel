@@ -6,7 +6,7 @@ namespace Tests\Support;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
-use App\Repositories\DatabaseShiftRepository;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\DatabaseStoreRepository;
 use App\Repositories\DatabaseUserRepository;
@@ -34,7 +34,6 @@ trait CalendarSyncFixture
 {
     private Capsule $capsule;
     private FakeHttpTransport $http;
-    private DatabaseShiftRepository $shifts;
     private InMemoryAppSettings $values;
     private AppSettingsService $appSettings;
     private GoogleCalendarSettings $google;
@@ -81,7 +80,6 @@ trait CalendarSyncFixture
             $eventCounter++;
             return ['status' => 200, 'body' => json_encode(['id' => 'evt-' . $eventCounter])];
         });
-        $this->shifts = new DatabaseShiftRepository();
         $this->notifications = new class extends NotificationService {
             /** @var list<array{int, string, string}> */
             public array $sent = [];
@@ -99,7 +97,6 @@ trait CalendarSyncFixture
             new GoogleCalendarClient($this->google, $this->http),
             $this->google,
             $this->secrets,
-            $this->shifts,
             new DatabaseStoreRepository(),
             new DatabaseUserRepository(),
             new CalendarEventBuilder($translations),

@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\SalaryReport\Controllers\Web;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
@@ -66,7 +66,6 @@ final class AdminSalaryReportController
         private readonly SalaryReportRepositoryInterface $salaryReports,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly Sales $sales,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly AuditLogger $auditLogger,
         private readonly StoreStatsServiceInterface $storeStatsService,
         private readonly PermissionService $permissions,
@@ -475,7 +474,7 @@ final class AdminSalaryReportController
      */
     private function aggregateShifts(int $storeId, string $from, string $to, ?int $userId): array
     {
-        $allShifts = array_filter($this->shifts->findByStore($storeId), fn($s) => empty($s['deleted_at']));
+        $allShifts = array_filter(Shift::findByStore($storeId), fn($s) => empty($s['deleted_at']));
         $rangeShifts = array_filter($allShifts, fn($s) =>
             ($s['shift_date'] ?? '') >= $from && ($s['shift_date'] ?? '') <= $to
             && ($userId === null || (int) ($s['user_id'] ?? 0) === $userId)

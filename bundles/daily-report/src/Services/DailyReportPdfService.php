@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\DailyReport\Services;
 
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Services\PdfCjkFontResolver;
@@ -16,7 +16,6 @@ final class DailyReportPdfService
     public function __construct(
         private readonly ViewFactory $view,
         private readonly TranslationService $translations,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly UserRepositoryInterface $users,
     ) {}
 
@@ -115,7 +114,7 @@ final class DailyReportPdfService
         $shiftDate = date('Y-m-d', strtotime($reportDate . ' +1 day'));
 
         $rawShifts = array_filter(
-            $this->shifts->findByDate($storeId, $shiftDate),
+            Shift::findByDate($storeId, $shiftDate),
             fn($s) => empty($s['deleted_at']) && !empty($s['user_id'])
         );
 

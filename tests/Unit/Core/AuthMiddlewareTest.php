@@ -13,7 +13,7 @@ use App\Http\Middleware\AuthMiddleware;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -58,7 +58,6 @@ final class AuthMiddlewareTest extends TestCase
             $this->createStub(LanguageRepositoryInterface::class),
         );
         $this->container->instance(EmployeeStatsService::class, new EmployeeStatsService(
-            $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
         ));

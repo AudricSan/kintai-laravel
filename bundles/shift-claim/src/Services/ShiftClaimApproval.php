@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\ShiftClaim\Services;
 
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
 
@@ -24,7 +24,6 @@ final class ShiftClaimApproval
 
     public function __construct(
         private readonly ShiftClaimRepositoryInterface $claims,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreRepositoryInterface $stores,
         private readonly NotificationService $notifs,
     ) {}
@@ -47,7 +46,7 @@ final class ShiftClaimApproval
         }
 
         // Affecter le shift au candidat retenu, fermer la bourse.
-        if ($this->shifts->closeOpenShiftTo((int) $shift['id'], (int) $claim['user_id']) === null) {
+        if (Shift::closeOpenShiftTo((int) $shift['id'], (int) $claim['user_id']) === null) {
             // Shift fermé entre-temps par une autre approbation : on annule la nôtre plutôt que de laisser une
             // candidature « approved » sur un shift attribué à quelqu'un d'autre.
             $this->claims->save(array_merge($saved, ['status' => 'pending', 'resolved_at' => null, 'resolved_by' => null]));

@@ -9,7 +9,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -35,6 +35,8 @@ final class AdminRequestsControllerTest extends TestCase
 {
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->ensureViewFile(
             'requests.index',
             // Une entrée par section affichée : clé du fournisseur => demandes (identifiant + colonnes).
@@ -73,9 +75,7 @@ final class AdminRequestsControllerTest extends TestCase
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsersRepo->method('findByStore')->willReturn([]);
-
-        $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
-        $shiftsRepo->method('findById')->willReturn(['id' => 10, 'shift_date' => '2026-08-10', 'start_time' => '09:00:00', 'end_time' => '17:00:00']);
+        kintai_test_shifts([['id' => 10, 'shift_date' => '2026-08-10', 'start_time' => '09:00:00', 'end_time' => '17:00:00']]);
 
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn($isAdmin ? [] : [
@@ -89,7 +89,6 @@ final class AdminRequestsControllerTest extends TestCase
         // Les demandes sont lues à travers les fournisseurs (PendingRequests), qui prennent leurs dépôts dans le
         // conteneur.
         $container = Container::getInstance();
-        $container->instance(ShiftRepositoryInterface::class, $shiftsRepo);
         $container->instance(StoreRepositoryInterface::class, $storesRepo);
 
         return new AdminRequestsController(

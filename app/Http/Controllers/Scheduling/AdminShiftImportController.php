@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Scheduling;
 use App\Http\Controllers\HasAdminAccess;
 
 use App\Models\ImportAlias;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -28,7 +28,6 @@ final class AdminShiftImportController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
@@ -137,7 +136,7 @@ final class AdminShiftImportController
 
             if ($uid <= 0 || $date === '') continue;
 
-            foreach ($this->shifts->findByUserAndDate($uid, $storeId, $date) as $ex) {
+            foreach (Shift::findByUserAndDate($uid, $storeId, $date) as $ex) {
                 if (!empty($ex['deleted_at'])) continue;
                 $exCross = (int) ($ex['cross_midnight'] ?? 0);
                 if (($ex['start_time'] ?? '') === $start && ($ex['end_time'] ?? '') === $end) {
@@ -224,7 +223,7 @@ final class AdminShiftImportController
 
             $hasExact    = false;
             $toDeleteIds = [];
-            foreach ($this->shifts->findByUserAndDate($userId, $storeId, $date) as $ex) {
+            foreach (Shift::findByUserAndDate($userId, $storeId, $date) as $ex) {
                 $exCross = (int) ($ex['cross_midnight'] ?? 0);
                 if (($ex['start_time'] ?? '') === $startTime && ($ex['end_time'] ?? '') === $endTime) {
                     $hasExact = true;
@@ -233,7 +232,7 @@ final class AdminShiftImportController
                 }
             }
             if ($hasExact) { $skipped++; continue; }
-            foreach ($toDeleteIds as $delId) { $this->shifts->delete($delId); }
+            foreach ($toDeleteIds as $delId) { Shift::remove($delId); }
 
             if (!empty($toDeleteIds)) { $updated++; } else { $count++; }
 
@@ -253,7 +252,7 @@ final class AdminShiftImportController
                 'notes'            => null,
             ];
 
-            $this->shifts->save($record);
+            Shift::put($record);
         }
 
         $obsoleteDeleted = 0;
@@ -263,12 +262,12 @@ final class AdminShiftImportController
             $importMaxDate = max($allDates);
 
             foreach ($coveredDates as $uid => $datesMap) {
-                foreach ($this->shifts->findByUser($uid) as $ex) {
+                foreach (Shift::findByUser($uid) as $ex) {
                     if ((int) ($ex['store_id'] ?? 0) !== $storeId) continue;
                     $exDate = $ex['shift_date'] ?? '';
                     if ($exDate < $importMinDate || $exDate > $importMaxDate) continue;
                     if (!isset($datesMap[$exDate])) {
-                        $this->shifts->delete((int) $ex['id']);
+                        Shift::remove((int) $ex['id']);
                         $obsoleteDeleted++;
                     }
                 }

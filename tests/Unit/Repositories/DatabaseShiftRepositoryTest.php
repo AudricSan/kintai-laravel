@@ -6,7 +6,7 @@ namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
 use App\Extension\Events;
-use App\Repositories\DatabaseShiftRepository;
+use App\Models\Shift;
 use App\Services\ShiftChangeNotifier;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\Shift as EloquentShift;
@@ -14,7 +14,6 @@ use App\Models\ShiftDeletionLog as EloquentShiftDeletionLog;
 
 final class DatabaseShiftRepositoryTest extends TestCase
 {
-    private DatabaseShiftRepository $repo;
 
     protected function setUp(): void
     {
@@ -57,8 +56,6 @@ final class DatabaseShiftRepositoryTest extends TestCase
             $table->timestamp('shift_created_at')->nullable();
             $table->timestamp('deleted_at')->nullable();
         });
-
-        $this->repo = new DatabaseShiftRepository();
     }
 
     private function shift(int $id, int $storeId = 1, int $userId = 10, string $date = '2025-06-15'): array
@@ -80,7 +77,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
             $this->shift(5, 2, 10, '2025-06-10'),
         ]);
 
-        $ids = array_column($this->repo->findByStoreBetween(1, '2025-06-01', '2025-06-30'), 'id');
+        $ids = array_column(Shift::findByStoreBetween(1, '2025-06-01', '2025-06-30'), 'id');
 
         $this->assertSame([1, 2, 3], array_map('intval', $ids));
     }
@@ -100,7 +97,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
             $this->shift(6, 1, 10, '2025-05-31'),
         ]);
 
-        $ids = fn(?array $stores) => array_map('intval', array_column($this->repo->findBetween($stores, '2025-06-01', '2025-06-30'), 'id'));
+        $ids = fn(?array $stores) => array_map('intval', array_column(Shift::findBetween($stores, '2025-06-01', '2025-06-30'), 'id'));
 
         $this->assertSame([1, 2, 4], $ids([1, 2]));
         $this->assertSame([1, 2, 3, 4], $ids(null));
@@ -115,7 +112,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
             $this->shift(3, 1, 11, '2025-06-05'),
         ]);
 
-        $ids = array_map('intval', array_column($this->repo->findBetween([1], '2025-06-01', '2025-06-30'), 'id'));
+        $ids = array_map('intval', array_column(Shift::findBetween([1], '2025-06-01', '2025-06-30'), 'id'));
 
         $this->assertSame([2, 3, 1], $ids);
     }
@@ -130,7 +127,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
             $this->shift(4, 1, 20, '2025-06-01'),
         ]);
 
-        $ids = array_column($this->repo->findByStoreBetween(1, '2025-06-01', '2025-06-30'), 'id');
+        $ids = array_column(Shift::findByStoreBetween(1, '2025-06-01', '2025-06-30'), 'id');
 
         $this->assertSame([3, 2, 4, 1], array_map('intval', $ids));
     }
@@ -139,7 +136,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
     {
         EloquentShift::insert([$this->shift(1, 1, 10, '2025-06-10')]);
 
-        $this->assertSame($this->repo->findByStore(1), $this->repo->findByStoreBetween(1, '2025-06-01', '2025-06-30'));
+        $this->assertSame(Shift::findByStore(1), Shift::findByStoreBetween(1, '2025-06-01', '2025-06-30'));
     }
 
     // -------------------------------------------------------------------------
@@ -149,14 +146,14 @@ final class DatabaseShiftRepositoryTest extends TestCase
     public function testFindByIdReturnsShift(): void
     {
         $s = EloquentShift::create(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
-        $found = $this->repo->findById($s->id);
+        $found = Shift::findById($s->id);
         $this->assertNotNull($found);
         $this->assertEquals($s->id, $found['id']);
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findById(999));
+        $this->assertNull(Shift::findById(999));
     }
 
     // -------------------------------------------------------------------------
@@ -169,7 +166,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
         EloquentShift::create(['store_id' => 2, 'user_id' => 2, 'shift_date' => '2025-06-15']);
         EloquentShift::create(['store_id' => 1, 'user_id' => 1, 'shift_date' => '2025-06-15']);
 
-        $this->assertCount(2, $this->repo->findByStore(2));
+        $this->assertCount(2, Shift::findByStore(2));
     }
 
     // -------------------------------------------------------------------------
@@ -181,12 +178,12 @@ final class DatabaseShiftRepositoryTest extends TestCase
         EloquentShift::create(['store_id' => 1, 'user_id' => 5, 'shift_date' => '2025-06-15']);
         EloquentShift::create(['store_id' => 2, 'user_id' => 5, 'shift_date' => '2025-06-16']);
 
-        $this->assertCount(2, $this->repo->findByUser(5));
+        $this->assertCount(2, Shift::findByUser(5));
     }
 
     public function testFindByUserReturnsEmptyWhenNone(): void
     {
-        $this->assertSame([], $this->repo->findByUser(5));
+        $this->assertSame([], Shift::findByUser(5));
     }
 
     // -------------------------------------------------------------------------
@@ -197,7 +194,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
     {
         EloquentShift::create(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
         
-        $result = $this->repo->findByDate(1, '2025-06-15');
+        $result = Shift::findByDate(1, '2025-06-15');
         $this->assertCount(1, $result);
         $this->assertEquals('2025-06-15', $result[0]['shift_date']);
     }
@@ -210,13 +207,13 @@ final class DatabaseShiftRepositoryTest extends TestCase
     {
         EloquentShift::create(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-07-01']);
         
-        $result = $this->repo->findByUserAndDate(10, 1, '2025-07-01');
+        $result = Shift::findByUserAndDate(10, 1, '2025-07-01');
         $this->assertCount(1, $result);
     }
 
     public function testFindByUserAndDateReturnsEmptyWhenNone(): void
     {
-        $this->assertSame([], $this->repo->findByUserAndDate(10, 1, '2025-07-01'));
+        $this->assertSame([], Shift::findByUserAndDate(10, 1, '2025-07-01'));
     }
 
     // -------------------------------------------------------------------------
@@ -228,7 +225,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
         EloquentShift::create(['store_id' => 1, 'user_id' => 1, 'shift_date' => '2025-06-15']);
         EloquentShift::create(['store_id' => 2, 'user_id' => 2, 'shift_date' => '2025-06-15']);
 
-        $this->assertCount(2, $this->repo->findAll());
+        $this->assertCount(2, Shift::findAll());
     }
 
     // -------------------------------------------------------------------------
@@ -240,7 +237,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
         EloquentShift::create(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-20']);
         EloquentShift::create(['store_id' => 2, 'user_id' => 11, 'shift_date' => '2025-06-20']);
 
-        $this->assertCount(2, $this->repo->findAllByDate('2025-06-20'));
+        $this->assertCount(2, Shift::findAllByDate('2025-06-20'));
     }
 
     // -------------------------------------------------------------------------
@@ -250,7 +247,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
     public function testSaveCreatesShift(): void
     {
         $data = ['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15'];
-        $result = $this->repo->save($data);
+        $result = Shift::put($data);
         
         $this->assertArrayHasKey('id', $result);
         $this->assertEquals(0, $result['ical_sequence']);
@@ -267,7 +264,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
         ]);
         
         $data = ['id' => $s->id, 'shift_date' => '2025-06-16'];
-        $result = $this->repo->save($data);
+        $result = Shift::put($data);
         
         $this->assertEquals(3, $result['ical_sequence']);
         $this->assertNotNull($result['updated_at']);
@@ -280,7 +277,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
     public function testDeleteDeletesShift(): void
     {
         $s = EloquentShift::create(['store_id' => 1, 'user_id' => 1, 'shift_date' => '2025-06-15']);
-        $count = $this->repo->delete($s->id);
+        $count = Shift::remove($s->id);
         
         $this->assertEquals(1, $count);
         $this->assertNull(EloquentShift::find($s->id));
@@ -288,7 +285,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
 
     public function testDeleteReturnsZeroWhenNotFound(): void
     {
-        $this->assertSame(0, $this->repo->delete(999));
+        $this->assertSame(0, Shift::remove(999));
     }
 
     /**
@@ -312,7 +309,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
             'ical_sequence'  => 2,
         ]);
 
-        $this->repo->delete($s->id);
+        Shift::remove($s->id);
 
         $log = EloquentShiftDeletionLog::first();
         $this->assertNotNull($log);
@@ -333,7 +330,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
 
     public function testDeleteDoesNotRecordLogWhenShiftNotFound(): void
     {
-        $this->repo->delete(999);
+        Shift::remove(999);
 
         $this->assertSame(0, EloquentShiftDeletionLog::count());
     }
@@ -351,9 +348,9 @@ final class DatabaseShiftRepositoryTest extends TestCase
             'start_time' => '09:00',
             'end_time'   => '17:00',
         ]);
-        $this->repo->delete($s->id);
+        Shift::remove($s->id);
 
-        $result = $this->repo->findRecentDeletionsByUserAndStore(7, 1, date('Y-m-d H:i:s', strtotime('-30 days')));
+        $result = Shift::findRecentDeletionsByUserAndStore(7, 1, date('Y-m-d H:i:s', strtotime('-30 days')));
 
         $this->assertCount(1, $result);
         $this->assertSame($s->id, $result[0]['id']);
@@ -364,20 +361,20 @@ final class DatabaseShiftRepositoryTest extends TestCase
     public function testFindRecentDeletionsByUserAndStoreExcludesOtherUserOrStore(): void
     {
         $s = EloquentShift::create(['store_id' => 1, 'user_id' => 7, 'shift_date' => '2025-06-15']);
-        $this->repo->delete($s->id);
+        Shift::remove($s->id);
 
-        $this->assertSame([], $this->repo->findRecentDeletionsByUserAndStore(999, 1, date('Y-m-d H:i:s', strtotime('-30 days'))));
-        $this->assertSame([], $this->repo->findRecentDeletionsByUserAndStore(7, 999, date('Y-m-d H:i:s', strtotime('-30 days'))));
+        $this->assertSame([], Shift::findRecentDeletionsByUserAndStore(999, 1, date('Y-m-d H:i:s', strtotime('-30 days'))));
+        $this->assertSame([], Shift::findRecentDeletionsByUserAndStore(7, 999, date('Y-m-d H:i:s', strtotime('-30 days'))));
     }
 
     public function testFindRecentDeletionsByUserAndStoreExcludesEntriesOlderThanSince(): void
     {
         $s = EloquentShift::create(['store_id' => 1, 'user_id' => 7, 'shift_date' => '2025-06-15']);
-        $this->repo->delete($s->id);
+        Shift::remove($s->id);
 
         // "since" dans le futur par rapport à la suppression qu'on vient de faire
         $future = date('Y-m-d H:i:s', strtotime('+1 minute'));
-        $this->assertSame([], $this->repo->findRecentDeletionsByUserAndStore(7, 1, $future));
+        $this->assertSame([], Shift::findRecentDeletionsByUserAndStore(7, 1, $future));
     }
 
     // -------------------------------------------------------------------------
@@ -388,7 +385,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
     {
         $s = EloquentShift::create(['store_id' => 1, 'user_id' => null, 'shift_date' => '2025-06-15', 'is_open' => 1, 'ical_sequence' => 2]);
 
-        $result = $this->repo->closeOpenShiftTo($s->id, 42);
+        $result = Shift::closeOpenShiftTo($s->id, 42);
 
         $this->assertNotNull($result);
         $this->assertSame(42, $result['user_id']);
@@ -407,8 +404,8 @@ final class DatabaseShiftRepositoryTest extends TestCase
     {
         $s = EloquentShift::create(['store_id' => 1, 'user_id' => null, 'shift_date' => '2025-06-15', 'is_open' => 1]);
 
-        $first  = $this->repo->closeOpenShiftTo($s->id, 42);
-        $second = $this->repo->closeOpenShiftTo($s->id, 99);
+        $first  = Shift::closeOpenShiftTo($s->id, 42);
+        $second = Shift::closeOpenShiftTo($s->id, 99);
 
         $this->assertNotNull($first);
         $this->assertNull($second);
@@ -417,7 +414,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
 
     public function testCloseOpenShiftToReturnsNullWhenShiftNotFound(): void
     {
-        $this->assertNull($this->repo->closeOpenShiftTo(999, 42));
+        $this->assertNull(Shift::closeOpenShiftTo(999, 42));
     }
 
     // -------------------------------------------------------------------------
@@ -443,7 +440,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
     {
         $seen = $this->recordNotifications();
 
-        $saved = $this->repo->save(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
+        $saved = Shift::put(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
 
         $this->assertCount(1, $seen);
         [$kind, $shift, $before] = $seen[0];
@@ -457,7 +454,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
         $created = EloquentShift::create(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
         $seen = $this->recordNotifications();
 
-        $this->repo->save(['id' => $created->id, 'user_id' => 11]);
+        Shift::put(['id' => $created->id, 'user_id' => 11]);
 
         [$kind, $shift, $before] = $seen[0];
         $this->assertSame('saved', $kind);
@@ -470,10 +467,10 @@ final class DatabaseShiftRepositoryTest extends TestCase
         $created = EloquentShift::create(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
         $seen = $this->recordNotifications();
 
-        $this->repo->delete(999);
+        Shift::remove(999);
         $this->assertCount(0, $seen, 'rien à annoncer quand le shift n’existe pas');
 
-        $this->repo->delete($created->id);
+        Shift::remove($created->id);
         $this->assertCount(1, $seen);
         $this->assertSame('deleted', $seen[0][0]);
         $this->assertSame($created->id, $seen[0][1]['id']);
@@ -484,7 +481,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
         $open = EloquentShift::create(['store_id' => 1, 'user_id' => null, 'shift_date' => '2025-06-15', 'is_open' => 1]);
         $seen = $this->recordNotifications();
 
-        $this->repo->closeOpenShiftTo($open->id, 42);
+        Shift::closeOpenShiftTo($open->id, 42);
 
         $this->assertCount(1, $seen);
         $this->assertSame('saved', $seen[0][0]);
@@ -498,7 +495,7 @@ final class DatabaseShiftRepositoryTest extends TestCase
             throw new \RuntimeException('agenda indisponible');
         }));
 
-        $saved = $this->repo->save(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
+        $saved = Shift::put(['store_id' => 1, 'user_id' => 10, 'shift_date' => '2025-06-15']);
 
         $this->assertNotNull(EloquentShift::find($saved['id']));
     }

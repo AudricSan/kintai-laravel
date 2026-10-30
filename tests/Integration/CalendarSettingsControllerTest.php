@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\Shift;
 use App\Models\AppSetting;
 use App\Models\CalendarConnection;
 use App\Auth\UserAnonymizer;
@@ -132,7 +133,7 @@ final class CalendarSettingsControllerTest extends TestCase
 
     public function testDeletingAnAccountRemovesItsLinkAndRevokesTheTokenAtGoogle(): void
     {
-        $this->shifts->save(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
+        Shift::put(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
         $this->sync->connect($this->alice, 'RA', null);
         $this->sync->processQueue();
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);

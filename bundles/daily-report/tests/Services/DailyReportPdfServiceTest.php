@@ -10,7 +10,7 @@ use PHPUnit\Framework\MockObject\Stub;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use App\Services\TranslationService;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -19,12 +19,12 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 final class DailyReportPdfServiceTest extends TestCase
 {
     private ?DailyReportPdfService $service = null;
-    private ShiftRepositoryInterface&Stub $shifts;
     private UserRepositoryInterface&Stub $users;
 
     protected function setUp(): void
     {
-        $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
         $this->users      = $this->createStub(UserRepositoryInterface::class);
     }
 
@@ -35,7 +35,6 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->service = new DailyReportPdfService(
                 kintai_test_views('/nonexistent/views'),
                 kintai_test_real_translator('en', false),
-                $this->shifts,
                 $this->users,
             );
         }
@@ -62,7 +61,9 @@ final class DailyReportPdfServiceTest extends TestCase
         return [
             'id'               => rand(1, 9999),
             'user_id'          => $userId,
-            'shift_type_id'    => $typeId,
+            'shift_type_id'    => $typeId ?: null,
+            'store_id'         => 1,
+            'shift_date'       => '2025-06-16',
             'start_time'       => $start,
             'end_time'         => $end,
             'duration_minutes' => $grossMin,
@@ -91,7 +92,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testGenerateBytesReturnsNullWhenViewNotFound(): void
     {
-        $this->shifts->method('findByDate')->willReturn([]);
+        kintai_test_shifts([]);
         kintai_test_shift_types([]);
 
         $result = $this->service()->generateBytes($this->report(), $this->store());
@@ -100,7 +101,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testGenerateBytesReturnsNullWithExplicitLocale(): void
     {
-        $this->shifts->method('findByDate')->willReturn([]);
+        kintai_test_shifts([]);
         kintai_test_shift_types([]);
 
         $result = $this->service()->generateBytes($this->report(), $this->store(), [], 'en');
@@ -109,7 +110,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testGenerateBytesReturnsNullWithJaLocale(): void
     {
-        $this->shifts->method('findByDate')->willReturn([]);
+        kintai_test_shifts([]);
         kintai_test_shift_types([]);
 
         $result = $this->service()->generateBytes($this->report(), $this->store(), [], 'ja');
@@ -129,11 +130,8 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsDoesNotQueryRepositoriesForEmptyDate(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shifts->expects($this->never())->method('findByDate');
-
         $report = ['id' => 1, 'report_date' => ''];
-        $this->invokeShiftRows($this->store(), $report);
+        $this->assertSame([], $this->invokeShiftRows($this->store(), $report));
     }
 
     // -------------------------------------------------------------------------
@@ -142,7 +140,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsExcludesSoftDeletedShifts(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00:00', '17:00:00', 480, 0, 1, '2025-06-15 12:00:00'),
         ]);
         kintai_test_shift_types([]);
@@ -153,7 +151,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsIncludesShiftsWithNullDeletedAt(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00:00', '17:00:00', 480, 30, 1, null),
         ]);
         kintai_test_shift_types([['id' => 1, 'name' => 'Jour']]);
@@ -165,7 +163,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsMixedDeletedAndActiveShifts(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '08:00:00', '16:00:00', 480, 0, 1, null),
             $this->shift(20, '09:00:00', '17:00:00', 480, 0, 1, '2025-06-15 00:00:00'),
             $this->shift(30, '10:00:00', '18:00:00', 480, 0, 1, null),
@@ -183,7 +181,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsNetMinIsGrossMinusPause(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '18:00', 540, 60),
         ]);
         kintai_test_shift_types([]);
@@ -195,7 +193,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsNetMinIsNeverNegative(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '09:30', 30, 60),
         ]);
         kintai_test_shift_types([]);
@@ -207,7 +205,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsNoPauseGivesNetEqualToGross(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '08:00', '12:00', 240, 0),
         ]);
         kintai_test_shift_types([]);
@@ -225,7 +223,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsUsesLastNameFirstName(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
@@ -237,7 +235,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsFallsBackToEmailWhenNameIsEmpty(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
@@ -249,7 +247,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsFallsBackToEmailWhenNameIsWhitespace(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
@@ -261,7 +259,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsShowsDashForUnknownUser(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(99, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
@@ -277,7 +275,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsResolvesShiftTypeName(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '14:00', '22:00', 480, 0, 5),
         ]);
         kintai_test_shift_types([['id' => 5, 'name' => 'Soir']]);
@@ -289,7 +287,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsShowsDashForUnknownShiftType(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '17:00', 480, 0, 999),
         ]);
         kintai_test_shift_types([['id' => 5, 'name' => 'Jour']]);
@@ -301,7 +299,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsShowsDashWhenTypeIdIsZero(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '17:00', 480, 0, 0),
         ]);
         kintai_test_shift_types([]);
@@ -317,7 +315,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsTruncatesTimesWithSeconds(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00:00', '17:30:00', 510),
         ]);
         kintai_test_shift_types([]);
@@ -330,7 +328,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsHandlesAlreadyShortTimeFormat(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '08:30', '16:45', 495),
         ]);
         kintai_test_shift_types([]);
@@ -347,7 +345,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsSortedByStartTime(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(20, '14:00:00', '22:00:00', 480),
             $this->shift(10, '08:00:00', '16:00:00', 480),
             $this->shift(30, '10:00:00', '18:00:00', 480),
@@ -367,7 +365,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsSortingIsStableForSameStartTime(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00:00', '13:00:00', 240),
             $this->shift(20, '09:00:00', '17:00:00', 480),
         ]);
@@ -387,7 +385,7 @@ final class DailyReportPdfServiceTest extends TestCase
     public function testBuildShiftRowsCachesUserLookupForSameUser(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '08:00', '12:00', 240),
             $this->shift(10, '13:00', '17:00', 240),
         ]);
@@ -405,7 +403,7 @@ final class DailyReportPdfServiceTest extends TestCase
     public function testBuildShiftRowsQueriesEachDistinctUserOnce(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '08:00', '12:00', 240),
             $this->shift(20, '09:00', '17:00', 480),
             $this->shift(10, '13:00', '17:00', 240),
@@ -425,7 +423,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsRowHasExpectedKeys(): void
     {
-        $this->shifts->method('findByDate')->willReturn([
+        kintai_test_shifts([
             $this->shift(10, '09:00', '17:00', 480, 30, 2),
         ]);
         kintai_test_shift_types([['id' => 2, 'name' => 'Journée']]);
@@ -445,7 +443,7 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsEmptyWhenNoShifts(): void
     {
-        $this->shifts->method('findByDate')->willReturn([]);
+        kintai_test_shifts([]);
         kintai_test_shift_types([]);
 
         $rows = $this->invokeShiftRows($this->store(), $this->report());

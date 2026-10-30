@@ -7,7 +7,7 @@ namespace App\Http\Controllers;
 use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Extension\Absences;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -29,7 +29,6 @@ final class ScheduleExportController
 
     public function __construct(
         private readonly AuthService                  $auth,
-        private readonly ShiftRepositoryInterface     $shifts,
         private readonly StoreRepositoryInterface     $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly ScheduleExportService        $export,
@@ -66,7 +65,7 @@ final class ScheduleExportController
         );
 
         $mine = array_values(array_filter(
-            $this->shifts->findByUser($userId),
+            Shift::findByUser($userId),
             static fn(array $s): bool => (int) ($s['store_id'] ?? 0) === $storeId
         ));
         $shifts = $this->export->select($mine, $period['from'], $period['to']);

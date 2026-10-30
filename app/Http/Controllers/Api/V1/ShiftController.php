@@ -9,7 +9,7 @@ use App\Api\Paginator;
 use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
 use App\Extension\Events;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -20,7 +20,6 @@ use App\Validation\PayloadValidator;
 final class ShiftController
 {
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
     ) {}
@@ -34,11 +33,11 @@ final class ShiftController
         $date    = $request->query('date');
 
         if ($storeId !== null && $date !== null) {
-            $items = $this->shifts->findByDate((int) $storeId, $date);
+            $items = Shift::findByDate((int) $storeId, $date);
         } elseif ($storeId !== null) {
-            $items = $this->shifts->findByStore((int) $storeId);
+            $items = Shift::findByStore((int) $storeId);
         } elseif ($userId !== null) {
-            $items = $this->shifts->findByUser((int) $userId);
+            $items = Shift::findByUser((int) $userId);
         } else {
             $items = [];
         }
@@ -88,7 +87,7 @@ final class ShiftController
             $data['user_id'] = null;
         }
 
-        $saved = $this->shifts->save($data);
+        $saved = Shift::put($data);
         $this->auditLogger->log($request, 'shift.created', 'shift', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: (int) $data['store_id']);
         return response()->json($saved, 201);
     }
@@ -113,7 +112,7 @@ final class ShiftController
             $this->permissions->requireOnStore($this->authUser($request), 'shifts.update', $data['store_id']);
         }
 
-        $saved = $this->shifts->save(array_merge($data, ['id' => $id]));
+        $saved = Shift::put(array_merge($data, ['id' => $id]));
         // Shift retiré de la bourse (contrat 1.17) : les bundles qui l'écoutent (shift-claim) l'apprennent.
         if (!empty($old['is_open']) && array_key_exists('is_open', $data) && empty($data['is_open'])) {
             $authId = (int) ($this->authUser($request)['id'] ?? 0);
@@ -129,7 +128,7 @@ final class ShiftController
         $old = $this->requireShift($request, 'shifts.delete');
         $id  = (int) $old['id'];
 
-        $this->shifts->delete($id);
+        Shift::remove($id);
         $this->auditLogger->log($request, 'shift.deleted', 'shift', resourceId: $id, storeId: (int) $old['store_id'] ?: null);
         return response()->noContent();
     }
@@ -144,7 +143,7 @@ final class ShiftController
     {
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
-            fn(int $id) => $this->shifts->findById($id),
+            fn(int $id) => Shift::findById($id),
             (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: __('error_shift_not_found'),

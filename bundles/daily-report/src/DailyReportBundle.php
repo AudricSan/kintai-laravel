@@ -17,7 +17,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -77,7 +77,6 @@ final class DailyReportBundle extends Bundle
         $container->singleton(DailyReportPdfService::class, fn(Container $c) => new DailyReportPdfService(
             $c->make(ViewFactory::class),
             $c->make(TranslationService::class),
-            $c->make(ShiftRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
         ));
         $container->singleton(DailyReportMailService::class, fn(Container $c) => new DailyReportMailService(

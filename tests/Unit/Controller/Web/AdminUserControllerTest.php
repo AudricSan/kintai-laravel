@@ -11,7 +11,7 @@ use App\Models\AppSetting;
 use App\Repositories\DailyReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -1278,7 +1278,6 @@ final class AdminUserControllerTest extends TestCase
                 $view,
                 $this->users,
                 $this->stores,
-                $this->createStub(ShiftRepositoryInterface::class),
                 $this->storeUsers,
                 new AuditLogger(),
                 new RoleAssignmentSyncService($this->roles, $this->roleAssignments),

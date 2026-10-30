@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Extension\Absences;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -26,7 +26,6 @@ final class WeekPlanner
     public const SKIP_OVERLAP     = 'overlap';
 
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly AvailabilityGuard $availability,
@@ -42,7 +41,7 @@ final class WeekPlanner
         $start = new \DateTimeImmutable($weekStart);
         $end   = $start->modify('+6 days')->format('Y-m-d');
         $entries = [];
-        foreach ($this->shifts->findByStoreBetween($storeId, $start->format('Y-m-d'), $end) as $s) {
+        foreach (Shift::findByStoreBetween($storeId, $start->format('Y-m-d'), $end) as $s) {
             if (!empty($s['deleted_at'])) {
                 continue;
             }
@@ -98,7 +97,7 @@ final class WeekPlanner
             $endsDate  = $cross === 1 ? $start->modify('+' . ($entry['day'] + 1) . ' days')->format('Y-m-d') : $date;
             $typeId    = (new ShiftWageCalculator())->calculate($entry['start_time'], $entry['end_time'], $types, max(0, $duration - $entry['pause_minutes']))['dominant_type_id'];
 
-            $created[] = $this->shifts->save([
+            $created[] = Shift::put([
                 'store_id'         => $storeId,
                 'user_id'          => $userId,
                 'shift_type_id'    => $typeId,
@@ -160,7 +159,7 @@ final class WeekPlanner
             return self::SKIP_UNAVAILABLE;
         }
         [$from, $to] = self::interval($entry['start_time'], $entry['end_time']);
-        foreach ($this->shifts->findByUserAndDate($userId, $storeId, $date) as $existing) {
+        foreach (Shift::findByUserAndDate($userId, $storeId, $date) as $existing) {
             if (!empty($existing['deleted_at'])) {
                 continue;
             }

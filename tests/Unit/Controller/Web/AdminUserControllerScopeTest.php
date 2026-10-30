@@ -11,7 +11,7 @@ use App\Exceptions\ForbiddenException;
 use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -71,7 +71,6 @@ final class AdminUserControllerScopeTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
             $stores,
-            $this->createStub(ShiftRepositoryInterface::class),
             $this->storeUsers,
             new AuditLogger(),
             new RoleAssignmentSyncService($roles, $assignments),

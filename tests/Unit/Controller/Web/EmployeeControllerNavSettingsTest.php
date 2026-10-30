@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Models\Availability;
 use App\Models\DevicePushToken;
 use App\Models\IcalToken;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -42,7 +42,6 @@ final class EmployeeControllerNavSettingsTest extends TestCase
 
         $this->controller = new EmployeeController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),

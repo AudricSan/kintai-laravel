@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Extension\Attendances;
 use App\Extension\PendingRequests;
@@ -23,7 +23,6 @@ final class DashboardAlertService
     private const STALE_TIMECLOCK_HOURS = 12;
 
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly UserRepositoryInterface $users,
         private readonly StoreUserRepositoryInterface $storeUsers,
         // Demandes en attente (fournisseurs des bundles) ; sans elles (tests), celles de la requête courante.
@@ -51,7 +50,7 @@ final class DashboardAlertService
         $result = [];
         for ($d = 0; $d <= self::UPCOMING_WINDOW_DAYS; $d++) {
             $date = date('Y-m-d', strtotime("+{$d} days"));
-            foreach ($this->shifts->findAllByDate($date) as $s) {
+            foreach (Shift::findAllByDate($date) as $s) {
                 $sid = (int) ($s['store_id'] ?? 0);
                 if (!in_array($sid, $storeIds, true) || $s['user_id'] !== null || !empty($s['deleted_at'])) {
                     continue;
@@ -75,7 +74,7 @@ final class DashboardAlertService
         $scheduledUserIds = [];
         for ($d = 0; $d < 7; $d++) {
             $date = date('Y-m-d', strtotime("{$weekStart} +{$d} days"));
-            foreach ($this->shifts->findAllByDate($date) as $s) {
+            foreach (Shift::findAllByDate($date) as $s) {
                 if ($s['user_id'] !== null) {
                     $scheduledUserIds[(int) $s['user_id']] = true;
                 }

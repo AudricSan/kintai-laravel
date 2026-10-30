@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInter
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -38,7 +38,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportControllerTest extends TestCase
 {
-    private ShiftRepositoryInterface&Stub $shifts;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
@@ -50,7 +49,8 @@ final class DailyReportControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
         $this->users      = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->notifs     = $this->createStub(NotificationService::class);
@@ -72,7 +72,6 @@ final class DailyReportControllerTest extends TestCase
             $pdfService = new DailyReportPdfService(
                 kintai_test_views(sys_get_temp_dir()),
                 $translations,
-                $this->shifts,
                 $this->users,
             );
             $mailService = new DailyReportMailService(
@@ -92,7 +91,6 @@ final class DailyReportControllerTest extends TestCase
                 $mailService,
                 new AuditLogger(),
                 $translations,
-                $this->shifts,
                 $this->notifs,
                 $permissionService,
                 new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
@@ -104,15 +102,14 @@ final class DailyReportControllerTest extends TestCase
 
     public function testGetFormShiftRowsExcludesShiftsFromUsersNotMemberOfStore(): void
     {
-        $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
         $storeId = 1;
         $date    = '2026-08-01';
 
         // Deux "Dupont" homonymes : #10 appartient au magasin 1, #20 appartient à un
         // autre magasin. Un import erroné a néanmoins créé un shift store_id=1 pour #20.
-        $this->shifts->expects($this->atLeastOnce())->method('findByDate')->with($storeId, $date)->willReturn([
-            ['user_id' => 10, 'shift_type_id' => 0, 'start_time' => '09:00:00', 'end_time' => '17:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60, 'deleted_at' => null],
-            ['user_id' => 20, 'shift_type_id' => 0, 'start_time' => '10:00:00', 'end_time' => '18:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60, 'deleted_at' => null],
+        kintai_test_shifts([
+            ['user_id' => 10, 'shift_date' => '2026-08-01', 'shift_type_id' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60, 'deleted_at' => null],
+            ['user_id' => 20, 'shift_date' => '2026-08-01', 'shift_type_id' => null, 'start_time' => '10:00:00', 'end_time' => '18:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60, 'deleted_at' => null],
         ]);
         kintai_test_shift_types([]);
 

@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -48,9 +48,7 @@ final class HomeControllerScopingTest extends TestCase
 
         $storesRepo = $this->createStub(StoreRepositoryInterface::class);
         $storesRepo->method('findAll')->willReturn($stores);
-
-        $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
-        $shiftsRepo->method('findAllByDate')->willReturn($shiftsToday);
+        kintai_test_shifts(array_map(fn(array $s): array => $s + ['shift_date' => date('Y-m-d')], $shiftsToday));
         // Widgets financial_overview/hr_absenteeism exclus : ces tests portent sur le
         // scoping managed_store_ids, pas sur le calcul RH/financier (storeStats() n'est
         // pas mocké pour ces widgets ici, voir HomeControllerFinancialHrWidgetsTest).
@@ -75,13 +73,12 @@ final class HomeControllerScopingTest extends TestCase
         $roles->method('getPermissions')->with(5)->willReturn(['payroll.view']);
         $permissions = new PermissionService($roleAssignments, $roles);
 
-        $dashboardAlerts = new DashboardAlertService($shiftsRepo, $usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $shiftsRepo,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

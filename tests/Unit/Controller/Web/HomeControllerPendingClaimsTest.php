@@ -9,7 +9,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -38,6 +38,8 @@ final class HomeControllerPendingClaimsTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->ensureViewFile('dashboard.index', "<?php echo json_encode(['stats' => \$stats]);");
     }
 
@@ -56,9 +58,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
 
         $storesRepo = $this->createStub(StoreRepositoryInterface::class);
         $storesRepo->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
-
-        $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
-        $shiftsRepo->method('findAllByDate')->willReturn([]);
+        kintai_test_shifts([]);
         $this->seedWidgets(99, 'admin', ['kpi_counters']);
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
@@ -71,19 +71,17 @@ final class HomeControllerPendingClaimsTest extends TestCase
         $roles = $this->createStub(RoleRepositoryInterface::class);
         $permissions = new PermissionService($roleAssignments, $roles);
 
-        $dashboardAlerts = new DashboardAlertService($shiftsRepo, $usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 
         // Le compteur lit les demandes à travers les fournisseurs (PendingRequests), qui prennent leurs dépôts dans le
         // conteneur.
         $container = Container::getInstance();
-        $container->instance(ShiftRepositoryInterface::class, $shiftsRepo);
         $container->instance(StoreRepositoryInterface::class, $storesRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $shiftsRepo,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

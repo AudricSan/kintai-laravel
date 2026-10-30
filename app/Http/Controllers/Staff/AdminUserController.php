@@ -13,7 +13,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\PlanLimitExceededException;
 use App\Extension\Events;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -39,7 +39,6 @@ final class AdminUserController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
@@ -121,7 +120,6 @@ final class AdminUserController
         // rapport de salaire (ShiftWageCalculator::costOf() via EmployeeStatsService),
         // pour que ce montant "Salaire est." ne diverge plus des autres pages.
         $employeeStatsService = new EmployeeStatsService(
-            $this->shifts,
             $this->storeUsers,
             $this->stores,
         );

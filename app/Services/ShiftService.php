@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Extension\Absences;
 use App\Repositories\UserRepositoryInterface;
@@ -12,7 +12,6 @@ use App\Repositories\UserRepositoryInterface;
 final class ShiftService implements ShiftServiceInterface
 {
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly UserRepositoryInterface $users,
     ) {}
 
@@ -22,7 +21,7 @@ final class ShiftService implements ShiftServiceInterface
         $monthEnd   = date('Y-m-t', strtotime($monthStart));
 
         // Plage et magasins filtrés en base : l'historique complet n'est plus chargé.
-        $all = $this->shifts->findBetween($storeIds, $monthStart, $monthEnd);
+        $all = Shift::findBetween($storeIds, $monthStart, $monthEnd);
 
         return array_values(array_filter($all, function ($s) use ($storeIds, $monthStart, $monthEnd, $filterStoreId, $filterUserId) {
             $sid = (int) ($s['store_id'] ?? 0);
@@ -60,7 +59,7 @@ final class ShiftService implements ShiftServiceInterface
     {
         $shiftsByDate = [];
         foreach ($userIds as $uid) {
-            foreach ($this->shifts->findByUser($uid) as $s) {
+            foreach (Shift::findByUser($uid) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d < $startDate || $d > $endDate) continue;
                 if ($filterStoreId > 0 && (int) ($s['store_id'] ?? 0) !== $filterStoreId) continue;

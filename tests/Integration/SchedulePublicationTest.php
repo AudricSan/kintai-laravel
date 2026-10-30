@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\DatabaseShiftRepository;
+use App\Models\Shift;
 use App\Repositories\DatabaseStoreRepository;
 use App\Services\NotificationService;
 use App\Services\SchedulePublication;
@@ -23,7 +23,6 @@ if (!defined('BASE_PATH')) {
 final class SchedulePublicationTest extends TestCase
 {
     private Capsule $capsule;
-    private DatabaseShiftRepository $shifts;
     private DatabaseStoreRepository $stores;
     /** @var NotificationService&object{sent: list<array<string, mixed>>} */
     private NotificationService $notifs;
@@ -52,8 +51,6 @@ final class SchedulePublicationTest extends TestCase
         $this->bob   = (int) $this->capsule->table('users')->where('email', 'bob@kintai.test')->value('id');
         $this->capsule->table('stores')->insert(['name' => 'Shibuya', 'code' => 'SHB', 'timezone' => 'Asia/Tokyo', 'created_at' => $now, 'updated_at' => $now]);
         $this->store = (int) $this->capsule->table('stores')->where('code', 'SHB')->value('id');
-
-        $this->shifts = new DatabaseShiftRepository();
         $this->stores = new DatabaseStoreRepository();
         $this->notifs = new class extends NotificationService {
             /** @var list<array<string, mixed>> */
@@ -66,7 +63,7 @@ final class SchedulePublicationTest extends TestCase
                 $this->sent[] = ['user' => $userId, 'type' => $type, 'body' => $bodyKey, 'replace' => $replace, 'link' => $link];
             }
         };
-        $this->publication = new SchedulePublication($this->stores, $this->shifts, $this->notifs);
+        $this->publication = new SchedulePublication($this->stores, $this->notifs);
     }
 
     protected function tearDown(): void
@@ -76,7 +73,7 @@ final class SchedulePublicationTest extends TestCase
 
     private function shift(int $userId, string $date, array $extra = []): array
     {
-        return $this->shifts->save($extra + [
+        return Shift::put($extra + [
             'store_id' => $this->store, 'user_id' => $userId, 'shift_date' => $date,
             'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $date . ' 09:00:00', 'ends_at' => $date . ' 17:00:00',
         ]);
@@ -156,7 +153,7 @@ final class SchedulePublicationTest extends TestCase
         $this->publication->configure($this->store, true);
         $this->publication->publish($this->store, $this->day(7));
 
-        $fresh = new SchedulePublication($this->stores, $this->shifts, $this->notifs);
+        $fresh = new SchedulePublication($this->stores, $this->notifs);
 
         $this->assertSame($this->day(7), $fresh->publishedUntil($this->store));
     }

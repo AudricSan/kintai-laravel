@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\Shift;
 use App\Models\CalendarConnection;
 use App\Models\CalendarSyncQueueItem;
 use App\Auth\AuthService;
@@ -123,7 +124,7 @@ final class CalendarLinkControllerTest extends TestCase
 
     public function testSuccessfulCallbackLinksTheAccountAndQueuesTheFirstSync(): void
     {
-        $this->shifts->save(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
+        Shift::put(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
         $this->http->when('POST', '/token', ['status' => 200, 'body' => json_encode(['refresh_token' => 'REFRESH', 'access_token' => 'A'])]);
         $state = $this->startOauth();
 
@@ -251,7 +252,7 @@ final class CalendarLinkControllerTest extends TestCase
 
     public function testTheCommandDoesNothingWhileTheFeatureIsDisabledThenProcessesTheQueue(): void
     {
-        $this->shifts->save(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
+        Shift::put(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
         $this->sync->connect($this->alice, 'RA', null);
         app()->instance(\App\Services\CalendarSyncService::class, $this->sync);
         app()->instance(\App\Services\Calendar\GoogleCalendarSettings::class, $this->google);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\View;
 
 use Illuminate\Container\Container;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -47,7 +47,6 @@ final class EmptyStorePagesTest extends TestCase
         $roleSync = (new \ReflectionClass(RoleAssignmentSyncService::class))->newInstanceWithoutConstructor();
         $service = new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             $roleSync,

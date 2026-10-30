@@ -12,7 +12,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -48,6 +48,8 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $viewDir = sys_get_temp_dir() . '/kintai-employee-controller-views';
         $this->writeViewFile($viewDir, 'scheduling.shifts-timeline', '<?= $can_manage ? "CAN_MANAGE_TRUE" : "CAN_MANAGE_FALSE" ?>');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
@@ -60,7 +62,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->roles = $this->createStub(RoleRepositoryInterface::class);
 
         $this->viewDir    = $viewDir;
-        $this->controller = $this->buildController($this->createStub(ShiftRepositoryInterface::class));
+        $this->controller = $this->buildController();
 
         $this->storeUsers->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [
             ['user_id' => 9, 'store_id' => 1, 'role' => 'staff'],
@@ -69,11 +71,10 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY']);
     }
 
-    private function buildController(ShiftRepositoryInterface $shifts): EmployeeController
+    private function buildController(): EmployeeController
     {
         return new EmployeeController(
             kintai_test_views($this->viewDir),
-            $shifts,
             $this->stores,
             $this->storeUsers,
             $this->createStub(UserRepositoryInterface::class),
@@ -172,8 +173,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
     public function testShiftDayMarksTheUsersOwnDisplayedShiftsAsRead(): void
     {
         $date   = date('Y-m-d');
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $shifts->method('findByStore')->willReturn([
+        kintai_test_shifts([
             ['id' => 31, 'user_id' => 9, 'store_id' => 1, 'shift_date' => $date],
             ['id' => 32, 'user_id' => 4, 'store_id' => 1, 'shift_date' => $date],
             ['id' => 33, 'user_id' => 9, 'store_id' => 1, 'shift_date' => date('Y-m-d', strtotime('+30 days'))],
@@ -187,7 +187,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->assertSame(200, $this->buildController($shifts)->shiftDay($req)->getStatusCode());
+        $this->assertSame(200, $this->buildController()->shiftDay($req)->getStatusCode());
         $read = \App\Models\Notification::whereNotNull('read_at')->pluck('reference_type', 'reference_id')->all();
         $this->assertSame([31 => 'shift', shift_day_reference($date) => 'shift_day'], $read, 'seul le shift 31 de l\'employé 9 et son jour sont lus');
     }

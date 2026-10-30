@@ -11,7 +11,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ValidationException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -32,6 +32,9 @@ final class ApiClaimConsistencyTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === self::MANAGER
             ? [['id' => 1, 'user_id' => self::MANAGER, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
@@ -70,11 +73,10 @@ final class ApiClaimConsistencyTest extends TestCase
     {
         $claims = $this->createMock(ShiftClaimRepositoryInterface::class);
         $claims->expects($this->never())->method('save');
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $shifts->method('findById')->willReturn($shift);
+        kintai_test_shifts($shift === null ? [] : [$shift]);
 
         $this->expectException(ValidationException::class);
-        (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $shifts))
+        (new ShiftClaimController($claims, $this->permissions, $this->storeUsers))
             ->store($this->request(self::EMPLOYEE, ['store_id' => 1, 'shift_id' => 8]));
     }
 
@@ -86,22 +88,20 @@ final class ApiClaimConsistencyTest extends TestCase
         $claims->method('findById')->willReturn($claim);
         $claims->method('findByShift')->willReturn([$claim]);
         $claims->expects($this->once())->method('approveIfPending')->willReturn(['status' => 'approved'] + $claim);
-        $shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $shifts->method('findById')->willReturn($shift);
-        $shifts->expects($this->once())->method('closeOpenShiftTo')->with(8, self::EMPLOYEE)
-            ->willReturn(['user_id' => self::EMPLOYEE, 'is_open' => 0] + $shift);
+        kintai_test_shifts([$shift]);
         $notifs = $this->createStub(NotificationService::class);
         $notified = [];
         $notifs->method('notify')->willReturnCallback(function (int $u, string $type) use (&$notified) {
             $notified[] = [$u, $type];
         });
-        $approval = new ShiftClaimApproval($claims, $shifts, $this->createStub(StoreRepositoryInterface::class), $notifs);
+        $approval = new ShiftClaimApproval($claims, $this->createStub(StoreRepositoryInterface::class), $notifs);
 
-        $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $shifts, $approval))
+        $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame([[self::EMPLOYEE, 'shift_claim_approved'], [4, 'shift_claim_handed_over']], $notified);
+        $this->assertSame(self::EMPLOYEE, \App\Models\Shift::findById(8)['user_id']);
     }
 
     public function testApprovingAClosedShiftIsAConflict(): void
@@ -110,12 +110,11 @@ final class ApiClaimConsistencyTest extends TestCase
         $claims = $this->createMock(ShiftClaimRepositoryInterface::class);
         $claims->method('findById')->willReturn($claim);
         $claims->expects($this->never())->method('approveIfPending');
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $shifts->method('findById')->willReturn(['id' => 8, 'store_id' => 1, 'is_open' => 0, 'user_id' => 5]);
-        $approval = new ShiftClaimApproval($claims, $shifts, $this->createStub(StoreRepositoryInterface::class),
+        kintai_test_shifts([['id' => 8, 'store_id' => 1, 'is_open' => 0, 'user_id' => 5]]);
+        $approval = new ShiftClaimApproval($claims, $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(NotificationService::class));
 
-        $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $shifts, $approval))
+        $response = (new ShiftClaimController($claims, $this->permissions, $this->storeUsers, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
         $this->assertSame(409, $response->getStatusCode());

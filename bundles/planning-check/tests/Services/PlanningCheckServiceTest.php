@@ -17,7 +17,7 @@ use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -44,8 +44,6 @@ final class PlanningCheckServiceTest extends TestCase
     public array $mails = [];
     /** @var list<array<string, mixed>> */
     public array $notifications = [];
-    /** @var list<array<string, mixed>> */
-    public array $shifts = [];
     public ?string $pdfBytes = '%PDF-fake';
     public bool $mailOk = true;
     private \DateTimeImmutable $now;
@@ -53,19 +51,16 @@ final class PlanningCheckServiceTest extends TestCase
     /** @var array{0: StoreRepositoryInterface, 1: PlanningShiftRows} */
     private array $resolverDeps;
 
+    /** Shifts du magasin 3 pour le jour contrôlé (2026-10-22). */
+    private function seedShifts(array $rows): void
+    {
+        kintai_test_shifts(array_map(fn(array $row): array => $row + ['store_id' => 3, 'shift_date' => '2026-10-22'], $rows));
+    }
+
     protected function setUp(): void
     {
         $capsule = kintai_test_database();
-        $loader = new class($capsule) {
-            public function __construct(public Capsule $capsule) {}
-
-            public function load(string $file): object
-            {
-                return require $file;
-            }
-        };
-        $loader->load(dirname(__DIR__, 2) . '/database/migrations/2026_10_23_000001_create_planning_check_tables.php')->up();
-        $loader->load(dirname(__DIR__, 2) . '/database/migrations/2026_10_24_000001_add_mail_recipient_ids_to_planning_check_settings.php')->up();
+        kintai_test_migrate();
 
         // Les règles de temps suivent le fuseau de l'application, pas celui du magasin.
         $this->previousTimezone = date_default_timezone_get();
@@ -76,10 +71,10 @@ final class PlanningCheckServiceTest extends TestCase
         $this->mails = $this->notifications = [];
         $this->pdfBytes = '%PDF-fake';
         $this->mailOk = true;
-        $this->shifts = [
+        $this->seedShifts([
             ['id' => 1, 'user_id' => 5, 'shift_type_id' => 1, 'start_time' => '09:00:00', 'end_time' => '17:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60],
             ['id' => 2, 'user_id' => 6, 'shift_type_id' => 1, 'start_time' => '10:00:00', 'end_time' => '18:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60],
-        ];
+        ]);
 
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 3 ? ['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo', 'locale' => 'fr'] : null);
@@ -90,9 +85,6 @@ final class PlanningCheckServiceTest extends TestCase
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => ['id' => $id, 'is_active' => 1, 'first_name' => 'U' . $id, 'last_name' => 'N', 'email' => "u$id@example.com"]);
-
-        $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
-        $shiftsRepo->method('findByDate')->willReturnCallback(fn(int $storeId, string $date): array => $this->shifts);
         kintai_test_shift_types([['id' => 1, 'name' => 'Journée', 'color' => '#fff']]);
 
         // 7 est approbateur, 5 ne l'est pas ; 99 est Owner (rôle système global).
@@ -137,7 +129,7 @@ final class PlanningCheckServiceTest extends TestCase
             $pdf,
             new \App\Services\UserSelection($members, $users, $permissions),
         );
-        $rows = new PlanningShiftRows($shiftsRepo, $users);
+        $rows = new PlanningShiftRows($users);
         $this->service = new PlanningCheckService($this->repo, $stores, $members, $users, $permissions, $notifications, $rows, $pdf, $mail);
         $this->resolverDeps = [$stores, $rows];
         $_SESSION = [];
@@ -237,7 +229,7 @@ final class PlanningCheckServiceTest extends TestCase
     public function testNoShiftNeedsAnExplicitConfirmation(): void
     {
         $this->enable();
-        $this->shifts = [];
+        \Illuminate\Support\Facades\DB::table('shifts')->delete();
 
         $refused = $this->service->submit(3, '2026-10-22', 5, false, $this->now);
         $this->assertSame('no_shifts', $refused['error']);
@@ -399,7 +391,7 @@ final class PlanningCheckServiceTest extends TestCase
         $validated = $this->service->approve($check['id'], 7, $this->now)['check'];
         $this->assertFalse($this->service->needsResend($validated), 'rien n\'a changé');
 
-        $this->shifts[] = ['id' => 3, 'user_id' => 8, 'shift_type_id' => 1, 'start_time' => '12:00:00', 'end_time' => '20:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60];
+        $this->seedShifts([['id' => 3, 'user_id' => 8, 'shift_type_id' => 1, 'start_time' => '12:00:00', 'end_time' => '20:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60]]);
         $this->assertTrue($this->service->needsResend($this->repo->find($check['id'])), 'un shift ajouté après l\'envoi');
 
         $result = $this->service->resend($check['id'], 7, $this->now);
@@ -453,7 +445,7 @@ final class PlanningCheckServiceTest extends TestCase
     {
         $this->enable();
         $this->service->sendNow(3, '2026-10-22', 7, false, $this->now);
-        $this->shifts[] = ['id' => 3, 'user_id' => 8, 'shift_type_id' => 1, 'start_time' => '12:00:00', 'end_time' => '20:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60];
+        $this->seedShifts([['id' => 3, 'user_id' => 8, 'shift_type_id' => 1, 'start_time' => '12:00:00', 'end_time' => '20:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60]]);
 
         $result = $this->service->sendNow(3, '2026-10-22', 7, false, $this->now);
 
@@ -466,7 +458,7 @@ final class PlanningCheckServiceTest extends TestCase
     public function testSendNowWithoutShiftNeedsTheExplicitConfirmation(): void
     {
         $this->enable();
-        $this->shifts = [];
+        \Illuminate\Support\Facades\DB::table('shifts')->delete();
 
         $refused = $this->service->sendNow(3, '2026-10-22', 7, false, $this->now);
         $this->assertFalse($refused['ok']);

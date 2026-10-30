@@ -13,7 +13,7 @@ use App\Extension\Events;
 
 /**
  * Point unique par lequel le dépôt des shifts annonce une écriture : événements ShiftSaved / ShiftDeleted pour les bundles
- * (contrat 1.28) et mise en file de la synchronisation des agendas externes du Core. Appelé depuis DatabaseShiftRepository,
+ * (contrat 1.28) et mise en file de la synchronisation des agendas externes du Core. Appelé depuis le modèle Shift,
  * donc quel que soit le chemin d'écriture. Ne lève jamais : une panne ici ne doit pas défaire l'écriture du shift.
  */
 final class ShiftChangeNotifier

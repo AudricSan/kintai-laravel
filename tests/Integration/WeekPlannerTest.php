@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
 use App\Models\Availability;
-use App\Repositories\DatabaseShiftRepository;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
 use App\Repositories\DatabaseStoreUserRepository;
@@ -33,7 +33,6 @@ if (!defined('BASE_PATH')) {
 final class WeekPlannerTest extends TestCase
 {
     private Capsule $capsule;
-    private DatabaseShiftRepository $shifts;
     private WeekPlanner $planner;
     private int $store;
     private int $alice;
@@ -66,9 +65,7 @@ final class WeekPlannerTest extends TestCase
 
         $this->monday     = '2026-11-02';
         $this->nextMonday = '2026-11-09';
-        $this->shifts  = new DatabaseShiftRepository();
         $this->planner = new WeekPlanner(
-            $this->shifts,
             new DatabaseStoreUserRepository(),
             new DatabaseUserRepository(),
             new AvailabilityGuard(),
@@ -87,7 +84,7 @@ final class WeekPlannerTest extends TestCase
     {
         $cross = $end <= $start;
         $endDate = $cross ? date('Y-m-d', strtotime($date . ' +1 day')) : $date;
-        return $this->shifts->save($extra + [
+        return Shift::put($extra + [
             'store_id' => $this->store, 'user_id' => $userId, 'shift_date' => $date, 'start_time' => $start, 'end_time' => $end,
             'cross_midnight' => $cross ? 1 : 0, 'pause_minutes' => 30, 'notes' => 'Ouverture',
             'starts_at' => $date . ' ' . $start . ':00', 'ends_at' => $endDate . ' ' . $end . ':00',
@@ -99,7 +96,7 @@ final class WeekPlannerTest extends TestCase
     {
         $rows = array_map(
             fn(array $s): array => [(string) $s['shift_date'], (int) $s['user_id'], substr((string) $s['start_time'], 0, 5), substr((string) $s['end_time'], 0, 5)],
-            $this->shifts->findByStoreBetween($this->store, $monday, date('Y-m-d', strtotime($monday . ' +6 days'))),
+            Shift::findByStoreBetween($this->store, $monday, date('Y-m-d', strtotime($monday . ' +6 days'))),
         );
         sort($rows);
         return $rows;

@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -37,6 +37,8 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->ensureViewFile('dashboard.index');
         $this->ensureViewFile('layout.app');
 
@@ -44,8 +46,7 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
         $users->method('findAll')->willReturn([]);
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findAll')->willReturn([]);
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $shifts->method('findAllByDate')->willReturn([]);
+        kintai_test_shifts([]);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findByStore')->willReturn([]);
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
@@ -53,13 +54,12 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
             $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->createStub(RoleRepositoryInterface::class),
         );
-        $dashboardAlerts = new DashboardAlertService($shifts, $users, $storeUsers);
+        $dashboardAlerts = new DashboardAlertService($users, $storeUsers);
 
         $this->controller = new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $users,
             $stores,
-            $shifts,
             $storeUsers,
             $storeStats,
             $dashboardAlerts,

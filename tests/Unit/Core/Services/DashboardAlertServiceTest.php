@@ -9,7 +9,7 @@ use kintai\Contract\Provider\PendingRequestsProvider;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Extension\PendingRequests;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\DashboardAlertService;
@@ -26,8 +26,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class DashboardAlertServiceTest extends TestCase
 {
-    /** @var array<string, array> date (Y-m-d) => shifts renvoyés par findAllByDate() pour cette date */
-    private array $shiftsByDate = [];
 
     /** @var array<int, array> store_id => membres (store_user) */
     private array $storeMembers = [];
@@ -46,7 +44,8 @@ final class DashboardAlertServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->shiftsByDate = [];
+        kintai_test_database();
+        kintai_test_migrate();
         $this->storeMembers = [];
         $this->usersById = [];
         $this->pendingFixture = [];
@@ -55,11 +54,6 @@ final class DashboardAlertServiceTest extends TestCase
 
     private function service(): DashboardAlertService
     {
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $shifts->method('findAllByDate')->willReturnCallback(
-            fn(string $date) => $this->shiftsByDate[$date] ?? []
-        );
-
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(
             fn(int $id) => $this->usersById[$id] ?? null
@@ -80,7 +74,7 @@ final class DashboardAlertServiceTest extends TestCase
         $manager = FakeBundleManagerFactory::withActiveSlugs(array_unique([...array_keys($providers), ...array_keys($attendance)]), [], $providers, $attendance);
         Container::getInstance()->instance(ExtensionRegistry::class, new ExtensionRegistry($manager));
 
-        return new DashboardAlertService($shifts, $users, $storeUsers, new PendingRequests(new ExtensionRegistry($manager)));
+        return new DashboardAlertService($users, $storeUsers, new PendingRequests(new ExtensionRegistry($manager)));
     }
 
     /** @param list<PendingRequest> $requests */
@@ -106,9 +100,9 @@ final class DashboardAlertServiceTest extends TestCase
     public function testDetectsUnfilledShiftInScopeWithinUpcomingWindow(): void
     {
         $tomorrow = date('Y-m-d', strtotime('+1 day'));
-        $this->shiftsByDate[$tomorrow] = [
+        kintai_test_shifts([
             ['id' => 42, 'store_id' => 1, 'user_id' => null, 'shift_date' => $tomorrow, 'start_time' => '09:00', 'end_time' => '17:00'],
-        ];
+        ]);
 
         $result = $this->service()->build([1], [1 => 'Store 1']);
 
@@ -120,9 +114,9 @@ final class DashboardAlertServiceTest extends TestCase
     public function testIgnoresUnfilledShiftOutsideScope(): void
     {
         $tomorrow = date('Y-m-d', strtotime('+1 day'));
-        $this->shiftsByDate[$tomorrow] = [
+        kintai_test_shifts([
             ['id' => 42, 'store_id' => 2, 'user_id' => null, 'shift_date' => $tomorrow, 'start_time' => '09:00', 'end_time' => '17:00'],
-        ];
+        ]);
 
         $result = $this->service()->build([1], [1 => 'Store 1', 2 => 'Store 2']);
 
@@ -132,9 +126,9 @@ final class DashboardAlertServiceTest extends TestCase
     public function testIgnoresAssignedShiftAsUnfilled(): void
     {
         $tomorrow = date('Y-m-d', strtotime('+1 day'));
-        $this->shiftsByDate[$tomorrow] = [
+        kintai_test_shifts([
             ['id' => 42, 'store_id' => 1, 'user_id' => 7, 'shift_date' => $tomorrow, 'start_time' => '09:00', 'end_time' => '17:00'],
-        ];
+        ]);
 
         $result = $this->service()->build([1], [1 => 'Store 1']);
 
@@ -166,9 +160,9 @@ final class DashboardAlertServiceTest extends TestCase
     public function testExcludesUserWithAShiftThisWeekFromUsersWithoutShift(): void
     {
         $monday = date('Y-m-d', strtotime('monday this week'));
-        $this->shiftsByDate[$monday] = [
+        kintai_test_shifts([
             ['id' => 1, 'store_id' => 1, 'user_id' => 7, 'shift_date' => $monday, 'start_time' => '09:00', 'end_time' => '17:00'],
-        ];
+        ]);
         $this->storeMembers[1] = [['user_id' => 7]];
         $this->usersById[7] = ['id' => 7, 'display_name' => 'Bob', 'is_active' => 1];
 

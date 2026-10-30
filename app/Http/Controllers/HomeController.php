@@ -9,7 +9,7 @@ use App\Auth\PermissionService;
 use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
 use App\Extension\PendingRequests;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -65,7 +65,6 @@ final class HomeController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreStatsServiceInterface $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
@@ -98,7 +97,7 @@ final class HomeController
         }
 
         $allStores   = array_values(array_filter($this->stores->findAll(), fn($s) => $inScope((int) $s['id'])));
-        $shiftsToday = array_values(array_filter($this->shifts->findAllByDate($today), fn($s) => $inScope((int) ($s['store_id'] ?? 0))));
+        $shiftsToday = array_values(array_filter(Shift::findAllByDate($today), fn($s) => $inScope((int) ($s['store_id'] ?? 0))));
 
         $storesMap = [];
         foreach ($allStores as $s) {
@@ -324,7 +323,7 @@ final class HomeController
             $result['stores_map'][(int) $s['id']] = $s['name'] ?? ('#' . $s['id']);
         }
         if (isset($enabled['shifts_today']) || isset($enabled['upcoming'])) {
-            [$result['shifts_today'], $result['upcoming']] = EmployeeController::personalShifts(SchedulePublication::staffView($this->shifts->findByUser($userId)), $today);
+            [$result['shifts_today'], $result['upcoming']] = EmployeeController::personalShifts(SchedulePublication::staffView(Shift::findByUser($userId)), $today);
         }
 
         // Widgets employé des bundles : même contexte que sur le tableau de bord employé (ses propres magasins).
@@ -427,7 +426,7 @@ final class HomeController
 
             // Seule la période est lue (index store_id, shift_date), pas tout l'historique du store.
             $periodShifts = array_values(array_filter(
-                $this->shifts->findByStoreBetween($sid, $since, $today),
+                Shift::findByStoreBetween($sid, $since, $today),
                 fn($s) => empty($s['deleted_at']) && $s['user_id'] !== null
                     && $s['shift_date'] >= $since && $s['shift_date'] <= $today
             ));

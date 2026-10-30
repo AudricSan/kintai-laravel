@@ -8,7 +8,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Services\NotificationService;
 use App\Services\SchedulePublication;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
 use App\Repositories\StoreRepositoryInterface;
@@ -38,7 +38,6 @@ final class AdminShiftController
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -499,7 +498,7 @@ final class AdminShiftController
         $dateTo           = $lastDay->format('Y-m-d');
         $shiftsByDateUser = [];
         if ($filterStoreId > 0) {
-            foreach ($this->withoutForeignDrafts($request, $this->shifts->findByStore($filterStoreId)) as $s) {
+            foreach ($this->withoutForeignDrafts($request, Shift::findByStore($filterStoreId)) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d < $dateFrom || $d > $dateTo) continue;
                 $uid = (int) ($s['user_id'] ?? 0);
@@ -682,7 +681,7 @@ final class AdminShiftController
         $dateTo           = $lastDay->format('Y-m-d');
         $shiftsByDateUser = [];
         if ($filterStoreId > 0) {
-            foreach ($this->shifts->findByStore($filterStoreId) as $s) {
+            foreach (Shift::findByStore($filterStoreId) as $s) {
                 $d = $s['shift_date'] ?? '';
                 if ($d < $dateFrom || $d > $dateTo) continue;
                 $uid = (int) ($s['user_id'] ?? 0);
@@ -812,7 +811,7 @@ final class AdminShiftController
         $pauseMinutes = (int) $request->post('pause_minutes', 0);
         $shiftTypeId  = $this->dominantShiftTypeId($storeId, $startTime, $endTime, max(0, $duration - $pauseMinutes));
 
-        $saved = $this->shifts->save([
+        $saved = Shift::put([
             'store_id'         => $storeId,
             'user_id'          => ($isOpen || $uid === 0) ? null : $uid,
             'shift_type_id'    => $shiftTypeId,
@@ -866,7 +865,7 @@ final class AdminShiftController
 
     public function editShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->route('id'));
+        $shift = Shift::findById((int) $request->route('id'));
         if ($shift === null) {
             throw new NotFoundException(__('error_shift_not_found'));
         }
@@ -892,7 +891,7 @@ final class AdminShiftController
 
     public function updateShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->route('id'));
+        $shift = Shift::findById((int) $request->route('id'));
         if ($shift === null) {
             throw new NotFoundException(__('error_shift_not_found'));
         }
@@ -944,7 +943,7 @@ final class AdminShiftController
         $pauseMinutes = (int) $request->post('pause_minutes', $shift['pause_minutes'] ?? 0);
         $shiftTypeId  = $this->dominantShiftTypeId($newStoreId, $startTime, $endTime, max(0, $duration - $pauseMinutes));
 
-        $saved = $this->shifts->save(array_merge($shift, [
+        $saved = Shift::put(array_merge($shift, [
             'store_id'         => $newStoreId,
             'user_id'          => $isOpen ? null : $targetUid,
             'shift_type_id'    => $shiftTypeId,
@@ -1060,11 +1059,11 @@ final class AdminShiftController
     public function deleteShift(Request $request): Response
     {
         $id    = (int) $request->route('id');
-        $shift = $this->shifts->findById($id);
+        $shift = Shift::findById($id);
         if ($shift !== null) {
             $this->assertStoreAccess($request, (int) $shift['store_id']);
         }
-        $this->shifts->delete($id);
+        Shift::remove($id);
         $this->auditLogger->log($request, 'shift.deleted', 'shift', $id, [
             'shift_date' => $shift['shift_date'] ?? null,
         ], $shift ? (int) $shift['store_id'] : null);
@@ -1100,12 +1099,12 @@ final class AdminShiftController
         foreach ($ids as $rawId) {
             $id    = (int) $rawId;
             if ($id <= 0) continue;
-            $shift = $this->shifts->findById($id);
+            $shift = Shift::findById($id);
             if (!$shift) continue;
             // Vérification d'accès au store
             $storeId = (int) ($shift['store_id'] ?? 0);
             if ($managedIds !== null && !in_array($storeId, $managedIds, true)) continue;
-            $this->shifts->delete($id);
+            Shift::remove($id);
             $deletedIds[] = $id;
             $deleted++;
 
@@ -1195,7 +1194,7 @@ final class AdminShiftController
 
         $shiftTypeId = $this->dominantShiftTypeId($storeId, $startTime, $endTime, max(0, $duration - $pauseMin));
 
-        $saved = $this->shifts->save([
+        $saved = Shift::put([
             'store_id'         => $storeId,
             'user_id'          => (int) ($body['user_id'] ?? 0),
             'shift_type_id'    => $shiftTypeId,
@@ -1237,8 +1236,8 @@ final class AdminShiftController
 
         // Avec un mois, seule sa plage est lue en base ; sans mois, tout l'historique reste nécessaire.
         $allShifts = $filterMonth !== ''
-            ? $this->shifts->findBetween($managedIds, $filterMonth . '-01', date('Y-m-t', strtotime($filterMonth . '-01')))
-            : $this->filterByStore($this->shifts->findAll(), $managedIds);
+            ? Shift::findBetween($managedIds, $filterMonth . '-01', date('Y-m-t', strtotime($filterMonth . '-01')))
+            : $this->filterByStore(Shift::findAll(), $managedIds);
 
         if ($filterStoreId > 0) {
             $allShifts = array_values(array_filter(
@@ -1368,8 +1367,8 @@ final class AdminShiftController
                 return redirect()->away($this->base() . '/admin/shifts/conflicts');
             }
 
-            $shiftKeep   = $this->shifts->findById($idKeep);
-            $shiftDelete = $this->shifts->findById($idDelete);
+            $shiftKeep   = Shift::findById($idKeep);
+            $shiftDelete = Shift::findById($idDelete);
             if ($shiftKeep)   $this->assertStoreAccess($request, (int) $shiftKeep['store_id']);
             if ($shiftDelete) $this->assertStoreAccess($request, (int) $shiftDelete['store_id']);
 
@@ -1380,7 +1379,7 @@ final class AdminShiftController
                 if ($idKeep === $idDelete || !self::shiftsOverlap($shiftKeep, $shiftDelete)) {
                     throw new ForbiddenException(__('error_shifts_not_in_conflict'));
                 }
-                $this->shifts->delete($idDelete);
+                Shift::remove($idDelete);
                 $this->auditLogger->logUpdate($request, 'shift.conflict_resolved', 'shift', $idKeep, $shiftDelete, $shiftKeep, ['kept_id' => $idKeep, 'deleted_id' => $idDelete], (int) $shiftKeep['store_id']);
                 $this->notifyShiftDeleted($shiftDelete);
             }
@@ -1400,7 +1399,7 @@ final class AdminShiftController
 
         $mStart    = $month . '-01';
         $mEnd      = date('Y-m-t', strtotime($mStart));
-        $allShifts = $this->shifts->findBetween($managedIds, $mStart, $mEnd);
+        $allShifts = Shift::findBetween($managedIds, $mStart, $mEnd);
 
         if ($storeId > 0) {
             $allShifts = array_values(array_filter(
@@ -1453,10 +1452,10 @@ final class AdminShiftController
         $deleted = 0;
         $deletedShifts = [];
         foreach (array_keys($toDelete) as $idDel) {
-            $shift = $this->shifts->findById($idDel);
+            $shift = Shift::findById($idDel);
             if (!$shift) continue;
             $deletedShifts[] = $shift;
-            $this->shifts->delete($idDel);
+            Shift::remove($idDel);
             $deleted++;
         }
 
@@ -1507,7 +1506,7 @@ final class AdminShiftController
      */
     public function moveShift(Request $request): Response
     {
-        $shift = $this->shifts->findById((int) $request->route('id'));
+        $shift = Shift::findById((int) $request->route('id'));
         if ($shift === null) {
             return response()->json(['error' => __('error_shift_not_found')], 404);
         }
@@ -1544,7 +1543,7 @@ final class AdminShiftController
             }
         }
 
-        $saved = $this->shifts->save(array_merge($shift, [
+        $saved = Shift::put(array_merge($shift, [
             'shift_date'       => $shiftDate,
             'start_time'       => $startTime,
             'end_time'         => $endTime,

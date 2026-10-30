@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Extension\Attendances;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 
 /**
  * Feuille de temps d'une semaine : chaque shift prévu d'un employé est rapproché de son pointage (fournisseurs de
@@ -34,7 +34,6 @@ final class TimesheetService
     public const ANOMALIES = [self::NO_SHOW, self::MISSING_CLOCK_OUT, self::UNPLANNED, self::LATE, self::EARLY_LEAVE];
 
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly ?Attendances $attendances = null,
     ) {}
 
@@ -57,7 +56,7 @@ final class TimesheetService
 
         // Shifts attribués (un shift ouvert n'a pas d'employé à pointer), groupés par employé et jour.
         $planned = [];
-        foreach ($this->shifts->findByStoreBetween($storeId, $from, $to) as $s) {
+        foreach (Shift::findByStoreBetween($storeId, $from, $to) as $s) {
             $uid = (int) ($s['user_id'] ?? 0);
             if ($uid <= 0 || !empty($s['deleted_at'])) {
                 continue;

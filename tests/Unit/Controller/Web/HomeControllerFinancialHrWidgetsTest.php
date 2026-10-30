@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -32,6 +32,8 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->ensureViewFile(
             'dashboard.index',
             "<?php echo json_encode(['financial' => \$financial_overview ?? null, 'hr' => \$hr_stats ?? null]);"
@@ -47,10 +49,8 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         $storesRepo = $this->createStub(StoreRepositoryInterface::class);
         $storesRepo->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']]);
         $storesRepo->method('findById')->willReturn(['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']);
-
-        $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
-        $shiftsRepo->method('findAllByDate')->willReturn([]);
-        $shiftsRepo->method('findByStore')->willReturn([]);
+        kintai_test_shifts([]);
+        kintai_test_shifts([]);
         kintai_test_shift_types([]);
         $this->seedWidgets(1, 'admin', $enabledWidgets);
 
@@ -80,13 +80,12 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         $roles->method('getPermissions')->with(5)->willReturn(['shifts.view']);
         $permissions = new PermissionService($roleAssignments, $roles);
 
-        $dashboardAlerts = new DashboardAlertService($shiftsRepo, $usersRepo, $storeUsersRepo);
+        $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
             $storesRepo,
-            $shiftsRepo,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

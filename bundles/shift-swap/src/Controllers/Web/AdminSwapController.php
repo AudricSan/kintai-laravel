@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\ShiftSwap\Controllers\Web;
 
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
@@ -24,7 +24,6 @@ final class AdminSwapController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly StoreRepositoryInterface $stores,
@@ -57,7 +56,7 @@ final class AdminSwapController
 
         $futureShiftsFor = function (int $uid) use ($today) {
             $list = array_values(array_filter(
-                $this->shifts->findByUser($uid),
+                Shift::findByUser($uid),
                 fn($s) => ($s['shift_date'] ?? '') >= $today
             ));
             usort($list, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
@@ -108,12 +107,12 @@ final class AdminSwapController
             throw new ForbiddenException(__('shift_swap_error_invalid_employee_selection'));
         }
 
-        $reqShift = $this->shifts->findById($requesterShiftId);
+        $reqShift = Shift::findById($requesterShiftId);
         if ($reqShift === null || (int) $reqShift['user_id'] !== $requesterId) {
             throw new ForbiddenException(__('error_shift_not_found'));
         }
 
-        $tgtShift = $this->shifts->findById($targetShiftId);
+        $tgtShift = Shift::findById($targetShiftId);
         if ($tgtShift === null || (int) $tgtShift['user_id'] !== $targetId) {
             throw new ForbiddenException(__('shift_swap_error_target_shift_not_found'));
         }
@@ -133,8 +132,8 @@ final class AdminSwapController
         }
 
         // Application immédiate de l'échange (pas de workflow d'acceptation)
-        $this->shifts->save(array_merge($reqShift, ['user_id' => $targetId]));
-        $this->shifts->save(array_merge($tgtShift, ['user_id' => $requesterId]));
+        Shift::put(array_merge($reqShift, ['user_id' => $targetId]));
+        Shift::put(array_merge($tgtShift, ['user_id' => $requesterId]));
 
         $savedSwap = $this->swapRequests->save([
             'store_id'           => $storeId,
@@ -172,7 +171,7 @@ final class AdminSwapController
         if ($date === '') {
             return false;
         }
-        foreach ($this->shifts->findByUser($userId) as $s) {
+        foreach (Shift::findByUser($userId) as $s) {
             if ((int) ($s['id'] ?? 0) === $excludeShiftId) continue;
             if (($s['shift_date'] ?? '') === $date) return true;
         }
@@ -221,7 +220,7 @@ final class AdminSwapController
         }
         $shiftsMap = [];
         foreach (array_unique($shiftIds) as $sid) {
-            $s = $this->shifts->findById($sid);
+            $s = Shift::findById($sid);
             if ($s !== null) $shiftsMap[$sid] = $s;
         }
 
@@ -254,8 +253,8 @@ final class AdminSwapController
         $targetId    = (int) ($swap['target_user_id'] ?? 0);
         $reqShiftId  = (int) ($swap['requester_shift_id'] ?? 0);
         $tgtShiftId  = (int) ($swap['target_shift_id'] ?? 0);
-        $reqShift    = $reqShiftId > 0 ? $this->shifts->findById($reqShiftId) : null;
-        $tgtShift    = $tgtShiftId > 0 ? $this->shifts->findById($tgtShiftId) : null;
+        $reqShift    = $reqShiftId > 0 ? Shift::findById($reqShiftId) : null;
+        $tgtShift    = $tgtShiftId > 0 ? Shift::findById($tgtShiftId) : null;
 
         // Les deux shifts doivent encore appartenir au demandeur et à la cible : s'ils ont été
         // réaffectés depuis la demande, l'échange brouillerait les affectations.
@@ -269,8 +268,8 @@ final class AdminSwapController
             return redirect()->away($this->base() . '/admin/swap-requests?error=swap_conflict');
         }
 
-        $this->shifts->save(array_merge($reqShift, ['user_id' => $targetId]));
-        $this->shifts->save(array_merge($tgtShift, ['user_id' => $requesterId]));
+        Shift::put(array_merge($reqShift, ['user_id' => $targetId]));
+        Shift::put(array_merge($tgtShift, ['user_id' => $requesterId]));
 
         $this->swapRequests->save(array_merge($swap, ['status' => 'accepted']));
         $this->auditLogger->logUpdate($request, 'swap.approved', 'shift_swap_request', (int) $swap['id'], $swap, array_merge($swap, ['status' => 'accepted']), [], (int) ($swap['store_id'] ?? 0) ?: null);
@@ -279,8 +278,8 @@ final class AdminSwapController
             'swap_accepted',
             'notif_swap_accepted_body',
             $this->swapDatesReplace(
-                $this->shifts->findById($reqShiftId) ?? [],
-                $this->shifts->findById($tgtShiftId) ?? []
+                Shift::findById($reqShiftId) ?? [],
+                Shift::findById($tgtShiftId) ?? []
             ),
             (int) $swap['id'],
             '/employee/swaps?highlight=' . (int) $swap['id']
@@ -306,8 +305,8 @@ final class AdminSwapController
             'swap_refused',
             'notif_swap_refused_body',
             $this->swapDatesReplace(
-                $this->shifts->findById((int) ($swap['requester_shift_id'] ?? 0)) ?? [],
-                $this->shifts->findById((int) ($swap['target_shift_id'] ?? 0)) ?? []
+                Shift::findById((int) ($swap['requester_shift_id'] ?? 0)) ?? [],
+                Shift::findById((int) ($swap['target_shift_id'] ?? 0)) ?? []
             ),
             (int) $swap['id'],
             '/employee/swaps?highlight=' . (int) $swap['id']
@@ -335,16 +334,16 @@ final class AdminSwapController
             $reqShiftId = (int) ($swap['requester_shift_id'] ?? 0);
             $tgtShiftId = (int) ($swap['target_shift_id'] ?? 0);
             if ($reqShiftId > 0 && $tgtShiftId > 0) {
-                $reqShift = $this->shifts->findById($reqShiftId);
-                $tgtShift = $this->shifts->findById($tgtShiftId);
+                $reqShift = Shift::findById($reqShiftId);
+                $tgtShift = Shift::findById($tgtShiftId);
                 // Restitution seulement si les shifts sont toujours dans l'état issu de l'échange :
                 // sinon ils ont été réaffectés depuis et les « rendre » écraserait ce changement.
                 $stillSwapped = $reqShift !== null && $tgtShift !== null
                     && (int) $reqShift['user_id'] === $targetId
                     && (int) $tgtShift['user_id'] === $requesterId;
                 if ($stillSwapped) {
-                    $this->shifts->save(array_merge($reqShift, ['user_id' => $requesterId]));
-                    $this->shifts->save(array_merge($tgtShift, ['user_id' => $targetId]));
+                    Shift::put(array_merge($reqShift, ['user_id' => $requesterId]));
+                    Shift::put(array_merge($tgtShift, ['user_id' => $targetId]));
                 }
             }
             $this->notifs->notifyMany(
@@ -352,8 +351,8 @@ final class AdminSwapController
                 'swap_cancelled_restored',
                 'notif_swap_cancelled_restored_body',
                 $this->swapDatesReplace(
-                    $this->shifts->findById((int) ($swap['requester_shift_id'] ?? 0)) ?? [],
-                    $this->shifts->findById((int) ($swap['target_shift_id'] ?? 0)) ?? []
+                    Shift::findById((int) ($swap['requester_shift_id'] ?? 0)) ?? [],
+                    Shift::findById((int) ($swap['target_shift_id'] ?? 0)) ?? []
                 ),
                 (int) $swap['id'],
                 '/employee/swaps'

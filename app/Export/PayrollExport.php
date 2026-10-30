@@ -6,7 +6,7 @@ namespace App\Export;
 
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\UserShiftTypeRate;
 use App\Services\ShiftWageCalculator;
@@ -19,7 +19,6 @@ use App\Services\ShiftWageCalculator;
 final class PayrollExport implements ExportRowsProvider
 {
     public function __construct(
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftWageCalculator $wages,
         private readonly ExportDirectory $directory,
     ) {}
@@ -36,7 +35,7 @@ final class PayrollExport implements ExportRowsProvider
         foreach ($query->storeIds as $storeId) {
             $currency = (string) ($this->directory->store($storeId)['currency'] ?? '');
 
-            foreach ($this->shifts->findByStoreBetween($storeId, $query->from, $query->to) as $shift) {
+            foreach (Shift::findByStoreBetween($storeId, $query->from, $query->to) as $shift) {
                 $userId = (int) ($shift['user_id'] ?? 0);
                 if (!empty($shift['deleted_at']) || $userId === 0 || !$query->includesUser($userId)) {
                     continue;

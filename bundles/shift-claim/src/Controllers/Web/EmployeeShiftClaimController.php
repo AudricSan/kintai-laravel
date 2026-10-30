@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\ShiftClaim\Controllers\Web;
 
 use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
@@ -26,7 +26,6 @@ final class EmployeeShiftClaimController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -52,7 +51,7 @@ final class EmployeeShiftClaimController
 
         $openShifts = [];
         foreach ($myStoreIds as $sid) {
-            foreach ($this->shifts->findOpen($sid) as $s) {
+            foreach (Shift::findOpen($sid) as $s) {
                 $openShifts[(int) $s['id']] = $s;
             }
         }
@@ -105,7 +104,7 @@ final class EmployeeShiftClaimController
         $userId = (int) ($user['id'] ?? 0);
         $shiftId = (int) $request->route('id');
 
-        $shift = $this->shifts->findById($shiftId);
+        $shift = Shift::findById($shiftId);
         // Shift publié requis. Il peut avoir un titulaire : publier un shift attribué, c'est le céder (son titulaire
         // le garde jusqu'à l'approbation d'un candidat). Le titulaire ne peut pas postuler à son propre shift.
         if ($shift === null || !(int) ($shift['is_open'] ?? 0)) {

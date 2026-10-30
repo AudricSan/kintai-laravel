@@ -10,7 +10,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
-use kintai\Contract\Data\ShiftRepositoryInterface;
+use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -41,7 +41,6 @@ final class ShiftClaimController
         private readonly PermissionService $permissions,
         private readonly StoreUserRepositoryInterface $storeUsers,
         // Résolus par le conteneur ; facultatifs pour les tests qui ne touchent ni à la création ni à l'approbation.
-        private readonly ?ShiftRepositoryInterface $shifts = null,
         private readonly ?ShiftClaimApproval $approval = null,
     ) {}
 
@@ -108,7 +107,7 @@ final class ShiftClaimController
         // Mêmes règles que la candidature web (audit n°8) : avant, n'importe quel shift_id était accepté, publié ou
         // non, d'un autre magasin, déjà attribué au candidat, ou en double.
         $shiftId = (int) ($body['shift_id'] ?? 0);
-        $shift   = $shiftId > 0 ? $this->shifts()->findById($shiftId) : null;
+        $shift   = $shiftId > 0 ? Shift::findById($shiftId) : null;
         if ($shift === null || !(int) ($shift['is_open'] ?? 0) || (int) ($shift['store_id'] ?? 0) !== $storeId) {
             throw new ValidationException(['shift_id' => __('shift_claim_error_open_shift_unavailable')]);
         }
@@ -138,7 +137,7 @@ final class ShiftClaimController
 
         // Approuver = attribuer le shift et fermer la bourse, comme le web (avant : statut changé, shift intact).
         if (($data['status'] ?? null) === 'approved') {
-            $shift = $this->shifts()->findById((int) ($claim['shift_id'] ?? 0));
+            $shift = Shift::findById((int) ($claim['shift_id'] ?? 0));
             [$result, $saved] = $shift === null
                 ? [ShiftClaimApproval::ALREADY_RESOLVED, null]
                 : $this->approval()->approve($claim, $shift, (int) ($this->authUser($request)['id'] ?? 0));
@@ -163,10 +162,6 @@ final class ShiftClaimController
         return response()->noContent();
     }
 
-    private function shifts(): ShiftRepositoryInterface
-    {
-        return $this->shifts ?? throw new \LogicException('ShiftRepositoryInterface requis.');
-    }
 
     private function approval(): ShiftClaimApproval
     {

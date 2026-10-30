@@ -12,7 +12,7 @@ use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -29,7 +29,6 @@ use PHPUnit\Framework\TestCase;
 /** Audit n°7 : le flux iCal d'un compte désactivé ou ayant quitté le magasin ne doit plus être servi. */
 final class IcalControllerFeedTest extends TestCase
 {
-    private ShiftRepositoryInterface&Stub $shifts;
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
@@ -37,7 +36,6 @@ final class IcalControllerFeedTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $this->stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->users      = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
@@ -48,15 +46,13 @@ final class IcalControllerFeedTest extends TestCase
         \Illuminate\Support\Facades\DB::table('stores')->insert(['id' => 3, 'name' => 'Store', 'code' => 'ST']);
         IcalToken::put(['user_id' => 9, 'store_id' => 3, 'token' => 'tok', 'created_at' => date('Y-m-d H:i:s')]);
         $this->stores->method('findById')->willReturnCallback(fn($a0) => $a0 === 3 ? ['id' => 3, 'code' => 'ST'] : null);
-        $this->shifts->method('findByUser')->willReturn([]);
-        $this->shifts->method('findRecentDeletionsByUserAndStore')->willReturn([]);
+        kintai_test_shifts([]);
 
         // __() lit le TranslationService du Container (voir IcalServiceTest).
         $translations = kintai_test_real_translator();
 
         $this->controller = new IcalController(
             new IcalService($translations),
-            $this->shifts,
             $this->stores,
             $this->users,
             new AuthService(

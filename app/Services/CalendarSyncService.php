@@ -8,7 +8,7 @@ use App\Models\CalendarConnection;
 use App\Models\CalendarEventLink;
 use App\Models\CalendarSyncQueueItem;
 use App\Extension\Absences;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -52,7 +52,6 @@ final class CalendarSyncService
         private readonly GoogleCalendarClient $client,
         private readonly GoogleCalendarSettings $settings,
         private readonly SecretBox $secrets,
-        private readonly ShiftRepositoryInterface $shifts,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly CalendarEventBuilder $builder,
@@ -105,7 +104,7 @@ final class CalendarSyncService
         $queued       = 0;
         $present      = [];
 
-        foreach ($this->shifts->findByUser($userId) as $shift) {
+        foreach (Shift::findByUser($userId) as $shift) {
             if (empty($shift['deleted_at']) && $this->inWindow((string) ($shift['shift_date'] ?? '')) && $this->isPublished($shift)) {
                 CalendarSyncQueueItem::enqueue($connectionId, 'shift', (int) $shift['id']);
                 $present['shift:' . (int) $shift['id']] = true;
@@ -345,7 +344,7 @@ final class CalendarSyncService
 
     private function defaultTimeZone(array $connection): string
     {
-        foreach ($this->shifts->findByUser((int) $connection['user_id']) as $shift) {
+        foreach (Shift::findByUser((int) $connection['user_id']) as $shift) {
             $store = $this->stores->findById((int) ($shift['store_id'] ?? 0));
             if ($store !== null && (string) ($store['timezone'] ?? '') !== '') {
                 return StoreTimezone::resolve((string) $store['timezone']);
@@ -368,7 +367,7 @@ final class CalendarSyncService
         }
 
         if ($sourceType === 'shift') {
-            $shift = $this->shifts->findById($sourceId);
+            $shift = Shift::findById($sourceId);
             if ($shift === null || !empty($shift['deleted_at']) || (int) ($shift['user_id'] ?? 0) !== $userId
                 || !$this->inWindow((string) ($shift['shift_date'] ?? '')) || !$this->isPublished($shift)) {
                 // Brouillon (publication du planning) compris : l'événement part à la publication.

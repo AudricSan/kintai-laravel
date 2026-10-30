@@ -21,7 +21,7 @@ use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -48,6 +48,8 @@ final class ExportControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => in_array($id, [5, 6], true)
             ? ['id' => $id, 'first_name' => $id === 5 ? 'Aki' : 'Ben', 'last_name' => 'Sato', 'email' => "u$id@example.test", 'language' => 'fr', 'is_active' => 1, 'password_hash' => 'x']
@@ -58,12 +60,11 @@ final class ExportControllerTest extends TestCase
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findByUser')->willReturnCallback(fn(int $id): array => $id === 5 ? [['store_id' => 3]] : []);
         $storeUsers->method('findByStore')->willReturn([['user_id' => 5], ['user_id' => 6]]);
-        $shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $shifts->method('findByStoreBetween')->willReturn([
+        kintai_test_shifts([
             ['id' => 1, 'user_id' => 5, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'duration_minutes' => 480, 'shift_type_id' => 7],
             ['id' => 2, 'user_id' => 6, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '12:00', 'pause_minutes' => 0, 'duration_minutes' => 180, 'shift_type_id' => 7],
         ]);
-        $shifts->method('findByUser')->willReturn([
+        kintai_test_shifts([
             ['id' => 1, 'user_id' => 5, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'shift_type_id' => 7],
         ]);
         kintai_test_shift_types([['id' => 7, 'name' => 'Matin']]);
@@ -75,12 +76,12 @@ final class ExportControllerTest extends TestCase
 
         $directory = new ExportDirectory($users, $stores);
         $schedule  = new ScheduleExportService();
-        $this->bind(ShiftsExport::class, new ShiftsExport($shifts, $schedule, $directory));
+        $this->bind(ShiftsExport::class, new ShiftsExport($schedule, $directory));
         $this->bind(EmployeesExport::class, new EmployeesExport($storeUsers, $directory));
         $this->bind(AvailabilitiesExport::class, new AvailabilitiesExport($directory));
         $this->bind(ShiftTypesExport::class, new ShiftTypesExport($directory));
         $this->bind(StoresExport::class, new StoresExport($directory));
-        $this->bind(PayrollExport::class, new PayrollExport($shifts, new ShiftWageCalculator(), $directory));
+        $this->bind(PayrollExport::class, new PayrollExport(new ShiftWageCalculator(), $directory));
 
         $translations = kintai_test_real_translator();
 
@@ -91,7 +92,6 @@ final class ExportControllerTest extends TestCase
             new ExportWriter(),
             new UserSelection($storeUsers, $users, $permissions),
             $stores,
-            $shifts,
             $schedule,
             new IcalService($translations),
             new AuditLogger(),

@@ -12,7 +12,7 @@ use App\Mail\MailerService;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
@@ -144,20 +144,17 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MascotResolver::class, fn(Container $c) => new MascotResolver($c->make(AppSettingsService::class)));
 
         $this->app->singleton(ShiftServiceInterface::class, fn(Container $c) => new ShiftService(
-            $c->make(ShiftRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
         ));
 
         // Partagé : les réglages de publication lus une fois servent à tous les filtres de la requête.
         $this->app->singleton(SchedulePublication::class, fn(Container $c) => new SchedulePublication(
             $c->make(StoreRepositoryInterface::class),
-            $c->make(ShiftRepositoryInterface::class),
             $c->make(NotificationService::class),
         ));
 
         // Pointages lus à chaque appel (Attendances::current()) : les bundles actifs de la requête font foi.
         $this->app->bind(TimesheetService::class, fn(Container $c) => new TimesheetService(
-            $c->make(ShiftRepositoryInterface::class),
         ));
 
         $this->app->singleton(LicenseTokenVerifier::class, function (Container $c) {
@@ -200,7 +197,6 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
             $c->make(StoreRepositoryInterface::class),
-            $c->make(ShiftRepositoryInterface::class),
             $c->make(StoreUserRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(RoleAssignmentSyncService::class),

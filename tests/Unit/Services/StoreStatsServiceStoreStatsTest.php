@@ -7,7 +7,7 @@ namespace Tests\Unit\Services;
 use PHPUnit\Framework\TestCase;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -25,13 +25,12 @@ use App\Services\StoreStatsService;
 final class StoreStatsServiceStoreStatsTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-
-    private ShiftRepositoryInterface $shifts;
     private StoreStatsService $service;
 
     protected function setUp(): void
     {
-        $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
 
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findByStore')->willReturn([['user_id' => 10]]);
@@ -42,7 +41,6 @@ final class StoreStatsServiceStoreStatsTest extends TestCase
 
         $this->service = new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
-            $this->shifts,
             $storeUsers,
             $users,
             new RoleAssignmentSyncService(
@@ -54,7 +52,7 @@ final class StoreStatsServiceStoreStatsTest extends TestCase
 
     public function testMissingCreatedByAndShiftTypeIdDoNotWarnAndFallBackToDefaults(): void
     {
-        $this->shifts->method('findByStoreBetween')->willReturn([
+        kintai_test_shifts([
             [
                 'id' => 1, 'user_id' => 10, 'shift_date' => date('Y-m-d'),
                 'start_time' => '09:00', 'end_time' => '17:00', 'cross_midnight' => 0,

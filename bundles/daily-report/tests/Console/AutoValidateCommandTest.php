@@ -16,7 +16,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\ShiftRepositoryInterface;
+use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -33,11 +33,9 @@ final class AutoValidateCommandTest extends TestCase
         $reports = $this->createStub(DailyReportRepositoryInterface::class);
         $users   = $this->createStub(UserRepositoryInterface::class);
 
-        $shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $pdfService = new DailyReportPdfService(
             kintai_test_views(dirname(__DIR__, 2) . '/Views'),
             kintai_test_real_translator('en', false),
-            $shifts,
             $users,
         );
 
