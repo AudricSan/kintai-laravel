@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Routing;
 
+use App\Models\RouteSlug;
 use App\Repositories\StoreRepositoryInterface;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\StoreRouteBinder;
@@ -12,26 +13,26 @@ use PHPUnit\Framework\TestCase;
 /** Segment d'URL ↔ identifiant : magasins par alias, employés par numéro d'employé (jamais par nom). */
 final class RouteBindersTest extends TestCase
 {
-    private function storeBinder(InMemoryRouteSlugRepository $repo, array $existingIds = [1, 2, 3]): StoreRouteBinder
+    private function storeBinder(array $existingIds = [1, 2, 3]): StoreRouteBinder
     {
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findById')->willReturnCallback(fn(int $id) => in_array($id, $existingIds, true) ? ['id' => $id] : null);
 
-        return new StoreRouteBinder($repo, $stores);
+        return new StoreRouteBinder($stores);
     }
 
-    private function storeRepo(): InMemoryRouteSlugRepository
+    private function seedStoreSlugs(): void
     {
-        $repo = new InMemoryRouteSlugRepository();
-        $repo->setCurrent('store', 1, '所沢東町店', false);
-        $repo->setCurrent('store', 2, 'old-name', true);
-        $repo->setCurrent('store', 2, 'tokorozawa-kotobukicho', true); // old-name passe en historique
-        return $repo;
+        kintai_test_route_slugs();
+        RouteSlug::setCurrent('store', 1, '所沢東町店', false);
+        RouteSlug::setCurrent('store', 2, 'old-name', true);
+        RouteSlug::setCurrent('store', 2, 'tokorozawa-kotobukicho', true); // old-name passe en historique
     }
 
     public function testStoreCurrentAliasIsCanonical(): void
     {
-        $binder = $this->storeBinder($this->storeRepo());
+        $this->seedStoreSlugs();
+        $binder = $this->storeBinder();
 
         $bound = $binder->resolve('所沢東町店');
         $this->assertSame(1, $bound?->id);
@@ -41,7 +42,8 @@ final class RouteBindersTest extends TestCase
 
     public function testStoreOldLinksResolveButAreNotCanonical(): void
     {
-        $binder = $this->storeBinder($this->storeRepo());
+        $this->seedStoreSlugs();
+        $binder = $this->storeBinder();
 
         foreach (['old-name' => 2, '2' => 2, 'TOKOROZAWA-KOTOBUKICHO' => 2, '1' => 1] as $segment => $id) {
             $bound = $binder->resolve((string) $segment);
@@ -52,7 +54,8 @@ final class RouteBindersTest extends TestCase
 
     public function testStoreWithoutAliasKeepsItsIdAsCanonicalSegment(): void
     {
-        $binder = $this->storeBinder($this->storeRepo());
+        $this->seedStoreSlugs();
+        $binder = $this->storeBinder();
 
         $bound = $binder->resolve('3');
         $this->assertSame(3, $bound?->id);
@@ -62,7 +65,8 @@ final class RouteBindersTest extends TestCase
 
     public function testUnknownStoreSegmentResolvesToNothing(): void
     {
-        $binder = $this->storeBinder($this->storeRepo());
+        $this->seedStoreSlugs();
+        $binder = $this->storeBinder();
 
         $this->assertNull($binder->resolve('nope'));
         $this->assertNull($binder->resolve('999'));
@@ -70,10 +74,10 @@ final class RouteBindersTest extends TestCase
 
     private function employeeBinder(): EmployeeRouteBinder
     {
-        $repo = new InMemoryRouteSlugRepository([18 => '016', 26 => null, 100 => '777', 5 => '100']);
-        $repo->addHistory('employee', 18, '015');
+        kintai_test_route_slugs([18 => '016', 26 => null, 100 => '777', 5 => '100']);
+        RouteSlug::addHistory('employee', 18, '015');
 
-        return new EmployeeRouteBinder($repo);
+        return new EmployeeRouteBinder();
     }
 
     public function testEmployeeNumberIsCanonical(): void
@@ -151,7 +155,8 @@ final class RouteBindersTest extends TestCase
         $stores->method('findById')->willReturnCallback(
             fn(int $id) => $id === 4 ? ['id' => 4, 'deleted_at' => '2026-10-16 09:00:00'] : null
         );
-        $binder = new StoreRouteBinder(new InMemoryRouteSlugRepository(), $stores);
+        kintai_test_route_slugs();
+        $binder = new StoreRouteBinder($stores);
 
         $this->assertNull($binder->resolve('4'));
     }

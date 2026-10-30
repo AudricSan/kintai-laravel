@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Routing;
 
-use App\Repositories\RouteSlugRepositoryInterface;
+use App\Models\RouteSlug;
 use Illuminate\Routing\Router;
 
 /**
@@ -16,13 +16,12 @@ use Illuminate\Routing\Router;
  */
 final class RouteSlugService
 {
-    private const TYPE = RouteSlugRepositoryInterface::TYPE_STORE;
+    private const TYPE = RouteSlug::TYPE_STORE;
 
     /** @var list<string>|null */
     private ?array $reserved = null;
 
     public function __construct(
-        private readonly RouteSlugRepositoryInterface $slugs,
         private readonly Router $router,
     ) {}
 
@@ -38,7 +37,7 @@ final class RouteSlugService
         if ($this->isReserved($slug)) {
             return 'store_slug_reserved';
         }
-        if ($this->slugs->isTakenByOther(self::TYPE, $slug, $storeId)) {
+        if (RouteSlug::isTakenByOther(self::TYPE, $slug, $storeId)) {
             return 'store_slug_taken';
         }
 
@@ -53,11 +52,11 @@ final class RouteSlugService
      */
     public function syncStore(int $storeId, string $name, ?string $manual): void
     {
-        $current = $this->slugs->current(self::TYPE, $storeId);
+        $current = RouteSlug::current(self::TYPE, $storeId);
 
         if ($manual !== null && $manual !== '') {
             if ($current === null || $current['slug'] !== $manual || !$current['is_manual']) {
-                $this->slugs->setCurrent(self::TYPE, $storeId, $manual, true);
+                RouteSlug::setCurrent(self::TYPE, $storeId, $manual, true);
             }
         } elseif ($manual === null && $current !== null && $current['is_manual']) {
             return;
@@ -73,9 +72,9 @@ final class RouteSlugService
             }
             $slug = SlugGenerator::firstFree(
                 $base,
-                fn(string $c): bool => $this->isReserved($c) || $this->slugs->isTakenByOther(self::TYPE, $c, $storeId),
+                fn(string $c): bool => $this->isReserved($c) || RouteSlug::isTakenByOther(self::TYPE, $c, $storeId),
             );
-            $this->slugs->setCurrent(self::TYPE, $storeId, $slug, false);
+            RouteSlug::setCurrent(self::TYPE, $storeId, $slug, false);
         }
 
         RouteSegments::reset();
@@ -84,7 +83,7 @@ final class RouteSlugService
     /** Alias courant d'un magasin et s'il a été saisi à la main (pour le formulaire). */
     public function currentStoreSlug(int $storeId): ?array
     {
-        return $this->slugs->current(self::TYPE, $storeId);
+        return RouteSlug::current(self::TYPE, $storeId);
     }
 
     /**

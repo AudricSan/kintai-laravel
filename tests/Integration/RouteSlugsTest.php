@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\DatabaseRouteSlugRepository;
+use App\Models\RouteSlug;
 use App\Repositories\DatabaseStoreRepository;
 use App\Repositories\DatabaseUserRepository;
 use App\Routing\EmployeeRouteBinder;
@@ -41,9 +41,9 @@ final class RouteSlugsTest extends TestCase
     public function testStoreBinderResolvesTheJapaneseAliasFromTheDatabase(): void
     {
         $this->capsule->getConnection()->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
-        (new DatabaseRouteSlugRepository())->setCurrent('store', 1, '所沢東町店', false);
+        RouteSlug::setCurrent('store', 1, '所沢東町店', false);
 
-        $binder = new StoreRouteBinder(new DatabaseRouteSlugRepository(), new DatabaseStoreRepository());
+        $binder = new StoreRouteBinder(new DatabaseStoreRepository());
 
         $this->assertSame(1, $binder->resolve('所沢東町店')?->id);
         $this->assertFalse($binder->resolve('1')->canonical);
@@ -56,7 +56,7 @@ final class RouteSlugsTest extends TestCase
 
         $users->save(['id' => 18, 'employee_code' => '016']);
 
-        $binder = new EmployeeRouteBinder(new DatabaseRouteSlugRepository());
+        $binder = new EmployeeRouteBinder();
         $this->assertSame('016', $binder->segmentFor(18));
         $old = $binder->resolve('015');
         $this->assertSame(18, $old?->id);
@@ -72,7 +72,7 @@ final class RouteSlugsTest extends TestCase
         $users->save(['id' => 18, 'employee_code' => '016']); // « 015 » passe en historique de 18
         $users->save(['id' => 19, 'employee_code' => '015']); // puis est réattribué à 19
 
-        $bound = (new EmployeeRouteBinder(new DatabaseRouteSlugRepository()))->resolve('015');
+        $bound = (new EmployeeRouteBinder())->resolve('015');
         $this->assertSame(19, $bound?->id);
         $this->assertTrue($bound->canonical);
     }
@@ -81,7 +81,7 @@ final class RouteSlugsTest extends TestCase
     {
         $db = $this->capsule->getConnection();
         $db->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
-        (new DatabaseRouteSlugRepository())->setCurrent('store', 1, '所沢東町店', false);
+        RouteSlug::setCurrent('store', 1, '所沢東町店', false);
         $this->insertUser(18, '015');
         (new DatabaseUserRepository())->save(['id' => 18, 'employee_code' => '016']);
 

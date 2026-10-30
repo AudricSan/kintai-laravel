@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Routing;
 
+use App\Models\RouteSlug;
 use App\Routing\RouteSlugService;
 use PHPUnit\Framework\TestCase;
 
 /** Attribution des alias de magasins : nom tel quel par défaut, slug manuel prioritaire, historique conservé. */
 final class RouteSlugServiceTest extends TestCase
 {
-    private InMemoryRouteSlugRepository $repo;
     private RouteSlugService $service;
 
     protected function setUp(): void
@@ -20,15 +20,15 @@ final class RouteSlugServiceTest extends TestCase
         $router->get('/admin/stores/{store}/edit', ['C', 'edit']);
         $router->get('/admin/stores/{store}/profitability', ['C', 'profit']);
 
-        $this->repo    = new InMemoryRouteSlugRepository();
-        $this->service = new RouteSlugService($this->repo, app('router'));
+        kintai_test_route_slugs();
+        $this->service = new RouteSlugService(app('router'));
     }
 
     private function history(int $storeId): array
     {
         return array_values(array_map(
             fn(array $r) => $r['slug'] . ($r['is_current'] ? ' (courant)' : ''),
-            array_filter($this->repo->rows, fn(array $r) => $r['entity_id'] === $storeId),
+            array_filter(RouteSlug::orderBy('id')->get()->toArray(), fn(array $r) => $r['entity_id'] === $storeId),
         ));
     }
 

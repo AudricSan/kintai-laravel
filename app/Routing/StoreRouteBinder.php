@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Routing;
 
-use App\Repositories\RouteSlugRepositoryInterface;
+use App\Models\RouteSlug;
 use App\Repositories\StoreRepositoryInterface;
 
 /**
@@ -17,7 +17,6 @@ final class StoreRouteBinder implements RouteParamBinder
     private ?array $current = null;
 
     public function __construct(
-        private readonly RouteSlugRepositoryInterface $slugs,
         private readonly StoreRepositoryInterface $stores,
     ) {}
 
@@ -36,8 +35,8 @@ final class StoreRouteBinder implements RouteParamBinder
         }
 
         try {
-            $row = $this->slugs->findBySlug(RouteSlugRepositoryInterface::TYPE_STORE, $segment)
-                ?? ($lower !== $segment ? $this->slugs->findBySlug(RouteSlugRepositoryInterface::TYPE_STORE, $lower) : null);
+            $row = RouteSlug::findBySlug(RouteSlug::TYPE_STORE, $segment)
+                ?? ($lower !== $segment ? RouteSlug::findBySlug(RouteSlug::TYPE_STORE, $lower) : null);
         } catch (\Illuminate\Database\QueryException) {
             $row = null; // Table route_slugs absente (migration pas encore jouée) : pas d'historique.
         }
@@ -71,7 +70,7 @@ final class StoreRouteBinder implements RouteParamBinder
     {
         if ($this->current === null) {
             try {
-                $this->current = $this->slugs->currentSlugs(RouteSlugRepositoryInterface::TYPE_STORE);
+                $this->current = RouteSlug::currentSlugs(RouteSlug::TYPE_STORE);
             } catch (\Illuminate\Database\QueryException) {
                 // Table route_slugs absente (migration pas encore jouée) : les identifiants restent canoniques.
                 $this->current = [];

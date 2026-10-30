@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Routing;
 
-use App\Repositories\RouteSlugRepositoryInterface;
+use App\Models\RouteSlug;
 
 /**
  * Employé ↔ segment d'URL : son numéro d'employé (/admin/users/057/edit), jamais son nom (donnée personnelle
@@ -21,8 +21,6 @@ final class EmployeeRouteBinder implements RouteParamBinder
 
     /** @var array<int, string|null>|null */
     private ?array $codes = null;
-
-    public function __construct(private readonly RouteSlugRepositoryInterface $slugs) {}
 
     /**
      * Un numéro d'employé utilisable tel quel dans une URL : lettres, chiffres, « - » et « _ » seulement (un « / »
@@ -57,7 +55,7 @@ final class EmployeeRouteBinder implements RouteParamBinder
         }
 
         try {
-            $row = $this->slugs->findBySlug(RouteSlugRepositoryInterface::TYPE_EMPLOYEE, $segment);
+            $row = RouteSlug::findBySlug(RouteSlug::TYPE_EMPLOYEE, $segment);
         } catch (\Illuminate\Database\QueryException) {
             $row = null; // Table route_slugs absente (migration pas encore jouée) : pas d'historique.
         }
@@ -86,6 +84,6 @@ final class EmployeeRouteBinder implements RouteParamBinder
     /** @return array<int, string|null> */
     private function codes(): array
     {
-        return $this->codes ??= $this->slugs->employeeCodes();
+        return $this->codes ??= RouteSlug::employeeCodes();
     }
 }

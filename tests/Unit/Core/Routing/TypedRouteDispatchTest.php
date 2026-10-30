@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Routing;
 
+use App\Models\RouteSlug;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,14 +58,15 @@ final class TypedRouteDispatchTest extends TestCase
 
     protected function setUp(): void
     {
-        $repo = new InMemoryRouteSlugRepository([18 => '016', 26 => null]);
-        $repo->setCurrent('store', 3, '所沢寿町店', false);
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        kintai_test_route_slugs([18 => '016', 26 => null]);
+        RouteSlug::setCurrent('store', 3, '所沢寿町店', false);
 
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findById')->willReturnCallback(fn(int $id) => $id === 3 ? ['store' => 3] : null);
 
-        app()->instance(StoreRouteBinder::class, new StoreRouteBinder($repo, $stores));
-        app()->instance(EmployeeRouteBinder::class, new EmployeeRouteBinder($repo));
+        app()->instance(StoreRouteBinder::class, new StoreRouteBinder($stores));
+        app()->instance(EmployeeRouteBinder::class, new EmployeeRouteBinder());
 
         $this->router = kintai_test_router();
         RouteSegments::register($this->router);

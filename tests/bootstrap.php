@@ -89,6 +89,16 @@ function kintai_test_registries(array $rows): void
     }
 }
 
+// Aide des tests : base neuve pour le routage lisible ; les employés (id => numéro d'employé, ou null) sont créés.
+function kintai_test_route_slugs(array $employeeCodes = []): void
+{
+    kintai_test_database();
+    kintai_test_migrate();
+    foreach ($employeeCodes as $id => $code) {
+        kintai_test_user((int) $id);
+        App\Models\User::where('id', $id)->update(['employee_code' => $code]);
+    }
+}
 // Aide des tests : exécute une commande Artisan (ses services viennent du conteneur de test) ; renvoie [code de sortie, sortie].
 function kintai_test_command(Illuminate\Console\Command $command, array $input = []): array
 {
