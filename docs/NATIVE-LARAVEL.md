@@ -37,9 +37,13 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 ## Choix assumés (conservés)
 
-- **Repositories** : 33 interfaces (`app/Repositories`, `kintai\Contract\Repositories` pour une partie) au-dessus d'Eloquent.
-  Les supprimer obligerait à réécrire tous les services (qui manipulent des tableaux) et leurs tests ; les interfaces
-  sont aussi le contrat des bundles. Une conversion domaine par domaine reste possible sur demande.
+- **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle, tests
+  sur base SQLite en mémoire). Faits : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`.
+  Restent 29 interfaces (`app/Repositories`), de la plus petite à la plus utilisée : `CronToken`, `PasswordReset`,
+  `RouteSlug`, `BundleRegistry`, `RoleDashboardLayout`, `CalendarSync`, `UserDashboardLayout`, `InstalledBundle`,
+  `WebPushSubscription`, `DevicePushToken`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`,
+  `Log`, `Availability`, `UserShiftTypeRate`, `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`,
+  `StoreUser`, `User` (227 fichiers). Chaque conversion remplace aussi les doubles de test par des tests sur base réelle.
 - **`App\Services\Log`** : journal d'activité métier (table `activity_log`, canaux audit/access/business, ressource, IP,
   utilisateur), pas la journalisation technique de Laravel (`storage/logs`), qui sert aux erreurs.
 - **`CronRunner`** : registre des tâches (Core et bundles) appelées par le planificateur de Laravel (`routes/console.php`,
