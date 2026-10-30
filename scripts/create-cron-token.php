@@ -22,7 +22,7 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/bootstrap/standalone.php';
 require BASE_PATH . '/app/Support/helpers.php';
 
-use App\Repositories\CronTokenRepositoryInterface;
+use App\Models\CronToken;
 use App\Repositories\UserRepositoryInterface;
 
 $opts = getopt('', ['user-id:', 'job::', 'name::', 'expires-in::']);
@@ -47,8 +47,7 @@ if ($users->findById($userId) === null) {
 
 $rawToken = bin2hex(random_bytes(32));
 
-$cronTokens = $app->make(CronTokenRepositoryInterface::class);
-$cronTokens->save([
+CronToken::create([
     'user_id'    => $userId,
     'job_name'   => $jobName,
     'token'      => hash_token($rawToken),

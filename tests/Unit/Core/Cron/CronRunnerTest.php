@@ -12,7 +12,7 @@ use App\Cron\CronJobInterface;
 use App\Cron\CronRunner;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\CronTokenRepositoryInterface;
+use App\Models\CronToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
@@ -21,13 +21,14 @@ use Illuminate\Translation\Translator;
 
 final class CronRunnerTest extends TestCase
 {
-    private CronTokenRepositoryInterface&Stub $cronTokens;
     private CronJobInterface&Stub $sampleJob;
     private ?CronRunner $runner = null;
 
     protected function setUp(): void
     {
-        $this->cronTokens = $this->createStub(CronTokenRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(1);
         $this->sampleJob  = $this->createStub(CronJobInterface::class);
         $this->sampleJob->method('getName')->willReturn('test-job');
     }
@@ -36,7 +37,7 @@ final class CronRunnerTest extends TestCase
     private function runner(): CronRunner
     {
         if ($this->runner === null) {
-            $this->runner = new CronRunner($this->cronTokens);
+            $this->runner = new CronRunner();
             $this->runner->register($this->sampleJob);
         }
 
@@ -89,34 +90,21 @@ final class CronRunnerTest extends TestCase
 
     public function testRunWithValidQueryTokenExecutesJob(): void
     {
-        $this->cronTokens = $this->createMock(CronTokenRepositoryInterface::class);
         $this->sampleJob = $this->createMock(CronJobInterface::class);
         $this->sampleJob->method('getName')->willReturn('test-job');
         $req = $this->requestWithQuery('valid-raw-token');
-
-        $this->cronTokens->method('findByToken')
-            ->willReturnCallback(fn(string $h) => hash_equals(hash_token('valid-raw-token'), $h)
-                ? ['id' => 1, 'user_id' => 1, 'job_name' => 'test-job', 'token' => $h, 'expires_at' => null]
-                : null);
-
-        $this->cronTokens->expects($this->once())->method('touchLastUsed')->with(1);
+        $token = CronToken::create(['user_id' => 1, 'job_name' => 'test-job', 'token' => hash_token('valid-raw-token'), 'expires_at' => null]);
         $this->sampleJob->expects($this->once())->method('run')->with($req)->willReturn(response()->json(['ok' => true]));
 
         $response = $this->runner()->run('test-job', $req);
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertNotNull($token->fresh()->last_used_at, 'dernier usage horodaté');
     }
 
     public function testRunWithValidBearerTokenExecutesJob(): void
     {
-        $this->cronTokens = $this->createMock(CronTokenRepositoryInterface::class);
         $req = $this->requestWithBearer('valid-bearer-token');
-
-        $this->cronTokens->method('findByToken')
-            ->willReturnCallback(fn(string $h) => hash_equals(hash_token('valid-bearer-token'), $h)
-                ? ['id' => 2, 'user_id' => 1, 'job_name' => 'test-job', 'token' => $h, 'expires_at' => null]
-                : null);
-
-        $this->cronTokens->expects($this->once())->method('touchLastUsed')->with(2);
+        CronToken::create(['user_id' => 1, 'job_name' => 'test-job', 'token' => hash_token('valid-bearer-token'), 'expires_at' => null]);
         $this->sampleJob->method('run')->willReturn(response()->json(['ok' => true]));
 
         $response = $this->runner()->run('test-job', $req);
@@ -136,8 +124,6 @@ final class CronRunnerTest extends TestCase
     {
         $req = $this->requestWithQuery('unknown-token');
 
-        $this->cronTokens->method('findByToken')->willReturn(null);
-
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage('error_cron_token_invalid');
         $this->runner()->run('test-job', $req);
@@ -147,10 +133,7 @@ final class CronRunnerTest extends TestCase
     {
         $req = $this->requestWithQuery('expired-token');
 
-        $this->cronTokens->method('findByToken')
-            ->willReturnCallback(fn(string $h) => hash_equals(hash_token('expired-token'), $h)
-                ? ['id' => 3, 'user_id' => 1, 'job_name' => 'test-job', 'token' => $h, 'expires_at' => '2020-01-01 00:00:00']
-                : null);
+        CronToken::create(['user_id' => 1, 'job_name' => 'test-job', 'token' => hash_token('expired-token'), 'expires_at' => '2020-01-01 00:00:00']);
 
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage('error_cron_token_expired');
@@ -191,12 +174,10 @@ final class CronRunnerTest extends TestCase
 
     public function testRunLocalExecutesJobWithoutToken(): void
     {
-        $this->cronTokens = $this->createMock(CronTokenRepositoryInterface::class);
         $this->sampleJob = $this->createMock(CronJobInterface::class);
         $this->sampleJob->method('getName')->willReturn('test-job');
         $expected = response()->json(['ok' => true]);
         $this->sampleJob->expects($this->once())->method('run')->willReturn($expected);
-        $this->cronTokens->expects($this->never())->method('findByToken');
 
         $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/cron/run/test-job', 'SCRIPT_NAME' => '/index.php'];
         $_GET = ['date' => '2026-10-13'];

@@ -6,7 +6,7 @@ namespace App\Cron;
 
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\CronTokenRepositoryInterface;
+use App\Models\CronToken;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\Log;
@@ -20,9 +20,6 @@ final class CronRunner
     /** @var array<string, CronJobInterface> */
     private array $jobs = [];
 
-    public function __construct(
-        private readonly CronTokenRepositoryInterface $cronTokens,
-    ) {}
 
     public function register(CronJobInterface $job): void
     {
@@ -79,7 +76,7 @@ final class CronRunner
         }
 
         $hashed = hash_token($rawToken);
-        $record = $this->cronTokens->findByToken($hashed);
+        $record = CronToken::where('token', $hashed)->first();
         if ($record === null) {
             throw new ForbiddenException(__('error_cron_token_invalid'));
         }
@@ -92,7 +89,11 @@ final class CronRunner
             throw new ForbiddenException(__('error_cron_token_not_allowed'));
         }
 
-        $this->cronTokens->touchLastUsed((int) $record['id']);
+        try {
+            $record->update(['last_used_at' => date('Y-m-d H:i:s')]);
+        } catch (\Throwable) {
+            // Le jeton a servi : un horodatage non écrit ne bloque pas la tâche.
+        }
 
         return $job->run($request);
     }

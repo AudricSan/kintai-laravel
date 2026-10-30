@@ -184,6 +184,18 @@ function kintai_test_match(string $method, string $path): Illuminate\Routing\Rou
     return app('router')->getRoutes()->match(Illuminate\Http\Request::create($path, $method));
 }
 
+/** Utilisateur minimal dans la base de test (après kintai_test_migrate()), pour les lignes qui le référencent. */
+function kintai_test_user(int $id = 1): int
+{
+    $now = date('Y-m-d H:i:s');
+    Illuminate\Support\Facades\DB::table('users')->insertOrIgnore([
+        'id' => $id, 'first_name' => 'Test', 'last_name' => 'User' . $id, 'display_name' => 'Test User' . $id,
+        'email' => 'user' . $id . '@test.local', 'password_hash' => 'x', 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now,
+    ]);
+
+    return $id;
+}
+
 function kintai_test_views(string $path, bool $withLayout = false): Illuminate\View\Factory
 {
     $app    = $GLOBALS['kintai_test_app'];

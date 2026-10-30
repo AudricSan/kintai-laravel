@@ -14,7 +14,6 @@ use App\Cron\CalendarSyncJob;
 use App\Cron\NotificationPurgeJob;
 use App\Services\Calendar\CurlHttpTransport;
 use App\Services\Calendar\HttpTransportInterface;
-use App\Repositories\CronTokenRepositoryInterface;
 use App\Mail\MailerService;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -306,7 +305,7 @@ final class AppServiceProvider extends ServiceProvider
         // Tâches du Core, puis celles des bundles actifs (Bundle::cronJobs(), contrat 1.8 : auto-validate de
         // daily-report, photo-retention de store-photos…).
         $this->app->singleton(CronRunner::class, function (Container $c) {
-            $runner = new CronRunner($c->make(CronTokenRepositoryInterface::class));
+            $runner = new CronRunner();
             $runner->register($c->make(BackupJob::class));
             $runner->register($c->make(LogPurgeJob::class));
             $runner->register($c->make(NotificationPurgeJob::class));

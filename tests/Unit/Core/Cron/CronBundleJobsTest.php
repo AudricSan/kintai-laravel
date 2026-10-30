@@ -9,7 +9,6 @@ use App\BundleManager;
 use App\Cron\CronJobInterface;
 use App\Cron\CronRunner;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\CronTokenRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\TestCase;
@@ -38,7 +37,7 @@ final class CronBundleJobsTest extends TestCase
 {
     private function runner(): CronRunner
     {
-        $runner = new CronRunner($this->createStub(CronTokenRepositoryInterface::class));
+        $runner = new CronRunner();
         foreach (['backup', 'log-purge', 'license-check'] as $core) {
             $runner->register(new NamedTestJob($core));
         }

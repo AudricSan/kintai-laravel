@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Cron\CronJobInterface;
 use App\Cron\CronRunner;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\CronTokenRepositoryInterface;
+use App\Models\CronToken;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Controllers\CronController;
@@ -22,12 +22,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class CronControllerTest extends TestCase
 {
-    private CronTokenRepositoryInterface&Stub $cronTokens;
     private ?CronController $controller = null;
 
     protected function setUp(): void
     {
-        $this->cronTokens = $this->createStub(CronTokenRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(1);
     }
 
     /** Contrôleur construit à la première utilisation : un test peut d'abord remplacer le bouchon des jetons par un mock. */
@@ -36,7 +37,7 @@ final class CronControllerTest extends TestCase
         if ($this->controller !== null) {
             return $this->controller;
         }
-        $runner = new CronRunner($this->cronTokens);
+        $runner = new CronRunner();
 
         $stubJob = new class implements CronJobInterface {
             public function getName(): string
@@ -56,11 +57,7 @@ final class CronControllerTest extends TestCase
 
     public function testRunDispatchesToTheRegisteredJobWithAValidToken(): void
     {
-        $this->cronTokens = $this->createMock(CronTokenRepositoryInterface::class);
-        $this->cronTokens->method('findByToken')->willReturn([
-            'id' => 1, 'user_id' => 1, 'job_name' => 'stub-job', 'token' => 'hashed',
-        ]);
-        $this->cronTokens->expects($this->once())->method('touchLastUsed')->with(1);
+        CronToken::create(['user_id' => 1, 'job_name' => 'stub-job', 'token' => hash_token('raw-token')]);
 
         $_GET['token'] = 'raw-token';
         $req = Request::capture();
@@ -83,9 +80,7 @@ final class CronControllerTest extends TestCase
 
     public function testRunRejectsTokenScopedToADifferentJob(): void
     {
-        $this->cronTokens->method('findByToken')->willReturn([
-            'id' => 1, 'user_id' => 1, 'job_name' => 'backup', 'token' => 'hashed',
-        ]);
+        CronToken::create(['user_id' => 1, 'job_name' => 'backup', 'token' => hash_token('raw-token')]);
 
         $_GET['token'] = 'raw-token';
         $req = Request::capture();

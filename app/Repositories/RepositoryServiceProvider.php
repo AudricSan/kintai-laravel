@@ -30,7 +30,6 @@ final class RepositoryServiceProvider extends ServiceProvider
         $this->app->singleton(ApiTokenRepositoryInterface::class, fn() => new DatabaseApiTokenRepository());
         $this->app->singleton(PasswordResetRepositoryInterface::class, fn() => new DatabasePasswordResetRepository());
         $this->app->singleton(AppSettingsRepositoryInterface::class, fn() => new DatabaseAppSettingsRepository());
-        $this->app->singleton(CronTokenRepositoryInterface::class, fn() => new DatabaseCronTokenRepository());
         $this->app->singleton(LogRepositoryInterface::class, fn() => new DatabaseLogRepository());
         $this->app->singleton(RoleRepositoryInterface::class, fn() => new DatabaseRoleRepository());
         $this->app->singleton(RoleAssignmentRepositoryInterface::class, fn() => new DatabaseRoleAssignmentRepository());
