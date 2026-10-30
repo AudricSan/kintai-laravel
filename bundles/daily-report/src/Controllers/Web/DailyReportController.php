@@ -12,7 +12,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -29,7 +29,6 @@ final class DailyReportController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly DailyReportRepositoryInterface $reports,
-        private readonly UserRepositoryInterface $users,
         private readonly DailyReportPermissionService $permissions,
         private readonly DailyReportPdfService $pdfService,
         private readonly DailyReportMailService $mailService,
@@ -74,7 +73,7 @@ final class DailyReportController
         foreach ($rows as &$row) {
             $uid = (int) $row['author_id'];
             if (!isset($userCache[$uid])) {
-                $userCache[$uid] = $this->users->findById($uid);
+                $userCache[$uid] = User::findById($uid);
             }
             $row['author'] = $userCache[$uid];
         }
@@ -180,7 +179,7 @@ final class DailyReportController
         foreach ($reports as $report) {
             $uid = (int) $report['author_id'];
             if (!isset($userCache[$uid])) {
-                $userCache[$uid] = $this->users->findById($uid);
+                $userCache[$uid] = User::findById($uid);
             }
             $report['author'] = $userCache[$uid];
 
@@ -218,7 +217,7 @@ final class DailyReportController
         foreach ($reportsV2 as &$rv2) {
             $uid = (int) $rv2['author_id'];
             if (!isset($userCache[$uid])) {
-                $userCache[$uid] = $this->users->findById($uid);
+                $userCache[$uid] = User::findById($uid);
             }
             $rv2['author'] = $userCache[$uid];
             $sid = (int) $rv2['store_id'];
@@ -400,8 +399,8 @@ final class DailyReportController
         // Le rapport est ouvert par quelqu'un qui a le droit de le voir : ses notifications sont lues.
         $this->notifs->markReadFor((int) $authUser['id'], 'daily_report', $reportId);
 
-        $author   = $this->users->findById((int) $report['author_id']);
-        $validator = $report['validated_by'] ? $this->users->findById((int) $report['validated_by']) : null;
+        $author   = User::findById((int) $report['author_id']);
+        $validator = $report['validated_by'] ? User::findById((int) $report['validated_by']) : null;
         $settings  = $this->permissions->getSettings($store);
 
         $html = $this->view->make('daily-report::daily-report-show', [
@@ -609,7 +608,7 @@ final class DailyReportController
         // Envoi automatique si configuré
         $settings = $this->permissions->getSettings($store);
         if (!empty($settings['auto_send_on_validate']) && !empty($settings['mail_recipients'])) {
-            $author   = $this->users->findById((int) $report['author_id']) ?? [];
+            $author   = User::findById((int) $report['author_id']) ?? [];
             $pdfBytes = $this->pdfService->generateBytes($updated, $store, $author, $this->translations->getLocale());
             if ($this->mailService->send($updated, $store, $pdfBytes, $author, $this->translations->getLocale())) {
                 $this->reports->save(array_merge($updated, ['mail_sent_at' => $now]));
@@ -640,7 +639,7 @@ final class DailyReportController
             throw new ForbiddenException(__('daily_report_error_not_authorized_send'));
         }
 
-        $mailAuthor = $this->users->findById((int) $report['author_id']) ?? [];
+        $mailAuthor = User::findById((int) $report['author_id']) ?? [];
         $pdfBytes   = $this->pdfService->generateBytes($report, $store, $mailAuthor, $this->translations->getLocale());
         $sent       = $this->mailService->send($report, $store, $pdfBytes, $mailAuthor, $this->translations->getLocale());
 
@@ -687,7 +686,7 @@ final class DailyReportController
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        $pdfAuthor   = $this->users->findById((int) $report['author_id']) ?? [];
+        $pdfAuthor   = User::findById((int) $report['author_id']) ?? [];
         $downloadUrl = $this->base() . '/admin/stores/' . $storeId . '/daily-reports/' . $reportId . '/pdf/download';
         $html        = $this->pdfService->generateHtml($report, $store, $pdfAuthor, $this->translations->getLocale(), $downloadUrl);
 
@@ -709,7 +708,7 @@ final class DailyReportController
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        $pdfAuthor = $this->users->findById((int) $report['author_id']) ?? [];
+        $pdfAuthor = User::findById((int) $report['author_id']) ?? [];
         $bytes     = $this->pdfService->generateBytes($report, $store, $pdfAuthor, $this->translations->getLocale());
 
         if ($bytes === null) {
@@ -882,7 +881,7 @@ final class DailyReportController
         foreach ($rawShifts as $s) {
             $uid = (int) $s['user_id'];
             if (!isset($userCache[$uid])) {
-                $u               = $this->users->findById($uid);
+                $u               = User::findById($uid);
                 $userCache[$uid] = $u
                     ? (trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? '')) ?: ($u['email'] ?? '—'))
                     : '—';
@@ -930,7 +929,7 @@ final class DailyReportController
         $recipients = [];
         foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
-            $candidate = $this->users->findById($uid);
+            $candidate = User::findById($uid);
             if ($candidate !== null && $this->permissionService->can($candidate, $permissionKey, $storeId)) {
                 $recipients[] = $uid;
             }

@@ -71,7 +71,7 @@ and pushes the tag itself — never tag or `gh release create` by hand:
   (`kintai\Bundles\Installed\TeamDirectory\TeamDirectoryBundle`, extends
   `App\Bundles\Bundle`). A full extraction: `register()` only
   wires up `Views/` and `routes.php`, no repository binding — the controller
-  only reads `UserRepositoryInterface` et les modèles `Store`/
+  only reads les modèles `User`, `Store` et
   `StoreUser`, all of which are Core-resident regardless
   of this bundle's state, and no Core component depends on anything specific
   to this bundle. Disabling/uninstalling it has zero side effects elsewhere.

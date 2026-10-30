@@ -13,7 +13,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -29,22 +29,18 @@ final class AuthControllerLoginTest extends TestCase
     protected function setUp(): void
     {
         session()->forget(auth()->getName());
-
-        $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function controller(): AuthController
     {
         if ($this->controller === null) {
-            $rememberTokens = $this->createStub(UserRepositoryInterface::class);
-            $auth = new AuthService($this->users, $rememberTokens);
+            $auth = new AuthService();
             kintai_test_assignments(findByUser: fn() => []);
             $this->controller = new AuthController(
                 kintai_test_views(sys_get_temp_dir()),
                 $auth,
                 new AuditLogger(),
-                $this->users,
                 $this->createStub(LanguageRepositoryInterface::class),
                 new AvatarImageOptimizer(),
             );
@@ -61,7 +57,6 @@ final class AuthControllerLoginTest extends TestCase
 
     public function testSuccessfulLoginUpdatesLastLoginAt(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         $user = [
             'id'            => 9,
             'email'         => 'employee@example.test',
@@ -69,18 +64,7 @@ final class AuthControllerLoginTest extends TestCase
             'is_active'     => 1,
             'deleted_at'    => null,
         ];
-        $this->users->expects($this->atLeastOnce())->method('findByEmail')->with('employee@example.test')->willReturn($user);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn($user);
-
-        $this->users->expects($this->once())
-            ->method('save')
-            ->with($this->callback(function (array $data): bool {
-                return ($data['id'] ?? null) === 9
-                    && !empty($data['last_login_at'])
-                    && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $data['last_login_at']) === 1;
-            }))
-            ->willReturn($user);
-
+        kintai_test_users(findById: fn(int $id) => $id === 9 ? $user : null, findByEmail: fn() => $user);
         $_POST = [
             'login_mode' => 'email',
             'email'      => 'employee@example.test',
@@ -95,8 +79,7 @@ final class AuthControllerLoginTest extends TestCase
 
     public function testFailedLoginFlagsTheRequestForTheThrottle(): void
     {
-        $this->users->method('findByEmail')->willReturn(null);
-
+        kintai_test_users(findByEmail: fn() => null);
         $_POST = ['login_mode' => 'email', 'email' => 'employee@example.test', 'password' => bin2hex(random_bytes(6))];
         $request = Request::capture();
         $this->controller()->login($request);
@@ -115,10 +98,7 @@ final class AuthControllerLoginTest extends TestCase
             'is_active'     => 1,
             'deleted_at'    => null,
         ];
-        $this->users->method('findByEmail')->willReturn($user);
-        $this->users->method('findById')->willReturn($user);
-        $this->users->method('save')->willReturn($user);
-
+        kintai_test_users(findById: fn() => $user, findByEmail: fn() => $user);
         $_POST = ['login_mode' => 'email', 'email' => 'employee@example.test', 'password' => $password];
         $request = Request::capture();
         $this->controller()->login($request);
@@ -128,10 +108,7 @@ final class AuthControllerLoginTest extends TestCase
 
     public function testFailedLoginDoesNotTouchLastLoginAt(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findByEmail')->with('employee@example.test')->willReturn(null);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findByEmail: fn() => null);
         $_POST = [
             'login_mode' => 'email',
             'email'      => 'employee@example.test',

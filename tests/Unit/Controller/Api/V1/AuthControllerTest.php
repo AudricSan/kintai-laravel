@@ -11,7 +11,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -21,7 +21,6 @@ use PHPUnit\Framework\TestCase;
 
 final class AuthControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub     $users;
     private AuthService $auth;
     private ?AuthController $controller = null;
 
@@ -41,16 +40,15 @@ final class AuthControllerTest extends TestCase
         foreach ([1, 3, 7, 99] as $userId) {
             kintai_test_user($userId);
         }
-        $this->users  = $this->createStub(UserRepositoryInterface::class);
 
-        $this->auth       = new AuthService($this->users);
+        $this->auth       = new AuthService();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function controller(): AuthController
     {
         if ($this->controller === null) {
-            $this->controller = new AuthController($this->auth, $this->users, new AuditLogger());
+            $this->controller = new AuthController($this->auth, new AuditLogger());
         }
 
         return $this->controller;
@@ -87,8 +85,7 @@ final class AuthControllerTest extends TestCase
 
     public function testLoginInvalidEmailReturns401(): void
     {
-        $this->users->method('findByEmail')->willReturn(null);
-
+        kintai_test_users(findByEmail: fn() => null);
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: [
             'email'    => 'nobody@example.com',
             'password' => 'wrong',
@@ -102,8 +99,7 @@ final class AuthControllerTest extends TestCase
 
     public function testFailedLoginFlagsTheRequestForTheThrottle(): void
     {
-        $this->users->method('findByEmail')->willReturn(null);
-
+        kintai_test_users(findByEmail: fn() => null);
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'nobody@example.com', 'password' => bin2hex(random_bytes(6))]);
         $this->controller()->login($req);
 
@@ -122,8 +118,7 @@ final class AuthControllerTest extends TestCase
 
     public function testLoginInvalidEmployeeCodeReturns401(): void
     {
-        $this->users->method('findByEmployeeCode')->willReturn(null);
-
+        kintai_test_users(findByEmployeeCode: fn() => null);
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: [
             'employee_code' => 'EMP001',
             'store_code'    => 'SHOP1',
@@ -137,7 +132,13 @@ final class AuthControllerTest extends TestCase
     public function testLoginSuccessReturnsToken(): void
     {
         $hash = password_hash('secret-passphrase', PASSWORD_BCRYPT);
-        $this->users->method('findByEmail')->willReturn([
+        kintai_test_users(findById: fn() => [
+            'id'            => 7,
+            'email'         => 'alice@example.com',
+            'password_hash' => $hash,
+            'is_active'     => true,
+            'deleted_at'    => null,
+        ], findByEmail: fn() => [
             'id'            => 7,
             'email'         => 'alice@example.com',
             'password_hash' => $hash,
@@ -146,14 +147,6 @@ final class AuthControllerTest extends TestCase
         ]);
         // Comme en base : findById() et findByEmail() renvoient la même ligne, hash compris
         // (la session est liée à l'empreinte de ce hash).
-        $this->users->method('findById')->willReturn([
-            'id'            => 7,
-            'email'         => 'alice@example.com',
-            'password_hash' => $hash,
-            'is_active'     => true,
-            'deleted_at'    => null,
-        ]);
-
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: [
             'email'    => 'alice@example.com',
             'password' => 'secret-passphrase',
@@ -185,8 +178,7 @@ final class AuthControllerTest extends TestCase
             'id' => 9, 'email' => 'weak@example.com', 'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 4]),
             'is_active' => true, 'deleted_at' => null,
         ];
-        $this->users->method('findByEmail')->willReturn($row);
-        $this->users->method('findById')->willReturn($row);
+        kintai_test_users(findById: fn() => $row, findByEmail: fn() => $row);
         $this->noTokenExpected = true;
 
         $req      = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'weak@example.com', 'password' => $password]);
@@ -203,19 +195,17 @@ final class AuthControllerTest extends TestCase
     public function testDefaultPasswordByEmployeeCodeGetsNoToken(): void
     {
         $row = [
-            'id' => 9, 'email' => null, 'password_hash' => password_hash('0000', PASSWORD_BCRYPT, ['cost' => 4]),
+            'id' => 9, 'email' => '', 'employee_code' => '057', 'password_hash' => password_hash('0000', PASSWORD_BCRYPT, ['cost' => 4]),
             'is_active' => true, 'deleted_at' => null,
         ];
         kintai_test_store_users(findMembership: fn() => ['id' => 1]);
         kintai_test_stores(findByCode: fn() => ['id' => 3, 'code' => '21836']);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findByEmployeeCode')->willReturn($row);
-        $users->method('findById')->willReturn($row);
+        kintai_test_users(findById: fn() => $row, findByEmployeeCode: fn() => $row);
         kintai_test_assignments(findByUser: fn() => []);
         $this->noTokenExpected = true;
 
-        $auth       = new AuthService($users);
-        $controller = new AuthController($auth, $users, new AuditLogger());
+        $auth       = new AuthService();
+        $controller = new AuthController($auth, new AuditLogger());
 
         $response = $controller->login($this->makeRequest('POST', '/api/v1/auth/login', json: [
             'employee_code' => '057', 'store_code' => '21836', 'password' => '0000',
@@ -227,18 +217,15 @@ final class AuthControllerTest extends TestCase
     public function testLoginTokenLengthIs64Hex(): void
     {
         $hash = password_hash('long-enough-pass', PASSWORD_BCRYPT);
-        $this->users->method('findByEmail')->willReturn([
+        kintai_test_users(findById: fn() => [
+            'id' => 1, 'email' => 'x@x.com', 'password_hash' => $hash, 'is_active' => true, 'deleted_at' => null,
+        ], findByEmail: fn() => [
             'id'            => 1,
             'email'         => 'x@x.com',
             'password_hash' => $hash,
             'is_active'     => true,
             'deleted_at'    => null,
         ]);
-        $this->users->method('findById')->willReturn([
-            'id' => 1, 'email' => 'x@x.com', 'password_hash' => $hash, 'is_active' => true, 'deleted_at' => null,
-        ]);
-
-
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: [
             'email' => 'x@x.com', 'password' => 'long-enough-pass',
         ]);
@@ -397,10 +384,7 @@ final class AuthControllerTest extends TestCase
     {
         $hash = password_hash('secret-passphrase', PASSWORD_BCRYPT, ['cost' => 4]);
         $row  = ['id' => 7, 'email' => 'alice@example.com', 'password_hash' => $hash, 'is_active' => true, 'deleted_at' => null];
-        $this->users->method('findByEmail')->willReturn($row);
-        $this->users->method('findById')->willReturn($row);
-
-
+        kintai_test_users(findById: fn() => $row, findByEmail: fn() => $row);
         $req = $this->makeRequest('POST', '/api/v1/auth/login', json: ['email' => 'alice@example.com', 'password' => 'secret-passphrase'] + $extra);
         $response = $this->controller()->login($req);
 

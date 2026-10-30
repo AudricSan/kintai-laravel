@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\ResignationReport\Services;
 
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 
 /**
  * Désactivation du compte d'un démissionnaire (audit n°8 de Kintai, décision D2) : le compte entier est désactivé à la
@@ -18,7 +18,6 @@ final class ResignationDeactivation
 {
     public function __construct(
         private readonly ResignationReportRepositoryInterface $reports,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /** Date du jour dans le fuseau de l'instance. */
@@ -75,10 +74,10 @@ final class ResignationDeactivation
 
     private function setActive(int $userId, bool $active): void
     {
-        $user = $this->users->findById($userId);
+        $user = User::findById($userId);
         if ($user !== null) {
             $user['is_active'] = $active ? 1 : 0;
-            $this->users->save($user);
+            User::put($user);
         }
     }
 }

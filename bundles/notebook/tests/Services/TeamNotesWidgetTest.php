@@ -6,7 +6,7 @@ namespace Tests\Bundles\Notebook\Services;
 
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Bundles\Installed\Notebook\Services\TeamNotesWidget;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,13 +34,11 @@ final class TeamNotesWidgetTest extends TestCase
             $this->note(7, '2026-10-06 10:00:00', authorId: null),
             $this->note(8, '2026-10-07 10:00:00', expiresAt: '2026-11-01 00:00:00', authorId: 2),
         ]);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnMap([
+        kintai_test_users(findById: fn(int $id) => array_column([
             [1, ['id' => 1, 'last_name' => 'Tanaka', 'first_name' => 'Yui']],
             [2, ['id' => 2, 'last_name' => '', 'first_name' => '', 'email' => 'x@kintai.test']],
-        ]);
-
-        $entries = (new TeamNotesWidget($notes, $users))->entries([3, 4], [3 => 'Shibuya'], '2026-10-10 00:00:00');
+        ], 1, 0)[$id] ?? null);
+        $entries = (new TeamNotesWidget($notes))->entries([3, 4], [3 => 'Shibuya'], '2026-10-10 00:00:00');
 
         $this->assertSame([3, 8, 7, 6, 5], array_column($entries, 'id'), 'épinglée, puis récentes ; expirée écartée ; 5 au plus');
         $this->assertSame('Tanaka Yui', $entries[0]['author_name']);

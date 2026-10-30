@@ -6,7 +6,7 @@ namespace Tests\Unit\Core\Services;
 
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
@@ -29,7 +29,6 @@ final class ShiftServiceTest extends TestCase
     {
 
         $this->service = new ShiftService(
-            $this->createStub(UserRepositoryInterface::class),
         );
     }
 

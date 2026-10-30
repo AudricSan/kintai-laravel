@@ -10,7 +10,7 @@ use App\Exceptions\ValidationException;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\NotificationPreferenceService;
 use App\Services\NotificationTypeRegistry;
@@ -34,20 +34,14 @@ final class NotificationPreferenceControllerTest extends TestCase
         kintai_test_user(20);
 
         $this->usersById = [20 => ['id' => 20, 'quiet_hours_start' => null, 'quiet_hours_end' => null]];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
-        $users->method('save')->willReturnCallback(function (array $data) {
-            $this->usersById[(int) $data['id']] = $data;
-            return $data;
-        });
-
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         $manager  = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
         kintai_test_store_users(findByUser: fn() => []);
         $this->controller = new NotificationPreferenceController(
-            new NotificationPreferenceService($registry, $users),
-            new UserTargetGuard($users, ApiOwnerAuth::permissions($this)),
+            new NotificationPreferenceService($registry),
+            new UserTargetGuard(ApiOwnerAuth::permissions($this)),
         );
     }
 
@@ -99,7 +93,7 @@ final class NotificationPreferenceControllerTest extends TestCase
         $data = $this->body($this->controller->update($this->request(['quiet_hours' => ['enabled' => true, 'start' => '23:00', 'end' => '06:30']])));
 
         $this->assertSame(['enabled' => true, 'start' => '23:00', 'end' => '06:30'], $data['quiet_hours']);
-        $this->assertSame('23:00', $this->usersById[20]['quiet_hours_start']);
+        $this->assertSame('23:00', \App\Models\User::findById(20)['quiet_hours_start']);
     }
 
     public function testUpdateRejectsUnknownTypeAndSavesNothing(): void
@@ -132,7 +126,7 @@ final class NotificationPreferenceControllerTest extends TestCase
                 $this->assertArrayHasKey('quiet_hours', $e->errors);
             }
         }
-        $this->assertNull($this->usersById[20]['quiet_hours_start']);
+        $this->assertNull(\App\Models\User::findById(20)['quiet_hours_start']);
     }
 
     public function testUpdateRejectsNonArrayPreferences(): void

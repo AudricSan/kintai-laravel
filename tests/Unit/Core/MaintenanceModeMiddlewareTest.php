@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppSettingsService;
@@ -59,9 +59,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     private function bindAuth(?array $user): void
     {
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturn($user);
-
+        kintai_test_users(findById: fn() => $user);
         // AuthService::isAdmin() lit désormais role_assignments : on simule une
         // affectation au rôle système (Owner) quand le user de test porte
         // is_admin=1, pour préserver l'intention de chaque test existant.
@@ -70,7 +68,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
             kintai_test_assignments(findByUser: fn(int $id) => $id === (int) $user['id'] ? [['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null]] : []);
         }
 
-        $this->container->instance(AuthService::class, new AuthService($users));
+        $this->container->instance(AuthService::class, new AuthService());
 
         if ($user !== null) {
             session()->put(auth()->getName(), $user['id']);

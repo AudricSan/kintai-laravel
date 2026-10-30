@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\ShiftSwap\Services;
 
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 
 /**
  * Données des widgets et de la carte « Échanges » des tableaux de bord (contrats 1.4 et 1.19), reprises du Core.
@@ -14,7 +14,6 @@ final class PendingSwapsWidget
 {
     public function __construct(
         private readonly ShiftSwapRequestRepositoryInterface $swaps,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /**
@@ -30,7 +29,7 @@ final class PendingSwapsWidget
             static fn(array $r): bool => in_array((int) ($r['store_id'] ?? 0), $storeIds, true) && ($r['status'] ?? '') === 'pending'
         ));
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersMap[(int) $u['id']] = $u['display_name'] ?? $u['email'] ?? ('#' . $u['id']);
         }
         return ['pending_swaps' => $pending, 'users_map' => $usersMap];

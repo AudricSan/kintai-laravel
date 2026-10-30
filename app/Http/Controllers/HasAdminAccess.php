@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Store;
+use App\Models\User;
 
 use App\Models\StoreUser;
 
@@ -75,7 +76,7 @@ trait HasAdminAccess
     protected function activeMemberIds(int $storeId): array
     {
         $active = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             if (empty($u['deleted_at']) && (int) ($u['is_active'] ?? 1) === 1) {
                 $active[(int) $u['id']] = true;
             }
@@ -112,7 +113,7 @@ trait HasAdminAccess
     protected function buildUsersMap(): array
     {
         $map = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $fullName = trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? ''));
             $map[(int) $u['id']] = $fullName ?: ($u['display_name'] ?? $u['email'] ?? '#' . $u['id']);
         }

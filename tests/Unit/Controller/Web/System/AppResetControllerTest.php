@@ -10,7 +10,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AppResetService;
 use App\Services\BackupService;
@@ -58,8 +58,6 @@ final class AppResetControllerTest extends TestCase
         $this->reset = new AppResetService($capsule);
 
         $this->auth = new AuthService(
-            $this->createStub(UserRepositoryInterface::class),
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $view = kintai_test_views(sys_get_temp_dir());

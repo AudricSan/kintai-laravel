@@ -7,12 +7,11 @@ namespace App\Services;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Extension\Absences;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 final class ShiftService implements ShiftServiceInterface
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     public function getShiftsForAdmin(array $storeIds, string $month, int $filterStoreId = 0, int $filterUserId = 0): array
@@ -40,7 +39,7 @@ final class ShiftService implements ShiftServiceInterface
     public function getUsersMap(): array
     {
         $map = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $map[(int) $u['id']] = $u['display_name'];
         }
         return $map;

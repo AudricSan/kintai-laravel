@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryIn
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -27,7 +27,6 @@ final class EmployeeSwapController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
     ) {}
@@ -83,7 +82,7 @@ final class EmployeeSwapController
             foreach (StoreUser::findByStore($sid) as $m) {
                 $mid = (int) $m['user_id'];
                 if ($mid !== $userId) {
-                    $u = $this->users->findById($mid);
+                    $u = User::findById($mid);
                     if ($u) {
                         $colleagues[$mid] = $u;
                     }
@@ -273,7 +272,7 @@ final class EmployeeSwapController
     /** Valeurs de remplacement (:colleague/:my_date/:target_date/:store) pour les notifications d'échange. */
     private function swapReplace(array $myShift, array $targetShift, int $colleagueId): array
     {
-        $colleague     = $this->users->findById($colleagueId);
+        $colleague     = User::findById($colleagueId);
         $colleagueName = $colleague['display_name'] ?? $colleague['email'] ?? ('#' . $colleagueId);
         $store         = Store::findById((int) ($myShift['store_id'] ?? $targetShift['store_id'] ?? 0));
         return [
@@ -287,7 +286,7 @@ final class EmployeeSwapController
     private function buildUsersMap(): array
     {
         $map = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $map[(int) $u['id']] = $u['display_name'] ?? $u['email'] ?? ('#' . $u['id']);
         }
         return $map;

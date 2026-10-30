@@ -8,7 +8,7 @@ use kintai\Contract\Auth\AuthService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 
@@ -21,7 +21,6 @@ final class MessageStreamController
     public function __construct(
         private readonly AuthService $auth,
         private readonly MessageRepositoryInterface $msgRepo,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     public function stream(Request $request): Response
@@ -45,7 +44,7 @@ final class MessageStreamController
 
         // Map id → nom pour enrichir les messages
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersMap[(int) $u['id']] = $u['display_name'] ?? $u['email'] ?? '';
         }
 

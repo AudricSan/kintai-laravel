@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\UserSelection;
 use Tests\Support\ApiOwnerAuth;
 use PHPUnit\Framework\TestCase;
@@ -38,10 +38,8 @@ protected function setUp(): void    {        kintai_test_database();        kint
             ['user_id' => 6, 'is_active' => 1],
             ['user_id' => 99, 'is_active' => 1],
         ]);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id): ?array => $this->users[$id] ?? null);
-
-        return new UserSelection($users, ApiOwnerAuth::permissions($this));
+        kintai_test_users(findById: fn(int $id): ?array => $this->users[$id] ?? null);
+        return new UserSelection(ApiOwnerAuth::permissions($this));
     }
 
     public function testCandidatesAreTheActiveMembersSortedByName(): void

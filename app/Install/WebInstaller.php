@@ -16,7 +16,7 @@ use App\Database\DemoDataSeeder;
 use App\Models\AppSetting;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\AppSettingsService;
 use App\Services\EnvFileWriter;
 use App\Services\InstanceLocale;
@@ -185,7 +185,7 @@ final class WebInstaller
                 $bundles[] = ['slug' => (string) $slug, 'version' => (string) ($entry['active_version'] ?? '')];
             }
 
-            $users = $app->make(UserRepositoryInterface::class)->countActive();
+            $users = User::countActive();
             if ($users === 0) {
                 throw new InstallFailure('install_import_error_empty', ['name' => $source]);
             }
@@ -289,7 +289,7 @@ final class WebInstaller
     private function createOwner(Application $app, InstallInput $in): int
     {
         $now = date('Y-m-d H:i:s');
-        $owner = $app->make(UserRepositoryInterface::class)->save([
+        $owner = User::put([
             'first_name'    => $in->firstName,
             'last_name'     => $in->lastName,
             'display_name'  => $in->firstName . ' ' . $in->lastName,

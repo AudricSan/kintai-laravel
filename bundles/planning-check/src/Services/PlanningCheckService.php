@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryI
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Services\NotificationService;
 
 /**
@@ -25,7 +25,6 @@ final class PlanningCheckService
 {
     public function __construct(
         private readonly Repo $repo,
-        private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
         private readonly PlanningShiftRows $rows,
@@ -85,7 +84,7 @@ final class PlanningCheckService
     {
         $ids = [];
         foreach (StoreUser::findByStore($storeId) as $membership) {
-            $user = $this->users->findById((int) $membership['user_id']);
+            $user = User::findById((int) $membership['user_id']);
             if ($user !== null && !empty($user['is_active']) && $this->permissions->can($user, 'planning_check.approve', $storeId)) {
                 $ids[(int) $user['id']] = true;
             }
@@ -382,7 +381,7 @@ final class PlanningCheckService
         $storeId = (int) $store['id'];
         $date = (string) $check['target_date'];
         $hash = PlanningCheckPolicy::shiftsHash($this->rows->raw($storeId, $date));
-        $validator = $this->users->findById((int) ($check['validated_by'] ?? $userId));
+        $validator = User::findById((int) ($check['validated_by'] ?? $userId));
         $context = [
             'validated_by' => $validator === null ? '' : trim(($validator['last_name'] ?? '') . ' ' . ($validator['first_name'] ?? '')),
             'updated'      => $updated,

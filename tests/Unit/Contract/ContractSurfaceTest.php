@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Contract;
 
 use Illuminate\Container\Container;
-use App\Repositories\UserRepositoryInterface;
 use Tests\Support\ContractUsageScanner;
 use PHPUnit\Framework\TestCase;
 
@@ -55,23 +54,24 @@ final class ContractSurfaceTest extends TestCase
     public function testTheContainerResolvesAnAliasToTheSameBinding(): void
     {
         $container = $GLOBALS['kintai_test_app'];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $container->instance(UserRepositoryInterface::class, $users);
+        $logger    = new \App\Services\AuditLogger();
+        $container->instance(\App\Services\AuditLogger::class, $logger);
 
-        $this->assertTrue($container->has('kintai\\Contract\\Data\\UserRepositoryInterface'));
-        $this->assertSame($users, $container->make('kintai\\Contract\\Data\\UserRepositoryInterface'));
+        $this->assertTrue($container->has('kintai\\Contract\\Services\\AuditLogger'));
+        $this->assertSame($logger, $container->make('kintai\\Contract\\Services\\AuditLogger'));
     }
 
     public function testTheContainerAutowiresAConstructorTypedWithAnAlias(): void
     {
         $container = $GLOBALS['kintai_test_app'];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $container->instance(UserRepositoryInterface::class, $users);
+
+        $logger    = new \App\Services\AuditLogger();
+        $container->instance(\App\Services\AuditLogger::class, $logger);
 
         $consumer = $container->make(ContractConsumerFixture::class);
 
-        $this->assertSame($users, $consumer->users);
-        $container->forgetInstance(UserRepositoryInterface::class);
+        $this->assertSame($logger, $consumer->logger);
+        $container->forgetInstance(\App\Services\AuditLogger::class);
     }
 
     /** Les routes d'un bundle nomment leurs middlewares par le contrat : le routeur garde le nom réel de la classe. */
@@ -106,5 +106,5 @@ final class ContractSurfaceTest extends TestCase
 /** Consommateur typé avec un nom du contrat, comme le contrôleur d'un bundle. */
 final class ContractConsumerFixture
 {
-    public function __construct(public readonly \kintai\Contract\Data\UserRepositoryInterface $users) {}
+    public function __construct(public readonly \kintai\Contract\Services\AuditLogger $logger) {}
 }

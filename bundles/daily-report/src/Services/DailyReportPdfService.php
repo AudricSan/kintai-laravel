@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\DailyReport\Services;
 
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Services\PdfCjkFontResolver;
 use kintai\Contract\Services\TranslationService;
 use kintai\Contract\View\ViewFactory;
@@ -16,7 +16,6 @@ final class DailyReportPdfService
     public function __construct(
         private readonly ViewFactory $view,
         private readonly TranslationService $translations,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /**
@@ -125,7 +124,7 @@ final class DailyReportPdfService
         foreach ($rawShifts as $s) {
             $uid = (int) $s['user_id'];
             if (!isset($userCache[$uid])) {
-                $u               = $this->users->findById($uid);
+                $u               = User::findById($uid);
                 $userCache[$uid] = $u
                     ? (trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? '')) ?: ($u['email'] ?? '—'))
                     : '—';

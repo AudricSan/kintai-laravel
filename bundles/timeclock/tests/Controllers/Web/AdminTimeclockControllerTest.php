@@ -10,7 +10,7 @@ use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use App\Models\Store;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +22,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminTimeclockControllerTest extends TestCase
 {
     private TimeclockRepositoryInterface&Stub $timeclocks;
-    private UserRepositoryInterface&Stub $users;
     private ?AdminTimeclockController $controller = null;
 
     protected function setUp(): void
@@ -32,7 +31,6 @@ final class AdminTimeclockControllerTest extends TestCase
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->timeclocks = $this->createStub(TimeclockRepositoryInterface::class);
-        $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -46,7 +44,6 @@ final class AdminTimeclockControllerTest extends TestCase
                 $view,
                 $this->timeclocks,
                 new AuditLogger(),
-                $this->users,
             );
         }
 
@@ -66,7 +63,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $_GET = ['date' => '2026-08-01'];
 
-        $this->users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $this->timeclocks->method('findAll')->willReturn([
             ['id' => 1, 'store_id' => 5, 'shift_date' => '2026-08-01', 'clock_in_time' => '2026-08-01 09:00:00'],
@@ -93,7 +90,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
-        $this->users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $this->timeclocks->method('findAll')->willReturn([
             ['id' => 1, 'store_id' => 5, 'shift_date' => '2026-08-01', 'clock_in_time' => '2026-08-01 09:00:00'],
@@ -118,7 +115,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
-        $this->users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $all = [];
         for ($i = 1; $i <= 25; $i++) {
@@ -150,7 +147,7 @@ final class AdminTimeclockControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [5]);
 
-        $this->users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => [
             ['id' => 5, 'name' => 'Store A'],
             ['id' => 9, 'name' => 'Store B'],

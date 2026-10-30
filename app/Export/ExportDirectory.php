@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Export;
 
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Noms d'employés et de magasins pour les lignes d'export, relus une seule fois par identifiant : un export de plusieurs
@@ -19,13 +19,12 @@ final class ExportDirectory
     private array $stores = [];
 
     public function __construct(
-        private readonly UserRepositoryInterface $userRepo,
     ) {}
 
     /** @return array<string, mixed>|null */
     public function user(int $id): ?array
     {
-        return array_key_exists($id, $this->users) ? $this->users[$id] : $this->users[$id] = $this->userRepo->findById($id);
+        return array_key_exists($id, $this->users) ? $this->users[$id] : $this->users[$id] = User::findById($id);
     }
 
     /** @return array<string, mixed>|null */

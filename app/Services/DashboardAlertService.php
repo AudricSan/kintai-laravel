@@ -8,7 +8,7 @@ use App\Models\Shift;
 use App\Models\StoreUser;
 use App\Extension\Attendances;
 use App\Extension\PendingRequests;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Regroupe les "alertes actionnables" du dashboard admin : shifts à venir non
@@ -23,7 +23,6 @@ final class DashboardAlertService
     private const STALE_TIMECLOCK_HOURS = 12;
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         // Demandes en attente (fournisseurs des bundles) ; sans elles (tests), celles de la requête courante.
         private readonly ?PendingRequests $pendingRequests = null,
     ) {}
@@ -87,7 +86,7 @@ final class DashboardAlertService
                 if (isset($scheduledUserIds[$uid]) || isset($result[$uid])) {
                     continue;
                 }
-                $user = $this->users->findById($uid);
+                $user = User::findById($uid);
                 if ($user === null || (int) ($user['is_active'] ?? 0) !== 1) {
                     continue;
                 }
@@ -128,7 +127,7 @@ final class DashboardAlertService
             if (($tc['clock_in_time'] ?? '') > $threshold) {
                 continue;
             }
-            $user = $this->users->findById((int) ($tc['user_id'] ?? 0));
+            $user = User::findById((int) ($tc['user_id'] ?? 0));
             $result[] = [
                 'id'            => (int) $tc['id'],
                 'store_id'      => $sid,

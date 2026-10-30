@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -41,14 +41,10 @@ final class CalendarLinkControllerTest extends TestCase
         $this->setUpCalendarFixture();
         session()->put(auth()->getName(), $this->alice);
         session()->forget(['_kintai_gcal_oauth', '_kintai_flash']);
-
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id, 'email' => 'alice@kintai.test', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null]);
+        kintai_test_users(findById: fn(int $id) => ['id' => $id, 'email' => 'alice@kintai.test', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null]);
         kintai_test_assignments(findByUser: fn() => []);
         kintai_test_store_users(findMembership: fn() => $this->membership);
         $auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new CalendarLinkController(

@@ -17,7 +17,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,7 +37,6 @@ final class AdminUserController
     use HasAdminAccess;
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly PermissionService $permissions,
@@ -104,11 +103,11 @@ final class AdminUserController
         if ($managedIds !== null) {
             $memberIds = $this->memberUserIds($managedIds);
             $users = array_values(array_filter(
-                $this->users->findAll(),
+                User::findAll(),
                 fn($u) => in_array((int) $u['id'], $memberIds, true)
             ));
         } else {
-            $users = $this->users->findAll();
+            $users = User::findAll();
         }
         // Comptes supprimés (anonymisés) : conservés pour l'historique, plus listés.
         $users = array_values(array_filter($users, fn(array $u): bool => empty($u['deleted_at'])));
@@ -307,11 +306,11 @@ final class AdminUserController
         if ($managedIds !== null) {
             $memberIds = $this->memberUserIds($managedIds);
             $users = array_values(array_filter(
-                $this->users->findAll(),
+                User::findAll(),
                 fn($u) => in_array((int) $u['id'], $memberIds, true)
             ));
         } else {
-            $users = $this->users->findAll();
+            $users = User::findAll();
         }
         // Comptes supprimés (anonymisés) : conservés pour l'historique, plus listés.
         $users = array_values(array_filter($users, fn(array $u): bool => empty($u['deleted_at'])));
@@ -421,7 +420,7 @@ final class AdminUserController
         }
 
         $email = trim($request->post('email', ''));
-        if ($email !== '' && $this->users->findByEmail($email) !== null) {
+        if ($email !== '' && User::findByEmail($email) !== null) {
             return redirect()->away($this->base() . '/admin/users/create')->with('error', 'email_taken');
         }
 
@@ -439,7 +438,7 @@ final class AdminUserController
             return redirect()->away($this->base() . '/admin/users/create')->with('error', 'employee_code_invalid_url');
         }
         // Code déjà pris : sans ce contrôle, la contrainte unique de la base donnait une erreur 500.
-        if ($empCode !== null && $this->users->findByEmployeeCode($empCode) !== null) {
+        if ($empCode !== null && User::findByEmployeeCode($empCode) !== null) {
             return redirect()->away($this->base() . '/admin/users/create')->with('error', 'employee_code_taken');
         }
         if ($password === '') {
@@ -458,7 +457,7 @@ final class AdminUserController
         $selectedRole = $this->roleSync->findRole((int) $request->post('role_id', 0));
         $isOwner      = $isRequesterOwner && $selectedRole !== null && !empty($selectedRole['is_system']);
 
-        $saved    = $this->users->save([
+        $saved    = User::put([
             // Vide : « Nom Prénom » (UserDisplayName).
             'display_name'       => UserDisplayName::resolve($request->post('display_name', ''), $request->post('first_name', ''), $request->post('last_name', '')),
             'first_name'         => $request->post('first_name', ''),
@@ -555,12 +554,12 @@ final class AdminUserController
             if ($base === '') $base = 'user';
             $email   = $base . '@kintai.local';
             $attempt = 0;
-            while ($this->users->findByEmail($email) !== null) {
+            while (User::findByEmail($email) !== null) {
                 $attempt++;
                 $email = $base . $attempt . '@kintai.local';
                 if ($attempt > 99) break;
             }
-        } elseif ($this->users->findByEmail($email) !== null) {
+        } elseif (User::findByEmail($email) !== null) {
             // Email fourni explicitement (pas auto-généré) : évite un crash SQL
             // (contrainte unique) si l'employé existe déjà sous un autre nom Excel
             // non reconnu par le matching de l'import.
@@ -571,7 +570,7 @@ final class AdminUserController
         if ($empCode !== null && !EmployeeRouteBinder::isValidCode($empCode)) {
             return response()->json(['success' => false, 'error' => 'employee_code_invalid_url'], 422);
         }
-        if ($empCode !== null && $this->users->findByEmployeeCode($empCode) !== null) {
+        if ($empCode !== null && User::findByEmployeeCode($empCode) !== null) {
             return response()->json(['success' => false, 'error' => 'employee_code_taken'], 409);
         }
 
@@ -580,7 +579,7 @@ final class AdminUserController
             $password = \App\Auth\PasswordPolicy::DEFAULT_PASSWORD;
         }
 
-        $saved = $this->users->save([
+        $saved = User::put([
             'display_name'  => $displayName,
             'first_name'    => $firstName,
             'last_name'     => $lastName,
@@ -640,7 +639,7 @@ final class AdminUserController
         if ($code === '') {
             return response()->json(['available' => true]);
         }
-        $existing  = $this->users->findByEmployeeCode($code);
+        $existing  = User::findByEmployeeCode($code);
         $excludeId = (int) $request->query('exclude_id', 0);
         $taken     = $existing !== null && (int) $existing['id'] !== $excludeId;
         return response()->json(['available' => !$taken]);
@@ -656,7 +655,7 @@ final class AdminUserController
         if ($email === '') {
             return response()->json(['available' => true]);
         }
-        $existing  = $this->users->findByEmail($email);
+        $existing  = User::findByEmail($email);
         $excludeId = (int) $request->query('exclude_id', 0);
         $taken     = $existing !== null && (int) $existing['id'] !== $excludeId;
         return response()->json(['available' => !$taken]);
@@ -664,7 +663,7 @@ final class AdminUserController
 
     public function editUser(Request $request): Response
     {
-        $user = $this->users->findById((int) $request->route('employee'));
+        $user = User::findById((int) $request->route('employee'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -762,7 +761,7 @@ final class AdminUserController
 
     public function updateUser(Request $request): Response
     {
-        $user = $this->users->findById((int) $request->route('employee'));
+        $user = User::findById((int) $request->route('employee'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -785,7 +784,7 @@ final class AdminUserController
 
         $email = trim($request->post('email', $user['email'] ?? ''));
         if ($email !== ($user['email'] ?? '')) {
-            $existing = $this->users->findByEmail($email);
+            $existing = User::findByEmail($email);
             if ($existing !== null && (int) $existing['id'] !== (int) $user['id']) {
                 return $this->updateUserError($request, $user, 'email_taken');
             }
@@ -807,7 +806,7 @@ final class AdminUserController
         if ($empCode !== null && !EmployeeRouteBinder::isValidCode($empCode)) {
             return $this->updateUserError($request, $user, 'employee_code_invalid_url');
         }
-        $holder = $empCode !== null ? $this->users->findByEmployeeCode($empCode) : null;
+        $holder = $empCode !== null ? User::findByEmployeeCode($empCode) : null;
         if ($holder !== null && (int) $holder['id'] !== (int) $user['id']) {
             return $this->updateUserError($request, $user, 'employee_code_taken');
         }
@@ -842,7 +841,7 @@ final class AdminUserController
             $data['password_hash'] = \App\Auth\PasswordHasher::hash($newPassword);
         }
 
-        $this->users->save($data);
+        User::put($data);
         // Nouveau mot de passe ou compte désactivé : on révoque cookies « rester connecté » et jetons d'API
         // (les sessions déjà ouvertes tombent seules : empreinte du mot de passe / compte inactif).
         if ($newPassword !== '' || (!empty($user['is_active']) && empty($data['is_active']))) {
@@ -891,7 +890,7 @@ final class AdminUserController
 
     public function resetPassword(Request $request): Response
     {
-        $user   = $this->users->findById((int) $request->route('employee'));
+        $user   = User::findById((int) $request->route('employee'));
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -899,7 +898,7 @@ final class AdminUserController
 
         $oldUser = $user;
         $user['password_hash'] = \App\Auth\PasswordHasher::hash(\App\Auth\PasswordPolicy::DEFAULT_PASSWORD);
-        $this->users->save($user);
+        User::put($user);
         $this->revoker?->revokeAllFor((int) $user['id']);
         $this->auditLogger->logUpdate($request, 'user.password_reset', 'user', (int) $user['id'], $oldUser, $user, [
             'email' => $user['email'] ?? null,
@@ -915,7 +914,7 @@ final class AdminUserController
     public function setUserRate(Request $request): Response
     {
         $userId = (int) $request->route('employee');
-        $user   = $this->users->findById($userId);
+        $user   = User::findById($userId);
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }

@@ -10,7 +10,7 @@ use App\Mail\MailerService;
 use App\Models\DevicePushToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\EnvFileWriter;
@@ -268,7 +268,7 @@ final class SetupStepsTest extends TestCase
     {
         $vapid = new VapidKeyStore($this->store);
         $mailer = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@example.com']]);
-        $status = new NotificationChannelStatus($vapid, $mailer, new PublicUrlResolver($this->settings, ''), $this->createStub(UserRepositoryInterface::class), []);
+        $status = new NotificationChannelStatus($vapid, $mailer, new PublicUrlResolver($this->settings, ''), []);
         return new NotificationsStep($status, $notifications);
     }
 

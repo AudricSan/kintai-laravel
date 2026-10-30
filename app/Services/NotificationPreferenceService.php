@@ -6,7 +6,7 @@ namespace App\Services;
 
 use kintai\Contract\Extension\NotificationType;
 use App\Models\NotificationPreference;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Préférences de notification d'un utilisateur : canaux « push » et « email » par type, et heures silencieuses.
@@ -37,7 +37,6 @@ final class NotificationPreferenceService
 
     public function __construct(
         private readonly NotificationTypeRegistry $types,
-        private readonly UserRepositoryInterface $users,
         ?callable $clock = null,
     ) {
         $this->clock = $clock;
@@ -156,7 +155,7 @@ final class NotificationPreferenceService
     /** @return array{enabled: bool, start: string, end: string} Heures proposées par défaut tant que rien n'est réglé. */
     public function quietHours(int $userId): array
     {
-        $user  = $this->users->findById($userId) ?? [];
+        $user  = User::findById($userId) ?? [];
         $start = self::normalizeTime($user['quiet_hours_start'] ?? null);
         $end   = self::normalizeTime($user['quiet_hours_end'] ?? null);
         return [
@@ -173,7 +172,7 @@ final class NotificationPreferenceService
      */
     public function saveQuietHours(int $userId, bool $enabled, ?string $start, ?string $end): bool
     {
-        $user = $this->users->findById($userId);
+        $user = User::findById($userId);
         if ($user === null) {
             return false;
         }
@@ -186,7 +185,7 @@ final class NotificationPreferenceService
 
         $user['quiet_hours_start'] = $enabled ? $s : null;
         $user['quiet_hours_end']   = $enabled ? $e : null;
-        $this->users->save($user);
+        User::put($user);
         return true;
     }
 

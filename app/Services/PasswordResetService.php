@@ -10,14 +10,13 @@ use Illuminate\Contracts\Translation\Translator;
 use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
 use App\Models\PasswordResetToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 final class PasswordResetService
 {
     private const TTL_HOURS = 1;
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly MailerService $mailer,
         // Optionnel pour les tests qui construisent le service à la main.
         private readonly ?CredentialRevoker $revoker = null,
@@ -38,7 +37,7 @@ final class PasswordResetService
             return false;
         }
 
-        $user = $this->users->findByEmail($email);
+        $user = User::findByEmail($email);
 
         if ($user === null || empty($user['is_active']) || !empty($user['deleted_at'])) {
             return true;
@@ -103,13 +102,13 @@ final class PasswordResetService
             return false;
         }
 
-        $user = $this->users->findByEmail($record['email']);
+        $user = User::findByEmail($record['email']);
 
         if ($user === null || empty($user['is_active'])) {
             return false;
         }
 
-        $this->users->save(array_merge($user, [
+        User::put(array_merge($user, [
             'password_hash' => \App\Auth\PasswordHasher::hash($newPassword),
         ]));
 

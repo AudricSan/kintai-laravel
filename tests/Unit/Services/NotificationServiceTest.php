@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use App\BundleManager;
@@ -40,31 +39,14 @@ final class NotificationServiceTest extends TestCase
     private NotificationService $service;
     private PushNotificationService $push;
     private Translator $translations;
-    private UserRepositoryInterface $users;
 
     /** @var array<int, array{id:int, language:?string}> */
-    private array $usersById = [];
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-
-        $capsule->getConnection()->getSchemaBuilder()->create('notifications', function ($table) {
-            $table->increments('id');
-            $table->integer('user_id');
-            $table->string('type');
-            $table->string('body_key')->nullable();
-            $table->text('params')->nullable();
-            $table->text('body')->nullable();
-            $table->string('link', 500)->nullable();
-            $table->string('reference_type', 40)->nullable();
-            $table->integer('reference_id')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-        });
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
 
         // FCM désactivé (config vide) : PushNotificationService::sendToUser() est un
         // no-op immédiat, aucun appel réseau n'a lieu dans ce test.
@@ -72,20 +54,15 @@ final class NotificationServiceTest extends TestCase
 
         $translations = kintai_test_real_translator();
 
-        $this->usersById = [];
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturnCallback(
-            fn(int $id) => $this->usersById[$id] ?? null
-        );
-
         $this->push         = $push;
         $this->translations = $translations;
-        $this->service      = new NotificationService($push, $translations, $this->users);
+        $this->service      = new NotificationService($push, $translations);
     }
 
     private function registerUser(int $id, ?string $language): void
     {
-        $this->usersById[$id] = ['id' => $id, 'language' => $language];
+        kintai_test_user($id);
+        \App\Models\User::where('id', $id)->update(['language' => $language ?? '']);
     }
 
     private function lang(string $locale): array
@@ -278,7 +255,6 @@ final class NotificationServiceTest extends TestCase
         return new NotificationService(
             $this->push,
             $this->translations,
-            $this->users,
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
         );
     }
@@ -321,7 +297,7 @@ final class NotificationServiceTest extends TestCase
     public function testMarkReadForNeverThrows(): void
     {
         kintai_test_database(); // sans migrations : la table des notifications n'existe pas
-        $service = new NotificationService($this->push, $this->translations, $this->users);
+        $service = new NotificationService($this->push, $this->translations);
 
         $service->markReadFor(5, 'shift', [1, 2]);
 

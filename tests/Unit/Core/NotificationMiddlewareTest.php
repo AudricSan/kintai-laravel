@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\VapidKeyStore;
@@ -52,12 +52,9 @@ final class NotificationMiddlewareTest extends TestCase
 
     private function bindAuth(?array $user): void
     {
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturn($user);
+        kintai_test_users(findById: fn() => $user);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
         $this->container->instance(AuthService::class, $auth);
 

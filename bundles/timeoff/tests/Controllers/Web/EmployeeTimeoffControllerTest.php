@@ -45,7 +45,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
                 $view,
                 $this->timeoffRequests,
                 new AuditLogger(),
-                $this->createStub(\App\Repositories\UserRepositoryInterface::class),
                 $this->notifs,
                 new \App\Auth\PermissionService(
                 ),

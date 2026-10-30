@@ -8,7 +8,7 @@ use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
 use App\Models\ApiToken;
 use App\Models\PasswordResetToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\AppSetting;
 use App\Services\AppSettingsService;
@@ -30,7 +30,6 @@ use PHPUnit\Framework\TestCase;
 final class PasswordResetControllerI18nTest extends TestCase
 {
     private ?int $expectedTokens = null;
-    private UserRepositoryInterface&Stub $users;
     private PasswordResetController $controller;
 
     protected function setUp(): void
@@ -44,13 +43,10 @@ final class PasswordResetControllerI18nTest extends TestCase
         kintai_test_database();
 
         kintai_test_migrate();
-        $this->users  = $this->createStub(UserRepositoryInterface::class);
 
         $service = new PasswordResetService(
-            $this->users,
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             new CredentialRevoker(
-                $this->createStub(UserRepositoryInterface::class),
             ),
         );
         kintai_test_settings([]);

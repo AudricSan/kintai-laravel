@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Mail\MailerService;
 use App\Models\AppSetting;
 use App\Models\PasswordResetToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\PasswordResetService;
@@ -25,7 +25,6 @@ use PHPUnit\Framework\TestCase;
 final class PasswordResetControllerPublicUrlTest extends TestCase
 {
     private ?int $expectedTokens = null;
-    private UserRepositoryInterface&Stub $users;
     private string $viewDir;
 
     protected function setUp(): void
@@ -42,8 +41,7 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
         kintai_test_database();
 
         kintai_test_migrate();
-        $this->users  = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findByEmail')->willReturn([
+        kintai_test_users(findByEmail: fn() => [
             'id' => 7, 'email' => 'user@test.com', 'display_name' => 'User', 'is_active' => 1, 'deleted_at' => null,
         ]);
     }
@@ -59,7 +57,6 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
         kintai_test_settings($setting === '' ? [] : [PublicUrlResolver::SETTING_KEY => $setting]);
 
         $service = new PasswordResetService(
-            $this->users,
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
         );
 

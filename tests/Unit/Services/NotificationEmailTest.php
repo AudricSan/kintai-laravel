@@ -12,7 +12,7 @@ use App\Mail\MailerService;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\AppSettingsService;
 use App\Services\NotificationMailer;
 use App\Services\NotificationPreferenceService;
@@ -58,17 +58,11 @@ final class NotificationEmailTest extends TestCase
             8 => ['id' => 8, 'email' => 'employee@example.org', 'language' => 'en', 'quiet_hours_start' => null, 'quiet_hours_end' => null],
             9 => ['id' => 9, 'email' => '', 'language' => 'fr', 'quiet_hours_start' => null, 'quiet_hours_end' => null],
         ];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
-        $users->method('save')->willReturnCallback(function (array $data) {
-            $this->usersById[(int) $data['id']] = $data;
-            return $data;
-        });
-
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-        $this->prefs = new NotificationPreferenceService($registry, $users);
+        $this->prefs = new NotificationPreferenceService($registry);
 
         $this->settings = new InMemoryAppSettings(['app_public_url' => 'https://kintai.exemple.fr/app']);
         $this->tokens   = new UnsubscribeTokens();
@@ -79,9 +73,7 @@ final class NotificationEmailTest extends TestCase
         $transport = kintai_test_mailer(fn(array $to, string $subject, string $htmlBody, array $extraHeaders): bool => $this->record($to, $subject, $htmlBody, $extraHeaders));
         $config = $configured ? ['default' => 'sendmail', 'from' => ['address' => 'kintai@mon-domaine.fr', 'name' => 'Kintai']] : [];
         $translations = kintai_test_real_translator();
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
-
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $mailer = new NotificationMailer(
@@ -94,7 +86,6 @@ final class NotificationEmailTest extends TestCase
         return new NotificationService(
             new PushNotificationService([]),
             $translations,
-            $users,
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
             $this->prefs,
             null,

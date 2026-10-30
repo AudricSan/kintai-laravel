@@ -16,7 +16,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -36,9 +36,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
     use \Tests\Support\ApiTokenExpectations;
 
     private const USER_ID = 7;
-
-    private UserRepositoryInterface&Stub $users;
-    private UserRepositoryInterface&Stub $remember;
     private AuthService $auth;
     private AuthController $controller;
     private string $currentPassword;
@@ -58,20 +55,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             'deleted_at'    => null,
             'password_hash' => password_hash($this->currentPassword, PASSWORD_BCRYPT, ['cost' => 4]),
         ];
-
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturnCallback(fn() => $this->row);
+        kintai_test_users(findById: fn() => $this->row);
         // Le dépôt persiste ce que le contrôleur sauvegarde, comme la vraie base.
-        $this->users->method('save')->willReturnCallback(function (array $data) {
-            $this->row = array_merge($this->row, $data);
-            return $this->row;
-        });
         kintai_test_assignments(findByUser: fn() => []);
-        $this->remember = $this->createStub(UserRepositoryInterface::class);
 
         $this->auth = new AuthService(
-            $this->users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->buildController();
@@ -87,17 +75,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             kintai_test_views(sys_get_temp_dir()),
             $this->auth,
             new AuditLogger(),
-            $this->users,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
-            new CredentialRevoker($this->remember),
-            new UserAnonymizer($this->users, new CredentialRevoker($this->remember), sys_get_temp_dir()),
+            new CredentialRevoker(),
+            new UserAnonymizer(new CredentialRevoker(), sys_get_temp_dir()),
         );
     }
 
     private function useTokenMocks(): void
     {
-        $this->remember = $this->createMock(UserRepositoryInterface::class);
         $this->buildController();
     }
 
@@ -116,10 +102,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testPasswordChangeRevokesRememberCookiesAndApiTokens(): void
     {
         $this->useTokenMocks();
-        $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::USER_ID);
+        kintai_test_remember_token(self::USER_ID);
         $this->expectApiTokensRevoked(self::USER_ID);
 
         $this->changePassword($this->currentPassword, bin2hex(random_bytes(8)));
+        $this->assertNull(\App\Models\User::query()->find(self::USER_ID)?->remember_token, 'jeton « rester connecté » révoqué');
     }
 
     public function testCurrentSessionSurvivesItsOwnPasswordChange(): void
@@ -135,7 +122,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testWrongCurrentPasswordRevokesNothing(): void
     {
         $this->useTokenMocks();
-        $this->remember->expects($this->never())->method('revokeRememberToken');
         $this->expectApiTokensKept(1);
 
         $this->changePassword(bin2hex(random_bytes(8)), bin2hex(random_bytes(8)));
@@ -144,10 +130,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testAccountDeletionPurgesRememberCookiesAndApiTokens(): void
     {
         $this->useTokenMocks();
-        $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::USER_ID);
+        kintai_test_remember_token(self::USER_ID);
         $this->expectApiTokensRevoked(self::USER_ID);
 
         $_POST = ['password' => $this->currentPassword];
         $this->controller->deleteAccount(Request::capture());
+        $this->assertNull(\App\Models\User::query()->find(self::USER_ID)?->remember_token, 'jeton « rester connecté » révoqué');
     }
 }

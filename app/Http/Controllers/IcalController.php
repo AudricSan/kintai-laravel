@@ -12,7 +12,7 @@ use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Extension\Absences;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -25,7 +25,6 @@ final class IcalController
     use HasBaseUrl;
     public function __construct(
         private readonly IcalService                        $ical,
-        private readonly UserRepositoryInterface            $users,
         private readonly AuthService                        $auth,
         private readonly AuditLogger                        $auditLogger,
     ) {}
@@ -46,7 +45,7 @@ final class IcalController
 
         $userId = (int) $tokenRow['user_id'];
         $store  = Store::findById($storeId);
-        $user   = $this->users->findById($userId);
+        $user   = User::findById($userId);
 
         if (!$store || !$user) {
             throw new NotFoundException(__('error_resource_not_found'));

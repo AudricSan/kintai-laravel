@@ -6,7 +6,7 @@ namespace Tests\Bundles\ShiftSwap\Services;
 
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Services\PendingSwapsWidget;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,10 +28,8 @@ final class PendingSwapsWidgetTest extends TestCase
             ['id' => 5, 'status' => 'pending', 'accepted_at' => '2026-10-01 10:00:00'],
             ['id' => 6, 'status' => 'refused', 'accepted_at' => null],
         ]);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findAll')->willReturn([['id' => 5, 'display_name' => 'Sato'], ['id' => 6, 'email' => 'tanaka@example.test']]);
-
-        return new PendingSwapsWidget($swaps, $users);
+        kintai_test_users(findAll: fn() => [['id' => 5, 'display_name' => 'Sato'], ['id' => 6, 'display_name' => 'tanaka@example.test', 'email' => 'tanaka@example.test']]);
+        return new PendingSwapsWidget($swaps);
     }
 
     public function testManagerSeesPendingSwapsOfItsStores(): void

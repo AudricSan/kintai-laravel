@@ -7,7 +7,7 @@ namespace Tests\Integration;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\RouteSlug;
 use App\Models\Store;
-use App\Repositories\DatabaseUserRepository;
+use App\Models\User;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\StoreRouteBinder;
 use PHPUnit\Framework\TestCase;
@@ -51,10 +51,9 @@ final class RouteSlugsTest extends TestCase
 
     public function testEmployeeNumberChangesAreKeptForRedirects(): void
     {
-        $users = new DatabaseUserRepository();
         $this->insertUser(18, '015');
 
-        $users->save(['id' => 18, 'employee_code' => '016']);
+        User::put(['id' => 18, 'employee_code' => '016']);
 
         $binder = new EmployeeRouteBinder();
         $this->assertSame('016', $binder->segmentFor(18));
@@ -65,12 +64,11 @@ final class RouteSlugsTest extends TestCase
 
     public function testAReassignedNumberStopsPointingToItsFormerHolder(): void
     {
-        $users = new DatabaseUserRepository();
         $this->insertUser(18, '015');
         $this->insertUser(19, '099');
 
-        $users->save(['id' => 18, 'employee_code' => '016']); // « 015 » passe en historique de 18
-        $users->save(['id' => 19, 'employee_code' => '015']); // puis est réattribué à 19
+        User::put(['id' => 18, 'employee_code' => '016']); // « 015 » passe en historique de 18
+        User::put(['id' => 19, 'employee_code' => '015']); // puis est réattribué à 19
 
         $bound = (new EmployeeRouteBinder())->resolve('015');
         $this->assertSame(19, $bound?->id);
@@ -83,10 +81,10 @@ final class RouteSlugsTest extends TestCase
         $db->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
         RouteSlug::setCurrent('store', 1, '所沢東町店', false);
         $this->insertUser(18, '015');
-        (new DatabaseUserRepository())->save(['id' => 18, 'employee_code' => '016']);
+        User::put(['id' => 18, 'employee_code' => '016']);
 
         Store::remove(1);
-        (new DatabaseUserRepository())->delete(18);
+        User::remove(18);
 
         $this->assertSame(0, $db->table('route_slugs')->count());
     }

@@ -17,7 +17,7 @@ use kintai\Contract\Event\OpenShiftClosed;
 use App\Extension\Absences;
 use App\Extension\Events;
 use App\Extension\ShiftFormSections;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,7 +36,6 @@ final class AdminShiftController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly ShiftServiceInterface $shiftService,
@@ -132,7 +131,7 @@ final class AdminShiftController
             return null;
         }
 
-        $user = $this->users->findById($userId) ?? [];
+        $user = User::findById($userId) ?? [];
         $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
         return [
@@ -164,8 +163,8 @@ final class AdminShiftController
     {
         $managedIds = $this->managedIds($request);
         $allUsers   = $managedIds !== null
-            ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
-            : $this->users->findAll();
+            ? array_values(array_filter(User::findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
+            : User::findAll();
 
         return response($this->view->make('scheduling.shifts-form', [
             'title'                 => $mode === 'edit' ? 'Modifier le shift #' . $shift['id'] : 'Nouveau shift',
@@ -342,7 +341,7 @@ final class AdminShiftController
             foreach (StoreUser::findByStore((int) $store['id']) as $m) {
                 $uid = (int) $m['user_id'];
                 if (isset($membersMap[$uid])) continue;
-                $u = $this->users->findById($uid);
+                $u = User::findById($uid);
                 if (!$u || !empty($u['deleted_at']) || (int) ($u['is_active'] ?? 1) !== 1) continue;
                 $membersMap[$uid]  = $u;
                 $usersColour[$uid] = $u['color'] ?? '#6366f1';
@@ -477,7 +476,7 @@ final class AdminShiftController
         // Map noms et couleurs
         $usersMap    = $this->buildUsersMap();
         $colorMap    = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $colorMap[(int) $u['id']] = $u['color'] ?? null;
         }
         usort($memberIds, fn($a, $b) => strcmp($usersMap[$a] ?? '', $usersMap[$b] ?? ''));
@@ -568,7 +567,7 @@ final class AdminShiftController
             'week_tools'          => $canManage && $filterStoreId > 0 && $viewMode === 'week'
                 ? ['templates' => ShiftWeekTemplate::where('store_id', $filterStoreId)->orderBy('name')->get(), 'templates_enabled' => true]
                 : null,
-            'all_users'           => $this->users->findAll(),
+            'all_users'           => User::findAll(),
             'all_stores'          => $availStores,
             'all_types'           => $this->shiftTypesForManaged($managedIds),
         ])->render());
@@ -664,7 +663,7 @@ final class AdminShiftController
 
         $usersMap = $this->buildUsersMap();
         $colorMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $colorMap[(int) $u['id']] = $u['color'] ?? null;
         }
         usort($memberIds, fn($a, $b) => strcmp($usersMap[$a] ?? '', $usersMap[$b] ?? ''));
@@ -710,8 +709,8 @@ final class AdminShiftController
 
         // Utilisateurs : membres des stores accessibles uniquement
         $allUsers = $managedIds !== null
-            ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
-            : $this->users->findAll();
+            ? array_values(array_filter(User::findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
+            : User::findAll();
 
         $redirectTo = safe_redirect_path((string) $request->query('redirect_to', ''), '');
 
@@ -869,8 +868,8 @@ final class AdminShiftController
 
         $managedIds = $this->managedIds($request);
         $allUsers   = $managedIds !== null
-            ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
-            : $this->users->findAll();
+            ? array_values(array_filter(User::findAll(), fn($u) => in_array((int) $u['id'], $this->memberUserIds($managedIds), true)))
+            : User::findAll();
 
         $redirectTo = safe_redirect_path((string) $request->query('redirect_to', ''), '');
 

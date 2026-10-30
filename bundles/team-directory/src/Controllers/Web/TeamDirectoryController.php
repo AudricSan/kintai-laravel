@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\View\ViewFactory;
@@ -26,7 +26,6 @@ final class TeamDirectoryController
 {
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     public function index(Request $request): Response
@@ -52,7 +51,7 @@ final class TeamDirectoryController
 
         $colleagues = [];
         foreach (array_keys($storeIdsByColleague) as $cid) {
-            $u = $this->users->findById($cid);
+            $u = User::findById($cid);
             if ($u === null || empty($u['is_active']) || (int) ($u['show_in_directory'] ?? 1) === 0) {
                 continue;
             }
@@ -77,7 +76,7 @@ final class TeamDirectoryController
         $isOwner  = !empty($user['is_admin']);
         $targetId = (int) $request->route('id');
 
-        $target = $this->users->findById($targetId);
+        $target = User::findById($targetId);
         if ($target === null || empty($target['is_active'])) {
             throw new NotFoundException(__('error_user_not_found'));
         }

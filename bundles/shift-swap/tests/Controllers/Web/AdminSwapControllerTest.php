@@ -11,7 +11,7 @@ use App\Models\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
@@ -23,7 +23,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminSwapControllerTest extends TestCase
 {
     private ShiftSwapRequestRepositoryInterface&Stub $swapRequests;
-    private UserRepositoryInterface&Stub $users;
     private NotificationService&Stub $notifs;
     private ?AdminSwapController $controller = null;
 
@@ -38,7 +37,6 @@ final class AdminSwapControllerTest extends TestCase
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
-        $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -54,7 +52,6 @@ final class AdminSwapControllerTest extends TestCase
                 $this->swapRequests,
                 new AuditLogger(),
                 $this->notifs,
-                $this->users,
             );
         }
 
@@ -70,11 +67,10 @@ final class AdminSwapControllerTest extends TestCase
 
     public function testCreateSwapRendersFormForAdmin(): void
     {
-        $this->users->method('findAll')->willReturn([
+        kintai_test_users(findAll: fn() => [
             ['id' => 1, 'last_name' => 'Dupont', 'first_name' => 'Jean'],
             ['id' => 2, 'last_name' => 'Martin', 'first_name' => 'Paul'],
         ]);
-
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
@@ -90,12 +86,11 @@ final class AdminSwapControllerTest extends TestCase
     public function testCreateSwapListsOnlyTheEmployeesOfTheManagersStores(): void
     {
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 1], ['user_id' => 2]] : []);
-        $this->users->method('findAll')->willReturn([
+        kintai_test_users(findAll: fn() => [
             ['id' => 1, 'last_name' => 'Dupont', 'first_name' => 'Jean'],
             ['id' => 2, 'last_name' => 'Martin', 'first_name' => 'Paul'],
             ['id' => 3, 'last_name' => 'Autre', 'first_name' => 'Magasin'],
         ]);
-
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [1]);
 
@@ -162,8 +157,7 @@ final class AdminSwapControllerTest extends TestCase
 
     public function testCreateSwapExcludesShiftsThatWouldCreateSameDayConflict(): void
     {
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         // Le demandeur a un shift le 2026-08-05 ; la cible a un shift le 2026-08-05 et un autre le 2026-08-10.
         kintai_test_shifts([
             ['id' => 10, 'user_id' => 1, 'shift_date' => '2026-08-05', 'start_time' => '09:00', 'end_time' => '17:00'],
@@ -231,7 +225,7 @@ final class AdminSwapControllerTest extends TestCase
         $this->swapRequests->method('findAll')->willReturn([
             ['id' => 1, 'store_id' => 5, 'requester_id' => 1, 'target_user_id' => 2, 'requester_shift_id' => 10, 'target_shift_id' => 20, 'status' => 'pending'],
         ]);
-        $this->users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_shifts([['id' => 10, 'shift_date' => '2026-08-01', 'start_time' => '09:00', 'end_time' => '17:00'] + ['id' => 10], ['id' => 20, 'shift_date' => '2026-08-02', 'start_time' => '10:00', 'end_time' => '18:00'] + ['id' => 20]]);
 
         $response = $this->controller()->swapRequests($req);
@@ -408,8 +402,7 @@ final class AdminSwapControllerTest extends TestCase
             ['id' => 2, 'store_id' => 5, 'requester_id' => 1, 'target_user_id' => 2, 'status' => 'accepted'],
             ['id' => 3, 'store_id' => 5, 'requester_id' => 1, 'target_user_id' => 2, 'status' => 'refused'],
         ]);
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         $_GET = ['status' => 'accepted'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
@@ -434,8 +427,7 @@ final class AdminSwapControllerTest extends TestCase
             ['id' => 1, 'store_id' => 1, 'requester_id' => 1, 'target_user_id' => 2, 'status' => 'pending'],
             ['id' => 2, 'store_id' => 2, 'requester_id' => 1, 'target_user_id' => 2, 'status' => 'pending'],
         ]);
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         $_GET = ['sort' => 'store_asc'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);

@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Auth\PasswordPolicy;
 use App\Exceptions\NotFoundException;
 use App\Models\ApiToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -23,7 +23,6 @@ final class AuthController
 
     public function __construct(
         private readonly AuthService $auth,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
     ) {}
 

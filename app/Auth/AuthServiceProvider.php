@@ -6,7 +6,7 @@ namespace App\Auth;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Container\Container;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\StoreUser;
 use App\Models\Store;
 use App\Models\Role;
@@ -27,7 +27,6 @@ final class AuthServiceProvider extends ServiceProvider
         $this->app->singleton(
             AuthService::class,
             fn(Container $c) => new AuthService(
-                $c->make(UserRepositoryInterface::class),
             )
         );
 

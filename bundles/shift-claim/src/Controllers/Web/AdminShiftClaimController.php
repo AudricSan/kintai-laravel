@@ -11,7 +11,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -26,7 +26,6 @@ final class AdminShiftClaimController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly ShiftServiceInterface $shiftService,
         private readonly AuditLogger $auditLogger,

@@ -10,7 +10,7 @@ use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\DevicePushToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\V1\PushTokenController;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 
 final class PushTokenControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private ?PushTokenController $controller = null;
 
     protected function setUp(): void
@@ -27,7 +26,6 @@ final class PushTokenControllerTest extends TestCase
         kintai_test_database();
         kintai_test_migrate();
         kintai_test_user(20);
-        $this->users  = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -35,7 +33,7 @@ final class PushTokenControllerTest extends TestCase
     {
         if ($this->controller === null) {
             kintai_test_store_users(findByUser: fn() => []);
-            $this->controller = new PushTokenController(new UserTargetGuard($this->users, ApiOwnerAuth::permissions($this)));
+            $this->controller = new PushTokenController(new UserTargetGuard(ApiOwnerAuth::permissions($this)));
         }
 
         return $this->controller;
@@ -43,9 +41,7 @@ final class PushTokenControllerTest extends TestCase
 
     public function testStoreRegistersDeviceToken(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20]);
-
+        kintai_test_users(findById: fn(int $id) => $id === 20 ? ['id' => 20] : null);
         $req = $this->requestWithJson(['token' => 'device-abc', 'platform' => 'android'], ['user_id' => '20']);
         $response = $this->controller()->store($req);
 
@@ -58,9 +54,7 @@ final class PushTokenControllerTest extends TestCase
 
     public function testStoreRejectsMissingToken(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20]);
-
+        kintai_test_users(findById: fn(int $id) => $id === 20 ? ['id' => 20] : null);
         $req = $this->requestWithJson(['platform' => 'ios'], ['user_id' => '20']);
 
         $this->expectException(ValidationException::class);
@@ -69,9 +63,7 @@ final class PushTokenControllerTest extends TestCase
 
     public function testStoreRejectsInvalidPlatform(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20]);
-
+        kintai_test_users(findById: fn(int $id) => $id === 20 ? ['id' => 20] : null);
         $req = $this->requestWithJson(['token' => 'x', 'platform' => 'windows-phone'], ['user_id' => '20']);
 
         $this->expectException(ValidationException::class);
@@ -80,9 +72,7 @@ final class PushTokenControllerTest extends TestCase
 
     public function testStoreThrowsWhenUserNotFound(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(99)->willReturn(null);
-
+        kintai_test_users(findById: fn(int $id) => $id === 99 ? null : null);
         $req = $this->requestWithJson(['token' => 'x'], ['user_id' => '99']);
 
         $this->expectException(NotFoundException::class);
@@ -91,8 +81,7 @@ final class PushTokenControllerTest extends TestCase
 
     public function testDestroyUnregistersToken(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20]);
+        kintai_test_users(findById: fn(int $id) => $id === 20 ? ['id' => 20] : null);
         DevicePushToken::put(['user_id' => 20, 'token' => 'device-abc', 'platform' => 'android']);
 
         $req = $this->requestWithJson(['token' => 'device-abc'], ['user_id' => '20']);

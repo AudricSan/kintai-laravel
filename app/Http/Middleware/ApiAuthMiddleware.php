@@ -7,7 +7,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Container\Container;
 use App\Models\ApiToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -38,9 +38,7 @@ final class ApiAuthMiddleware
             return response()->json(['error' => __('error_token_expired'), 'code' => 'EXPIRED_TOKEN'], 401);
         }
 
-        /** @var UserRepositoryInterface $users */
-        $users = $this->container->make(UserRepositoryInterface::class);
-        $user  = $users->findById((int) $record['user_id']);
+        $user  = User::findById((int) $record['user_id']);
 
         if ($user === null || empty($user['is_active']) || !empty($user['deleted_at'])) {
             return response()->json(['error' => __('error_user_inactive'), 'code' => 'INACTIVE_USER'], 401);

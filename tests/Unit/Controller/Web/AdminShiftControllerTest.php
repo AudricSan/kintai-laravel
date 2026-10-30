@@ -18,7 +18,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,7 +39,6 @@ final class AdminShiftControllerTest extends TestCase
 {
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
-    private UserRepositoryInterface&Stub $users;
     private ?AdminShiftController $controller = null;
     private ?SchedulePublication $publication = null;
 
@@ -60,7 +59,6 @@ final class AdminShiftControllerTest extends TestCase
         $this->ensureViewFile('layout.app');
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
-        $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -72,7 +70,6 @@ final class AdminShiftControllerTest extends TestCase
             $permissions = new PermissionService();
             $this->controller = new AdminShiftController(
                 $view,
-                $this->users,
                 $auditLogger,
                 $this->notifs,
                 $this->shiftService,
@@ -834,12 +831,11 @@ final class AdminShiftControllerTest extends TestCase
             ['store_id' => 1, 'user_id' => 13],
             ['store_id' => 1, 'user_id' => 10],
         ]);
-        $this->users->method('findAll')->willReturn([
+        kintai_test_users(findAll: fn() => [
             ['id' => 10, 'last_name' => 'Ueda', 'first_name' => 'Ken', 'is_active' => 1, 'deleted_at' => null],
             ['id' => 11, 'last_name' => '', 'first_name' => '', 'is_active' => 0, 'deleted_at' => '2026-10-01 10:00:00'],
             ['id' => 12, 'last_name' => 'Sato', 'first_name' => 'Aya', 'is_active' => 0, 'deleted_at' => null],
         ]);
-
         $_GET['store_id'] = '1';
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
@@ -860,8 +856,7 @@ final class AdminShiftControllerTest extends TestCase
         kintai_test_shift_types([]);
         kintai_test_shift_types([]);
         kintai_test_store_users(findByStore: fn() => []);
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         $req = Request::capture();
         $req->attributes->set('auth_user', $authUser);
         $req->attributes->set('managed_store_ids', $managedStoreIds);

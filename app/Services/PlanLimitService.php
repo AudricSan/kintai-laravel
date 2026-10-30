@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\PlanLimitExceededException;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Applique les limites du plan gratuit (freemium), ou celles propres au
@@ -25,7 +25,6 @@ final class PlanLimitService
     private const FREE_MAX_ACTIVE_BUNDLES = 4;
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly LicenseClientService $license,
     ) {
     }
@@ -57,7 +56,7 @@ final class PlanLimitService
 
     public function currentEmployeeCount(): int
     {
-        return $this->users->countActive();
+        return User::countActive();
     }
 
     public function assertCanCreateStore(): void
@@ -71,7 +70,7 @@ final class PlanLimitService
     public function assertCanCreateEmployee(): void
     {
         $max = $this->maxEmployees();
-        if ($max !== null && $this->users->countActive() >= $max) {
+        if ($max !== null && User::countActive() >= $max) {
             throw new PlanLimitExceededException(__('plan_limit_employees'));
         }
     }

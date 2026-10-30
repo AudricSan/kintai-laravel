@@ -10,7 +10,7 @@ use App\Models\AppSetting;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\WebPushSubscription;
 use App\Services\NotificationPreferenceService;
 use App\Services\NotificationService;
@@ -47,20 +47,14 @@ final class NotificationServiceWebPushTest extends TestCase
                 $this->lookups[] = array_map('intval', $query->bindings);
             }
         });
-        $users = $this->createStub(UserRepositoryInterface::class);
         $stored = [];
-        $users->method('findById')->willReturnCallback(function (int $id) use (&$stored) {
+        kintai_test_users(findById: function (int $id) use (&$stored) {
             return $stored[$id] ??= ['id' => $id, 'language' => 'fr', 'quiet_hours_start' => null, 'quiet_hours_end' => null];
         });
-        $users->method('save')->willReturnCallback(function (array $data) use (&$stored) {
-            $stored[(int) $data['id']] = $data;
-            return $data;
-        });
-
         $manager  = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-        $this->prefs = new NotificationPreferenceService($registry, $users);
+        $this->prefs = new NotificationPreferenceService($registry);
 
         kintai_test_settings();
         $keys = new VapidKeyStore();
@@ -70,7 +64,6 @@ final class NotificationServiceWebPushTest extends TestCase
         $this->service = new NotificationService(
             new PushNotificationService([]),
             kintai_test_real_translator(),
-            $users,
             $registry,
             $this->prefs,
             new WebPushService($keys),

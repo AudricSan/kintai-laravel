@@ -14,7 +14,7 @@ use App\FeatureManager;
 use App\InstalledBundleManifestStore;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\BundleActivationService;
 use App\Services\LicenseClientService;
 use App\Services\PlanLimitService;
@@ -52,7 +52,6 @@ final class SetupWizardControllerTest extends TestCase
         $dir = sys_get_temp_dir() . '/kintai-setup-ctl-' . bin2hex(random_bytes(4));
         mkdir($dir, 0777, true);
         $planLimits = new PlanLimitService(
-            $this->createStub(UserRepositoryInterface::class),
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
         $activation = new BundleActivationService(

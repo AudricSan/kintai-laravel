@@ -11,7 +11,7 @@ use App\Extension\ExtensionRegistry;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\NotificationPreferenceService;
 use App\Services\NotificationService;
 use App\Services\NotificationTypeRegistry;
@@ -34,7 +34,6 @@ if (!defined('BASE_PATH')) {
 final class NotificationPreferenceServiceTest extends TestCase
 {
     private NotificationTypeRegistry $registry;
-    private UserRepositoryInterface&Stub $users;
 
     /** @var array<int, array<string, mixed>> */
     private array $usersById = [];
@@ -77,19 +76,13 @@ final class NotificationPreferenceServiceTest extends TestCase
         $this->registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
 
         $this->usersById = [7 => ['id' => 7, 'language' => 'fr', 'quiet_hours_start' => null, 'quiet_hours_end' => null]];
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
-        $this->users->method('save')->willReturnCallback(function (array $data) {
-            $this->usersById[(int) $data['id']] = $data;
-            return $data;
-        });
-
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         $this->now  = new \DateTimeImmutable('2026-10-21 12:00:00');
     }
 
     private function service(): NotificationPreferenceService
     {
-        return new NotificationPreferenceService($this->registry, $this->users, fn() => $this->now);
+        return new NotificationPreferenceService($this->registry, fn() => $this->now);
     }
 
     // --- valeurs par défaut et écarts -----------------------------------------------------------------------------
@@ -221,8 +214,8 @@ final class NotificationPreferenceServiceTest extends TestCase
 
         $this->assertTrue($service->saveQuietHours(7, true, '22:00', '07:00:00'));
 
-        $this->assertSame('22:00', $this->usersById[7]['quiet_hours_start']);
-        $this->assertSame('07:00', $this->usersById[7]['quiet_hours_end']);
+        $this->assertSame('22:00', \App\Models\User::findById(7)['quiet_hours_start']);
+        $this->assertSame('07:00', \App\Models\User::findById(7)['quiet_hours_end']);
         $this->assertSame(['enabled' => true, 'start' => '22:00', 'end' => '07:00'], $service->quietHours(7));
     }
 
@@ -246,7 +239,7 @@ final class NotificationPreferenceServiceTest extends TestCase
 
         $this->assertTrue($service->saveQuietHours(7, false, '21:00', '06:00'));
 
-        $this->assertNull($this->usersById[7]['quiet_hours_start']);
+        $this->assertNull(\App\Models\User::findById(7)['quiet_hours_start']);
         $this->assertFalse($service->quietHours(7)['enabled']);
         $this->assertFalse($service->isQuietNow(7));
     }
@@ -298,7 +291,7 @@ final class NotificationPreferenceServiceTest extends TestCase
 
         $translations = kintai_test_real_translator();
 
-        return new NotificationService($push, $translations, $this->users, $this->registry, $prefs);
+        return new NotificationService($push, $translations, $this->registry, $prefs);
     }
 
     public function testNotifyAttemptsPushByDefaultAndWithoutPreferenceService(): void
@@ -359,6 +352,7 @@ final class NotificationPreferenceServiceTest extends TestCase
     public function testNotifyManyAppliesEachRecipientsOwnPreferences(): void
     {
         $this->usersById[8] = ['id' => 8, 'language' => 'fr', 'quiet_hours_start' => null, 'quiet_hours_end' => null];
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         NotificationPreference::put(8, 'shift_assigned', 'push', false);
         $attempts = 0;
 

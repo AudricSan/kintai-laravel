@@ -16,7 +16,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Extension\Events;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\UserDisplayName;
@@ -28,7 +28,6 @@ use App\Validation\PayloadValidator;
 final class UserController
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly PlanLimitService $planLimits,
         private readonly PermissionService $permissions,
@@ -51,7 +50,7 @@ final class UserController
         [$page, $limit] = Paginator::params($request);
         $authUser = $this->authUser($request);
         // Comptes supprimés (anonymisés) : conservés pour l'historique, plus listés.
-        $items    = array_values(array_filter($this->users->findAll(), fn(array $u): bool => empty($u['deleted_at'])));
+        $items    = array_values(array_filter(User::findAll(), fn(array $u): bool => empty($u['deleted_at'])));
 
         // Hors portée illimitée, seuls les membres des magasins gérés (et soi-même) sont listés.
         if (!$this->permissions->hasUnrestrictedGrant($authUser, 'employees.view')) {
@@ -85,7 +84,7 @@ final class UserController
         $this->assertIdentityAvailable($data, 0);
         $data['password_hash'] = $this->hashFromPayload($body) ?? PasswordHasher::hash(PasswordPolicy::DEFAULT_PASSWORD);
 
-        $saved = $this->users->save($data);
+        $saved = User::put($data);
         if (!empty($saved['id'])) {
             // Contrat 1.13 : les bundles qui écoutent l'apprennent (sans magasin : l'API ne l'affecte pas).
             $authId = (int) ($this->authUser($request)['id'] ?? 0);
@@ -118,7 +117,7 @@ final class UserController
             $data['password_hash'] = $newHash;
         }
 
-        $saved = $this->users->save(array_merge($data, ['id' => $id]));
+        $saved = User::put(array_merge($data, ['id' => $id]));
 
         // Nouveau mot de passe ou compte désactivé : cookies « rester connecté » et jetons d'API révoqués.
         if ($newHash !== null || (!empty($old['is_active']) && array_key_exists('is_active', $data) && empty($data['is_active']))) {
@@ -151,7 +150,7 @@ final class UserController
 
     private function requireUser(int $id): array
     {
-        $user = $this->users->findById($id);
+        $user = User::findById($id);
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
@@ -182,13 +181,13 @@ final class UserController
     private function assertIdentityAvailable(array $data, int $userId): void
     {
         if (isset($data['email'])) {
-            $other = $this->users->findByEmail($data['email']);
+            $other = User::findByEmail($data['email']);
             if ($other !== null && (int) $other['id'] !== $userId) {
                 throw new ValidationException(['email' => __('email_taken')], __('email_taken'));
             }
         }
         if (isset($data['employee_code'])) {
-            $other = $this->users->findByEmployeeCode($data['employee_code']);
+            $other = User::findByEmployeeCode($data['employee_code']);
             if ($other !== null && (int) $other['id'] !== $userId) {
                 throw new ValidationException(['employee_code' => __('val_employee_code_taken')], __('val_employee_code_taken'));
             }

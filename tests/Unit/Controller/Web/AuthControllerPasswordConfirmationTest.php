@@ -14,7 +14,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -31,8 +31,6 @@ use PHPUnit\Framework\TestCase;
 final class AuthControllerPasswordConfirmationTest extends TestCase
 {
     private const USER_ID = 7;
-
-    private UserRepositoryInterface&MockObject $users;
     private AuthController $controller;
     private string $rightPassword;
     private string $wrongPassword;
@@ -46,19 +44,14 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         $this->rightPassword = bin2hex(random_bytes(8));
         $this->wrongPassword = bin2hex(random_bytes(8));
         $this->newPassword   = bin2hex(random_bytes(8));
-
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
-            $this->users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->users,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );
@@ -72,40 +65,37 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     public function testPasswordChangeRefusedWhenStoredHashIsEmpty(): void
     {
-        $this->users->method('findById')->willReturn(['id' => self::USER_ID, 'password_hash' => '']);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findById: fn() => ['id' => self::USER_ID, 'password_hash' => '']);
+        $hashBefore = (string) \App\Models\User::findById(self::USER_ID)['password_hash'];
         $_POST = ['current_password' => $this->wrongPassword, 'new_password' => $this->newPassword, 'confirm_password' => $this->newPassword];
         $this->controller->saveProfilePassword(Request::capture());
+        $this->assertSame($hashBefore, (string) \App\Models\User::findById(self::USER_ID)['password_hash'], 'mot de passe inchangé');
     }
 
     public function testPasswordChangeRefusedWhenCurrentPasswordIsWrong(): void
     {
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => self::USER_ID, 'password_hash' => password_hash($this->rightPassword, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
-        $this->users->expects($this->never())->method('save');
-
+        $hashBefore = (string) \App\Models\User::findById(self::USER_ID)['password_hash'];
         $_POST = ['current_password' => $this->wrongPassword, 'new_password' => $this->newPassword, 'confirm_password' => $this->newPassword];
         $this->controller->saveProfilePassword(Request::capture());
+        $this->assertSame($hashBefore, (string) \App\Models\User::findById(self::USER_ID)['password_hash'], 'mot de passe inchangé');
     }
 
     public function testPasswordChangeAcceptedWithTheRightCurrentPassword(): void
     {
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => self::USER_ID, 'password_hash' => password_hash($this->rightPassword, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
-        $this->users->expects($this->once())->method('save')->with($this->callback(
-            fn(array $u): bool => password_verify($this->newPassword, (string) $u['password_hash']),
-        ));
-
         $_POST = ['current_password' => $this->rightPassword, 'new_password' => $this->newPassword, 'confirm_password' => $this->newPassword];
         $this->controller->saveProfilePassword(Request::capture());
+        $this->assertTrue(password_verify($this->newPassword, (string) \App\Models\User::findById(self::USER_ID)['password_hash']));
     }
 
     private function changePasswordTo(string $new): \Symfony\Component\HttpFoundation\Response
     {
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => self::USER_ID, 'password_hash' => password_hash($this->rightPassword, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
         $_POST = ['current_password' => $this->rightPassword, 'new_password' => $new, 'confirm_password' => $new];
@@ -121,8 +111,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
     public function testANewPasswordShorterThanThePolicyIsRefused(): void
     {
         // 7 caractères : un de moins que le minimum, le même que celui exigé à la réinitialisation par e-mail.
-        $this->users->expects($this->never())->method('save');
-
         $location = $this->locationOf($this->changePasswordTo(substr(bin2hex(random_bytes(8)), 0, PasswordPolicy::MIN_LENGTH - 1)));
 
         $this->assertStringContainsString('password_too_short', (string) session('error'));
@@ -131,8 +119,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
     public function testFourCharactersNoLongerPass(): void
     {
         // Ancien seuil du profil (4) : c'est précisément l'incohérence corrigée.
-        $this->users->expects($this->never())->method('save');
-
         $location = $this->locationOf($this->changePasswordTo(substr(bin2hex(random_bytes(4)), 0, 4)));
 
         $this->assertStringContainsString('password_too_short', (string) session('error'));
@@ -140,8 +126,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     public function testAPasswordOfExactlyTheMinimumLengthIsAccepted(): void
     {
-        $this->users->expects($this->once())->method('save');
-
         $location = $this->locationOf($this->changePasswordTo(substr(bin2hex(random_bytes(8)), 0, PasswordPolicy::MIN_LENGTH)));
 
         $this->assertNull(session('error'));
@@ -149,21 +133,19 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
     public function testAccountDeletionRefusedWhenStoredHashIsEmpty(): void
     {
-        $this->users->method('findById')->willReturn(['id' => self::USER_ID, 'password_hash' => '']);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findById: fn() => ['id' => self::USER_ID, 'password_hash' => '']);
         $_POST = ['password' => $this->wrongPassword];
         $this->controller->deleteAccount(Request::capture());
+        $this->assertNull(\App\Models\User::findById(self::USER_ID)['deleted_at'], 'compte conservé');
     }
 
     public function testAccountDeletionRefusedWhenPasswordIsWrong(): void
     {
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => self::USER_ID, 'password_hash' => password_hash($this->rightPassword, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
-        $this->users->expects($this->never())->method('save');
-
         $_POST = ['password' => $this->wrongPassword];
         $this->controller->deleteAccount(Request::capture());
+        $this->assertNull(\App\Models\User::findById(self::USER_ID)['deleted_at'], 'compte conservé');
     }
 }

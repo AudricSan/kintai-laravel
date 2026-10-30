@@ -10,7 +10,7 @@ use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Bus\Dispatcher;
 use App\Jobs\DeliverNotification;
 use App\Models\Notification;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Le push et l'instantané body sont traduits dans la langue du destinataire (`users.language`, sinon celle de
@@ -22,7 +22,6 @@ class NotificationService
     public function __construct(
         private readonly PushNotificationService $push,
         private readonly Translator $translations,
-        private readonly UserRepositoryInterface $users,
         // Optionnel : sans registre, aucune notification n'est rattachée à un type d'objet (pas de « lu » automatique).
         private readonly ?NotificationTypeRegistry $types = null,
         // Optionnel : sans préférences, le push part toujours (comportement d'avant les préférences).
@@ -135,7 +134,7 @@ class NotificationService
         // retiennent pas. NotificationMailer ne lève jamais ; le try/catch n'est qu'une ceinture-bretelles.
         try {
             if ($delivery->email && $this->mailer !== null) {
-                $user = $this->users->findById($delivery->userId);
+                $user = User::findById($delivery->userId);
                 if ($user !== null) {
                     $this->mailer->send($user, $delivery->type, $delivery->title, $delivery->body, $delivery->notificationId);
                 }
@@ -241,6 +240,6 @@ class NotificationService
     private function resolveLocale(int $userId): string
     {
         // Langue du profil du destinataire, sinon celle de l'instance.
-        return user_locale($this->users->findById($userId));
+        return user_locale(User::findById($userId));
     }
 }

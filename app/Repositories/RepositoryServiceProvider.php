@@ -11,7 +11,6 @@ final class RepositoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(UserRepositoryInterface::class, fn() => new DatabaseUserRepository());
 
         // Traductions : fichiers JSON de Laravel (lang/{code}.json) ; la liste des langues est lang/languages.json.
         $this->app->singleton(LanguageRepositoryInterface::class, fn() => new JsonLanguageRepository(BASE_PATH . '/lang'));

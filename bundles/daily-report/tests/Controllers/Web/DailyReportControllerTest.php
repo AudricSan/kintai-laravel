@@ -17,7 +17,7 @@ use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
@@ -38,7 +38,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private DailyReportRepositoryInterface&Stub $reports;
     private NotificationService&Stub $notifs;
     private ?DailyReportController $controller = null;
@@ -47,7 +46,6 @@ final class DailyReportControllerTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        $this->users      = $this->createStub(UserRepositoryInterface::class);
         $this->notifs     = $this->createStub(NotificationService::class);
 
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
@@ -63,18 +61,16 @@ final class DailyReportControllerTest extends TestCase
             $pdfService = new DailyReportPdfService(
                 kintai_test_views(sys_get_temp_dir()),
                 $translations,
-                $this->users,
             );
             $mailService = new DailyReportMailService(
                 $permissions,
                 new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
                 $translations,
-                new \App\Services\UserSelection($this->users, $permissionService),
+                new \App\Services\UserSelection($permissionService),
             );
             $this->controller = new DailyReportController(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->reports,
-                $this->users,
                 $permissions,
                 $pdfService,
                 $mailService,
@@ -82,7 +78,7 @@ final class DailyReportControllerTest extends TestCase
                 $translations,
                 $this->notifs,
                 $permissionService,
-                new \App\Services\UserSelection($this->users, $permissionService),
+                new \App\Services\UserSelection($permissionService),
             );
         }
 
@@ -103,11 +99,10 @@ final class DailyReportControllerTest extends TestCase
         kintai_test_shift_types([]);
 
         kintai_test_store_users(findMembership: fn(int $sid, int $uid) => ($sid === $storeId && $uid === 10) ? ['id' => 1, 'store_id' => $sid, 'user_id' => $uid] : null);
-        $this->users->method('findById')->willReturnMap([
+        kintai_test_users(findById: fn(int $id) => array_column([
             [10, ['id' => 10, 'last_name' => 'Dupont', 'first_name' => 'Jean']],
             [20, ['id' => 20, 'last_name' => 'Dupont', 'first_name' => 'Marie']],
-        ]);
-
+        ], 1, 0)[$id] ?? null);
         $method = new \ReflectionMethod($this->controller(), 'getFormShiftRows');
         $method->setAccessible(true);
         $rows = $method->invoke($this->controller(), $storeId, $date);
@@ -126,10 +121,10 @@ final class DailyReportControllerTest extends TestCase
         ]);
         $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 9], ['user_id' => 20]] : [], findMembership: fn(int $s, int $u) => $s === 1 && $u === 9 ? ['store_id' => 1, 'user_id' => 9] : null);
-        $this->users->method('findById')->willReturnMap([
+        kintai_test_users(findById: fn(int $id) => array_column([
             [9, ['id' => 9]],
             [20, ['id' => 20]],
-        ]);
+        ], 1, 0)[$id] ?? null);
         // Régression : soumettre son propre rapport n'est plus du libre-service, l'auteur a
         // donc ici besoin de daily_reports.submit (accordée seule, sans .approve) — voir
         // CHANGELOG.

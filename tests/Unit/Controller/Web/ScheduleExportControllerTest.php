@@ -15,7 +15,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\IcalService;
@@ -35,8 +35,7 @@ final class ScheduleExportControllerTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn($id) => $id === 9 ? ['id' => 9, 'is_active' => 1, 'first_name' => 'Aki', 'last_name' => 'Sato', 'language' => 'fr', 'password_hash' => 'x'] : null);
+        kintai_test_users(findById: fn($id) => $id === 9 ? ['id' => 9, 'is_active' => 1, 'first_name' => 'Aki', 'last_name' => 'Sato', 'language' => 'fr', 'password_hash' => 'x'] : null);
         // Membre du magasin 3 uniquement.
         kintai_test_store_users(findMembership: fn($store, $user) => $store === 3 && $user === 9 ? ['id' => 1] : null);
         kintai_test_stores(findById: fn($id) => in_array($id, [3, 4], true) ? ['id' => $id, 'code' => 'ST' . $id, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo'] : null);
@@ -51,8 +50,6 @@ final class ScheduleExportControllerTest extends TestCase
 
         $this->controller = new ScheduleExportController(
             new AuthService(
-                $users,
-                $this->createStub(UserRepositoryInterface::class),
             ),
             new ScheduleExportService(),
             new IcalService($translations),

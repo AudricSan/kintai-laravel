@@ -12,7 +12,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Extension\ExtensionRegistry;
 use Tests\Support\FakeBundleManagerFactory;
@@ -64,8 +64,7 @@ final class AdminRequestsControllerTest extends TestCase
 
     private function buildController(bool $isAdmin): AdminRequestsController
     {
-        $usersRepo = $this->createStub(UserRepositoryInterface::class);
-        $usersRepo->method('findAll')->willReturn([
+        kintai_test_users(findAll: fn() => [
             ['id' => 1, 'first_name' => 'Alice', 'last_name' => 'A'],
             ['id' => 2, 'first_name' => 'Bob', 'last_name' => 'B'],
         ]);
@@ -84,7 +83,6 @@ final class AdminRequestsControllerTest extends TestCase
 
         return new AdminRequestsController(
             kintai_test_views(sys_get_temp_dir()),
-            $usersRepo,
             $permissions,
         );
     }

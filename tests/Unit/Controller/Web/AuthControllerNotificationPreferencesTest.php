@@ -17,7 +17,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -55,31 +55,21 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         });
 
         $this->usersById = [9 => ['id' => 9, 'quiet_hours_start' => null, 'quiet_hours_end' => null, 'is_active' => 1, 'deleted_at' => null]];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
-        $users->method('save')->willReturnCallback(function (array $data) {
-            $this->usersById[(int) $data['id']] = $data;
-            return $data;
-        });
-
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $prefs = new NotificationPreferenceService(
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
-            $users,
         );
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $users,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             null,
@@ -120,8 +110,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['type' => 'shift_updated', 'channel' => 'email', 'enabled' => true],
             ['type' => 'shift_updated', 'channel' => 'push', 'enabled' => false],
         ], $rows);
-        $this->assertSame('22:00', $this->usersById[9]['quiet_hours_start']);
-        $this->assertSame('07:00', $this->usersById[9]['quiet_hours_end']);
+        $this->assertSame('22:00', \App\Models\User::findById(9)['quiet_hours_start']);
+        $this->assertSame('07:00', \App\Models\User::findById(9)['quiet_hours_end']);
     }
 
     /** shown[] limite l'enregistrement aux lignes que le formulaire affichait : un type apparu depuis n'est pas coupé. */
@@ -150,7 +140,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         // 5 types du Core, tout décoché : écart partout où le défaut était « activé » (5 push + 3 e-mails).
         $this->assertSame(8,NotificationPreference::where('enabled', false)->count());
-        $this->assertNull($this->usersById[9]['quiet_hours_start']);
+        $this->assertNull(\App\Models\User::findById(9)['quiet_hours_start']);
     }
 
     public function testInvalidQuietHoursRedirectWithErrorAndSaveNothing(): void

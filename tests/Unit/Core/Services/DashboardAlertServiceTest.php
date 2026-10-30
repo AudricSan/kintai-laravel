@@ -11,7 +11,7 @@ use App\Extension\ExtensionRegistry;
 use App\Extension\PendingRequests;
 use App\Models\Shift;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\DashboardAlertService;
 use Tests\Support\FakeAttendanceProvider;
 use Tests\Support\FakeBundleManagerFactory;
@@ -48,16 +48,14 @@ final class DashboardAlertServiceTest extends TestCase
         kintai_test_migrate();
         $this->storeMembers = [];
         $this->usersById = [];
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         $this->pendingFixture = [];
         $this->timeclocksFixture = [];
     }
 
     private function service(): DashboardAlertService
     {
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(
-            fn(int $id) => $this->usersById[$id] ?? null
-        );
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         kintai_test_store_users(findByStore: fn(int $storeId) => $this->storeMembers[$storeId] ?? []);
         // Demandes en attente fournies par des bundles actifs (fournisseurs du contrat 1.9).
         $providers = [];
@@ -69,7 +67,7 @@ final class DashboardAlertServiceTest extends TestCase
         $manager = FakeBundleManagerFactory::withActiveSlugs(array_unique([...array_keys($providers), ...array_keys($attendance)]), [], $providers, $attendance);
         Container::getInstance()->instance(ExtensionRegistry::class, new ExtensionRegistry($manager));
 
-        return new DashboardAlertService($users, new PendingRequests(new ExtensionRegistry($manager)));
+        return new DashboardAlertService(new PendingRequests(new ExtensionRegistry($manager)));
     }
 
     /** @param list<PendingRequest> $requests */
@@ -135,6 +133,7 @@ final class DashboardAlertServiceTest extends TestCase
         // Aucun shift cette semaine (shiftsByDate reste vide pour toutes les dates).
         $this->storeMembers[1] = [['user_id' => 7]];
         $this->usersById[7] = ['id' => 7, 'display_name' => 'Bob', 'is_active' => 1];
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
 
         $result = $this->service()->build([1], [1 => 'Store 1']);
 
@@ -146,6 +145,7 @@ final class DashboardAlertServiceTest extends TestCase
     {
         $this->storeMembers[1] = [['user_id' => 7]];
         $this->usersById[7] = ['id' => 7, 'display_name' => 'Bob', 'is_active' => 0];
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
 
         $result = $this->service()->build([1], [1 => 'Store 1']);
 
@@ -160,6 +160,7 @@ final class DashboardAlertServiceTest extends TestCase
         ]);
         $this->storeMembers[1] = [['user_id' => 7]];
         $this->usersById[7] = ['id' => 7, 'display_name' => 'Bob', 'is_active' => 1];
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
 
         $result = $this->service()->build([1], [1 => 'Store 1']);
 
@@ -198,6 +199,7 @@ final class DashboardAlertServiceTest extends TestCase
             ['id' => 3, 'store_id' => 1, 'user_id' => 9, 'clock_in_time' => $old, 'clock_out_time' => $old],
         ];
         $this->usersById[7] = ['id' => 7, 'display_name' => 'Bob', 'is_active' => 1];
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
 
         $result = $this->service()->build([1], [1 => 'Store 1']);
 

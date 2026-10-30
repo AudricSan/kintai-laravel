@@ -14,7 +14,7 @@ use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
@@ -42,12 +42,10 @@ final class EmployeeControllerNavSettingsTest extends TestCase
 
         $this->controller = new EmployeeController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->createStub(UserRepositoryInterface::class),
             new AuditLogger(),
             new NotificationService(
                 new PushNotificationService([]),
                 kintai_test_translator(),
-                $this->createStub(UserRepositoryInterface::class),
             ),
             new PermissionService(
             ),

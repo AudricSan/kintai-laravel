@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRep
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -43,7 +43,6 @@ final class AdminResignationReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly ResignationReportRepositoryInterface $resignationReports,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
@@ -190,7 +189,7 @@ final class AdminResignationReportController
         $userId = (int) ($request->query('user_id') ?? 0);
         $users = $this->storeMembersForReportForm($storeId, $userId);
         if ($userId > 0) {
-            $user = $this->users->findById($userId);
+            $user = User::findById($userId);
             if ($user !== null) {
                 $nameParts = array_filter([$user['last_name'] ?? '', $user['first_name'] ?? '']);
                 $preset = [
@@ -284,10 +283,10 @@ final class AdminResignationReportController
         // Rapport déjà appliqué rattaché à un autre compte : l'ancien n'a plus de raison d'être désactivé.
         $oldUserId = (int) ($before['user_id'] ?? 0);
         if ($oldUserId > 0 && $oldUserId !== (int) ($report['user_id'] ?? 0) && !empty($report['deactivated_at'])) {
-            $old = $this->users->findById($oldUserId);
+            $old = User::findById($oldUserId);
             if ($old !== null) {
                 $old['is_active'] = 1;
-                $this->users->save($old);
+                User::put($old);
             }
             $report = $this->resignationReports->save(['id' => (int) $report['id'], 'deactivated_at' => null]);
         }
@@ -304,10 +303,10 @@ final class AdminResignationReportController
         [$report] = $this->findReportOrFail($request);
         $userId = (int) ($report['user_id'] ?? 0);
         if ($userId > 0 && !empty($report['deactivated_at'])) {
-            $user = $this->users->findById($userId);
+            $user = User::findById($userId);
             if ($user !== null) {
                 $user['is_active'] = 1;
-                $this->users->save($user);
+                User::put($user);
                 $this->auditLogger->log($request, 'resignation_report.reactivated', 'resignation_report', (int) $report['id'], [
                     'store_id' => (int) $report['store_id'],
                     'user_id'  => $userId,
@@ -415,10 +414,10 @@ final class AdminResignationReportController
 
         $userId = (int) ($report['user_id'] ?? 0);
         if ($userId > 0) {
-            $user = $this->users->findById($userId);
+            $user = User::findById($userId);
             if ($user !== null) {
                 $user['is_active'] = 1;
-                $this->users->save($user);
+                User::put($user);
             }
         }
 

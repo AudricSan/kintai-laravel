@@ -16,7 +16,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -32,8 +32,6 @@ use PHPUnit\Framework\TestCase;
 final class AuthControllerOwnerCannotDeleteTest extends TestCase
 {
     private const USER_ID = 5;
-
-    private UserRepositoryInterface&MockObject $users;
 
     protected function setUp(): void
     {
@@ -51,8 +49,7 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
     private function controller(bool $owner): AuthController
     {
         $password = 'correct-horse-battery';
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => self::USER_ID, 'email' => 'o@example.test', 'is_active' => 1, 'deleted_at' => null,
             'password_hash' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
@@ -62,21 +59,17 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             : []);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         $auth = new AuthService(
-            $this->users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         return new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->users,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
-            new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
+            new CredentialRevoker(),
             new UserAnonymizer(
-                $this->users,
-                new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
+                new CredentialRevoker(),
                 sys_get_temp_dir(),
             ),
         );
@@ -85,8 +78,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
     public function testAnOwnerCannotDeleteTheirOwnAccount(): void
     {
         $controller = $this->controller(true);
-        $this->users->expects($this->never())->method('save');
-
         $response = $controller->deleteAccount(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
@@ -97,8 +88,8 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
     public function testANonOwnerStillCanDeleteTheirAccount(): void
     {
         $controller = $this->controller(false);
-        $this->users->expects($this->atLeastOnce())->method('save')->willReturnArgument(0);
-
         $controller->deleteAccount(Request::capture());
+
+        $this->assertNotNull(\App\Models\User::findById(self::USER_ID)['deleted_at'], 'compte anonymisé');
     }
 }

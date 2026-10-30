@@ -12,7 +12,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -57,7 +57,6 @@ final class AdminShiftAvailabilityWarningTest extends TestCase
         ]]);
         $this->controller = new AdminShiftController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->createStub(UserRepositoryInterface::class),
             new AuditLogger(),
             $this->createStub(NotificationService::class),
             $this->createStub(ShiftServiceInterface::class),

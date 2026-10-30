@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Staff;
 
 use App\Models\Store;
+use App\Models\User;
 
 use App\Models\StoreUser;
 
@@ -114,14 +115,14 @@ trait HasStaffReportCrud
             if (in_array($uid, $seenIds, true)) {
                 continue;
             }
-            $user = $this->users->findById($uid);
+            $user = User::findById($uid);
             if ($user !== null) {
                 $seenIds[] = $uid;
                 $members[] = $user;
             }
         }
         if ($keepUserId > 0 && !in_array($keepUserId, $seenIds, true)) {
-            $user = $this->users->findById($keepUserId);
+            $user = User::findById($keepUserId);
             if ($user !== null) {
                 $members[] = $user;
             }
@@ -324,8 +325,7 @@ trait HasStaffReportCrud
     /**
      * Retourne la liste des responsables (Owner + admin/manager du store) pour le
      * store courant ou pour tous les stores d'un employé donné. Utilisée par
-     * démission et salaire. Utilise le modèle StoreUser
-     * et $this->users (UserRepositoryInterface) sur la classe utilisatrice.
+     * démission et salaire. Utilise les modèles StoreUser et User.
      *
      * L'Owner est toujours inclus même si non listé dans store_user : voir
      * install.php, qui ne crée qu'une ligne role_assignments globale pour lui,
@@ -345,7 +345,7 @@ trait HasStaffReportCrud
         $ownerIds = $this->permissions->ownerUserIds();
         $seenIds = [];
         $managers = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             if (in_array((int) $u['id'], $ownerIds, true)) {
                 $seenIds[] = (int) $u['id'];
                 $managers[] = $u;
@@ -358,7 +358,7 @@ trait HasStaffReportCrud
                 if (in_array($uid, $seenIds, true)) {
                     continue;
                 }
-                $candidate = $this->users->findById($uid);
+                $candidate = User::findById($uid);
                 if ($candidate === null) {
                     continue;
                 }

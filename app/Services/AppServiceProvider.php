@@ -11,7 +11,7 @@ use App\Services\Calendar\HttpTransportInterface;
 use App\Mail\MailerService;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Notification;
@@ -89,7 +89,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationService::class, fn(Container $c) => new NotificationService(
             $c->make(PushNotificationService::class),
             $c->make('translator'),
-            $c->make(UserRepositoryInterface::class),
             $c->make(NotificationTypeRegistry::class),
             $c->make(NotificationPreferenceService::class),
             $c->make(WebPushService::class),
@@ -103,7 +102,6 @@ final class AppServiceProvider extends ServiceProvider
                 $c->make(VapidKeyStore::class),
                 $c->make(MailerService::class),
                 $c->make(PublicUrlResolver::class),
-                $c->make(UserRepositoryInterface::class),
                 file_exists($path) ? require $path : [],
             );
         });
@@ -123,7 +121,6 @@ final class AppServiceProvider extends ServiceProvider
         ));
         $this->app->singleton(NotificationPreferenceService::class, fn(Container $c) => new NotificationPreferenceService(
             $c->make(NotificationTypeRegistry::class),
-            $c->make(UserRepositoryInterface::class),
         ));
         
         $this->app->singleton(IcalService::class, fn(Container $c) => new IcalService(
@@ -131,7 +128,6 @@ final class AppServiceProvider extends ServiceProvider
         ));
         
         $this->app->singleton(PasswordResetService::class, fn(Container $c) => new PasswordResetService(
-            $c->make(UserRepositoryInterface::class),
             $c->make(MailerService::class),
             $c->make(\App\Auth\CredentialRevoker::class),
             $c->make('translator'),
@@ -144,7 +140,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MascotResolver::class, fn(Container $c) => new MascotResolver($c->make(AppSettingsService::class)));
 
         $this->app->singleton(ShiftServiceInterface::class, fn(Container $c) => new ShiftService(
-            $c->make(UserRepositoryInterface::class),
         ));
 
         // Partagé : les réglages de publication lus une fois servent à tous les filtres de la requête.
@@ -172,7 +167,6 @@ final class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(PlanLimitService::class, fn(Container $c) => new PlanLimitService(
-            $c->make(UserRepositoryInterface::class),
             $c->make(LicenseClientService::class),
         ));
 
@@ -184,14 +178,12 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Extension\Sales::class, fn() => \App\Extension\Sales::current());
 
         $this->app->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
-            $c->make(UserRepositoryInterface::class),
             $c->make(LanguageRepositoryInterface::class),
             $c->make(PlanLimitService::class),
             $c->make(\App\Routing\RouteSlugService::class),
         ));
 
         $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
-            $c->make(UserRepositoryInterface::class),
             $c->make(RoleAssignmentSyncService::class),
             $c->make(\App\Extension\Sales::class),
         ));

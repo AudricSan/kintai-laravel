@@ -10,7 +10,7 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -28,7 +28,6 @@ final class EmployeeTimeoffController
         private readonly ViewFactory $view,
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
-        private readonly UserRepositoryInterface $users,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
     ) {}
@@ -169,7 +168,7 @@ final class EmployeeTimeoffController
         $recipients = [];
         foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
-            $candidate = $this->users->findById($uid);
+            $candidate = User::findById($uid);
             if ($candidate !== null && $this->permissions->can($candidate, 'timeoff.approve', $storeId)) {
                 $recipients[] = $uid;
             }
@@ -178,7 +177,7 @@ final class EmployeeTimeoffController
             return;
         }
 
-        $author     = $this->users->findById($authorId);
+        $author     = User::findById($authorId);
         $authorName = trim(($author['last_name'] ?? '') . ' ' . ($author['first_name'] ?? ''));
         $authorName = $authorName !== '' ? $authorName : ('#' . $authorId);
 

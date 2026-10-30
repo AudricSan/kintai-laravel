@@ -15,7 +15,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -42,7 +42,6 @@ final class AdminUserControllerScopeTest extends TestCase
     private const STORE_B = 6;
 
     private AdminUserController $controller;
-    private UserRepositoryInterface&MockObject $users;
 
     protected function setUp(): void
     {
@@ -57,19 +56,16 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         kintai_test_roles(findById: fn(int $id): array => $id === 10
             ? ['id' => 10, 'is_system' => 1]
             : ['id' => 20, 'is_system' => 0], getPermissions: static fn() => ['employees.view', 'employees.update', 'employees.delete'], getGlobalPermissionKeys: static fn() => []);
-        $this->users      = $this->createMock(UserRepositoryInterface::class);
 
         $this->controller = new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             new PermissionService(),
             new PlanLimitService(
-                $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
-            new OwnerGuard(new PermissionService(), $this->users),
+            new OwnerGuard(new PermissionService()),
         );
     }
 
@@ -90,7 +86,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     private function target(int $id, int $storeId): void
     {
-        $this->users->method('findById')->with($id)->willReturn(['id' => $id, 'email' => 'x@example.com']);
+        kintai_test_users(findById: fn() => ['id' => $id, 'email' => 'x@example.com']);
         kintai_test_store_users(findByUser: fn() => [['store_id' => $storeId]]);
     }
 
@@ -98,8 +94,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         // Même membre du magasin du gérant, un Owner reste intouchable pour un non-Owner.
         $this->target(self::OWNER, self::STORE_A);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->controller->resetPassword($this->asManager(self::OWNER));
     }
@@ -107,8 +101,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testManagerCannotResetPasswordOfAnotherStoreEmployee(): void
     {
         $this->target(30, self::STORE_B);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->controller->resetPassword($this->asManager(30));
     }
@@ -116,15 +108,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testManagerCannotUpdateAnotherStoreEmployee(): void
     {
         $this->target(30, self::STORE_B);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->controller->updateUser($this->asManager(30, ['email' => 'x@example.com']));
     }
 
     public function testManagerCannotDeleteAnotherStoreEmployee(): void
     {
-        $this->users->expects($this->never())->method('delete');
         kintai_test_store_users(findByUser: fn(int $id) => $id === 30 ? [['store_id' => self::STORE_B]] : []);
         $this->expectException(ForbiddenException::class);
         $this->controller->deleteUser($this->asManager(30));
@@ -141,8 +130,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testManagerCanResetPasswordOfOwnStoreEmployee(): void
     {
         $this->target(31, self::STORE_A);
-        $this->users->expects($this->once())->method('save');
-
         $response = $this->controller->resetPassword($this->asManager(31));
 
         $this->assertSame(302, $response->getStatusCode());
@@ -153,8 +140,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testManagerCannotDeleteTheirOwnAccountFromTheAdmin(): void
     {
         $this->target(self::MANAGER, self::STORE_A);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->controller->deleteUser($this->asManager(self::MANAGER));
@@ -162,10 +147,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testManagerCannotDeactivateThemselvesFromTheAdmin(): void
     {
-        $this->users->method('findById')->with(self::MANAGER)->willReturn(['id' => self::MANAGER, 'email' => 'm@example.com', 'is_active' => 1]);
+        kintai_test_users(findById: fn() => ['id' => self::MANAGER, 'email' => 'm@example.com', 'is_active' => 1]);
         kintai_test_store_users(findByUser: fn() => [['store_id' => self::STORE_A]]);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         // Sélecteur « actif » sur « inactif » (un champ absent, lui, laisse l'état inchangé : audit M12).

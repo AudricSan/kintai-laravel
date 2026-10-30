@@ -12,7 +12,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -42,14 +42,9 @@ final class PasswordReminderTest extends TestCase
             'deleted_at'    => null,
             'password_hash' => $this->hash(PasswordPolicy::DEFAULT_PASSWORD),
         ];
-
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn() => $this->row);
-        $users->method('findByEmail')->willReturnCallback(fn() => $this->row);
+        kintai_test_users(findById: fn() => $this->row, findByEmail: fn() => $this->row);
         kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->container = new \Tests\Support\TestContainer();
@@ -90,6 +85,7 @@ final class PasswordReminderTest extends TestCase
     public function testShortPasswordMustBeChangedAtNextLogin(): void
     {
         $this->row['password_hash'] = $this->hash('abc123');
+        kintai_test_users(findById: fn() => $this->row);
         $this->assertTrue($this->auth->attempt('emp@example.test', 'abc123'));
         $this->assertTrue($this->auth->mustChangePassword());
     }
@@ -98,6 +94,7 @@ final class PasswordReminderTest extends TestCase
     {
         $strong = bin2hex(random_bytes(6));
         $this->row['password_hash'] = $this->hash($strong);
+        kintai_test_users(findById: fn() => $this->row);
         $this->assertTrue($this->auth->attempt('emp@example.test', $strong));
         $this->assertFalse($this->auth->mustChangePassword());
     }
@@ -112,6 +109,7 @@ final class PasswordReminderTest extends TestCase
     public function testSessionWithoutPlaintextAcceptsOtherPassword(): void
     {
         $this->row['password_hash'] = $this->hash(bin2hex(random_bytes(6)));
+        kintai_test_users(findById: fn() => $this->row);
         session()->put(auth()->getName(), 7);
         $this->assertFalse($this->auth->mustChangePassword());
     }
@@ -127,6 +125,7 @@ final class PasswordReminderTest extends TestCase
         $this->assertTrue($this->auth->mustChangePassword());
 
         $this->row['password_hash'] = $this->hash(bin2hex(random_bytes(6)));
+        kintai_test_users(findById: fn() => $this->row);
         $this->auth->refreshSessionAfterPasswordChange($this->row);
 
         $this->assertFalse($this->auth->mustChangePassword());
@@ -217,6 +216,7 @@ final class PasswordReminderTest extends TestCase
     {
         $strong = bin2hex(random_bytes(6));
         $this->row['password_hash'] = $this->hash($strong);
+        kintai_test_users(findById: fn() => $this->row);
         $this->auth->attempt('emp@example.test', $strong);
 
         [$response, $banner, $popup] = $this->page('/employee');

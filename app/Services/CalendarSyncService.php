@@ -11,7 +11,7 @@ use App\Extension\Absences;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\Calendar\CalendarEventBuilder;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleCalendarException;
@@ -52,7 +52,6 @@ final class CalendarSyncService
         private readonly GoogleCalendarClient $client,
         private readonly GoogleCalendarSettings $settings,
         private readonly SecretBox $secrets,
-        private readonly UserRepositoryInterface $users,
         private readonly CalendarEventBuilder $builder,
         private readonly AppSettingsService $appSettings,
         private readonly NotificationService $notifications,
@@ -360,7 +359,7 @@ final class CalendarSyncService
     private function desiredEvent(array $connection, string $sourceType, int $sourceId): ?array
     {
         $userId = (int) $connection['user_id'];
-        $user   = $this->users->findById($userId);
+        $user   = User::findById($userId);
         if ($user === null) {
             return null;
         }

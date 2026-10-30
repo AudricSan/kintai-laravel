@@ -11,7 +11,7 @@ use App\Models\StoreUser;
 use App\Extension\Absences;
 use App\Extension\Sales;
 use App\Extension\Swaps;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 
 final class StoreStatsService implements StoreStatsServiceInterface
@@ -26,7 +26,6 @@ final class StoreStatsService implements StoreStatsServiceInterface
     private array $storeStatsCache = [];
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly RoleAssignmentSyncService $roleSync,
         // Ventes journalières (contrat 1.14) ; sans elles (tests), celles de la requête courante.
         private readonly ?Sales $sales = null,
@@ -109,7 +108,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $memberIds = array_map(fn($m) => (int) $m['user_id'], $members);
 
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersMap[(int) $u['id']] = self::withoutSecrets($u);
         }
 
@@ -441,7 +440,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $memberIds = array_map(fn($m) => (int) $m['user_id'], $members);
 
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersMap[(int) $u['id']] = self::withoutSecrets($u);
         }
 
@@ -790,7 +789,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         }
 
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersMap[(int) $u['id']] = self::withoutSecrets($u);
         }
 

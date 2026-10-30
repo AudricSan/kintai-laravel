@@ -12,7 +12,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -28,7 +28,6 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminStoreControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private StoreStatsServiceInterface&Stub $storeStatsService;
     private ?AdminStoreController $controller = null;
 
@@ -39,7 +38,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile('staff.stores-form');
         $this->ensureViewFile('staff.employee-stats');
         $this->ensureViewFile('layout.app');
-        $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
     }
     /** Audit n°8 : quota de magasins atteint → retour au formulaire (erreur de validation), plus une page 403. */
@@ -49,7 +47,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $storeService->method('createStore')->willThrowException(new \App\Exceptions\PlanLimitExceededException('1 magasin maximum'));
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -105,8 +102,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? $store : null);
         kintai_test_store_features(1, ['shifts', 'timeclock']);
         kintai_test_store_users(findByStore: fn() => []);
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         $response = $this->controller()->editStore($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -116,7 +112,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             $this->createStub(StoreServiceInterface::class),
             $this->storeStatsService,
@@ -133,8 +128,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? $store : null);
         kintai_test_store_features(1, ['shifts', 'timeclock', 'messages']);
         kintai_test_store_users(findByStore: fn() => []);
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         $response = $controller->editStore($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -166,7 +160,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -208,7 +201,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -228,14 +220,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testEmployeeStatsLogsConsultation(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1', 'employee' => '5']);
 
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A', 'currency' => 'JPY'] : null);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
+        kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'last_name' => 'Dupont', 'first_name' => 'Jean'] : null);
         kintai_test_store_users(findMembership: fn() => ['id' => 1, 'store_id' => 1, 'user_id' => 5]);
         $this->storeStatsService->method('employeeStats')->willReturn([]);
         $response = $this->controller()->employeeStats($req);
@@ -309,8 +300,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         $req = $this->prepareManagerScenario(['role_id' => '30']);
         kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 2] : null);
-        $this->users->method('findById')->willReturn(['id' => 2]);
-
+        kintai_test_users(findById: fn() => ['id' => 2]);
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateMemberRole($req);
     }
@@ -319,8 +309,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         $req = $this->prepareManagerScenario(['role_id' => '31']);
         kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 7] : null);
-        $this->users->method('findById')->willReturn(['id' => 7]);
-
+        kintai_test_users(findById: fn() => ['id' => 7]);
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->updateMemberRole($req);
     }
@@ -328,8 +317,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testAddMemberRefusesUnknownUser(): void
     {
         $req = $this->prepareManagerScenario(['user_id' => '999', 'role_id' => '31']);
-        $this->users->method('findById')->willReturn(null);
-
+        kintai_test_users(findById: fn() => null);
         $this->expectException(\App\Exceptions\NotFoundException::class);
         $this->controller()->addMember($req);
     }
@@ -378,7 +366,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -406,7 +393,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         $req = $this->prepareManagerScenario([]);
         kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 2] : null);
-        $this->users->method('findById')->willReturn(['id' => 2]);
+        kintai_test_users(findById: fn() => ['id' => 2]);
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->controller()->removeMember($req);
@@ -417,8 +404,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         $req = $this->prepareManagerScenario(['role_id' => '31']);
         kintai_test_store_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'store_id' => 1, 'user_id' => 2] : null);
-        $this->users->method('findById')->willReturn(['id' => 2]);
-
+        kintai_test_users(findById: fn() => ['id' => 2]);
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->controller()->updateMemberRole($req);
@@ -465,7 +451,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -484,7 +469,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view = kintai_test_views(sys_get_temp_dir());
             $this->controller = new AdminStoreController(
                 $view,
-                $this->users,
                 new AuditLogger(),
                 $this->createStub(StoreServiceInterface::class),
                 $this->storeStatsService,

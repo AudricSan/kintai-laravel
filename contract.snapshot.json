@@ -45,9 +45,9 @@
             "status": "stable",
             "target": "App\\Models\\StoreUser"
         },
-        "kintai\\Contract\\Data\\UserRepositoryInterface": {
+        "kintai\\Contract\\Data\\User": {
             "status": "stable",
-            "target": "App\\Repositories\\UserRepositoryInterface"
+            "target": "App\\Models\\User"
         },
         "kintai\\Contract\\Data\\UserShiftTypeRate": {
             "status": "stable",

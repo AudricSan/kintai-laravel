@@ -15,7 +15,7 @@ use App\Exceptions\PlanLimitExceededException;
 use App\Auth\OwnerGuard;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
@@ -29,12 +29,10 @@ use PHPUnit\Framework\TestCase;
 
 final class UserControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private ?UserController $controller = null;
 
     protected function setUp(): void
     {
-        $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -42,14 +40,12 @@ final class UserControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $this->controller = new UserController(
-                $this->users,
                 new AuditLogger(),
                 new PlanLimitService(
-                    $this->users,
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
                 ApiOwnerAuth::permissions($this),
-                new OwnerGuard(ApiOwnerAuth::permissions($this), $this->users),
+                new OwnerGuard(ApiOwnerAuth::permissions($this)),
             );
         }
 
@@ -69,9 +65,7 @@ final class UserControllerTest extends TestCase
 
     public function testStoreCreatesUserWhenBelowFreePlanLimit(): void
     {
-        $this->users->method('countActive')->willReturn(14);
-        $this->users->method('save')->willReturn(['id' => 1, 'email' => 'new@example.com']);
-
+        kintai_test_users(countActive: fn() => 14);
         $response = $this->controller()->store($this->makeJsonRequest(['email' => 'new@example.com', 'first_name' => 'Nouvel', 'last_name' => 'Employé']));
 
         $this->assertSame(201, $response->getStatusCode());
@@ -104,23 +98,19 @@ final class UserControllerTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, ['acme' => $bundle]);
         $controller = new UserController(
-            $this->users,
             new AuditLogger(),
             new PlanLimitService(
-                $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             ApiOwnerAuth::permissions($this),
-            new OwnerGuard(ApiOwnerAuth::permissions($this), $this->users),
+            new OwnerGuard(ApiOwnerAuth::permissions($this)),
             events: new Events(new ExtensionRegistry($manager)),
         );
-        $this->users->method('countActive')->willReturn(1);
-        $this->users->method('save')->willReturn(['id' => 12, 'email' => 'new@example.com', 'password_hash' => 'hash']);
-
+        kintai_test_users(countActive: fn() => 1);
         $controller->store($this->makeJsonRequest(['email' => 'new@example.com', 'first_name' => 'Nouvel', 'last_name' => 'Employé']));
 
         $this->assertCount(1, $received);
-        $this->assertSame(12, $received[0]->userId());
+        $this->assertSame((int) \App\Models\User::query()->max('id'), $received[0]->userId());
         $this->assertNull($received[0]->storeId);
         $this->assertSame(ApiOwnerAuth::OWNER_ID, $received[0]->createdBy);
         $this->assertSame('api', $received[0]->source);
@@ -129,10 +119,7 @@ final class UserControllerTest extends TestCase
 
     public function testAnOwnerCannotDeleteThemselvesThroughTheApi(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => ApiOwnerAuth::OWNER_ID, 'is_active' => 1, 'deleted_at' => null]);
-        $this->users->expects($this->never())->method('delete');
-
+        kintai_test_users(findById: fn() => ['id' => ApiOwnerAuth::OWNER_ID, 'is_active' => 1, 'deleted_at' => null]);
         $req = ApiOwnerAuth::owner(Request::capture());
         $req->setRouteParams(['id' => (string) ApiOwnerAuth::OWNER_ID]);
 
@@ -142,10 +129,7 @@ final class UserControllerTest extends TestCase
 
     public function testAnOwnerCannotDeactivateThemselvesThroughTheApi(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => ApiOwnerAuth::OWNER_ID, 'is_active' => 1, 'deleted_at' => null]);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findById: fn() => ['id' => ApiOwnerAuth::OWNER_ID, 'is_active' => 1, 'deleted_at' => null]);
         $req = $this->makeJsonRequest(['is_active' => 0]);
         $req->setRouteParams(['id' => (string) ApiOwnerAuth::OWNER_ID]);
 
@@ -155,10 +139,7 @@ final class UserControllerTest extends TestCase
 
     public function testStoreThrowsWhenFreePlanEmployeeLimitReached(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('countActive')->willReturn(15);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(countActive: fn() => 15);
         $this->expectException(PlanLimitExceededException::class);
         $this->controller()->store($this->makeJsonRequest(['email' => 'new@example.com']));
     }
@@ -170,10 +151,7 @@ final class UserControllerTest extends TestCase
     /** Un corps vide finissait en erreur SQL (500) : c'est maintenant un 422 détaillé, sans écriture. */
     public function testStoreWithAnEmptyBodyIsRefusedWithTheMissingFields(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('countActive')->willReturn(1);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(countActive: fn() => 1);
         try {
             $this->controller()->store($this->makeJsonRequest([]));
             $this->fail('422 attendu');
@@ -184,42 +162,31 @@ final class UserControllerTest extends TestCase
 
     public function testStoreRefusesADuplicateEmail(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('countActive')->willReturn(1);
-        $this->users->expects($this->atLeastOnce())->method('findByEmail')->with('pris@example.com')->willReturn(['id' => 3]);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findByEmail: fn() => ['id' => 3, 'email' => 'pris@example.com'], countActive: fn() => 1);
         $this->expectException(ValidationException::class);
         $this->controller()->store($this->makeJsonRequest(['email' => 'pris@example.com', 'first_name' => 'A', 'last_name' => 'B']));
     }
 
     public function testStoreKeepsOnlyKnownFieldsAndDerivesTheDisplayName(): void
     {
-        $this->users->method('countActive')->willReturn(1);
+        kintai_test_users(countActive: fn() => 1);
         $saved = null;
-        $this->users->method('save')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved = $d;
-            return $d + ['id' => 8];
-        });
-
         $this->controller()->store($this->makeJsonRequest([
             'email' => 'n@example.com', 'first_name' => 'Aiko', 'last_name' => 'Sato', 'employee_code' => 'e-12',
             'deleted_at' => '2020-01-01', 'last_login_at' => 'x', 'avatar_path' => '../../etc/passwd',
         ]));
 
+        $saved = \App\Models\User::query()->orderByDesc('id')->first()?->toArray();
         $this->assertSame('Sato Aiko', $saved['display_name']);
         $this->assertSame('E-12', $saved['employee_code']);
         foreach (['deleted_at', 'last_login_at', 'avatar_path'] as $field) {
-            $this->assertArrayNotHasKey($field, $saved);
+            $this->assertEmpty($saved[$field], "champ ignoré : $field");
         }
     }
 
     public function testUpdateWithNothingToChangeIsRefused(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => 4, 'email' => 'a@example.com']);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findById: fn() => ['id' => 4, 'email' => 'a@example.com']);
         $req = $this->makeJsonRequest(['created_at' => '2000-01-01']);
         $req->setRouteParams(['id' => '4']);
 
@@ -230,20 +197,14 @@ final class UserControllerTest extends TestCase
     /** Audit M1 : couleur de compte non hexadécimale refusée en création comme en modification. */
     public function testStoreRejectsAnInvalidColor(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('countActive')->willReturn(1);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(countActive: fn() => 1);
         $this->expectException(ValidationException::class);
         $this->controller()->store($this->makeJsonRequest(['email' => 'new@example.com', 'first_name' => 'A', 'last_name' => 'B', 'color' => 'red;position:fixed']));
     }
 
     public function testUpdateRejectsAnInvalidColor(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => 4, 'email' => 'a@example.com']);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findById: fn() => ['id' => 4, 'email' => 'a@example.com']);
         $req = $this->makeJsonRequest(['color' => 'url(javascript:x)']);
         $req->setRouteParams(['id' => '4']);
 

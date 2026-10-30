@@ -8,7 +8,7 @@ use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\AppSettingsService;
 use App\Services\NotificationService;
 use App\Services\SystemAlertSourceInterface;
@@ -47,9 +47,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $ownerIds
         ));
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id): array => ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
-
+        kintai_test_users(findById: fn(int $id): array => ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
         $source = new class($this) implements SystemAlertSourceInterface {
             public function __construct(private readonly SystemNotificationServiceTest $test) {}
 
@@ -63,7 +61,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             }
         };
 
-        return new SystemNotificationService(new OwnerGuard(new PermissionService(), $users), $this->notifs, $this->settings, $source);
+        return new SystemNotificationService(new OwnerGuard(new PermissionService()), $this->notifs, $this->settings, $source);
     }
 
     /** @internal appelé par la source anonyme du test */

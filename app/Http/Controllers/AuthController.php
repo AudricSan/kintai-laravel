@@ -24,7 +24,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserNavPref;
 use App\Models\WebPushSubscription;
 use App\Http\Controllers\HasBaseUrl;
@@ -43,7 +43,6 @@ final class AuthController
         private readonly ViewFactory $view,
         private readonly AuthService $auth,
         private readonly AuditLogger $auditLogger,
-        private readonly UserRepositoryInterface $users,
         private readonly LanguageRepositoryInterface $languages,
         private readonly AvatarImageOptimizer $avatarOptimizer,
         // Optionnel pour ne pas casser les tests qui construisent le contrôleur à la main ;
@@ -143,7 +142,7 @@ final class AuthController
             $userId   = $authUser ? (int) ($authUser['id'] ?? 0) : null;
             $this->auditLogger->log($request, 'auth.login', 'user', $userId, ['mode' => $mode], null, $userId);
             if ($userId !== null) {
-                $this->users->save(['id' => $userId, 'last_login_at' => date('Y-m-d H:i:s')]);
+                User::put(['id' => $userId, 'last_login_at' => date('Y-m-d H:i:s')]);
             }
 
             // Laisser la préférence BD de l'utilisateur prendre effet (I18nMiddleware), et la retenir pour la page
@@ -196,10 +195,10 @@ final class AuthController
 
         $user = $this->auth->user();
         if ($user) {
-            $dbUser = $this->users->findById((int) $user['id']);
+            $dbUser = User::findById((int) $user['id']);
             if ($dbUser) {
                 $dbUser['language'] = $locale;
-                $this->users->save($dbUser);
+                User::put($dbUser);
                 LocaleCookie::remember($locale);
             }
         } else {
@@ -370,7 +369,7 @@ final class AuthController
         }
 
         // Récupérer l'utilisateur complet depuis la DB pour être sûr de ne rien perdre
-        $dbUser = $this->users->findById($userId);
+        $dbUser = User::findById($userId);
         if ($dbUser) {
             $oldUser = $dbUser;
             // Pas de catch ici : la colonne "language" existe depuis la toute première
@@ -390,7 +389,7 @@ final class AuthController
             foreach (ProfileSections::current()->flags() as $flag) {
                 $dbUser[$flag] = $request->postFlag($flag, $dbUser[$flag] ?? 0);
             }
-            $this->users->save($dbUser);
+            User::put($dbUser);
 
             LocaleCookie::remember($language);
             $this->auditLogger->logUpdate($request, 'user.update_profile', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
@@ -413,7 +412,7 @@ final class AuthController
             return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'avatar_invalid');
         }
 
-        $dbUser = $this->users->findById($userId);
+        $dbUser = User::findById($userId);
         if ($dbUser === null) {
             return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'error_generic');
         }
@@ -440,7 +439,7 @@ final class AuthController
 
         $oldUser = $dbUser;
         $dbUser['avatar_path'] = basename($compressed['path']);
-        $this->users->save($dbUser);
+        User::put($dbUser);
 
         $this->auditLogger->logUpdate($request, 'user.avatar_updated', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
 
@@ -456,7 +455,7 @@ final class AuthController
         }
 
         $userId = (int) $user['id'];
-        $dbUser = $this->users->findById($userId);
+        $dbUser = User::findById($userId);
         if ($dbUser === null || empty($dbUser['avatar_path'])) {
             return redirect()->away($this->base() . '/profile?tab=info');
         }
@@ -468,7 +467,7 @@ final class AuthController
 
         $oldUser = $dbUser;
         $dbUser['avatar_path'] = null;
-        $this->users->save($dbUser);
+        User::put($dbUser);
 
         $this->auditLogger->logUpdate($request, 'user.avatar_removed', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
 
@@ -483,7 +482,7 @@ final class AuthController
     public function avatar(Request $request): Response
     {
         $targetId = (int) $request->route('employee');
-        $target   = $this->users->findById($targetId);
+        $target   = User::findById($targetId);
         $filename = $target['avatar_path'] ?? null;
         if ($target === null || $filename === null) {
             throw new NotFoundException(__('error_file_not_found'));
@@ -524,7 +523,7 @@ final class AuthController
             return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'password_too_short');
         }
 
-        $dbUser = $this->users->findById($userId);
+        $dbUser = User::findById($userId);
         if ($dbUser === null) {
             return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'error_generic');
         }
@@ -538,7 +537,7 @@ final class AuthController
         $oldUser = $dbUser;
         $dbUser['password_hash'] = \App\Auth\PasswordHasher::hash($newPass);
         try {
-            $this->users->save($dbUser);
+            User::put($dbUser);
             // La session courante reste valide ; toutes les autres (autres appareils, cookie
             // « rester connecté », jetons d'API) sont révoquées : c'est le but d'un changement
             // de mot de passe après une compromission.

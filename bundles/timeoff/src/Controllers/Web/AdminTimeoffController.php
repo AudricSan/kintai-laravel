@@ -10,7 +10,7 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -26,7 +26,6 @@ final class AdminTimeoffController
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     public function timeoff(Request $request): Response
@@ -99,8 +98,8 @@ final class AdminTimeoffController
         $managedIds = $this->managedIds($request);
         $userIds    = $managedIds !== null ? $this->memberUserIds($managedIds) : null;
         $users      = $userIds !== null
-            ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $userIds, true)))
-            : $this->users->findAll();
+            ? array_values(array_filter(User::findAll(), fn($u) => in_array((int) $u['id'], $userIds, true)))
+            : User::findAll();
 
         usort($users, fn($a, $b) => strcmp(
             strtolower(trim(($a['last_name'] ?? '') . ' ' . ($a['first_name'] ?? ''))),
@@ -121,7 +120,7 @@ final class AdminTimeoffController
     public function storeTimeoffForEmployee(Request $request): Response
     {
         $userId = (int) $request->post('user_id', 0);
-        $user   = $userId > 0 ? $this->users->findById($userId) : null;
+        $user   = $userId > 0 ? User::findById($userId) : null;
         if ($user === null) {
             throw new NotFoundException(__('error_employee_not_found'));
         }

@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use Illuminate\Http\Request;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
@@ -32,13 +32,10 @@ final class MessageThreadNotificationsTest extends TestCase
 
         $view = kintai_test_views(sys_get_temp_dir());
         $view->addNamespace('messaging', $dir);
-
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => []);
         return new MessageController(
             $view,
-            $users,
             $repo,
             new AuditLogger(),
             $notifs,

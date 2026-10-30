@@ -7,7 +7,7 @@ namespace Tests\Unit\Services;
 use App\Exceptions\PlanLimitExceededException;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\LicenseClientService;
 use App\Services\LicenseTokenVerifier;
 use App\Services\PlanLimitService;
@@ -20,7 +20,6 @@ final class PlanLimitServiceTest extends TestCase
 {
     /** @var array{private: string, public: string} Paire jetable, generee a la volee — voir TestSigningKeypair. */
     private static array $keypair;
-    private UserRepositoryInterface&Stub $users;
     private PlanLimitService $service;
 
     public static function setUpBeforeClass(): void
@@ -30,7 +29,6 @@ final class PlanLimitServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->users   = $this->createStub(UserRepositoryInterface::class);
         kintai_test_settings();
         $this->service = $this->makeService();
     }
@@ -40,7 +38,7 @@ final class PlanLimitServiceTest extends TestCase
     {
         $license = new LicenseClientService(['base_url' => '', 'api_key' => '', 'grace_period_days' => 14]);
 
-        return new PlanLimitService($this->users, $license);
+        return new PlanLimitService($license);
     }
 
     public function testMaxActiveBundlesIsFourOnFreePlan(): void
@@ -57,8 +55,7 @@ final class PlanLimitServiceTest extends TestCase
     public function testCurrentCountsDelegateToRepositories(): void
     {
         kintai_test_stores(countActive: fn() => 1);
-        $this->users->method('countActive')->willReturn(7);
-
+        kintai_test_users(countActive: fn() => 7);
         $this->assertSame(1, $this->service->currentStoreCount());
         $this->assertSame(7, $this->service->currentEmployeeCount());
     }
@@ -79,15 +76,14 @@ final class PlanLimitServiceTest extends TestCase
 
     public function testAssertCanCreateEmployeeAllowsWhenBelowLimit(): void
     {
-        $this->users->method('countActive')->willReturn(14);
+        kintai_test_users(countActive: fn() => 14);
         $this->service->assertCanCreateEmployee();
         $this->addToAssertionCount(1);
     }
 
     public function testAssertCanCreateEmployeeThrowsWhenLimitReached(): void
     {
-        $this->users->method('countActive')->willReturn(15);
-
+        kintai_test_users(countActive: fn() => 15);
         $this->expectException(PlanLimitExceededException::class);
         $this->service->assertCanCreateEmployee();
     }
@@ -106,7 +102,7 @@ final class PlanLimitServiceTest extends TestCase
         );
         $license->activate('KEY-1');
 
-        return new PlanLimitService($this->users, $license);
+        return new PlanLimitService($license);
     }
 
     public function testMaxActiveBundlesIsUnlimitedOnPaidPlan(): void
@@ -131,7 +127,7 @@ final class PlanLimitServiceTest extends TestCase
 
     public function testAssertCanCreateEmployeeNeverThrowsOnPaidPlan(): void
     {
-        $this->users->method('countActive')->willReturn(999);
+        kintai_test_users(countActive: fn() => 999);
         $this->makePaidService()->assertCanCreateEmployee();
         $this->addToAssertionCount(1);
     }
@@ -159,7 +155,7 @@ final class PlanLimitServiceTest extends TestCase
         );
         $license->activate('KEY-1');
 
-        return new PlanLimitService($this->users, $license);
+        return new PlanLimitService($license);
     }
 
     public function testTierWithExplicitLimitsAppliesThemInsteadOfUnlimited(): void

@@ -11,7 +11,7 @@ use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +23,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminHiringReportControllerTest extends TestCase
 {
     private HiringReportRepositoryInterface&Stub $hiringReports;
-    private UserRepositoryInterface&Stub $users;
     private ?AdminHiringReportController $controller = null;
 
     protected function setUp(): void
@@ -36,7 +35,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->hiringReports = $this->createStub(HiringReportRepositoryInterface::class);
-        $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -48,7 +46,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view->addNamespace('hiring-report', $viewDir);
             $this->controller = new AdminHiringReportController(
                 $view,
-                $this->users,
                 $this->hiringReports,
                 new AuditLogger(),
             );
@@ -179,16 +176,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Le formulaire ne propose que les membres du magasin, pas tous les comptes de l'instance. */
     public function testCreateHiringReportOnlyListsMembersOfTheStore(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1']);
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'A'] : null);
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 5]] : []);
-        $this->users->expects($this->never())->method('findAll');
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5]);
-
+        kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5] : null);
         $this->assertSame(200, $this->controller()->createHiringReport($req)->getStatusCode());
     }
 

@@ -17,7 +17,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -43,13 +43,10 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
     private const TARGET_ID = 7;
 
     private AdminUserController $controller;
-    private UserRepositoryInterface&Stub $users;
-    private UserRepositoryInterface&MockObject $remember;
 
     protected function setUp(): void
     {
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id'                  => self::TARGET_ID,
             'email'               => 'target@example.test',
             'first_name'          => 'Jean',
@@ -62,30 +59,32 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
             'deleted_at'          => null,
             'password_hash'       => 'not-a-real-hash',
         ]);
-
         // Demandeur : rôle système global (la garde d'accès à l'employé ciblé doit le laisser passer).
         kintai_test_assignments(findByUser: fn() => [['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
-        $this->remember = $this->createMock(UserRepositoryInterface::class);
 
         $this->controller = new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->users,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             new PermissionService(),
             new PlanLimitService(
-                $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
-            new OwnerGuard(new PermissionService(), $this->users),
-            new CredentialRevoker($this->remember),
-            new UserAnonymizer($this->users, new CredentialRevoker($this->remember), sys_get_temp_dir()),
+            new OwnerGuard(new PermissionService()),
+            new CredentialRevoker(),
+            new UserAnonymizer(new CredentialRevoker(), sys_get_temp_dir()),
         );
     }
 
+    private bool $revocationExpected = false;
+
     protected function tearDown(): void
     {
+        if ($this->revocationExpected) {
+            $this->assertNull(\App\Models\User::query()->find(self::TARGET_ID)?->remember_token, 'jeton « rester connecté » révoqué');
+            $this->revocationExpected = false;
+        }
         $_POST = [];
     }
 
@@ -100,13 +99,13 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
 
     private function expectRevocation(): void
     {
-        $this->remember->expects($this->once())->method('revokeRememberToken')->with(self::TARGET_ID);
+        kintai_test_remember_token(self::TARGET_ID);
         $this->expectApiTokensRevoked(self::TARGET_ID);
+        $this->revocationExpected = true;
     }
 
     private function expectNoRevocation(): void
     {
-        $this->remember->expects($this->never())->method('revokeRememberToken');
         $this->expectApiTokensKept(1);
     }
 

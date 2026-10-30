@@ -8,7 +8,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\NotificationPreferenceService;
@@ -50,7 +50,6 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $this->prefs  = new NotificationPreferenceService(
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
-            $this->createStub(UserRepositoryInterface::class),
         );
         $this->tokens = (new InMemoryAppSettings())->into(new UnsubscribeTokens());
         $view = kintai_test_views(dirname(__DIR__, 4) . '/resources/views');

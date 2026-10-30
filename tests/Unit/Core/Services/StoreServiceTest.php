@@ -8,7 +8,7 @@ use App\Models\AppSetting;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Exceptions\PlanLimitExceededException;
 use App\Services\LicenseClientService;
 use App\Services\PlanLimitService;
@@ -35,10 +35,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $languages = $this->createStub(LanguageRepositoryInterface::class);
             $languages->method('findAllActive')->willReturn([['code' => 'en']]);
             $this->service = new StoreService(
-                $this->createStub(UserRepositoryInterface::class),
                 $languages,
                 new PlanLimitService(
-                    $this->createStub(UserRepositoryInterface::class),
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
             );
@@ -175,10 +173,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     private function serviceWithAssignments(): StoreService
     {
         return new StoreService(
-            $this->createStub(UserRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new PlanLimitService(
-                $this->createStub(UserRepositoryInterface::class),
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             null,

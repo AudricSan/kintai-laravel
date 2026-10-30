@@ -11,7 +11,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Data\UserShiftTypeRate;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -61,7 +61,6 @@ final class AdminSalaryReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly SalaryReportRepositoryInterface $salaryReports,
         private readonly Sales $sales,
         private readonly AuditLogger $auditLogger,
@@ -213,7 +212,7 @@ final class AdminSalaryReportController
         $targetMonth = date('Y-m');
 
         $userId = (int) ($request->query('user_id') ?? 0);
-        $employee = $userId > 0 ? $this->users->findById($userId) : null;
+        $employee = $userId > 0 ? User::findById($userId) : null;
         if ($employee === null) {
             $userId = 0;
         }
@@ -433,7 +432,7 @@ final class AdminSalaryReportController
         $lines = [];
         ksort($employeeMinutes);
         foreach ($employeeMinutes as $uid => $minutes) {
-            $user = $this->users->findById($uid);
+            $user = User::findById($uid);
             if ($user !== null) {
                 $name = trim(($user['last_name'] ?? '') . ' ' . ($user['first_name'] ?? '')) ?: ($user['display_name'] ?? '#' . $uid);
                 $lines[] = $name . ': ' . round($minutes / 60, 1) . __('hours_unit');
@@ -531,7 +530,7 @@ final class AdminSalaryReportController
 
         $employees = [];
         foreach ($employeeMinutes as $uid => $minutes) {
-            $user = $this->users->findById($uid);
+            $user = User::findById($uid);
             $name = $user !== null
                 ? (trim(($user['last_name'] ?? '') . ' ' . ($user['first_name'] ?? '')) ?: ($user['display_name'] ?? '#' . $uid))
                 : '#' . $uid;

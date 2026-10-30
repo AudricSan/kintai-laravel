@@ -15,7 +15,7 @@ use App\Models\Store;
 use App\Models\StoreUser;
 use App\Extension\Attendances;
 use App\Models\UserDashboardPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\DashboardAlertService;
@@ -63,7 +63,6 @@ final class HomeController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly StoreStatsServiceInterface $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
         private readonly PermissionService $permissions,
@@ -83,7 +82,7 @@ final class HomeController
         $managedStoreIds = $request->attributes->get('managed_store_ids');
         $inScope = fn(int $storeId): bool => $managedStoreIds === null || in_array($storeId, $managedStoreIds, true);
 
-        $allUsers = $this->users->findAll();
+        $allUsers = User::findAll();
         if ($managedStoreIds !== null) {
             $scopedUserIds = [];
             foreach ($managedStoreIds as $sid) {

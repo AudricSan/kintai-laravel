@@ -12,7 +12,7 @@ use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
 use App\Services\StoreStatsServiceInterface;
@@ -43,8 +43,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
 
     private function buildController(array $enabledWidgets, bool $isAdmin, array $storeStatsByStore): HomeController
     {
-        $usersRepo = $this->createStub(UserRepositoryInterface::class);
-        $usersRepo->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji'], findAll: fn() => [['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']]);
         kintai_test_shifts([]);
         kintai_test_shifts([]);
@@ -70,11 +69,10 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         // qu'à l'admin global (is_admin=1) dans ce test.
         $permissions = new PermissionService();
 
-        $dashboardAlerts = new DashboardAlertService($usersRepo);
+        $dashboardAlerts = new DashboardAlertService();
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
-            $usersRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

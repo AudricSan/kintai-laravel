@@ -9,7 +9,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,12 +29,10 @@ protected function setUp(): void    {        kintai_test_database();        kint
             array_keys($owners)
         ));
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id): ?array => isset($owners[$id])
+        kintai_test_users(findById: fn(int $id): ?array => isset($owners[$id])
             ? ['id' => $id, 'is_active' => ($owners[$id]['active'] ?? true) ? 1 : 0, 'deleted_at' => ($owners[$id]['deleted'] ?? false) ? '2026-01-01 00:00:00' : null]
             : ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
-
-        return new OwnerGuard(new PermissionService(), $users);
+        return new OwnerGuard(new PermissionService());
     }
 
     public function testNonOwnerTargetIsNeverBlocked(): void

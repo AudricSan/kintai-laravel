@@ -7,7 +7,7 @@ namespace Tests\Unit\Core;
 use App\Http\Middleware\I18nMiddleware;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Translation\Translator;
@@ -19,20 +19,17 @@ final class I18nMiddlewareTest extends TestCase
 {
     private LanguageRepositoryInterface&Stub $languages;
     private ?I18nMiddleware $middleware = null;
-    private UserRepositoryInterface&Stub $users;
 
     protected function setUp(): void
     {
         $this->languages = $this->createStub(LanguageRepositoryInterface::class);
-
-        $this->users = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function middleware(): I18nMiddleware
     {
         if ($this->middleware === null) {
-            $this->middleware = new I18nMiddleware($this->languages, $this->users);
+            $this->middleware = new I18nMiddleware($this->languages);
         }
 
         return $this->middleware;
@@ -97,10 +94,8 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testLoggedInUserGetsTheProfileLanguageBeforeSessionCookieAndBrowser(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'ja'], ['code' => 'en']]);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'language' => 'ja']);
-
+        kintai_test_users(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'language' => 'ja'] : null);
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
         session()->put(auth()->getName(), 1);
         session()->put('locale', 'fr');
@@ -114,7 +109,7 @@ final class I18nMiddlewareTest extends TestCase
     public function testLoggedInUserWithoutLanguageFollowsTheInstanceNotTheBrowser(): void
     {
         $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'ja'], ['code' => 'en']]);
-        $this->users->method('findById')->willReturn(['id' => 1, 'language' => '']);
+        kintai_test_users(findById: fn() => ['id' => 1, 'language' => '']);
         $_ENV['APP_LOCALE'] = 'ja';
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);

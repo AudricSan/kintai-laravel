@@ -6,7 +6,7 @@ namespace App\Auth;
 
 use App\Exceptions\NotFoundException;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 final class UserTargetGuard
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
     ) {}
 
@@ -29,7 +28,7 @@ final class UserTargetGuard
      */
     public function require(Request $request, int $userId, string $permissionKey): array
     {
-        $user = $this->users->findById($userId);
+        $user = User::findById($userId);
         if ($user === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }

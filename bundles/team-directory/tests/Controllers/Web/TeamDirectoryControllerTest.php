@@ -10,7 +10,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
@@ -37,15 +37,13 @@ final class TeamDirectoryControllerTest extends TestCase
 
         $view = kintai_test_views(sys_get_temp_dir());
         $view->addNamespace('team-directory', $viewDir);
-
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturnMap([
+        kintai_test_users(findById: fn(int $id) => array_column([
             [self::ME, ['id' => self::ME, 'first_name' => 'A', 'last_name' => 'Moi', 'is_active' => 1, 'show_in_directory' => 1]],
             [self::COLLEAGUE_VISIBLE, ['id' => self::COLLEAGUE_VISIBLE, 'first_name' => 'B', 'last_name' => 'Visible', 'is_active' => 1, 'show_in_directory' => 1]],
             [self::COLLEAGUE_HIDDEN, ['id' => self::COLLEAGUE_HIDDEN, 'first_name' => 'C', 'last_name' => 'Cache', 'is_active' => 1, 'show_in_directory' => 0]],
             [self::COLLEAGUE_INACTIVE, ['id' => self::COLLEAGUE_INACTIVE, 'first_name' => 'D', 'last_name' => 'Inactif', 'is_active' => 0, 'show_in_directory' => 1]],
             [self::OTHER_STORE_USER, ['id' => self::OTHER_STORE_USER, 'first_name' => 'E', 'last_name' => 'Ailleurs', 'is_active' => 1, 'show_in_directory' => 1]],
-        ]);
+        ], 1, 0)[$id] ?? null);
         kintai_test_store_users(findByStore: fn(int $id) => array_column([
             [10, [
                 ['user_id' => self::ME],
@@ -69,7 +67,6 @@ final class TeamDirectoryControllerTest extends TestCase
         ]);
         $this->controller = new TeamDirectoryController(
             $view,
-            $this->users,
         );
     }
 

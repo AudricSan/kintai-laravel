@@ -8,7 +8,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -23,7 +23,6 @@ final class NotebookController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly NotebookEntryRepositoryInterface $notes,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
@@ -248,13 +247,13 @@ final class NotebookController
         $recipients = [];
         if ($storeId !== null) {
             foreach (StoreUser::findByStore($storeId) as $m) {
-                $candidate = $this->users->findById((int) $m['user_id']);
+                $candidate = User::findById((int) $m['user_id']);
                 if ($candidate !== null && $this->permissions->can($candidate, 'notebook.view', $storeId)) {
                     $recipients[] = (int) $m['user_id'];
                 }
             }
         } else {
-            foreach ($this->users->findAll() as $candidate) {
+            foreach (User::findAll() as $candidate) {
                 if ($this->permissions->can($candidate, 'notebook.view', null)) {
                     $recipients[] = (int) $candidate['id'];
                 }

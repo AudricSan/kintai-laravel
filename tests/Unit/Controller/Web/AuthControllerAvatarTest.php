@@ -14,7 +14,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -31,18 +31,14 @@ final class AuthControllerAvatarTest extends TestCase
     {
         session()->put(auth()->getName(), 9);
 
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-
         kintai_test_assignments(findByUser: fn() => []);
-        $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $rememberTokens);
+        $auth = new AuthService();
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->users,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );
@@ -56,8 +52,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     public function testUploadAvatarRedirectsWithErrorWhenNoFileProvided(): void
     {
-        $this->users->method('findById')->with(9)->willReturn(['id' => 9]);
-
+        kintai_test_users(findById: fn(int $id) => $id === 9 ? ['id' => 9] : null);
         $response = $this->controller->uploadAvatar(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
@@ -66,9 +61,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     public function testRemoveAvatarRedirectsWithoutTouchingAnythingWhenNoAvatarSet(): void
     {
-        $this->users->method('findById')->with(9)->willReturn(['id' => 9, 'avatar_path' => null]);
-        $this->users->expects($this->never())->method('save');
-
+        kintai_test_users(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'avatar_path' => null] : null);
         $response = $this->controller->removeAvatar(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
@@ -76,8 +69,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     public function testAvatarThrowsNotFoundWhenTargetHasNoPicture(): void
     {
-        $this->users->method('findById')->with(42)->willReturn(['id' => 42, 'avatar_path' => null]);
-
+        kintai_test_users(findById: fn(int $id) => $id === 42 ? ['id' => 42, 'avatar_path' => null] : null);
         $request = Request::capture();
         $request->setRouteParams(['employee' => '42']);
 
@@ -87,8 +79,7 @@ final class AuthControllerAvatarTest extends TestCase
 
     public function testAvatarThrowsNotFoundForUnknownUser(): void
     {
-        $this->users->method('findById')->with(999)->willReturn(null);
-
+        kintai_test_users(findById: fn(int $id) => $id === 999 ? null : null);
         $request = Request::capture();
         $request->setRouteParams(['employee' => '999']);
 

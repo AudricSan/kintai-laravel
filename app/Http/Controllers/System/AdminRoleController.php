@@ -12,7 +12,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Validation\ColorRule;
 use Symfony\Component\HttpFoundation\Response;
@@ -54,7 +54,6 @@ final class AdminRoleController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly OwnerGuard $ownerGuard,
@@ -240,7 +239,7 @@ final class AdminRoleController
         $userIds = $this->postedUserIds($request);
         $validUserIds = [];
         foreach ($userIds as $userId) {
-            if ($this->users->findById($userId) === null) {
+            if (User::findById($userId) === null) {
                 continue;
             }
             if ($isOwnerRole) {
@@ -316,7 +315,7 @@ final class AdminRoleController
     private function activeUsers(): array
     {
         return array_values(array_filter(
-            $this->users->findAll(),
+            User::findAll(),
             fn(array $u): bool => !empty($u['is_active'])
         ));
     }
@@ -422,7 +421,7 @@ final class AdminRoleController
     {
         $holders = [];
         foreach (RoleAssignment::findByRole($roleId) as $assignment) {
-            $user = $this->users->findById((int) $assignment['user_id']);
+            $user = User::findById((int) $assignment['user_id']);
             $scopeLabel = __('scope_global');
             if ($assignment['scope_type'] === 'store' && $assignment['scope_id'] !== null) {
                 $store = Store::findById((int) $assignment['scope_id']);

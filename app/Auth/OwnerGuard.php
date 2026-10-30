@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Exceptions\ForbiddenException;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Garde-fou des comptes Owner : l'instance doit toujours compter au moins un Owner actif, et un Owner ne
@@ -18,7 +18,6 @@ final class OwnerGuard
 {
     public function __construct(
         private readonly PermissionService $permissions,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /**
@@ -49,7 +48,7 @@ final class OwnerGuard
     {
         $ids = [];
         foreach ($this->permissions->ownerUserIds() as $ownerId) {
-            $user = $this->users->findById($ownerId);
+            $user = User::findById($ownerId);
             if ($user !== null && !empty($user['is_active']) && empty($user['deleted_at'])) {
                 $ids[] = $ownerId;
             }

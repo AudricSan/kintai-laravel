@@ -12,7 +12,7 @@ use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\DashboardAlertService;
@@ -43,8 +43,7 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
     private function buildController(StoreStatsServiceInterface $storeStats, array $stores): HomeController
     {
-        $usersRepo = $this->createStub(UserRepositoryInterface::class);
-        $usersRepo->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => $stores);
         kintai_test_shifts([]);
         // Widget "store_stats_summary" uniquement : ce test porte sur la tendance
@@ -58,11 +57,10 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
         kintai_test_roles(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 5 ? ['payroll.view'] : []);
         $permissions = new PermissionService();
 
-        $dashboardAlerts = new DashboardAlertService($usersRepo);
+        $dashboardAlerts = new DashboardAlertService();
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
-            $usersRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

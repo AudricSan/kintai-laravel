@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ResignationReport\Console\DeactivateCommand;
 use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use Tests\Support\BundleMigrationHarness;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
@@ -32,15 +32,9 @@ final class ResignationDeactivationTest extends TestCase
         $runner->runPendingFor('resignation-report', dirname(__DIR__, 2) . '/database/migrations');
 
         $this->accounts = [5 => ['id' => 5, 'is_active' => 1], 6 => ['id' => 6, 'is_active' => 1], 7 => ['id' => 7, 'is_active' => 1]];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => $this->accounts[$id] ?? null);
-        $users->method('save')->willReturnCallback(function (array $u) {
-            $this->accounts[(int) $u['id']] = $u;
-            return $u;
-        });
-
+        kintai_test_users(findById: fn(int $id) => $this->accounts[$id] ?? null);
         $this->reports = new DatabaseResignationReportRepository();
-        $this->deactivation = new ResignationDeactivation($this->reports, $users);
+        $this->deactivation = new ResignationDeactivation($this->reports);
     }
 
     public function testTheDailyJobOnlyAppliesDueReportsAndOnlyOnce(): void
@@ -50,17 +44,17 @@ final class ResignationDeactivationTest extends TestCase
         $this->reports->save(['store_id' => 1, 'user_id' => null, 'resignation_date' => '2026-10-01']);
 
         $this->assertCount(1, $this->deactivation->applyDue('2026-10-15'));
-        $this->assertSame(0, $this->accounts[5]['is_active']);
-        $this->assertSame(1, $this->accounts[6]['is_active'], 'préavis en cours : compte encore actif');
+        $this->assertSame(0, \App\Models\User::findById(5)['is_active']);
+        $this->assertSame(1, \App\Models\User::findById(6)['is_active'], 'préavis en cours : compte encore actif');
 
         // Réactivé à la main : la tâche ne le désactive pas une seconde fois.
-        $this->accounts[5]['is_active'] = 1;
+        \App\Models\User::where('id', 5)->update(['is_active' => 1]);
         $this->assertSame([], $this->deactivation->applyDue('2026-10-16'));
-        $this->assertSame(1, $this->accounts[5]['is_active']);
+        $this->assertSame(1, \App\Models\User::findById(5)['is_active']);
 
         // Le jour venu, le second l'est.
         $this->assertCount(1, $this->deactivation->applyDue('2026-11-30'));
-        $this->assertSame(0, $this->accounts[6]['is_active']);
+        $this->assertSame(0, \App\Models\User::findById(6)['is_active']);
     }
 
     public function testAReportPushedBackToTheFutureGivesAccessBack(): void
@@ -70,7 +64,7 @@ final class ResignationDeactivationTest extends TestCase
 
         $moved = $this->reports->save(['id' => (int) $report['id'], 'resignation_date' => '2026-12-31']);
         $this->assertSame('reactivated', $this->deactivation->sync($moved, '2026-10-15'));
-        $this->assertSame(1, $this->accounts[7]['is_active']);
+        $this->assertSame(1, \App\Models\User::findById(7)['is_active']);
         $this->assertNull($this->reports->findById((int) $report['id'])['deactivated_at']);
     }
 

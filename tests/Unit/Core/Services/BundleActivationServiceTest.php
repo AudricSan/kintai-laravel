@@ -8,7 +8,7 @@ use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\BundleActivationService;
 use App\Services\LicenseClientService;
 use App\Services\PlanLimitService;
@@ -54,7 +54,6 @@ final class BundleActivationServiceTest extends TestCase
             new FeatureManager($enabled),
             new BundleDiscoveryService(self::$bundlesDir),
             new PlanLimitService(
-                $this->createStub(UserRepositoryInterface::class),
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
         );

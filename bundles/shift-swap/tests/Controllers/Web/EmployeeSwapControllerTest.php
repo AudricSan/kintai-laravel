@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryIn
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
@@ -55,7 +55,6 @@ final class EmployeeSwapControllerTest extends TestCase
             $this->controller = new EmployeeSwapController(
                 $view,
                 $this->swapRequests,
-                $this->createStub(UserRepositoryInterface::class),
                 new AuditLogger(),
                 $this->notifs,
             );

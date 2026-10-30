@@ -7,7 +7,7 @@ namespace App\Http\Middleware;
 use Closure;
 use App\Auth\AuthService;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\InstanceLocale;
@@ -22,7 +22,6 @@ final class I18nMiddleware
 {
     public function __construct(
         private readonly LanguageRepositoryInterface $languageRepository,
-        private readonly ?UserRepositoryInterface $users = null,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -43,8 +42,8 @@ final class I18nMiddleware
 
         // Connecté : le global tourne avant AuthMiddleware, le compte est lu depuis la session (aucun droit en jeu).
         $userId = AuthService::sessionUserId();
-        if ($userId !== null && $this->users !== null) {
-            $language = (string) ($this->users->findById($userId)['language'] ?? '');
+        if ($userId !== null) {
+            $language = (string) (User::findById($userId)['language'] ?? '');
             return in_array($language, $activeCodes, true) ? $language : $instance;
         }
 

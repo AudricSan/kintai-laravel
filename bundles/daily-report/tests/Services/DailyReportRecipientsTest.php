@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\TranslationService;
 use App\Services\UserSelection;
 use PHPUnit\Framework\TestCase;
@@ -67,9 +67,7 @@ final class DailyReportRecipientsTest extends TestCase
             return true;
         });
         kintai_test_store_users(findByStore: fn() => [['user_id' => 1, 'is_active' => 1], ['user_id' => 2, 'is_active' => 1], ['user_id' => 3, 'is_active' => 1]]);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id): ?array => $this->users[$id] ?? null);
-
+        kintai_test_users(findById: fn(int $id): ?array => $this->users[$id] ?? null);
         $permissions = new PermissionService(
         );
 
@@ -77,7 +75,7 @@ final class DailyReportRecipientsTest extends TestCase
             new DailyReportPermissionService($permissions),
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test']], $transport),
             kintai_test_real_translator('en', false),
-            new UserSelection($users, $permissions),
+            new UserSelection($permissions),
         );
     }
 

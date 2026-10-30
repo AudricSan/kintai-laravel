@@ -8,7 +8,7 @@ use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
@@ -96,7 +96,6 @@ final class BundleSettingsControllerTest extends TestCase
             new AuditLogger(),
             new BundleDiscoveryService(self::$legacyBundlesDir),
             $planLimits ?? new PlanLimitService(
-                $this->createStub(UserRepositoryInterface::class),
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
         );

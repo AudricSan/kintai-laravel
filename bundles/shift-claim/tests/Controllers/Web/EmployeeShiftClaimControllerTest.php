@@ -14,7 +14,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
@@ -49,7 +49,6 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             $view->addNamespace('shift-claim', $viewDir);
             $this->controller = new EmployeeShiftClaimController(
                 $view,
-                $this->createStub(UserRepositoryInterface::class),
                 $this->shiftClaims,
                 new AuditLogger(),
                 $this->notifs,
@@ -159,12 +158,10 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         kintai_test_shifts([['id' => 50, 'is_open' => 1, 'user_id' => null, 'store_id' => 1]]);
         $this->shiftClaims->expects($this->atLeastOnce())->method('findByUserAndShift')->with(9, 50)->willReturn(null);
         $this->shiftClaims->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 77]);
-
-        $usersRepo = $this->createStub(UserRepositoryInterface::class);
-        $usersRepo->method('findById')->willReturnMap([
+        kintai_test_users(findById: fn(int $id) => array_column([
             [9, ['id' => 9]],
             [20, ['id' => 20]],
-        ]);
+        ], 1, 0)[$id] ?? null);
         kintai_test_assignments(findByUser: fn(int $id) => array_column([
             [9, []],
             [20, [['id' => 1, 'user_id' => 20, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]],
@@ -175,7 +172,6 @@ final class EmployeeShiftClaimControllerTest extends TestCase
 
         $controller = new EmployeeShiftClaimController(
             $view,
-            $usersRepo,
             $this->shiftClaims,
             new AuditLogger(),
             $this->notifs,

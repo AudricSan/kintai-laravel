@@ -6,7 +6,7 @@ namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\ActivityEntry;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\System\ActivityController;
@@ -38,9 +38,8 @@ final class ActivityLogPurgeTest extends TestCase
 
     private function controller(): ActivityController
     {
-        $users = $this->createStub(UserRepositoryInterface::class);
 
-        return new ActivityController(kintai_test_views(sys_get_temp_dir()), $users, new AuditLogger());
+        return new ActivityController(kintai_test_views(sys_get_temp_dir()), new AuditLogger());
     }
 
     private function purgeRequest(string $keepDays): Request

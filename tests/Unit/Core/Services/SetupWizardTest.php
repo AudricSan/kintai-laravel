@@ -9,7 +9,7 @@ use App\FeatureManager;
 use App\InstalledBundleManifestStore;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\BundleActivationService;
 use App\Services\LicenseClientService;
 use App\Services\PlanLimitService;
@@ -50,7 +50,6 @@ final class SetupWizardTest extends TestCase
             return null;
         };
         $planLimits = new PlanLimitService(
-            $this->createStub(UserRepositoryInterface::class),
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
         $activation = new BundleActivationService(new FeatureManager([]), new BundleDiscoveryService($dir . '/legacy', $store, $dir, '1.0.0'), $planLimits);

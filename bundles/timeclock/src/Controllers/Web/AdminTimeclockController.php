@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\Timeclock\Controllers\Web;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\Store;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -31,7 +31,6 @@ final class AdminTimeclockController
         private readonly ViewFactory $view,
         private readonly TimeclockRepositoryInterface $timeclocks,
         private readonly AuditLogger $auditLogger,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     public function timeclocks(Request $request): Response

@@ -19,7 +19,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AutoValidateCommandTest extends TestCase
@@ -30,12 +30,10 @@ final class AutoValidateCommandTest extends TestCase
     {
         kintai_test_stores(findActive: fn() => []);
         $reports = $this->createStub(DailyReportRepositoryInterface::class);
-        $users   = $this->createStub(UserRepositoryInterface::class);
 
         $pdfService = new DailyReportPdfService(
             kintai_test_views(dirname(__DIR__, 2) . '/Views'),
             kintai_test_real_translator('en', false),
-            $users,
         );
 
         $permissions = new DailyReportPermissionService(new PermissionService(
@@ -45,12 +43,11 @@ final class AutoValidateCommandTest extends TestCase
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             kintai_test_real_translator('en', false),
             new \App\Services\UserSelection(
-                $users,
                 new PermissionService(),
             ),
         );
 
-        $autoValidate = new DailyReportAutoValidateService($reports, $users, $permissions, $pdfService, $mailService);
+        $autoValidate = new DailyReportAutoValidateService($reports, $permissions, $pdfService, $mailService);
         $this->autoValidate = $autoValidate;
     }
 

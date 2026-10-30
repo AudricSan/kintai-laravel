@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\Timeclock\Services;
 
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 
 /**
  * Données des widgets de pointage des tableaux de bord (contrat 1.4), reprises du Core : pointages en cours du jour
@@ -15,7 +15,6 @@ final class TimeclockWidget
 {
     public function __construct(
         private readonly TimeclockRepositoryInterface $timeclocks,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /**
@@ -37,7 +36,7 @@ final class TimeclockWidget
             return [];
         }
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersMap[(int) $u['id']] = $u['display_name'] ?? $u['email'] ?? ('#' . $u['id']);
         }
         usort($active, static fn(array $a, array $b): int => strcmp((string) ($a['clock_in_time'] ?? ''), (string) ($b['clock_in_time'] ?? '')));

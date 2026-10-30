@@ -11,7 +11,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -26,7 +26,6 @@ final class AdminShiftImportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
     ) {}
@@ -110,7 +109,7 @@ final class AdminShiftImportController
         }
 
         $entries  = $this->mergeAdjacentEntries($entries);
-        $allUsers = $this->users->findAll();
+        $allUsers = User::findAll();
 
         $storeMembers = array_values(array_filter(
             $allUsers,

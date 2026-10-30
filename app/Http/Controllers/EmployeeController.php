@@ -14,7 +14,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
 use App\Models\UserShiftTypeRate;
@@ -41,7 +41,6 @@ final class EmployeeController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
@@ -199,7 +198,7 @@ final class EmployeeController
 
         // Map couleurs (la couleur de l'employé courant)
         $usersColour = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $usersColour[(int) $u['id']] = $u['color'] ?? '#6366f1';
         }
 
@@ -299,7 +298,7 @@ final class EmployeeController
 
         // Construire la map des noms pour l'affichage
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $name = trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? ''));
             $usersMap[(int) $u['id']] = $name ?: ($u['email'] ?? '#' . $u['id']);
         }
@@ -399,7 +398,7 @@ final class EmployeeController
 
         $usersMap      = [];
         $userColorMap  = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $name = trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? ''));
             $usersMap[(int) $u['id']]     = $name ?: ($u['email'] ?? '#' . $u['id']);
             $userColorMap[(int) $u['id']] = $u['color'] ?? '#6366f1';

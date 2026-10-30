@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web\System;
 
 use App\Models\ActivityEntry;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\System\ActivityController;
@@ -23,7 +23,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class ActivityControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private ActivityController $controller;
 
     protected function setUp(): void
@@ -34,12 +33,9 @@ final class ActivityControllerTest extends TestCase
         $viewDir = sys_get_temp_dir() . '/kintai-activity-controller-views';
         $this->writeViewFile($viewDir, 'system.activity-log', 'ok');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findAll')->willReturn([]);
-
+        kintai_test_users(findAll: fn() => []);
         $this->controller = new ActivityController(
             kintai_test_views($viewDir),
-            $this->users,
             new AuditLogger(),
         );
 

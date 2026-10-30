@@ -19,7 +19,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -84,25 +84,18 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
 
     private function controller(Events $events): AdminUserController
     {
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findByEmail')->willReturn(null);
-        $users->method('findByEmployeeCode')->willReturn(null);
-        $users->method('save')->willReturnCallback(function (array $d): array {
-            $this->savedUsers[] = $d;
-            return ['id' => 10, 'password_hash' => 'hash'] + $d;
-        });
+        kintai_test_users(findByEmail: fn() => null, findByEmployeeCode: fn() => null);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]);
         kintai_test_role_table([['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]]);
         $permissions = new PermissionService();
 
         return new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
-            $users,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             $permissions,
-            new PlanLimitService($users, new LicenseClientService(['base_url' => '', 'api_key' => ''])),
-            new OwnerGuard($permissions, $users),
+            new PlanLimitService(new LicenseClientService(['base_url' => '', 'api_key' => ''])),
+            new OwnerGuard($permissions),
             events: $events,
         );
     }
@@ -142,7 +135,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
 
         $this->assertCount(1, $this->received);
         $event = $this->received[0];
-        $this->assertSame(10, $event->userId());
+        $this->assertSame((int) \App\Models\User::query()->max('id'), $event->userId());
         $this->assertSame(3, $event->storeId);
         $this->assertSame(1, $event->createdBy);
         $this->assertSame($source, $event->source);
@@ -158,6 +151,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
     public function testAnEmployeeCreatedWithoutPasswordGetsTheDefaultOne(string $method, string $source): void
     {
         $this->controller($this->events(false))->{$method}(self::request());
+        $this->savedUsers = [\App\Models\User::query()->orderByDesc('id')->first()?->toArray()];
 
         $this->assertNotEmpty($this->savedUsers, $source);
         $this->assertTrue(password_verify('0000', (string) $this->savedUsers[0]['password_hash']), $source);

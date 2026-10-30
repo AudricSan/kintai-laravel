@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -27,7 +27,6 @@ final class MessageController
 {
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly MessageRepositoryInterface $msgRepo,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -112,12 +111,12 @@ final class MessageController
         if ($managedIds !== null) {
             $memberIds = $this->memberUserIds($managedIds);
             $users     = array_values(array_filter(
-                $this->users->findAll(),
+                User::findAll(),
                 fn($u) => in_array((int) $u['id'], $memberIds, true) && (int) $u['id'] !== (int) $authUser['id']
             ));
         } else {
             $users = array_values(array_filter(
-                $this->users->findAll(),
+                User::findAll(),
                 fn($u) => (int) $u['id'] !== (int) $authUser['id']
             ));
         }
@@ -455,7 +454,7 @@ final class MessageController
     private function buildUsersMap(): array
     {
         $map = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $map[(int) $u['id']] = $u['display_name'] ?? $u['email'] ?? '';
         }
         return $map;

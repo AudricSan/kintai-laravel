@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Extension\PendingRequests;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Controllers\HasAdminAccess;
@@ -26,7 +26,6 @@ final class AdminRequestsController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
         private readonly ?PendingRequests $pendingRequests = null,
     ) {}

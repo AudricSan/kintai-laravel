@@ -20,7 +20,7 @@ use kintai\Contract\Data\Store;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
 use kintai\Contract\Services\Mailer;
@@ -77,7 +77,6 @@ final class DailyReportBundle extends Bundle
         $container->singleton(DailyReportPdfService::class, fn(Container $c) => new DailyReportPdfService(
             $c->make(ViewFactory::class),
             $c->make(TranslationService::class),
-            $c->make(UserRepositoryInterface::class),
         ));
         $container->singleton(DailyReportMailService::class, fn(Container $c) => new DailyReportMailService(
             $c->make(DailyReportPermissionService::class),
@@ -87,7 +86,6 @@ final class DailyReportBundle extends Bundle
         ));
         $container->singleton(DailyReportAutoValidateService::class, fn(Container $c) => new DailyReportAutoValidateService(
             $c->make(DailyReportRepositoryInterface::class),
-            $c->make(UserRepositoryInterface::class),
             $c->make(DailyReportPermissionService::class),
             $c->make(DailyReportPdfService::class),
             $c->make(DailyReportMailService::class),

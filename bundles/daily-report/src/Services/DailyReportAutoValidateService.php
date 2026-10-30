@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\DailyReport\Services;
 
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\Store;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 
 /**
  * Validation automatique des rapports journaliers non validés.
@@ -23,7 +23,6 @@ final class DailyReportAutoValidateService
 {
     public function __construct(
         private readonly DailyReportRepositoryInterface $reports,
-        private readonly UserRepositoryInterface $users,
         private readonly DailyReportPermissionService $permissions,
         private readonly DailyReportPdfService $pdfService,
         private readonly DailyReportMailService $mailService,
@@ -93,7 +92,7 @@ final class DailyReportAutoValidateService
         $this->reports->save($updated);
 
         if (!empty($settings['auto_send_on_validate']) && (!empty($settings['mail_recipient_ids']) || !empty($settings['mail_recipients']))) {
-            $author   = $this->users->findById((int) $report['author_id']) ?? [];
+            $author   = User::findById((int) $report['author_id']) ?? [];
             $pdfBytes = $this->pdfService->generateBytes($updated, $store, $author);
             $sent     = $this->mailService->send($updated, $store, $pdfBytes, $author);
             if ($sent) {

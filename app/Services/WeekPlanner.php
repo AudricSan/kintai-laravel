@@ -8,7 +8,7 @@ use App\Extension\Absences;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Semaine type : lit les shifts d'une semaine sous forme d'« entrées » (jour 0 à 6, employé, horaires) et les recrée
@@ -26,7 +26,6 @@ final class WeekPlanner
     public const SKIP_OVERLAP     = 'overlap';
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly AvailabilityGuard $availability,
     ) {}
 
@@ -174,7 +173,7 @@ final class WeekPlanner
     private function activeMemberIds(int $storeId): array
     {
         $active = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             if (empty($u['deleted_at']) && (int) ($u['is_active'] ?? 1) === 1) {
                 $active[(int) $u['id']] = true;
             }

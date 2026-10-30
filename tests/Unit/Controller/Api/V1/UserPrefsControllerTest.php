@@ -9,7 +9,7 @@ use App\Exceptions\ValidationException;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Tests\Support\ApiOwnerAuth;
 use App\Http\Controllers\Api\V1\UserPrefsController;
@@ -33,11 +33,10 @@ final class UserPrefsControllerTest extends TestCase
     private function controller(): UserPrefsController
     {
         if ($this->controller === null) {
-            $users = $this->createStub(UserRepositoryInterface::class);
-            $users->method('findById')->willReturn(['id' => 20]);
+            kintai_test_users(findById: fn() => ['id' => 20]);
             kintai_test_store_users(findByUser: fn() => []);
             $this->controller = new UserPrefsController(
-                new UserTargetGuard($users, ApiOwnerAuth::permissions($this)),
+                new UserTargetGuard(ApiOwnerAuth::permissions($this)),
             );
         }
 

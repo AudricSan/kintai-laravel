@@ -16,7 +16,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
@@ -70,16 +70,9 @@ final class NotificationSettingsControllerTest extends TestCase
         }
 
         $this->usersById = [1 => ['id' => 1, 'email' => 'owner@exemple.fr', 'language' => 'fr', 'is_active' => 1, 'deleted_at' => null, 'quiet_hours_start' => null, 'quiet_hours_end' => null]];
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id) => $this->usersById[$id] ?? null);
-        $users->method('save')->willReturnCallback(function (array $data) {
-            $this->usersById[(int) $data['id']] = $data;
-            return $data;
-        });
+        kintai_test_users(findById: fn(int $id) => $this->usersById[$id] ?? null);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->settings = new InMemoryAppSettings(['app_public_url' => 'https://kintai.exemple.fr', 'notifications_retention_days' => '45']);
@@ -98,12 +91,11 @@ final class NotificationSettingsControllerTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-        $this->prefs = new NotificationPreferenceService($registry, $users);
+        $this->prefs = new NotificationPreferenceService($registry);
 
         $notifications = new NotificationService(
             new PushNotificationService([]),
             $translations,
-            $users,
             $registry,
             $this->prefs,
             null,
@@ -112,7 +104,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
         $this->view = kintai_test_views(BASE_PATH . '/resources/views');
         $this->view->share('BASE_URL', '');
-        $this->status = new NotificationChannelStatus($vapid, $mailer, $publicUrl, $users, []);
+        $this->status = new NotificationChannelStatus($vapid, $mailer, $publicUrl, []);
         $this->controller = new NotificationSettingsController(
             $this->view,
             $appSettings,

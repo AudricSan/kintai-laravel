@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -51,7 +51,6 @@ final class AdminHiringReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly HiringReportRepositoryInterface $hiringReports,
         private readonly AuditLogger $auditLogger,
     ) {}

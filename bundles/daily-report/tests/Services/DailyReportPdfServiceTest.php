@@ -13,19 +13,17 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class DailyReportPdfServiceTest extends TestCase
 {
     private ?DailyReportPdfService $service = null;
-    private UserRepositoryInterface&Stub $users;
 
     protected function setUp(): void
     {
         kintai_test_database();
         kintai_test_migrate();
-        $this->users      = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -35,7 +33,6 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->service = new DailyReportPdfService(
                 kintai_test_views('/nonexistent/views'),
                 kintai_test_real_translator('en', false),
-                $this->users,
             );
         }
 
@@ -155,8 +152,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00:00', '17:00:00', 480, 30, 1, null),
         ]);
         kintai_test_shift_types([['id' => 1, 'name' => 'Jour']]);
-        $this->users->method('findById')->willReturn(['first_name' => 'Alice', 'last_name' => 'Martin', 'email' => 'a@m.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'Alice', 'last_name' => 'Martin', 'email' => 'a@m.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertCount(1, $rows);
     }
@@ -169,8 +165,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(30, '10:00:00', '18:00:00', 480, 0, 1, null),
         ]);
         kintai_test_shift_types([['id' => 1, 'name' => 'Standard']]);
-        $this->users->method('findById')->willReturn(['first_name' => 'X', 'last_name' => 'Y', 'email' => 'x@y.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'X', 'last_name' => 'Y', 'email' => 'x@y.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertCount(2, $rows);
     }
@@ -185,8 +180,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '18:00', 540, 60),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@b.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@b.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame(480, $rows[0]['net_min']);
     }
@@ -197,8 +191,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '09:30', 30, 60),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@b.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@b.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame(0, $rows[0]['net_min']);
     }
@@ -209,8 +202,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '08:00', '12:00', 240, 0),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@b.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@b.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame(240, $rows[0]['gross_min']);
         $this->assertSame(240, $rows[0]['net_min']);
@@ -227,8 +219,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'Marie', 'last_name' => 'Curie', 'email' => 'm@c.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'Marie', 'last_name' => 'Curie', 'email' => 'm@c.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('Curie Marie', $rows[0]['employee']);
     }
@@ -239,8 +230,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => '', 'last_name' => '', 'email' => 'noname@store.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => '', 'last_name' => '', 'email' => 'noname@store.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('noname@store.com', $rows[0]['employee']);
     }
@@ -251,8 +241,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => '  ', 'last_name' => '  ', 'email' => 'ws@store.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => '  ', 'last_name' => '  ', 'email' => 'ws@store.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('ws@store.com', $rows[0]['employee']);
     }
@@ -263,8 +252,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(99, '09:00', '17:00', 480),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(null);
-
+        kintai_test_users(findById: fn() => null);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('—', $rows[0]['employee']);
     }
@@ -279,8 +267,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '14:00', '22:00', 480, 0, 5),
         ]);
         kintai_test_shift_types([['id' => 5, 'name' => 'Soir']]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('Soir', $rows[0]['type']);
     }
@@ -291,8 +278,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '17:00', 480, 0, 999),
         ]);
         kintai_test_shift_types([['id' => 5, 'name' => 'Jour']]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('—', $rows[0]['type']);
     }
@@ -303,8 +289,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '17:00', 480, 0, 0),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('—', $rows[0]['type']);
     }
@@ -319,8 +304,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00:00', '17:30:00', 510),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('09:00', $rows[0]['start']);
         $this->assertSame('17:30', $rows[0]['end']);
@@ -332,8 +316,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '08:30', '16:45', 495),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('08:30', $rows[0]['start']);
         $this->assertSame('16:45', $rows[0]['end']);
@@ -351,12 +334,11 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(30, '10:00:00', '18:00:00', 480),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturnMap([
+        kintai_test_users(findById: fn(int $id) => array_column([
             [10, ['first_name' => 'Matin', 'last_name' => '', 'email' => 'a@a.com']],
             [20, ['first_name' => 'Aprem', 'last_name' => '', 'email' => 'b@b.com']],
             [30, ['first_name' => 'Midi',  'last_name' => '', 'email' => 'c@c.com']],
-        ]);
-
+        ], 1, 0)[$id] ?? null);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertSame('08:00', $rows[0]['start']);
         $this->assertSame('10:00', $rows[1]['start']);
@@ -370,8 +352,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(20, '09:00:00', '17:00:00', 480),
         ]);
         kintai_test_shift_types([]);
-        $this->users->method('findById')->willReturn(['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'A', 'last_name' => 'B', 'email' => '']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertCount(2, $rows);
         $this->assertSame('09:00', $rows[0]['start']);
@@ -384,16 +365,12 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsCachesUserLookupForSameUser(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         kintai_test_shifts([
             $this->shift(10, '08:00', '12:00', 240),
             $this->shift(10, '13:00', '17:00', 240),
         ]);
         kintai_test_shift_types([]);
-        $this->users->expects($this->once())
-            ->method('findById')
-            ->willReturn(['first_name' => 'Alice', 'last_name' => '', 'email' => 'alice@store.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'Alice', 'last_name' => '', 'email' => 'alice@store.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertCount(2, $rows);
         $this->assertSame('Alice', $rows[0]['employee']);
@@ -402,17 +379,13 @@ final class DailyReportPdfServiceTest extends TestCase
 
     public function testBuildShiftRowsQueriesEachDistinctUserOnce(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         kintai_test_shifts([
             $this->shift(10, '08:00', '12:00', 240),
             $this->shift(20, '09:00', '17:00', 480),
             $this->shift(10, '13:00', '17:00', 240),
         ]);
         kintai_test_shift_types([]);
-        $this->users->expects($this->exactly(2))
-            ->method('findById')
-            ->willReturn(['first_name' => 'X', 'last_name' => '', 'email' => 'x@x.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'X', 'last_name' => '', 'email' => 'x@x.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $this->assertCount(3, $rows);
     }
@@ -427,8 +400,7 @@ final class DailyReportPdfServiceTest extends TestCase
             $this->shift(10, '09:00', '17:00', 480, 30, 2),
         ]);
         kintai_test_shift_types([['id' => 2, 'name' => 'Journée']]);
-        $this->users->method('findById')->willReturn(['first_name' => 'Jean', 'last_name' => 'Bon', 'email' => 'jb@test.com']);
-
+        kintai_test_users(findById: fn() => ['first_name' => 'Jean', 'last_name' => 'Bon', 'email' => 'jb@test.com']);
         $rows = $this->invokeShiftRows($this->store(), $this->report());
         $row  = $rows[0];
 

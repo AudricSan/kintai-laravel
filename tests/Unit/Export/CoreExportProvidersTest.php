@@ -17,7 +17,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use App\Services\ScheduleExportService;
 use App\Services\ShiftWageCalculator;
@@ -34,14 +34,13 @@ final class CoreExportProvidersTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id): ?array => [
+        kintai_test_users(findById: fn(int $id): ?array => [
             5 => ['id' => 5, 'first_name' => 'Aki', 'last_name' => 'Sato', 'display_name' => '', 'email' => 'aki@example.test', 'password_hash' => 'SECRET', 'remember_token' => 'TOKEN', 'bio' => 'privé', 'is_active' => 1],
             6 => ['id' => 6, 'first_name' => 'Ben', 'last_name' => 'Roy', 'display_name' => 'Benny', 'email' => 'ben@example.test', 'is_active' => 1],
         ][$id] ?? null);
         kintai_test_stores(findById: fn(int $id): ?array => $id === 3
             ? ['id' => 3, 'code' => 'ST', 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo', 'currency' => 'JPY', 'api_token' => 'SECRET'] : null);
-        $this->directory = new ExportDirectory($users);
+        $this->directory = new ExportDirectory();
         kintai_test_shifts([
             ['id' => 1, 'user_id' => 5, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'duration_minutes' => 480, 'shift_type_id' => 7, 'notes' => 'a'],
             ['id' => 2, 'user_id' => 6, 'store_id' => 3, 'shift_date' => '2026-11-01', 'start_time' => '10:00', 'end_time' => '14:00', 'pause_minutes' => 0, 'duration_minutes' => 240, 'shift_type_id' => 7],
@@ -99,7 +98,6 @@ final class CoreExportProvidersTest extends TestCase
 
     public function testAvailabilitiesAreFilteredByPerson(): void
     {
-        kintai_test_availabilities([], []);
         \Illuminate\Support\Facades\DB::table('stores')->insertOrIgnore(['id' => 3, 'name' => 'Magasin 3', 'code' => 'M3']);
         foreach ([
             ['user_id' => 5, 'day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '17:00', 'is_available' => 1],

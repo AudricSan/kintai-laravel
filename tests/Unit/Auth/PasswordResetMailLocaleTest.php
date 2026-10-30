@@ -9,7 +9,7 @@ use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\PasswordResetToken;
 use App\Repositories\TranslationRepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\PasswordResetService;
 use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
@@ -37,7 +37,6 @@ final class PasswordResetMailLocaleTest extends TestCase
         // __() passe par le conteneur : on y place ce traducteur le temps du test.
 
         $this->service = new PasswordResetService(
-            $this->createStub(UserRepositoryInterface::class),
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             null,
             $this->translator,

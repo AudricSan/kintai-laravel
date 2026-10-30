@@ -18,7 +18,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -79,22 +79,21 @@ final class AuthControllerProfileFieldsTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database(); // avant de remplacer le conteneur : les migrations en ont besoin
+        kintai_test_migrate();
+        kintai_test_fk_off();
         $this->previousContainer = (new \ReflectionProperty(Container::class, 'instance'))->getValue();
         $this->activeBundles('team-directory');
 
 
         $userId = 7;
         session()->put(auth()->getName(), $userId);
-
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->with($userId)->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => $userId, 'language' => 'fr', 'show_in_directory' => 1,
         ]);
-
         kintai_test_assignments(findByUser: fn() => []);
-        $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $rememberTokens);
+        $auth = new AuthService();
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr']]);
@@ -104,7 +103,6 @@ final class AuthControllerProfileFieldsTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->users,
             $languages,
             new AvatarImageOptimizer(),
         );
@@ -124,15 +122,11 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $_POST = ['language' => 'fr', 'show_in_directory' => '0', 'share_email' => '1'];
 
         $saved = null;
-        $this->users->method('save')->willReturnCallback(function (array $d) use (&$saved) {
-            $saved = $d;
-            return $d;
-        });
-
         $this->controller->updateProfile(Request::capture());
 
+        $saved = \App\Models\User::query()->orderByDesc('id')->first()?->toArray();
         $this->assertSame(1, $saved['show_in_directory']);
-        $this->assertArrayNotHasKey('share_email', $saved);
+        $this->assertEmpty($saved['share_email'], 'case absente : valeur conservée (désactivée)');
     }
 
     public function testPersistsContactAndEnrichedProfileFields(): void
@@ -154,13 +148,9 @@ final class AuthControllerProfileFieldsTest extends TestCase
         ];
 
         $saved = null;
-        $this->users->method('save')->willReturnCallback(function (array $d) use (&$saved) {
-            $saved = $d;
-            return $d;
-        });
-
         $this->controller->updateProfile(Request::capture());
 
+        $saved = \App\Models\User::query()->orderByDesc('id')->first()?->toArray();
         $this->assertNotNull($saved);
         $this->assertSame('01 23 45 67 89', $saved['phone']);
         $this->assertSame('06 00 00 00 00', $saved['mobile_phone']);
@@ -182,13 +172,9 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $_POST = ['language' => 'fr', 'show_in_directory' => '0'];
 
         $saved = null;
-        $this->users->method('save')->willReturnCallback(function (array $d) use (&$saved) {
-            $saved = $d;
-            return $d;
-        });
-
         $this->controller->updateProfile(Request::capture());
 
+        $saved = \App\Models\User::query()->orderByDesc('id')->first()?->toArray();
         $this->assertSame(0, $saved['show_in_directory']);
     }
 
@@ -197,13 +183,9 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $_POST = ['language' => 'fr'];
 
         $saved = null;
-        $this->users->method('save')->willReturnCallback(function (array $d) use (&$saved) {
-            $saved = $d;
-            return $d;
-        });
-
         $this->controller->updateProfile(Request::capture());
 
+        $saved = \App\Models\User::query()->orderByDesc('id')->first()?->toArray();
         $this->assertSame(0, $saved['share_email']);
         $this->assertSame(0, $saved['share_phone']);
         $this->assertSame(0, $saved['share_mobile_phone']);
@@ -219,16 +201,12 @@ final class AuthControllerProfileFieldsTest extends TestCase
         $_POST = ['bio' => 'Bonjour'];
 
         $saved = null;
-        $this->users->method('save')->willReturnCallback(function (array $d) use (&$saved) {
-            $saved = $d;
-            return $d;
-        });
-
         $this->controller->updateProfile(Request::capture());
 
+        $saved = \App\Models\User::query()->orderByDesc('id')->first()?->toArray();
         $this->assertSame('Bonjour', $saved['bio']);
         $this->assertSame(1, $saved['show_in_directory'], 'case absente : valeur conservée');
-        $this->assertArrayNotHasKey('phone', $saved, 'champ absent : non réécrit (pas vidé)');
+        $this->assertEmpty($saved['phone'], 'champ absent : non réécrit (resté vide)');
         $this->assertSame(0, $saved['share_email']);
     }
 }

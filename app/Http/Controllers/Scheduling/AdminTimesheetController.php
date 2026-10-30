@@ -11,7 +11,7 @@ use App\Extension\ExtensionRegistry;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\TimesheetApproval;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -29,7 +29,6 @@ final class AdminTimesheetController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly TimesheetService $timesheets,
         private readonly PermissionService $permissions,
         private readonly AuditLogger $auditLogger,

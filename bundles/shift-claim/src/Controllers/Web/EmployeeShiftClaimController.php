@@ -10,7 +10,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -26,7 +26,6 @@ final class EmployeeShiftClaimController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -172,7 +171,7 @@ final class EmployeeShiftClaimController
         $recipients = [];
         foreach (StoreUser::findByStore($storeId) as $m) {
             $uid = (int) $m['user_id'];
-            $candidate = $this->users->findById($uid);
+            $candidate = User::findById($uid);
             if ($candidate !== null && $this->permissions->can($candidate, 'open_shifts.approve', $storeId)) {
                 $recipients[] = $uid;
             }
@@ -182,7 +181,7 @@ final class EmployeeShiftClaimController
         }
 
         $store        = Store::findById($storeId);
-        $claimant     = $this->users->findById($claimantId);
+        $claimant     = User::findById($claimantId);
         $claimantName = trim(($claimant['last_name'] ?? '') . ' ' . ($claimant['first_name'] ?? ''));
         $claimantName = $claimantName !== '' ? $claimantName : ('#' . $claimantId);
 

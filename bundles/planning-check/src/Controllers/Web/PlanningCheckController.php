@@ -13,7 +13,7 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningPdfService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\Store;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Http\Concerns\HasBaseUrl;
@@ -36,7 +36,6 @@ final class PlanningCheckController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly Repo $repo,
-        private readonly UserRepositoryInterface $users,
         private readonly PlanningCheckService $service,
         private readonly PlanningShiftRows $rows,
         private readonly PlanningPdfService $pdf,
@@ -92,7 +91,7 @@ final class PlanningCheckController
             foreach (['submitted_by', 'validated_by', 'rejected_by'] as $field) {
                 $uid = $check[$field];
                 if ($uid !== null && !isset($names[$uid])) {
-                    $u = $this->users->findById($uid);
+                    $u = User::findById($uid);
                     $names[$uid] = $u === null ? '—' : (trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? '')) ?: ($u['email'] ?? '—'));
                 }
             }

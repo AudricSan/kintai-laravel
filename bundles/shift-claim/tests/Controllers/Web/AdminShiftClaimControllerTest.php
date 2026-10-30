@@ -11,7 +11,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
@@ -59,7 +59,6 @@ final class AdminShiftClaimControllerTest extends TestCase
             $view->addNamespace('shift-claim', $viewDir);
             $this->controller = new AdminShiftClaimController(
                 $view,
-                $this->createStub(UserRepositoryInterface::class),
                 $this->shiftClaims,
                 $this->shiftService,
                 new AuditLogger(),

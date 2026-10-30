@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Models\RoleAssignment;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Services\CalendarSyncService;
 
 /**
@@ -22,7 +22,6 @@ final class UserAnonymizer
     public const DISPLAY_NAME = 'Utilisateur supprimé';
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly CredentialRevoker $revoker,
         private readonly ?string $avatarDir = null,
         private readonly ?CalendarSyncService $calendar = null,
@@ -30,7 +29,7 @@ final class UserAnonymizer
 
     public function anonymize(int $userId): void
     {
-        $user = $this->users->findById($userId);
+        $user = User::findById($userId);
         if ($user === null) {
             return;
         }
@@ -41,7 +40,7 @@ final class UserAnonymizer
         }
 
         $now = date('Y-m-d H:i:s');
-        $this->users->save([
+        User::put([
             'id'                  => $userId,
             'first_name'          => '[Supprimé]',
             'last_name'           => '',

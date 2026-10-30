@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\System;
 
 use App\Models\ActivityEntry;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -24,7 +24,6 @@ final class ActivityController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -56,7 +55,7 @@ final class ActivityController
         ];
 
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $uid = (int) $u['id'];
             $name = $u['display_name'] ?? trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? ''));
             $usersMap[$uid] = $name ? sprintf('%s (%s)', $name, $u['email'] ?? '') : ($u['email'] ?? sprintf('user #%d', $uid));
@@ -119,7 +118,7 @@ final class ActivityController
         $rows    = ActivityEntry::findAll(1, self::EXPORT_MAX_ROWS, $filters);
 
         $usersMap = [];
-        foreach ($this->users->findAll() as $u) {
+        foreach (User::findAll() as $u) {
             $uid = (int) $u['id'];
             $name = $u['display_name'] ?? trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? ''));
             $usersMap[$uid] = $name ?: ($u['email'] ?? sprintf('#%d', $uid));

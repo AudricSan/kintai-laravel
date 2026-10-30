@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Auth\AuthService;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\StoreUser;
 use App\Models\Store;
 use App\Models\Role;
@@ -16,7 +16,6 @@ use App\Models\RoleAssignment;
 
 final class AuthServiceTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private ?AuthService $auth = null;
 
     protected function setUp(): void
@@ -25,15 +24,13 @@ final class AuthServiceTest extends TestCase
         kintai_test_migrate();
         kintai_test_fk_off();
         session()->forget(auth()->getName());
-
-        $this->users           = $this->createStub(UserRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function auth(): AuthService
     {
         if ($this->auth === null) {
-            $this->auth = new AuthService($this->users);
+            $this->auth = new AuthService();
         }
 
         return $this->auth;
@@ -92,10 +89,8 @@ final class AuthServiceTest extends TestCase
 
     public function testAttemptSucceedsWithValidCredentials(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         $user = $this->activeUser();
-        $this->users->expects($this->atLeastOnce())->method('findByEmail')->with('user@test.com')->willReturn($user);
-
+        kintai_test_users(findByEmail: fn() => $user);
         $result = $this->auth()->attempt('user@test.com', 'secret123');
 
         $this->assertTrue($result);
@@ -104,15 +99,14 @@ final class AuthServiceTest extends TestCase
 
     public function testAttemptFailsForUnknownEmail(): void
     {
-        $this->users->method('findByEmail')->willReturn(null);
+        kintai_test_users(findByEmail: fn() => null);
         $this->assertFalse($this->auth()->attempt('nobody@test.com', 'pass'));
     }
 
     public function testAttemptFailsForWrongPassword(): void
     {
         $user = $this->activeUser();
-        $this->users->method('findByEmail')->willReturn($user);
-
+        kintai_test_users(findByEmail: fn() => $user);
         $this->assertFalse($this->auth()->attempt('user@test.com', 'wrongpassword'));
     }
 
@@ -120,8 +114,7 @@ final class AuthServiceTest extends TestCase
     {
         $user               = $this->activeUser();
         $user['is_active']  = 0;
-        $this->users->method('findByEmail')->willReturn($user);
-
+        kintai_test_users(findByEmail: fn() => $user);
         $this->assertFalse($this->auth()->attempt('user@test.com', 'secret123'));
     }
 
@@ -129,8 +122,7 @@ final class AuthServiceTest extends TestCase
     {
         $user                = $this->activeUser();
         $user['deleted_at']  = '2025-01-01 00:00:00';
-        $this->users->method('findByEmail')->willReturn($user);
-
+        kintai_test_users(findByEmail: fn() => $user);
         $this->assertFalse($this->auth()->attempt('user@test.com', 'secret123'));
     }
 
@@ -140,12 +132,11 @@ final class AuthServiceTest extends TestCase
 
     public function testAttemptByCodeSucceeds(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         $store = ['id' => 5, 'code' => 'STORE01'];
         $user  = array_merge($this->activeUser(), ['employee_code' => 'EMP001']);
 
         kintai_test_stores(findByCode: fn() => $store);
-        $this->users->expects($this->atLeastOnce())->method('findByEmployeeCode')->with('EMP001')->willReturn($user);
+        kintai_test_users(findByEmployeeCode: fn() => $user);
         kintai_test_store_users(findMembership: fn() => ['role' => 'staff']);
         $result = $this->auth()->attemptByCode('EMP001', 'STORE01', 'secret123');
         $this->assertTrue($result);
@@ -160,8 +151,7 @@ final class AuthServiceTest extends TestCase
     public function testAttemptByCodeFailsForUnknownEmployee(): void
     {
         kintai_test_stores(findByCode: fn() => ['id' => 1, 'code' => 'S']);
-        $this->users->method('findByEmployeeCode')->willReturn(null);
-
+        kintai_test_users(findByEmployeeCode: fn() => null);
         $this->assertFalse($this->auth()->attemptByCode('NOBODY', 'S', 'pass'));
     }
 
@@ -170,7 +160,7 @@ final class AuthServiceTest extends TestCase
         $store = ['id' => 5, 'code' => 'S'];
         $user  = $this->activeUser();
         kintai_test_stores(findByCode: fn() => $store);
-        $this->users->method('findByEmployeeCode')->willReturn($user);
+        kintai_test_users(findByEmployeeCode: fn() => $user);
         kintai_test_store_users(findMembership: fn() => null);
         $this->assertFalse($this->auth()->attemptByCode('EMP', 'S', 'secret123'));
     }
@@ -194,10 +184,9 @@ final class AuthServiceTest extends TestCase
     public function testCheckReturnsTrueAfterLogin(): void
     {
         $user = $this->activeUser();
-        $this->users->method('findByEmail')->willReturn($user);
+        kintai_test_users(findById: fn() => $user, findByEmail: fn() => $user);
         // check() recharge désormais l'utilisateur (compte actif, mot de passe inchangé)
         // au lieu de se contenter de lire l'identifiant en session.
-        $this->users->method('findById')->willReturn($user);
         $this->auth()->attempt('user@test.com', 'secret123');
 
         $this->assertTrue($this->auth()->check());
@@ -214,11 +203,9 @@ final class AuthServiceTest extends TestCase
 
     public function testUserReturnsUserFromDatabase(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         session()->put(auth()->getName(), 10);
         $user = $this->activeUser();
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($user);
-
+        kintai_test_users(findById: fn(int $id) => $id === 10 ? $user : null);
         $result = $this->auth()->user();
         $this->assertSame(10, $result['id']);
     }
@@ -237,7 +224,7 @@ final class AuthServiceTest extends TestCase
     public function testCheckReturnsFalseAfterLogout(): void
     {
         $user = $this->activeUser();
-        $this->users->method('findByEmail')->willReturn($user);
+        kintai_test_users(findByEmail: fn() => $user);
         $this->auth()->attempt('user@test.com', 'secret123');
 
         $this->auth()->logout();
@@ -250,14 +237,14 @@ final class AuthServiceTest extends TestCase
 
     public function testIsAdminReturnsFalseWhenNotLoggedIn(): void
     {
-        $this->users->method('findById')->willReturn(null);
+        kintai_test_users(findById: fn() => null);
         $this->assertFalse($this->auth()->isAdmin());
     }
 
     public function testIsAdminReturnsTrueForOwnerRoleAssignment(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertTrue($this->auth()->isAdmin());
     }
@@ -265,7 +252,7 @@ final class AuthServiceTest extends TestCase
     public function testIsAdminReturnsFalseForRegularUser(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         kintai_test_assignments(findByUser: fn() => []);
         $this->assertFalse($this->auth()->isAdmin());
     }
@@ -276,7 +263,7 @@ final class AuthServiceTest extends TestCase
         // seule une affectation role_assignments de portée globale à un rôle
         // système compte désormais.
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, true));
+        kintai_test_users(findById: fn() => $this->activeUser(10, true));
         kintai_test_assignments(findByUser: fn() => []);
         $this->assertFalse($this->auth()->isAdmin());
     }
@@ -287,7 +274,7 @@ final class AuthServiceTest extends TestCase
 
     public function testManagedStoreIdsEmptyWhenNotLoggedIn(): void
     {
-        $this->users->method('findById')->willReturn(null);
+        kintai_test_users(findById: fn() => null);
         $this->assertSame([], $this->auth()->managedStoreIds());
     }
 
@@ -295,7 +282,7 @@ final class AuthServiceTest extends TestCase
     {
         // Admin global → retourne [] (pas de restriction)
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertSame([], $this->auth()->managedStoreIds());
     }
@@ -303,7 +290,7 @@ final class AuthServiceTest extends TestCase
     public function testManagedStoreIdsForRoleFlaggedManager(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 2, ['employees.view', 'employees.create'], isManager: true);
 
         $ids = $this->auth()->managedStoreIds();
@@ -313,7 +300,7 @@ final class AuthServiceTest extends TestCase
     public function testManagedStoreIdsEmptyForRoleWithoutPermissionsNorManagerFlag(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, [], isManager: false); // rôle sans permission ni flag manager (ex. Employé)
 
         $this->assertSame([], $this->auth()->managedStoreIds());
@@ -330,7 +317,7 @@ final class AuthServiceTest extends TestCase
     public function testManagedStoreIdsIncludesStoreForManagerFlaggedRoleGrantingOnlyViewPermissions(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.view'], isManager: true);
 
         $this->assertSame([1], $this->auth()->managedStoreIds());
@@ -346,7 +333,7 @@ final class AuthServiceTest extends TestCase
     public function testManagedStoreIdsEmptyForRoleGrantingPermissionButNotFlaggedManager(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.create'], isManager: false);
 
         $this->assertSame([], $this->auth()->managedStoreIds());
@@ -359,7 +346,7 @@ final class AuthServiceTest extends TestCase
     public function testIsManagerTrueForGlobalAdmin(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantOwnerRole(10);
         $this->assertTrue($this->auth()->isManager());
     }
@@ -367,7 +354,7 @@ final class AuthServiceTest extends TestCase
     public function testIsManagerTrueForRoleFlaggedManager(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 2, ['employees.view', 'employees.create'], isManager: true);
         $this->assertTrue($this->auth()->isManager());
     }
@@ -375,7 +362,7 @@ final class AuthServiceTest extends TestCase
     public function testIsManagerFalseForRoleWithoutPermissionsNorManagerFlag(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, [], isManager: false);
         $this->assertFalse($this->auth()->isManager());
     }
@@ -384,7 +371,7 @@ final class AuthServiceTest extends TestCase
     public function testIsManagerTrueForManagerFlaggedRoleGrantingOnlyViewPermissions(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.view'], isManager: true);
         $this->assertTrue($this->auth()->isManager());
     }
@@ -393,7 +380,7 @@ final class AuthServiceTest extends TestCase
     public function testIsManagerFalseForRoleGrantingPermissionButNotFlaggedManager(): void
     {
         session()->put(auth()->getName(), 10);
-        $this->users->method('findById')->willReturn($this->activeUser(10, false));
+        kintai_test_users(findById: fn() => $this->activeUser(10, false));
         $this->grantStoreRole(10, 1, 3, ['photos.create'], isManager: false);
         $this->assertFalse($this->auth()->isManager());
     }

@@ -10,7 +10,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -26,7 +26,6 @@ final class AdminSwapController
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
-        private readonly UserRepositoryInterface $users,
         // Requis par le trait HasAdminAccess (memberUserIds) : sans lui, un gérant limité à ses magasins
         // provoquait une erreur 500 sur /admin/swap-requests/create.
     ) {}
@@ -40,8 +39,8 @@ final class AdminSwapController
         $managedIds = $this->managedIds($request);
         $userIds    = $managedIds !== null ? $this->memberUserIds($managedIds) : null;
         $employees  = $userIds !== null
-            ? array_values(array_filter($this->users->findAll(), fn($u) => in_array((int) $u['id'], $userIds, true)))
-            : $this->users->findAll();
+            ? array_values(array_filter(User::findAll(), fn($u) => in_array((int) $u['id'], $userIds, true)))
+            : User::findAll();
 
         usort($employees, fn($a, $b) => strcmp(
             strtolower(trim(($a['last_name'] ?? '') . ' ' . ($a['first_name'] ?? ''))),

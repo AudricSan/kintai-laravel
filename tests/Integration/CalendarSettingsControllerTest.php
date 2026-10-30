@@ -16,9 +16,8 @@ use App\Services\AuditLogger;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleRedirectUri;
 use App\Services\PublicUrlResolver;
-use App\Repositories\DatabaseUserRepository;
 use App\Models\ApiToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Tests\Support\CalendarSyncFixture;
 use App\Http\Controllers\System\CalendarSettingsController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -138,8 +137,7 @@ final class CalendarSettingsControllerTest extends TestCase
         $this->sync->processQueue();
         kintai_test_assignments(findByUser: fn() => []);
         $anonymizer = new UserAnonymizer(
-            new DatabaseUserRepository(),
-            new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),
+            new CredentialRevoker(),
             sys_get_temp_dir(),
             $this->sync,
         );
@@ -156,7 +154,7 @@ final class CalendarSettingsControllerTest extends TestCase
     {
         $this->sync->connect($this->alice, 'RA', null);
 
-        (new DatabaseUserRepository())->delete($this->alice);
+        User::remove($this->alice);
 
         foreach (['calendar_connections', 'calendar_event_links', 'calendar_sync_queue'] as $table) {
             $this->assertSame(0, $this->capsule->table($table)->count(), $table);

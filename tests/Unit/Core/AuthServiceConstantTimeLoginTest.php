@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthServiceConstantTimeLoginTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private AuthService $auth;
     /** Durée d'un password_verify réel au coût utilisé par l'application (12). */
     private float $verifyDuration;
@@ -33,11 +32,7 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
     {
         session()->flush();
 
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-
         $this->auth = new AuthService(
-            $this->users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $secret = bin2hex(random_bytes(8));
@@ -70,15 +65,13 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
 
     public function testUnknownEmailCostsAsMuchAsAWrongPassword(): void
     {
-        $this->users->method('findByEmail')->willReturn(null);
-
+        kintai_test_users(findByEmail: fn() => null);
         $this->assertFailsSlowly(fn() => $this->auth->attempt('nobody@example.test', bin2hex(random_bytes(6))));
     }
 
     public function testInactiveAccountCostsAsMuchAsAWrongPassword(): void
     {
-        $this->users->method('findByEmail')->willReturn(['id' => 3, 'is_active' => 0, 'deleted_at' => null, 'password_hash' => 'not-a-real-hash']);
-
+        kintai_test_users(findByEmail: fn() => ['id' => 3, 'is_active' => 0, 'deleted_at' => null, 'password_hash' => 'not-a-real-hash']);
         $this->assertFailsSlowly(fn() => $this->auth->attempt('gone@example.test', bin2hex(random_bytes(6))));
     }
 
@@ -91,15 +84,14 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
     public function testUnknownEmployeeCodeCostsAsMuchAsAWrongPassword(): void
     {
         kintai_test_stores(findByCode: fn() => ['id' => 1]);
-        $this->users->method('findByEmployeeCode')->willReturn(null);
-
+        kintai_test_users(findByEmployeeCode: fn() => null);
         $this->assertFailsSlowly(fn() => $this->auth->attemptByCode('E404', 'TOKYO', bin2hex(random_bytes(6))));
     }
 
     public function testNonMemberCostsAsMuchAsAWrongPassword(): void
     {
         kintai_test_stores(findByCode: fn() => ['id' => 1]);
-        $this->users->method('findByEmployeeCode')->willReturn(['id' => 5, 'is_active' => 1, 'deleted_at' => null, 'password_hash' => 'not-a-real-hash']);
+        kintai_test_users(findByEmployeeCode: fn() => ['id' => 5, 'is_active' => 1, 'deleted_at' => null, 'password_hash' => 'not-a-real-hash']);
         kintai_test_store_users(findMembership: fn() => null);
         $this->assertFailsSlowly(fn() => $this->auth->attemptByCode('E005', 'TOKYO', bin2hex(random_bytes(6))));
     }
@@ -107,11 +99,10 @@ final class AuthServiceConstantTimeLoginTest extends TestCase
     public function testValidLoginStillWorks(): void
     {
         $secret = bin2hex(random_bytes(8));
-        $this->users->method('findByEmail')->willReturn([
-            'id' => 9, 'is_active' => 1, 'deleted_at' => null,
+        kintai_test_users(findByEmail: fn() => [
+            'id' => 9, 'email' => 'ok@example.test', 'is_active' => 1, 'deleted_at' => null,
             'password_hash' => password_hash($secret, PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
-
         $this->assertTrue($this->auth->attempt('ok@example.test', $secret));
     }
 }

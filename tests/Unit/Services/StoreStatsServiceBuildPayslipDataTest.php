@@ -11,7 +11,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
@@ -44,7 +44,6 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
         ]);
         kintai_test_store_users(findMembership: fn() => null);
         $service = new StoreStatsService(
-            $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
             ),
         );

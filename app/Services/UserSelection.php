@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Auth\PermissionService;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Sélection d'employés d'un magasin (destinataires d'un envoi, valideurs, personnes à notifier…) : liste des candidats
@@ -22,7 +22,6 @@ final class UserSelection
     public const DEFAULT_MAX = 20;
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
     ) {}
 
@@ -118,7 +117,7 @@ final class UserSelection
 
         $members = [];
         foreach (array_keys($ids) as $id) {
-            $user = $this->users->findById($id);
+            $user = User::findById($id);
             if ($user === null || (isset($user['is_active']) && !(bool) $user['is_active'])) {
                 continue;
             }

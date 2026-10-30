@@ -13,7 +13,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -43,20 +43,15 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
         $this->viewDir = sys_get_temp_dir() . '/kintai-auth-profile-test';
         $this->ensureViewFile($this->viewDir, 'auth.profile', "<?= !empty(\$has_default_password) ? 'DEFAULT_PW_WARNING' : 'NO_WARNING' ?>");
         $this->ensureViewFile($this->viewDir, 'layout.app', '<?= $content ?>');
-
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         kintai_test_store_users(findByUser: fn() => []);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
-            $this->users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->controller = new AuthController(
             kintai_test_views($this->viewDir),
             $auth,
             new AuditLogger(),
-            $this->users,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );
@@ -69,11 +64,10 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
     public function testWarningShownWhenPasswordIsStillTheDefault(): void
     {
-        $this->users->method('findById')->with(self::USER_ID)->willReturn([
+        kintai_test_users(findById: fn() => [
             'id'            => self::USER_ID,
             'password_hash' => password_hash('0000', PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
-
         $response = $this->controller->showProfile(Request::capture());
 
         $this->assertStringContainsString('DEFAULT_PW_WARNING', $response->getContent());
@@ -81,11 +75,10 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
 
     public function testWarningHiddenWhenPasswordHasBeenChanged(): void
     {
-        $this->users->method('findById')->with(self::USER_ID)->willReturn([
+        kintai_test_users(findById: fn() => [
             'id'            => self::USER_ID,
             'password_hash' => password_hash('a-real-password', PASSWORD_BCRYPT, ['cost' => 4]),
         ]);
-
         $response = $this->controller->showProfile(Request::capture());
 
         $this->assertStringContainsString('NO_WARNING', $response->getContent());

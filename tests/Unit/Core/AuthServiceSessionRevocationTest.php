@@ -11,7 +11,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -24,8 +24,6 @@ use PHPUnit\Framework\TestCase;
 final class AuthServiceSessionRevocationTest extends TestCase
 {
     use \Tests\Support\ApiTokenExpectations;
-
-    private UserRepositoryInterface&Stub $users;
     /** @var array<string, mixed> Ligne « en base » que findById() renvoie, modifiable par chaque test. */
     private array $row;
     private AuthService $auth;
@@ -47,14 +45,9 @@ final class AuthServiceSessionRevocationTest extends TestCase
             'deleted_at'    => null,
             'password_hash' => password_hash($this->pwOne, PASSWORD_BCRYPT, ['cost' => 4]),
         ];
-
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturnCallback(fn() => $this->row);
-        $this->users->method('findByEmail')->willReturnCallback(fn() => $this->row);
+        kintai_test_users(findById: fn() => $this->row, findByEmail: fn() => $this->row);
         kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
-            $this->users,
-            $this->createStub(UserRepositoryInterface::class),
         );
     }
 
@@ -80,6 +73,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
     {
         $this->loginNormally();
         $this->row['is_active'] = 0;
+        kintai_test_users(findById: fn() => $this->row, findByEmail: fn() => $this->row);
 
         $this->assertFalse($this->auth->check());
         $this->assertNull($this->auth->user());
@@ -90,6 +84,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
     {
         $this->loginNormally();
         $this->row['deleted_at'] = '2026-09-30 10:00:00';
+        kintai_test_users(findById: fn() => $this->row, findByEmail: fn() => $this->row);
 
         $this->assertFalse($this->auth->check());
     }
@@ -97,11 +92,8 @@ final class AuthServiceSessionRevocationTest extends TestCase
     public function testSessionOfAnUnknownUserIsRefused(): void
     {
         session()->put(auth()->getName(), 999);
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturn(null);
+        kintai_test_users(findById: fn() => null);
         $auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
 
         $this->assertFalse($auth->check());
@@ -111,6 +103,7 @@ final class AuthServiceSessionRevocationTest extends TestCase
     {
         $this->loginNormally();
         $this->row['password_hash'] = password_hash($this->pwTwo, PASSWORD_BCRYPT, ['cost' => 4]);
+        kintai_test_users(findById: fn() => $this->row, findByEmail: fn() => $this->row);
 
         $this->auth->refreshSessionAfterPasswordChange($this->row);
 
@@ -133,10 +126,10 @@ final class AuthServiceSessionRevocationTest extends TestCase
 
     public function testCredentialRevokerRemovesRememberCookiesAndApiTokens(): void
     {
-        $remember = $this->createMock(UserRepositoryInterface::class);
-        $remember->expects($this->once())->method('revokeRememberToken')->with(42);
+        kintai_test_remember_token(42);
         $this->expectApiTokensRevoked(42);
 
-        (new CredentialRevoker($remember))->revokeAllFor(42);
+        (new CredentialRevoker())->revokeAllFor(42);
+        $this->assertNull(\App\Models\User::query()->find(42)?->remember_token, 'jeton « rester connecté » révoqué');
     }
 }

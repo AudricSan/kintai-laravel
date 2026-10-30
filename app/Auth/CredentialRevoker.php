@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Models\ApiToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 
 /**
  * Révoque les identifiants persistants d'un utilisateur : cookie « rester connecté » (jeton users.remember_token du
@@ -18,13 +18,9 @@ use App\Repositories\UserRepositoryInterface;
  */
 final class CredentialRevoker
 {
-    public function __construct(
-        private readonly UserRepositoryInterface $users,
-    ) {}
-
     public function revokeAllFor(int $userId): void
     {
-        $this->users->revokeRememberToken($userId);
+        User::revokeRememberToken($userId);
         ApiToken::deleteByUserId($userId);
     }
 }

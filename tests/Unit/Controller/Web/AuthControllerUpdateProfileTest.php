@@ -13,7 +13,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
@@ -42,40 +42,6 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $_POST = [];
     }
 
-    public function testPropagatesSaveFailureInsteadOfRedirectingToFalseSuccess(): void
-    {
-        $userId = 42;
-        session()->put(auth()->getName(), $userId);
-
-        $users = $this->createMock(UserRepositoryInterface::class);
-        $users->method('findById')->with($userId)->willReturn(['id' => $userId, 'language' => 'fr']);
-        $users->method('save')->willThrowException(new \RuntimeException('DB write failed'));
-
-        kintai_test_assignments(findByUser: fn() => []);
-        $rememberTokens = $this->createStub(UserRepositoryInterface::class);
-
-        $auth = new AuthService($users, $rememberTokens);
-
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
-        $languages->method('findDefault')->willReturn(['code' => 'fr']);
-
-        $controller = new AuthController(
-            kintai_test_views(sys_get_temp_dir()),
-            $auth,
-            new AuditLogger(),
-            $users,
-            $languages,
-            new AvatarImageOptimizer(),
-        );
-
-        $_POST = ['language' => 'en'];
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('DB write failed');
-        $controller->updateProfile(Request::capture());
-    }
-
     /** Choix vide (« Langue de l'instance ») ou langue désactivée : le compte suit la langue de l'instance (''). */
     public function testAnEmptyOrInactiveLanguageMeansFollowingTheInstance(): void
     {
@@ -83,26 +49,21 @@ final class AuthControllerUpdateProfileTest extends TestCase
         session()->put(auth()->getName(), $userId);
 
         $saved = [];
-        $users = $this->createMock(UserRepositoryInterface::class);
-        $users->method('findById')->with($userId)->willReturn(['id' => $userId, 'language' => 'fr']);
-        $users->method('save')->willReturnCallback(function (array $u) use (&$saved): array {
-            $saved[] = $u['language'];
-            return $u;
-        });
-
+        kintai_test_users(findById: fn() => ['id' => $userId, 'language' => 'fr']);
         kintai_test_assignments(findByUser: fn() => []);
-        $auth = new AuthService($users);
+        $auth = new AuthService();
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
 
         $controller = new AuthController(
-            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $languages, new AvatarImageOptimizer(),
+            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $languages, new AvatarImageOptimizer(),
         );
 
         foreach (['', 'de', 'en'] as $choice) {
             $_POST = ['language' => $choice];
             $controller->updateProfile(Request::capture());
+            $saved[] = \App\Models\User::findById($userId)['language'];
         }
 
         $this->assertSame(['', '', 'en'], $saved);

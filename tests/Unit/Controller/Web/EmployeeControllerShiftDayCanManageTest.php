@@ -19,7 +19,7 @@ use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -67,12 +67,10 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
     {
         return new EmployeeController(
             kintai_test_views($this->viewDir),
-            $this->createStub(UserRepositoryInterface::class),
             new AuditLogger(),
             new NotificationService(
                 new PushNotificationService([]),
                 kintai_test_translator(),
-                $this->createStub(UserRepositoryInterface::class),
             ),
             new PermissionService(),
         );

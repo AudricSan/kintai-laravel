@@ -8,7 +8,7 @@ use App\Models\StoreUser;
 use App\Auth\UserTargetGuard;
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\NotFoundException;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -22,14 +22,11 @@ use PHPUnit\Framework\TestCase;
 final class UserShiftRateControllerTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-
-    private UserRepositoryInterface&Stub $users;
     private ?UserShiftRateController $controller = null;
 
     protected function setUp(): void
     {
-        $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 20 ? ['id' => 20] : null);
+        kintai_test_users(findById: fn(int $id): ?array => $id === 20 ? ['id' => 20] : null);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -45,7 +42,7 @@ final class UserShiftRateControllerTest extends TestCase
     private function guard(): UserTargetGuard
     {
         kintai_test_store_users(findByUser: fn() => []);
-        return new UserTargetGuard($this->users, ApiOwnerAuth::permissions($this));
+        return new UserTargetGuard(ApiOwnerAuth::permissions($this));
     }
 
     // -------------------------------------------------------------------------
@@ -64,8 +61,7 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testIndexThrowsWhenUserNotFound(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(99)->willReturn(null);
+        kintai_test_users(findById: fn(int $id) => $id === 99 ? null : null);
         $controller = new UserShiftRateController($this->guard(), new AuditLogger());
 
         $this->expectException(NotFoundException::class);

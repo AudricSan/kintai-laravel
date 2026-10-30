@@ -10,7 +10,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
@@ -38,14 +38,12 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
     private function service(): StoreStatsService
     {
         if ($this->service === null) {
-            $users = $this->createStub(UserRepositoryInterface::class);
             kintai_test_store_users(findByStore: fn() => [['user_id' => 10]]);
             kintai_test_shift_types([]);
-            $users->method('findAll')->willReturn([
+            kintai_test_users(findAll: fn() => [
                 ['id' => 10, 'first_name' => 'Aiko', 'last_name' => 'Sato', 'email' => 'a@kintai.test', 'password_hash' => '$2y$12$secret'],
             ]);
             $this->service = new StoreStatsService(
-                $users,
                 new RoleAssignmentSyncService(
                 ),
             );

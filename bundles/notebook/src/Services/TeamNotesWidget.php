@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\Notebook\Services;
 
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 
 /**
  * Données du widget « Notes d'équipe » des tableaux de bord gérant et employé (point d'extension dashboardWidgets,
@@ -18,7 +18,6 @@ final class TeamNotesWidget
 
     public function __construct(
         private readonly NotebookEntryRepositoryInterface $notes,
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /**
@@ -40,7 +39,7 @@ final class TeamNotesWidget
         $entries = array_slice($entries, 0, self::LIMIT);
 
         return array_map(function (array $n) use ($storesMap): array {
-            $author = $n['author_id'] !== null ? $this->users->findById((int) $n['author_id']) : null;
+            $author = $n['author_id'] !== null ? User::findById((int) $n['author_id']) : null;
             $n['author_name'] = $author !== null
                 ? trim(($author['last_name'] ?? '') . ' ' . ($author['first_name'] ?? '')) ?: ($author['email'] ?? '#' . $n['author_id'])
                 : null;

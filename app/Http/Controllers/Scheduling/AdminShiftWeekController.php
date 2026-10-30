@@ -9,7 +9,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\ShiftWeekTemplate;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -28,7 +28,6 @@ final class AdminShiftWeekController
     use HasAdminAccess;
 
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly WeekPlanner $planner,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,

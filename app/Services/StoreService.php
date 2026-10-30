@@ -10,14 +10,13 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Routing\RouteSlugService;
 use App\Validation\StoreValidator;
 
 final class StoreService implements StoreServiceInterface
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly LanguageRepositoryInterface $languages,
         private readonly PlanLimitService $planLimits,
         private readonly ?RouteSlugService $routeSlugs = null,
@@ -58,7 +57,7 @@ final class StoreService implements StoreServiceInterface
         $memberships = StoreUser::findByStore($storeId);
         $users = [];
         foreach ($memberships as $m) {
-            $u = $this->users->findById((int) $m['user_id']);
+            $u = User::findById((int) $m['user_id']);
             if ($u) {
                 $users[] = array_merge($u, ['membership' => $m]);
             }

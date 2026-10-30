@@ -19,7 +19,7 @@ use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -73,9 +73,7 @@ final class AuthMiddlewareTest extends TestCase
     private function bindAuthenticatedUser(array $permissions, bool $isSystemRole = false, bool $isManagerRole = false): void
     {
         session()->put(auth()->getName(), 10);
-
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturn(['id' => 10, 'display_name' => 'Test']);
+        kintai_test_users(findById: fn() => ['id' => 10, 'display_name' => 'Test']);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => $isSystemRole ? 1 : 0, 'is_manager' => $isManagerRole ? 1 : 0], getPermissions: fn() => $permissions);
         kintai_test_assignments(findByUser: fn() => [
             [
@@ -88,7 +86,6 @@ final class AuthMiddlewareTest extends TestCase
         ]);
 
         $this->container->instance(AuthService::class, new AuthService(
-            $users,
         ));
         $this->container->instance(PermissionService::class, new PermissionService());
     }
@@ -200,10 +197,7 @@ final class AuthMiddlewareTest extends TestCase
     public function testRedirectsToLoginWhenNotAuthenticated(): void
     {
         session()->forget(auth()->getName());
-        $users = $this->createStub(UserRepositoryInterface::class);
         $this->container->instance(AuthService::class, new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         ));
 
         $response = $this->handle();

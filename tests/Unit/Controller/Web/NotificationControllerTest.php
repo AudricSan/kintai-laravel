@@ -11,7 +11,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use App\Services\WebPushEndpointValidator;
@@ -33,13 +33,9 @@ final class NotificationControllerTest extends TestCase
         kintai_test_database();
         kintai_test_migrate();
         kintai_test_user(5);
-
-        $users = $this->createMock(UserRepositoryInterface::class);
-        $users->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@example.com']);
+        kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'email' => 'employee@example.com'] : null);
         kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
-            $users,
-            $this->createStub(UserRepositoryInterface::class),
         );
     }
 

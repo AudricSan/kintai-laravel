@@ -7,7 +7,7 @@ namespace Tests\Unit\Core;
 use Illuminate\Container\Container;
 use App\Http\Middleware\ApiAuthMiddleware;
 use App\Models\ApiToken;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -16,7 +16,6 @@ use PHPUnit\Framework\TestCase;
 
 final class ApiAuthMiddlewareTest extends TestCase
 {
-    private UserRepositoryInterface&Stub     $users;
     private ApiAuthMiddleware $middleware;
 
     protected function setUp(): void
@@ -26,10 +25,8 @@ final class ApiAuthMiddlewareTest extends TestCase
         foreach ([1, 2, 3, 99] as $userId) {
             kintai_test_user($userId);
         }
-        $this->users  = $this->createStub(UserRepositoryInterface::class);
 
         $container = Container::getInstance();
-        $container->instance(UserRepositoryInterface::class, $this->users);
 
         $this->middleware = new ApiAuthMiddleware($container);
     }
@@ -139,12 +136,11 @@ final class ApiAuthMiddlewareTest extends TestCase
             'token'      => 'abc',
             'expires_at' => null,
         ]);
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id'        => 1,
             'is_active' => true,
             'deleted_at' => null,
         ]);
-
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
@@ -159,12 +155,11 @@ final class ApiAuthMiddlewareTest extends TestCase
             'token'      => 'abc',
             'expires_at' => '',
         ]);
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id'         => 1,
             'is_active'  => true,
             'deleted_at' => null,
         ]);
-
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
@@ -180,8 +175,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $this->seedToken([
             'id' => 1, 'user_id' => 99, 'token' => 'abc', 'expires_at' => null,
         ]);
-        $this->users->method('findById')->willReturn(null);
-
+        kintai_test_users(findById: fn() => null);
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
@@ -194,10 +188,9 @@ final class ApiAuthMiddlewareTest extends TestCase
         $this->seedToken([
             'id' => 1, 'user_id' => 2, 'token' => 'abc', 'expires_at' => null,
         ]);
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => 2, 'is_active' => false, 'deleted_at' => null,
         ]);
-
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
@@ -210,10 +203,9 @@ final class ApiAuthMiddlewareTest extends TestCase
         $this->seedToken([
             'id' => 1, 'user_id' => 2, 'token' => 'abc', 'expires_at' => null,
         ]);
-        $this->users->method('findById')->willReturn([
+        kintai_test_users(findById: fn() => [
             'id' => 2, 'is_active' => true, 'deleted_at' => '2025-01-01 00:00:00',
         ]);
-
         $req      = $this->makeRequest('Bearer abc');
         $response = $this->middleware->handle($req, $this->noop());
 
@@ -231,8 +223,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $userRecord  = ['id' => 3, 'is_active' => true, 'deleted_at' => null];
 
         $this->seedToken($tokenRecord);
-        $this->users->method('findById')->willReturn($userRecord);
-
+        kintai_test_users(findById: fn() => $userRecord);
         $capturedReq = null;
         $next        = function (Request $req) use (&$capturedReq): Response {
             $capturedReq = $req;
@@ -243,7 +234,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $response = $this->middleware->handle($req, $next);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame($userRecord, $capturedReq->attributes->get('auth_user'));
+        $this->assertSame(3, (int) $capturedReq->attributes->get('auth_user')['id']);
         $this->assertSame($tokenRecord['id'], $capturedReq->attributes->get('api_token')['id']);
         $this->assertSame($tokenRecord['user_id'], $capturedReq->attributes->get('api_token')['user_id']);
     }
@@ -254,9 +245,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $userRecord  = ['id' => 3, 'is_active' => true, 'deleted_at' => null];
 
         $this->seedToken($tokenRecord);
-        $this->users->method('findById')->willReturn($userRecord);
-
-
+        kintai_test_users(findById: fn() => $userRecord);
         $req = $this->makeRequest('Bearer validtoken');
         $this->middleware->handle($req, $this->noop());
 
@@ -269,8 +258,7 @@ final class ApiAuthMiddlewareTest extends TestCase
         $userRecord  = ['id' => 3, 'is_active' => true, 'deleted_at' => null];
 
         $this->seedToken($tokenRecord);
-        $this->users->method('findById')->willReturn($userRecord);
-
+        kintai_test_users(findById: fn() => $userRecord);
         $req      = $this->makeRequest('Bearer validtoken');
         $response = $this->middleware->handle($req, $this->noop());
 

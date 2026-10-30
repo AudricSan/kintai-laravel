@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Database\RequestMemo;
-use App\Models\User;
-use App\Repositories\DatabaseUserRepository;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -38,17 +36,13 @@ final class AuthService
     // Même coût que PasswordHasher : le calcul factice doit durer autant qu'une vraie vérification.
     private const TIMING_COST = PasswordHasher::COST;
 
-    public function __construct(
-        private readonly UserRepositoryInterface $users,
-    ) {}
-
     /**
      * Tente de connecter un utilisateur avec email + mot de passe.
      * Retourne true si les identifiants sont valides et l'utilisateur actif.
      */
     public function attempt(string $email, string $password, bool $remember = false): bool
     {
-        $user = $this->users->findByEmail($email);
+        $user = User::findByEmail($email);
 
         if ($user === null) {
             $this->burnPasswordCheck($password);
@@ -80,7 +74,7 @@ final class AuthService
             return false;
         }
 
-        $user = $this->users->findByEmployeeCode(trim($employeeCode));
+        $user = User::findByEmployeeCode(trim($employeeCode));
         if ($user === null) {
             $this->burnPasswordCheck($password);
             return false;
@@ -140,12 +134,10 @@ final class AuthService
         if ($id === null) {
             return null;
         }
-        // Relu à chaque appel (middlewares, contrôleur, vues) : une fois par requête, voir RequestMemo. Seulement avec le
-        // dépôt de la base, dont toute écriture vide cette mémoire : une désactivation ou un changement de mot de passe
+        // Relu à chaque appel (middlewares, contrôleur, vues) : une fois par requête, voir RequestMemo. Toute écriture
+        // de User vide cette mémoire : une désactivation ou un changement de mot de passe
         // se voit tout de suite.
-        $user = $this->users instanceof DatabaseUserRepository
-            ? RequestMemo::remember('auth.user.' . (int) $id, fn(): ?array => $this->users->findById((int) $id))
-            : $this->users->findById((int) $id);
+        $user = RequestMemo::remember('auth.user.' . (int) $id, fn(): ?array => User::findById((int) $id));
         // Une session ouverte ne doit jamais survivre à la désactivation ou à la suppression
         // du compte : seules la connexion et le cookie « rester connecté » le vérifiaient.
         if ($user === null || !($user['is_active'] ?? 1) || !empty($user['deleted_at'])) {

@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Api\V1;
 use App\Exceptions\ValidationException;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 
 final class StoreUserControllerTest extends TestCase
 {
-    private UserRepositoryInterface&Stub $users;
     private StoreUserController $controller;
 
     protected function setUp(): void
@@ -27,9 +26,8 @@ final class StoreUserControllerTest extends TestCase
         kintai_test_database();
         kintai_test_migrate();
         kintai_test_fk_off();
-        $this->users      = $this->createStub(UserRepositoryInterface::class);
         kintai_test_stores(findById: fn() => ['id' => 3]);
-        $this->controller = new StoreUserController($this->users, new AuditLogger());
+        $this->controller = new StoreUserController(new AuditLogger());
     }
 
     protected function tearDown(): void
@@ -47,7 +45,7 @@ final class StoreUserControllerTest extends TestCase
     /** Un `id`, un `role` ou un `store_id` postés ne doivent jamais atteindre le repository. */
     public function testStoreIgnoresIdRoleAndForeignStoreId(): void
     {
-        $this->users->method('findById')->willReturn(['id' => 9]);
+        kintai_test_users(findById: fn() => ['id' => 9]);
         kintai_test_store_users(findMembership: fn() => null);
         $res = $this->controller->store($this->request([
             'id' => 7, 'store_id' => 99, 'user_id' => 9, 'staff_code' => 'A1', 'role' => 'manager', 'is_manager' => 1,
@@ -61,14 +59,14 @@ final class StoreUserControllerTest extends TestCase
 
     public function testStoreRejectsUnknownUser(): void
     {
-        $this->users->method('findById')->willReturn(null);
+        kintai_test_users(findById: fn() => null);
         $this->expectException(ValidationException::class);
         $this->controller->store($this->request(['user_id' => 12345]));
     }
 
     public function testStoreRejectsDuplicateMembership(): void
     {
-        $this->users->method('findById')->willReturn(['id' => 9]);
+        kintai_test_users(findById: fn() => ['id' => 9]);
         kintai_test_store_users(findMembership: fn() => ['id' => 1]);
         $this->expectException(ValidationException::class);
         $this->controller->store($this->request(['user_id' => 9]));

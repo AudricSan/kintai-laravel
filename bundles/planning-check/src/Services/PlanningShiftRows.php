@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 
 /**
  * Les shifts d'un magasin pour un jour, prêts à être affichés (aperçu de la fenêtre, historique) et imprimés (PDF) :
@@ -16,7 +16,6 @@ use kintai\Contract\Data\UserRepositoryInterface;
 final class PlanningShiftRows
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users,
     ) {}
 
     /** Shifts bruts du jour, sans les supprimés (sert aussi à l'empreinte). @return list<array<string, mixed>> */
@@ -51,7 +50,7 @@ final class PlanningShiftRows
             } else {
                 $assigned++;
                 if (!isset($names[$userId])) {
-                    $user = $this->users->findById($userId);
+                    $user = User::findById($userId);
                     $names[$userId] = $user === null
                         ? '—'
                         : (trim(($user['last_name'] ?? '') . ' ' . ($user['first_name'] ?? '')) ?: ($user['email'] ?? '—'));

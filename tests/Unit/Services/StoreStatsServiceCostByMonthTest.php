@@ -10,7 +10,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
@@ -37,16 +37,14 @@ final class StoreStatsServiceCostByMonthTest extends TestCase
     private function service(): StoreStatsService
     {
         if ($this->service === null) {
-            $users = $this->createStub(UserRepositoryInterface::class);
             kintai_test_store_users(findByStore: fn() => [['user_id' => 10], ['user_id' => 11]]);
             kintai_test_shift_types([
                 ['id' => 1, 'name' => 'Matin', 'hourly_rate' => 1100],
                 ['id' => 2, 'name' => 'Soir', 'hourly_rate' => 1300],
             ]);
-            $users->method('findAll')->willReturn([]);
+            kintai_test_users(findAll: fn() => []);
             $this->seedRate(10, 2, 1500.0);
             $this->service = new StoreStatsService(
-                $users,
                 new RoleAssignmentSyncService(
                 ),
             );

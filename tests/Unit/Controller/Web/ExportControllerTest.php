@@ -25,7 +25,7 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -50,8 +50,7 @@ final class ExportControllerTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        $users = $this->createStub(UserRepositoryInterface::class);
-        $users->method('findById')->willReturnCallback(fn(int $id): ?array => in_array($id, [5, 6], true)
+        kintai_test_users(findById: fn(int $id): ?array => in_array($id, [5, 6], true)
             ? ['id' => $id, 'first_name' => $id === 5 ? 'Aki' : 'Ben', 'last_name' => 'Sato', 'email' => "u$id@example.test", 'language' => 'fr', 'is_active' => 1, 'password_hash' => 'x']
             : null);
         kintai_test_stores(findById: fn() => ['id' => 3, 'code' => 'ST', 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo'], findActive: fn() => [['id' => 3], ['id' => 4]]);
@@ -67,7 +66,7 @@ final class ExportControllerTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $permissions = new PermissionService();
 
-        $directory = new ExportDirectory($users);
+        $directory = new ExportDirectory();
         $schedule  = new ScheduleExportService();
         $this->bind(ShiftsExport::class, new ShiftsExport($schedule, $directory));
         $this->bind(EmployeesExport::class, new EmployeesExport($directory));
@@ -80,10 +79,10 @@ final class ExportControllerTest extends TestCase
 
         $this->controller = new ExportController(
             kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
-            new AuthService($users),
+            new AuthService(),
             new ExportAccess($permissions),
             new ExportWriter(),
-            new UserSelection($users, $permissions),
+            new UserSelection($permissions),
             $schedule,
             new IcalService($translations),
             new AuditLogger(),

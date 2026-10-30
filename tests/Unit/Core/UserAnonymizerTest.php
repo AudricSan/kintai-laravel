@@ -8,7 +8,7 @@ use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
 use App\Models\ApiToken;
 use App\Models\RoleAssignment;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -20,16 +20,11 @@ use PHPUnit\Framework\TestCase;
 final class UserAnonymizerTest extends TestCase
 {
     use \Tests\Support\ApiTokenExpectations;
-
-    private UserRepositoryInterface&Stub $users;
-    private UserRepositoryInterface&Stub $remember;
     private string $avatarDir;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
-        $this->users       = $this->createStub(UserRepositoryInterface::class);
-        $this->remember    = $this->createStub(UserRepositoryInterface::class);
         $this->avatarDir   = sys_get_temp_dir() . '/kintai-avatars-' . bin2hex(random_bytes(4));
         mkdir($this->avatarDir);
     }
@@ -44,26 +39,19 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     private function anonymizer(): UserAnonymizer
     {
-        return new UserAnonymizer($this->users, new CredentialRevoker($this->remember), $this->avatarDir);
+        return new UserAnonymizer(new CredentialRevoker(), $this->avatarDir);
     }
 
     public function testPersonalDataIsErasedAndTheAccountMarkedDeletedButNeverRemoved(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
         file_put_contents($this->avatarDir . '/u12.webp', 'x');
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(12)->willReturn([
+        kintai_test_users(findById: fn(int $id) => $id === 12 ? [
             'id' => 12, 'email' => 'aiko@example.com', 'avatar_path' => 'u12.webp', 'deleted_at' => null,
-        ]);
-        $this->users->expects($this->never())->method('delete');
-
+        ] : null);
         $saved = null;
-        $this->users->expects($this->once())->method('save')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved = $d;
-            return $d;
-        });
-
         $this->anonymizer()->anonymize(12);
 
+        $saved = \App\Models\User::findById(12);
         $this->assertSame('deleted-12@kintai.local', $saved['email']);
         $this->assertSame(UserAnonymizer::DISPLAY_NAME, $saved['display_name']);
         $this->assertSame(0, $saved['is_active']);
@@ -73,43 +61,37 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->assertNull($saved[$field], $field);
         }
         // language est NOT NULL : l'ancienne suppression personnelle le mettait à null (refusé par MySQL strict).
-        $this->assertArrayNotHasKey('language', $saved);
+        $this->assertNotNull($saved['language']);
         $this->assertFileDoesNotExist($this->avatarDir . '/u12.webp');
     }
 
     public function testRolesAndCredentialsAreRevoked(): void
     {
-        $this->remember = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => 12]);
-        $this->users->method('save')->willReturnArgument(0);
+        kintai_test_users(findById: fn() => ['id' => 12]);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 12 ? [
             ['id' => 3, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
             ['id' => 4, 'role_id' => 3, 'scope_type' => 'global'],
         ] : []);
-        $this->remember->expects($this->once())->method('revokeRememberToken')->with(12);
+        kintai_test_remember_token(12);
         $this->expectApiTokensRevoked(12);
 
         $this->anonymizer()->anonymize(12);
 
         $this->assertSame(0, \App\Models\RoleAssignment::query()->where('user_id', 12)->count(), 'affectations révoquées');
+        $this->assertNull(\App\Models\User::query()->find(12)?->remember_token, 'jeton « rester connecté » révoqué');
     }
 
     public function testAnExistingDeletionDateIsKept(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => 12, 'deleted_at' => '2026-01-01 00:00:00']);
-        $this->users->expects($this->once())->method('save')
-            ->with($this->callback(fn(array $d): bool => $d['deleted_at'] === '2026-01-01 00:00:00'))
-            ->willReturnArgument(0);
-
+        kintai_test_users(findById: fn() => ['id' => 12, 'deleted_at' => '2026-01-01 00:00:00']);
         $this->anonymizer()->anonymize(12);
+
+        $this->assertSame('2026-01-01 00:00:00', \App\Models\User::findById(12)['deleted_at']);
     }
 
     public function testAnUnknownAccountIsIgnored(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(null);
-        $this->users->expects($this->never())->method('save');
+        kintai_test_users(findById: fn() => null);
         $this->expectApiTokensKept(1);
 
         $this->anonymizer()->anonymize(404);

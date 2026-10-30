@@ -19,7 +19,7 @@ use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -48,21 +48,18 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
         $viewDir = sys_get_temp_dir() . '/kintai-employee-controller-shifts-week-views';
         $this->writeViewFile($viewDir, 'scheduling.shifts', '<?= ($can_manage ?? false) ? "CAN_MANAGE_TRUE" : "CAN_MANAGE_FALSE" ?>');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
-        $users             = $this->createStub(UserRepositoryInterface::class);
 
         kintai_test_store_users(findByUser: fn() => []);
         kintai_test_shifts([]);
-        $users->method('findAll')->willReturn([]);
+        kintai_test_users(findAll: fn() => []);
         kintai_test_shift_types([]);
         kintai_test_stores(findAll: fn() => []);
         $this->controller = new EmployeeController(
             kintai_test_views($viewDir),
-            $users,
             new AuditLogger(),
             new NotificationService(
                 new PushNotificationService([]),
                 kintai_test_translator(),
-                $this->createStub(UserRepositoryInterface::class),
             ),
             new PermissionService(
             ),

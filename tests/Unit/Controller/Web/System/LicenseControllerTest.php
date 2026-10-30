@@ -8,7 +8,7 @@ use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\Models\AppSetting;
 use App\Models\Store;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
@@ -43,7 +43,6 @@ final class LicenseControllerTest extends TestCase
         $license = new LicenseClientService($config, transport: $transport);
 
         $planLimits = new PlanLimitService(
-            $this->createStub(UserRepositoryInterface::class),
             $license,
         );
 

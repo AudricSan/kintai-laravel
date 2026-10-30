@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use App\Repositories\DatabaseUserRepository;
+use App\Models\User;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\User as EloquentUser;
 
 final class DatabaseUserRepositoryTest extends TestCase
 {
-    private DatabaseUserRepository $repo;
 
     protected function setUp(): void
     {
@@ -35,8 +34,6 @@ final class DatabaseUserRepositoryTest extends TestCase
             $table->string('language')->default('fr');
             $table->timestamp('deleted_at')->nullable();
         });
-
-        $this->repo = new DatabaseUserRepository();
     }
 
     private function user(int $id, string $email = 'user@test.com', ?string $empCode = null): array
@@ -63,14 +60,14 @@ final class DatabaseUserRepositoryTest extends TestCase
         unset($userData['id']); // Let DB handle it
         $user = EloquentUser::create($userData);
 
-        $found = $this->repo->findById($user->id);
+        $found = User::findById($user->id);
         $this->assertNotNull($found);
         $this->assertEquals($user->email, $found['email']);
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findById(999));
+        $this->assertNull(User::findById(999));
     }
 
     // -------------------------------------------------------------------------
@@ -83,14 +80,14 @@ final class DatabaseUserRepositoryTest extends TestCase
         unset($userData['id']);
         EloquentUser::create($userData);
 
-        $found = $this->repo->findByEmail('alice@test.com');
+        $found = User::findByEmail('alice@test.com');
         $this->assertNotNull($found);
         $this->assertEquals('alice@test.com', $found['email']);
     }
 
     public function testFindByEmailReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findByEmail('nobody@test.com'));
+        $this->assertNull(User::findByEmail('nobody@test.com'));
     }
 
     // -------------------------------------------------------------------------
@@ -103,14 +100,14 @@ final class DatabaseUserRepositoryTest extends TestCase
         unset($userData['id']);
         EloquentUser::create($userData);
 
-        $found = $this->repo->findByEmployeeCode('EMP001');
+        $found = User::findByEmployeeCode('EMP001');
         $this->assertNotNull($found);
         $this->assertEquals('EMP001', $found['employee_code']);
     }
 
     public function testFindByEmployeeCodeReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findByEmployeeCode('UNKNOWN'));
+        $this->assertNull(User::findByEmployeeCode('UNKNOWN'));
     }
 
     // -------------------------------------------------------------------------
@@ -122,13 +119,13 @@ final class DatabaseUserRepositoryTest extends TestCase
         EloquentUser::create(['email' => 'u1@test.com', 'password_hash' => 'h', 'first_name' => 'F', 'last_name' => 'L', 'display_name' => 'D']);
         EloquentUser::create(['email' => 'u2@test.com', 'password_hash' => 'h', 'first_name' => 'F', 'last_name' => 'L', 'display_name' => 'D']);
 
-        $users = $this->repo->findAll();
+        $users = User::findAll();
         $this->assertCount(2, $users);
     }
 
     public function testFindAllReturnsEmptyWhenNoUsers(): void
     {
-        $this->assertSame([], $this->repo->findAll());
+        $this->assertSame([], User::findAll());
     }
 
     // -------------------------------------------------------------------------
@@ -141,7 +138,7 @@ final class DatabaseUserRepositoryTest extends TestCase
         EloquentUser::create(['email' => 'u2@test.com', 'is_active' => 0, 'password_hash' => 'h', 'first_name' => 'F', 'last_name' => 'L', 'display_name' => 'D']);
         EloquentUser::create(['email' => 'u3@test.com', 'is_active' => 1, 'password_hash' => 'h', 'first_name' => 'F', 'last_name' => 'L', 'display_name' => 'D', 'deleted_at' => date('Y-m-d H:i:s')]);
 
-        $this->assertSame(1, $this->repo->countActive());
+        $this->assertSame(1, User::countActive());
     }
 
     // -------------------------------------------------------------------------
@@ -159,7 +156,7 @@ final class DatabaseUserRepositoryTest extends TestCase
             'display_name' => 'Display',
         ];
 
-        $result = $this->repo->save($data);
+        $result = User::put($data);
         $this->assertArrayHasKey('id', $result);
         $this->assertEquals('new@test.com', $result['email']);
         
@@ -177,7 +174,7 @@ final class DatabaseUserRepositoryTest extends TestCase
         ]);
         
         $data = ['id' => $user->id, 'email' => 'updated@test.com'];
-        $result = $this->repo->save($data);
+        $result = User::put($data);
         
         $this->assertEquals('updated@test.com', $result['email']);
         $this->assertEquals('updated@test.com', EloquentUser::find($user->id)->email);
@@ -197,13 +194,13 @@ final class DatabaseUserRepositoryTest extends TestCase
             'display_name' => 'D'
         ]);
         
-        $count = $this->repo->delete($user->id);
+        $count = User::remove($user->id);
         $this->assertEquals(1, $count);
         $this->assertNull(EloquentUser::find($user->id));
     }
 
     public function testDeleteReturnsZeroWhenNotFound(): void
     {
-        $this->assertSame(0, $this->repo->delete(999));
+        $this->assertSame(0, User::remove(999));
     }
 }

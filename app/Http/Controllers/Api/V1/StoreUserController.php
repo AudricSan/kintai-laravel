@@ -10,7 +10,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -18,7 +18,6 @@ use App\Services\AuditLogger;
 final class StoreUserController
 {
     public function __construct(
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         // Facultatif pour les tests qui construisent le contrôleur à la main : sans lui, personne n'est Owner.
         private readonly ?OwnerGuard $ownerGuard = null,
@@ -68,7 +67,7 @@ final class StoreUserController
         // `user_id` obligatoire, existant et pas déjà membre : sans cela un POST
         // créait des lignes orphelines ou en double.
         $userId = (int) ($data['user_id'] ?? 0);
-        if ($userId <= 0 || $this->users->findById($userId) === null) {
+        if ($userId <= 0 || User::findById($userId) === null) {
             throw new ValidationException(['user_id' => __('error_user_not_found')]);
         }
         if (StoreUser::findMembership($storeId, $userId) !== null) {

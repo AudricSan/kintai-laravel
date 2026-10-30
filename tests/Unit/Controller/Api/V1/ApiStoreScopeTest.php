@@ -19,7 +19,7 @@ use App\Models\Role;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
@@ -53,7 +53,6 @@ final class ApiStoreScopeTest extends TestCase
     private const STORE_B = 6; // autre magasin
 
     private PermissionService $permissions;
-    private UserRepositoryInterface&Stub $users;
 
     /** Shift enregistré par l'action testée : celui de l'identifiant donné, sinon le dernier créé. */
     private function savedShift(?int $id = null): array
@@ -84,7 +83,6 @@ final class ApiStoreScopeTest extends TestCase
             'stores.view', 'stores.update',
         ], getGlobalPermissionKeys: static fn() => []);
         $this->permissions = new PermissionService();
-        $this->users       = $this->createStub(UserRepositoryInterface::class);
     }
 
     protected function tearDown(): void
@@ -105,10 +103,9 @@ final class ApiStoreScopeTest extends TestCase
     private function userController(?CredentialRevoker $revoker = null): UserController
     {
         $planLimits = new PlanLimitService(
-            $this->users,
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
-        return new UserController($this->users, new AuditLogger(), $planLimits, $this->permissions, new OwnerGuard($this->permissions, $this->users), $revoker);
+        return new UserController(new AuditLogger(), $planLimits, $this->permissions, new OwnerGuard($this->permissions), $revoker);
     }
 
     // ---------------------------------------------------------------- shifts
@@ -230,41 +227,28 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCannotChangeOwnerPassword(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(self::OWNER)->willReturn(['id' => self::OWNER, 'email' => 'owner@example.com']);
+        kintai_test_users(findById: fn() => ['id' => self::OWNER, 'email' => 'owner@example.com']);
         // L'Owner est (aussi) membre du magasin du gérant : seule la protection Owner doit le bloquer.
         kintai_test_store_users(findByUser: fn() => [['store_id' => self::STORE_A]]);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->userController()->update($this->request(self::MANAGER, ['id' => (string) self::OWNER], ['password' => 'motdepasse-pirate']));
     }
 
     public function testManagerCannotUpdateEmployeeOfAnotherStore(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30]);
+        kintai_test_users(findById: fn(int $id) => $id === 30 ? ['id' => 30] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 30 ? [['store_id' => self::STORE_B]] : []);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->userController()->update($this->request(self::MANAGER, ['id' => '30'], ['last_name' => 'X']));
     }
 
     public function testUpdateHashesPasswordNeverStoresRawHashAndRevokesCredentials(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['id' => 31, 'is_active' => 1]);
+        kintai_test_users(findById: fn(int $id) => $id === 31 ? ['id' => 31, 'is_active' => 1] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 31 ? [['store_id' => self::STORE_A]] : []);
-        $this->users->expects($this->once())->method('save')->with($this->callback(function (array $d): bool {
-            return $d['id'] === 31
-                && !array_key_exists('password', $d)
-                && password_verify('nouveau-mot-de-passe', $d['password_hash']);
-        }))->willReturn(['id' => 31, 'password_hash' => 'secret']);
-        $remember = $this->createMock(UserRepositoryInterface::class);
-        $remember->expects($this->once())->method('revokeRememberToken')->with(31);
+        kintai_test_remember_token(31);
         $this->expectApiTokensRevoked(31);
-        $revoker = new CredentialRevoker($remember);
+        $revoker = new CredentialRevoker();
 
         $response = $this->userController($revoker)->update($this->request(
             self::MANAGER,
@@ -273,28 +257,23 @@ final class ApiStoreScopeTest extends TestCase
         ));
 
         $this->assertArrayNotHasKey('password_hash', json_decode($response->getContent(), true));
+        $this->assertNull(\App\Models\User::query()->find(31)?->remember_token, 'jeton « rester connecté » révoqué');
     }
 
     public function testRawPasswordHashCannotBeInjectedOnUpdate(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['id' => 31]);
+        kintai_test_users(findById: fn(int $id) => $id === 31 ? ['id' => 31] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 31 ? [['store_id' => self::STORE_A]] : []);
-        $this->users->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d): bool => !array_key_exists('password_hash', $d)
-        ))->willReturn(['id' => 31]);
-
         $this->userController()->update($this->request(self::MANAGER, ['id' => '31'], ['password_hash' => 'forgé', 'last_name' => 'Nouveau']));
+
+        $saved = \App\Models\User::findById(31);
+        $this->assertNotSame('forgé', $saved['password_hash']);
+        $this->assertSame('Nouveau', $saved['last_name']);
     }
 
     public function testUserCreationIgnoresIdAndSetsDefaultPassword(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('countActive')->willReturn(1);
-        $this->users->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d): bool => !array_key_exists('id', $d) && !empty($d['password_hash'])
-        ))->willReturn(['id' => 60, 'password_hash' => 'secret']);
-
+        kintai_test_users(countActive: fn() => 1);
         $response = $this->userController()->store($this->request(self::OWNER, [], ['id' => 1, 'email' => 'a@example.com', 'first_name' => 'A', 'last_name' => 'B']));
 
         $this->assertSame(201, $response->getStatusCode());
@@ -303,9 +282,7 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testShowAndIndexNeverExposePasswordHash(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['id' => 31, 'password_hash' => 'secret']);
-        $this->users->method('findAll')->willReturn([['id' => 31, 'password_hash' => 'secret']]);
+        kintai_test_users(findById: fn(int $id) => $id === 31 ? ['id' => 31, 'password_hash' => 'secret'] : null, findAll: fn() => [['id' => 31, 'password_hash' => 'secret']]);
         kintai_test_store_users(findByUser: fn() => [['store_id' => self::STORE_A]]);
         $show = $this->userController()->show($this->request(self::OWNER, ['id' => '31']));
         $this->assertArrayNotHasKey('password_hash', json_decode($show->getContent(), true));
@@ -316,7 +293,7 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testUserIndexIsRestrictedToManagedStoreMembers(): void
     {
-        $this->users->method('findAll')->willReturn([['id' => 31], ['id' => 32], ['id' => self::MANAGER]]);
+        kintai_test_users(findAll: fn() => [['id' => 31], ['id' => 32], ['id' => self::MANAGER]]);
         kintai_test_store_users(findByStore: fn() => [['user_id' => 31]]);
         $response = $this->userController()->index($this->request(self::MANAGER));
 
@@ -328,11 +305,10 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCannotReadIcalTokensOfAnotherStoreEmployee(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30]);
+        kintai_test_users(findById: fn(int $id) => $id === 30 ? ['id' => 30] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 30 ? [['store_id' => self::STORE_B]] : []);
         $controller = new IcalTokenController(
-            new UserTargetGuard($this->users, $this->permissions),
+            new UserTargetGuard($this->permissions),
         );
 
         $this->expectException(ForbiddenException::class);
@@ -412,37 +388,30 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testDestroyAnonymizesTheAccountInsteadOfDeletingIt(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['id' => 31, 'is_active' => 1]);
+        kintai_test_users(findById: fn(int $id) => $id === 31 ? ['id' => 31, 'is_active' => 1] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 31 ? [['store_id' => self::STORE_A]] : []);
-        $this->users->expects($this->never())->method('delete');
-        $this->users->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d): bool => $d['id'] === 31 && $d['is_active'] === 0 && $d['email'] === 'deleted-31@kintai.local'
-        ))->willReturnArgument(0);
-
         $planLimits = new PlanLimitService(
-            $this->users,
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
-        $revoker = new CredentialRevoker($this->createStub(UserRepositoryInterface::class));
+        $revoker = new CredentialRevoker();
         $controller = new UserController(
-            $this->users, new AuditLogger(), $planLimits, $this->permissions,
-            new OwnerGuard($this->permissions, $this->users), $revoker,
-            new UserAnonymizer($this->users, $revoker, sys_get_temp_dir()),
+            new AuditLogger(), $planLimits, $this->permissions,
+            new OwnerGuard($this->permissions), $revoker,
+            new UserAnonymizer($revoker, sys_get_temp_dir()),
         );
 
         $response = $controller->destroy($this->request(self::MANAGER, ['id' => '31']));
 
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertNotNull(\App\Models\User::findById(31)['deleted_at'], 'compte anonymisé, jamais effacé');
     }
 
     public function testDeletedAccountsAreNoLongerListed(): void
     {
-        $this->users->method('findAll')->willReturn([
+        kintai_test_users(findAll: fn() => [
             ['id' => 31, 'deleted_at' => null],
             ['id' => 32, 'deleted_at' => '2026-10-16 09:00:00'],
         ]);
-
         $response = $this->userController()->index($this->request(self::OWNER));
 
         $this->assertSame([31], array_column(json_decode($response->getContent(), true)['data'], 'id'));
@@ -452,11 +421,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testAManagerCannotDeleteTheirOwnAccountThroughTheApi(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => self::MANAGER, 'is_active' => 1]);
+        kintai_test_users(findById: fn() => ['id' => self::MANAGER, 'is_active' => 1]);
         kintai_test_store_users(findByUser: fn() => [['store_id' => self::STORE_A]]);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->userController()->destroy($this->request(self::MANAGER, ['id' => (string) self::MANAGER]));
@@ -464,11 +430,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testAManagerCannotDeactivateThemselvesThroughTheApi(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => self::MANAGER, 'is_active' => 1, 'email' => 'm@kintai.test']);
+        kintai_test_users(findById: fn() => ['id' => self::MANAGER, 'is_active' => 1, 'email' => 'm@kintai.test']);
         kintai_test_store_users(findByUser: fn() => [['store_id' => self::STORE_A]]);
-        $this->users->expects($this->never())->method('save');
-
         $this->expectException(ForbiddenException::class);
         $this->expectExceptionMessage('error_cannot_act_on_self');
         $this->userController()->update($this->request(self::MANAGER, ['id' => (string) self::MANAGER], ['is_active' => false]));
@@ -476,11 +439,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testAManagerCanStillEditTheirOwnProfileFieldsThroughTheApi(): void
     {
-        $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->users->method('findById')->willReturn(['id' => self::MANAGER, 'is_active' => 1, 'email' => 'm@kintai.test']);
+        kintai_test_users(findById: fn() => ['id' => self::MANAGER, 'is_active' => 1, 'email' => 'm@kintai.test']);
         kintai_test_store_users(findByUser: fn() => [['store_id' => self::STORE_A]]);
-        $this->users->expects($this->once())->method('save')->willReturnArgument(0);
-
         $response = $this->userController()->update($this->request(self::MANAGER, ['id' => (string) self::MANAGER], ['phone' => '090-0000-0000']));
 
         $this->assertSame(200, $response->getStatusCode());

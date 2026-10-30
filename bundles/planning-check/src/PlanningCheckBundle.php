@@ -20,7 +20,7 @@ use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Contract\Data\UserRepositoryInterface;
+use kintai\Contract\Data\User;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\PageOverlay;
 use kintai\Contract\Services\Mailer;
@@ -70,7 +70,6 @@ final class PlanningCheckBundle extends Bundle
 
         $container->singleton(PlanningCheckRepositoryInterface::class, fn() => new DatabasePlanningCheckRepository());
         $container->singleton(PlanningShiftRows::class, fn(Container $c) => new PlanningShiftRows(
-            $c->make(UserRepositoryInterface::class),
         ));
         $container->singleton(PlanningPdfService::class, fn(Container $c) => new PlanningPdfService(
             $c->make(ViewFactory::class),
@@ -84,7 +83,6 @@ final class PlanningCheckBundle extends Bundle
         ));
         $container->singleton(PlanningCheckService::class, fn(Container $c) => new PlanningCheckService(
             $c->make(PlanningCheckRepositoryInterface::class),
-            $c->make(UserRepositoryInterface::class),
             $c->make(PermissionService::class),
             $c->make(NotificationService::class),
             $c->make(PlanningShiftRows::class),

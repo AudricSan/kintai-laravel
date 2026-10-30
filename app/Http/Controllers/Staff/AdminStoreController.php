@@ -16,7 +16,7 @@ use App\Extension\Sales;
 use App\Extension\StoreFeatures;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -33,7 +33,6 @@ final class AdminStoreController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly StoreServiceInterface $storeService,
         private readonly StoreStatsServiceInterface $storeStatsService,
@@ -147,7 +146,7 @@ final class AdminStoreController
         }, $this->storeService->getStoreMembers($storeId));
 
         $memberUserIds = array_map(fn($m) => (int) $m['user_id'], $members);
-        $allUsers = $this->users->findAll();
+        $allUsers = User::findAll();
         $available = array_values(array_filter(
             $allUsers,
             fn($u) => !in_array((int) $u['id'], $memberUserIds, true) && !empty($u['is_active'])
@@ -277,7 +276,7 @@ final class AdminStoreController
      */
     private function ownerGuard(): OwnerGuard
     {
-        return new OwnerGuard($this->permissions, $this->users);
+        return new OwnerGuard($this->permissions);
     }
 
     private function callerId(Request $request): int
@@ -287,7 +286,7 @@ final class AdminStoreController
 
     private function assertCanManageMember(Request $request, int $userId): void
     {
-        if ($this->users->findById($userId) === null) {
+        if (User::findById($userId) === null) {
             throw new NotFoundException(__('error_user_not_found'));
         }
         $callerId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
@@ -414,7 +413,7 @@ final class AdminStoreController
             throw new NotFoundException(__('error_member_not_found'));
         }
 
-        $user = $this->users->findById((int) $membership['user_id']);
+        $user = User::findById((int) $membership['user_id']);
         if ($user === null) throw new NotFoundException(__('error_user_not_found'));
 
         return response($this->view->make('staff.member-deductions', [
@@ -614,7 +613,7 @@ final class AdminStoreController
         $store = Store::findById($storeId);
         if ($store === null) throw new NotFoundException(__('error_store_not_found'));
 
-        $user = $this->users->findById($userId);
+        $user = User::findById($userId);
         if ($user === null) throw new NotFoundException(__('error_employee_not_found'));
 
         $membership = StoreUser::findMembership($storeId, $userId);

@@ -433,6 +433,77 @@ function kintai_test_stores(mixed $findById = null, mixed $findAll = null, mixed
     }
     $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));
 }
+// Aide des tests : comptes tels que User::findById() & co. les restituent. Chaque spécification est une valeur ou une
+// fonction ; les lignes obtenues (id 1 à $upTo pour findById) sont écrites dans la vraie table users. Une ligne sans id
+// en reçoit un à partir de 900. countActive : le décompte demandé est exact (les autres comptes sont retirés).
+function kintai_test_users(mixed $findById = null, mixed $findByEmail = null, mixed $findByEmployeeCode = null, mixed $findAll = null, mixed $countActive = null, int $upTo = 120): void
+{
+    kintai_test_ready('users');
+    $db = Illuminate\Support\Facades\DB::class;
+    $rows = [];
+    $absent = [];
+    $next = 900;
+    $call = static fn(mixed $spec, mixed ...$args): mixed => is_callable($spec) ? $spec(...$args) : $spec;
+    $collect = static function (mixed $list, ?int $forId = null) use (&$rows, &$next): void {
+        foreach (is_array($list) ? $list : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $row['id'] ??= $forId ?? $next++;
+            $rows[$row['id']] = $row;
+        }
+    };
+    if ($findById !== null) {
+        $existing = $db::table('users')->pluck('id')->map(fn($v) => (int) $v)->all();
+        for ($id = 1; $id <= $upTo; $id++) {
+            $row = $call($findById, $id);
+            // Ligne sans id (fonction qui ignore son argument) : elle vaut pour les comptes déjà présents, sinon pour tous.
+            if (is_array($row) && !isset($row['id']) && $existing !== [] && !in_array($id, $existing, true)) {
+                continue;
+            }
+            if (is_array($row)) {
+                $collect([$row], $id);
+            } else {
+                $absent[] = $id; // la fonction répond « inconnu » : le compte n'existe pas
+            }
+        }
+    }
+    if ($findByEmail !== null) { $collect([$call($findByEmail, 'probe@example.com')]); }
+    if ($findByEmployeeCode !== null) { $collect([$call($findByEmployeeCode, '000')]); }
+    if ($findAll !== null) { $collect($call($findAll)); }
+    if ($countActive !== null) {
+        for ($id = 1; $id <= (int) $call($countActive); $id++) { $rows[$id] ??= ['id' => $id, 'is_active' => 1]; }
+    }
+
+    $columns = array_flip(Illuminate\Support\Facades\Schema::getColumnListing('users'));
+    $foreignKeys = (int) ($db::selectOne('PRAGMA foreign_keys')->foreign_keys ?? 1);
+    $db::statement('PRAGMA foreign_keys = OFF');
+    if ($countActive !== null || $findAll !== null) { // la liste ou le décompte demandé est exact
+        $db::table('users')->whereNotIn('id', array_keys($rows) ?: [0])->delete();
+    }
+    if ($absent !== []) {
+        $db::table('users')->whereIn('id', array_values(array_diff($absent, array_keys($rows))))->delete();
+    }
+    $now = date('Y-m-d H:i:s');
+    $emails = [];
+    foreach ($rows as $id => $row) {
+        // Une fonction qui renvoie le même courriel pour tout identifiant : l'unicité de users.email l'interdit.
+        if (isset($row['email'])) {
+            $row['email'] = isset($emails[$row['email']]) ? $id . '.' . $row['email'] : $row['email'];
+            $emails[$row['email']] = true;
+        }
+        $row += [
+            'first_name' => '', 'last_name' => '', 'display_name' => '',
+            'password_hash' => 'x', 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now,
+        ];
+        if (!array_key_exists('email', $row)) {
+            $row['email'] = 'user' . $id . '@test.local';
+        }
+        $db::table('users')->updateOrInsert(['id' => $id], array_intersect_key($row, $columns));
+    }
+    $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));
+    App\Database\RequestMemo::flush(); // écriture directe : la mémoire de requête n'a rien vu
+}
 // Aide des tests : fonctionnalités d'un magasin (décisions store_features) telles que Store::getFeatures() les restitue.
 // Liste vide : aucune restriction (aucune décision). Sinon, seules les clés listées restent actives parmi celles proposées.
 // $storeId null : magasins 1 à 9.
@@ -545,11 +616,18 @@ function kintai_test_match(string $method, string $path): Illuminate\Routing\Rou
 }
 
 /** Utilisateur minimal dans la base de test (après kintai_test_migrate()), pour les lignes qui le référencent. */
+// Aide des tests : ce compte (créé au besoin) a un jeton « rester connecté » à révoquer.
+function kintai_test_remember_token(int $userId): void
+{
+    kintai_test_ready('users');
+    kintai_test_user($userId);
+    Illuminate\Support\Facades\DB::table('users')->where('id', $userId)->update(['remember_token' => 'abc']);
+}
 function kintai_test_user(int $id = 1): int
 {
     $now = date('Y-m-d H:i:s');
     Illuminate\Support\Facades\DB::table('users')->insertOrIgnore([
-        'id' => $id, 'first_name' => 'Test', 'last_name' => 'User' . $id, 'display_name' => 'Test User' . $id,
+        'id' => $id, 'first_name' => '', 'last_name' => '', 'display_name' => '',
         'email' => 'user' . $id . '@test.local', 'password_hash' => 'x', 'is_active' => 1, 'created_at' => $now, 'updated_at' => $now,
     ]);
 
