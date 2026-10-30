@@ -8,7 +8,7 @@ use kintai\Contract\Extension\DashboardWidget;
 use App\Exceptions\ValidationException;
 use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
-use App\Repositories\UserDashboardLayoutRepositoryInterface;
+use App\Models\UserDashboardLayout;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,8 +26,6 @@ final class DashboardLayoutController
     public function __construct(
         private readonly UserDashboardPrefsRepositoryInterface $dashboardPrefs,
         private readonly AuditLogger $auditLogger,
-        // Mises en page nommées : la modification de la disposition en cours est reportée sur celle qui est active.
-        private readonly ?UserDashboardLayoutRepositoryInterface $layouts = null,
     ) {}
 
     /** POST /admin/dashboard/layout */
@@ -65,7 +63,8 @@ final class DashboardLayoutController
         if (($body['reset'] ?? false) === true) {
             $this->dashboardPrefs->saveLayout($userId, $dashboardType, null);
             // Revenir au défaut : la disposition en cours n'est plus celle d'une mise en page nommée.
-            $this->layouts?->deactivateAll($userId, $dashboardType);
+            // Mises en page nommées : plus aucune n'est active.
+            UserDashboardLayout::deactivateAll($userId, $dashboardType);
             return response()->json(['layout' => null]);
         }
 
@@ -78,7 +77,8 @@ final class DashboardLayoutController
             array_intersect_key($body, array_flip(['heights', 'collapsed', 'density'])),
         );
         $this->dashboardPrefs->saveLayout($userId, $dashboardType, $layout);
-        $this->layouts?->updateActive($userId, $dashboardType, $layout);
+        // Mises en page nommées : la modification est reportée sur celle qui est active.
+        UserDashboardLayout::updateActive($userId, $dashboardType, $layout);
 
         return response()->json(['layout' => $layout]);
     }

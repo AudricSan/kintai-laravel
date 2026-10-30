@@ -7,7 +7,7 @@ namespace App\Http\Controllers;
 use App\Extension\DashboardLayout;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\UserDashboardLayoutRepositoryInterface;
+use App\Models\UserDashboardLayout;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +35,6 @@ final class DashboardLayoutsController
     public const NAME_MAX = 60;
 
     public function __construct(
-        private readonly UserDashboardLayoutRepositoryInterface $layouts,
         private readonly UserDashboardPrefsRepositoryInterface $prefs,
         private readonly RoleRepositoryInterface $roles,
         private readonly DashboardLayoutResolver $resolver,
@@ -65,10 +64,10 @@ final class DashboardLayoutsController
             'create'   => $this->create($userId, $dashboardType, trim((string) $request->post('name', ''))),
             'activate' => $this->owned($userId, $dashboardType, (int) $request->post('id', 0), function (array $layout) use ($userId, $dashboardType): void {
                 $this->prefs->saveLayout($userId, $dashboardType, $layout['layout']);
-                $this->layouts->activate($layout['id']);
+                UserDashboardLayout::activate($layout['id']);
             }),
             'rename'   => $this->rename($userId, $dashboardType, (int) $request->post('id', 0), trim((string) $request->post('name', ''))),
-            'delete'   => $this->owned($userId, $dashboardType, (int) $request->post('id', 0), fn(array $layout) => $this->layouts->delete($layout['id'])),
+            'delete'   => $this->owned($userId, $dashboardType, (int) $request->post('id', 0), fn(array $layout) => UserDashboardLayout::destroy($layout['id'])),
             'role_default', 'role_clear' => $this->roleDefault($request, $user, $dashboardType, $action === 'role_clear'),
             default    => 'dashboard_layouts_invalid',
         };
@@ -88,8 +87,8 @@ final class DashboardLayoutsController
         if ($name === '' || mb_strlen($name) > self::NAME_MAX) {
             return 'dashboard_layouts_name_invalid';
         }
-        $existing = $this->layouts->forUser($userId, $dashboardType);
-        if (count($existing) >= UserDashboardLayoutRepositoryInterface::MAX_PER_DASHBOARD) {
+        $existing = UserDashboardLayout::forUser($userId, $dashboardType);
+        if (count($existing) >= UserDashboardLayout::MAX_PER_DASHBOARD) {
             return 'dashboard_layouts_limit';
         }
         foreach ($existing as $layout) {
@@ -98,7 +97,7 @@ final class DashboardLayoutsController
             }
         }
         $current = $this->prefs->getLayout($userId, $dashboardType) ?? $this->resolver->roleDefault($userId, $dashboardType) ?? DashboardLayout::normalize([]);
-        $this->layouts->createActive($userId, $dashboardType, $name, $current);
+        UserDashboardLayout::createActive($userId, $dashboardType, $name, $current);
         // La disposition en cours devient celle de la mise en page créée (elle en est l'instantané).
         $this->prefs->saveLayout($userId, $dashboardType, $current);
         return null;
@@ -109,12 +108,12 @@ final class DashboardLayoutsController
         if ($name === '' || mb_strlen($name) > self::NAME_MAX) {
             return 'dashboard_layouts_name_invalid';
         }
-        foreach ($this->layouts->forUser($userId, $dashboardType) as $layout) {
+        foreach (UserDashboardLayout::forUser($userId, $dashboardType) as $layout) {
             if ($layout['id'] !== $id && mb_strtolower($layout['name']) === mb_strtolower($name)) {
                 return 'dashboard_layouts_name_taken';
             }
         }
-        return $this->owned($userId, $dashboardType, $id, fn(array $layout) => $this->layouts->rename($layout['id'], $name));
+        return $this->owned($userId, $dashboardType, $id, fn(array $layout) => UserDashboardLayout::where('id', $layout['id'])->update(['name' => $name, 'updated_at' => date('Y-m-d H:i:s')]));
     }
 
     /**
@@ -124,7 +123,7 @@ final class DashboardLayoutsController
      */
     private function owned(int $userId, string $dashboardType, int $id, callable $do): ?string
     {
-        $layout = $id > 0 ? $this->layouts->find($id) : null;
+        $layout = $id > 0 ? UserDashboardLayout::describe($id) : null;
         if ($layout === null || $layout['user_id'] !== $userId || $layout['dashboard_type'] !== $dashboardType) {
             return 'dashboard_layouts_not_found';
         }

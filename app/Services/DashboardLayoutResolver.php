@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\UserDashboardLayoutRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
 
 /**
@@ -24,7 +23,6 @@ final class DashboardLayoutResolver
         private readonly UserDashboardPrefsRepositoryInterface $prefs,
         private readonly RoleAssignmentRepositoryInterface $assignments,
         private readonly RoleRepositoryInterface $roles,
-        private readonly UserDashboardLayoutRepositoryInterface $named,
     ) {}
 
     /** Mises en page nommées de l'utilisateur pour ce tableau de bord (panneau « Personnaliser »). */

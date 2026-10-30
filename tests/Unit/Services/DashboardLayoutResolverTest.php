@@ -7,7 +7,6 @@ namespace Tests\Unit\Services;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\UserDashboardLayoutRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
 use App\Services\DashboardLayoutResolver;
 use PHPUnit\Framework\TestCase;
@@ -38,7 +37,7 @@ final class DashboardLayoutResolverTest extends TestCase
         $roles->method('findById')->willReturnCallback(fn(int $id): array => ['id' => $id, 'name' => 'Role ' . $id, 'is_system' => in_array($id, $systemRoles, true) ? 1 : 0]);
         $roles->method('findAll')->willReturn([['id' => 1, 'name' => 'Owner'], ['id' => 2, 'name' => 'Manager']]);
 
-        return new DashboardLayoutResolver($prefs, $assignments, $roles, $this->createStub(UserDashboardLayoutRepositoryInterface::class));
+        return new DashboardLayoutResolver($prefs, $assignments, $roles);
     }
 
     public function testTheUsersOwnLayoutAlwaysWins(): void

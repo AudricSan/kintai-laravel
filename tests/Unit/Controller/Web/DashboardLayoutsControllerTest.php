@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
-use App\Repositories\UserDashboardLayoutRepositoryInterface;
+use App\Models\UserDashboardLayout;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -20,7 +20,6 @@ use PHPUnit\Framework\TestCase;
 #[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
 final class DashboardLayoutsControllerTest extends TestCase
 {
-    private UserDashboardLayoutRepositoryInterface&MockObject $layouts;
     private UserDashboardPrefsRepositoryInterface&MockObject $prefs;
     private RoleRepositoryInterface $roles;
     private DashboardLayoutsController $controller;
@@ -30,7 +29,6 @@ final class DashboardLayoutsControllerTest extends TestCase
         session()->flush();
         kintai_test_database();
         kintai_test_migrate();
-        $this->layouts     = $this->createMock(UserDashboardLayoutRepositoryInterface::class);
         $this->prefs       = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
         $this->roles       = $this->createStub(RoleRepositoryInterface::class);
         $this->roles->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 2 ? ['id' => 2, 'name' => 'Manager'] : null);
@@ -39,9 +37,8 @@ final class DashboardLayoutsControllerTest extends TestCase
             $this->prefs,
             $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->roles,
-            $this->layouts,
         );
-        $this->controller = new DashboardLayoutsController($this->layouts, $this->prefs, $this->roles, $resolver, new AuditLogger());
+        $this->controller = new DashboardLayoutsController($this->prefs, $this->roles, $resolver, new AuditLogger());
     }
 
     protected function tearDown(): void
@@ -63,35 +60,43 @@ final class DashboardLayoutsControllerTest extends TestCase
         return implode('|', kintai_test_flash());
     }
 
-    private function stored(int $id, int $userId = 7, string $type = 'admin', bool $active = false): array
+    /** Enregistre une mise en page nommée de cet utilisateur et renvoie son identifiant. */
+    private function stored(int $userId = 7, string $type = 'admin', string $name = 'Matin', bool $active = false): int
     {
-        return ['id' => $id, 'name' => 'Matin', 'layout' => ['order' => ['shifts_today'], 'widths' => []], 'is_active' => $active, 'position' => 1, 'user_id' => $userId, 'dashboard_type' => $type];
+        $id = UserDashboardLayout::createActive($userId, $type, $name, ['order' => ['shifts_today'], 'widths' => []]);
+        if (!$active) {
+            UserDashboardLayout::where('id', $id)->update(['is_active' => false]);
+        }
+
+        return $id;
     }
 
     public function testCreateSnapshotsTheCurrentLayoutAndMakesItActive(): void
     {
         $current = ['order' => ['kpi_counters'], 'widths' => ['kpi_counters' => 4]];
         $this->prefs->method('getLayout')->with(7, 'admin')->willReturn($current);
-        $this->layouts->method('forUser')->willReturn([]);
-        $this->layouts->expects($this->once())->method('createActive')->with(7, 'admin', 'Matin', $current)->willReturn(1);
         $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', $current);
 
         $response = $this->controller->manageManager($this->request(['action' => 'create', 'name' => '  Matin ']));
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(__('dashboard_layouts_saved'), $this->flash());
+        $saved = UserDashboardLayout::forUser(7, 'admin');
+        $this->assertSame(['Matin'], array_column($saved, 'name'));
+        $this->assertTrue($saved[0]['is_active']);
+        $this->assertSame($current, $saved[0]['layout']);
     }
-
     public function testCreateIsRefusedBeyondFiveLayoutsOrWithADuplicateOrEmptyName(): void
     {
-        $five = array_map(fn(int $i): array => ['id' => $i, 'name' => 'L' . $i, 'layout' => [], 'is_active' => false, 'position' => $i], range(1, 5));
-        $this->layouts->method('forUser')->willReturnOnConsecutiveCalls($five, [['id' => 1, 'name' => 'Matin', 'layout' => [], 'is_active' => false, 'position' => 1]]);
-        $this->layouts->expects($this->never())->method('createActive');
+        foreach (range(1, 5) as $i) {
+            $this->stored(name: 'L' . $i);
+        }
 
         $this->controller->manageManager($this->request(['action' => 'create', 'name' => 'Sixième']));
         $this->assertSame(__('dashboard_layouts_limit'), $this->flash());
 
-        $this->controller->manageManager($this->request(['action' => 'create', 'name' => 'matin']));
+        UserDashboardLayout::where('name', 'L5')->delete();
+        $this->controller->manageManager($this->request(['action' => 'create', 'name' => 'l1']));
         $this->assertSame(__('dashboard_layouts_name_taken'), $this->flash(), 'noms uniques sans tenir compte de la casse');
 
         $this->controller->manageManager($this->request(['action' => 'create', 'name' => '   ']));
@@ -99,53 +104,49 @@ final class DashboardLayoutsControllerTest extends TestCase
 
         $this->controller->manageManager($this->request(['action' => 'create', 'name' => str_repeat('x', 61)]));
         $this->assertSame(__('dashboard_layouts_name_invalid'), $this->flash());
+        $this->assertCount(4, UserDashboardLayout::forUser(7, 'admin'), 'aucune mise en page créée');
     }
-
     public function testActivateCopiesTheLayoutIntoTheCurrentOne(): void
     {
-        $this->layouts->method('find')->with(4)->willReturn($this->stored(4));
+        $id = $this->stored();
         $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'admin', ['order' => ['shifts_today'], 'widths' => []]);
-        $this->layouts->expects($this->once())->method('activate')->with(4);
 
-        $this->controller->manageManager($this->request(['action' => 'activate', 'id' => '4']));
+        $this->controller->manageManager($this->request(['action' => 'activate', 'id' => (string) $id]));
+
+        $this->assertTrue(UserDashboardLayout::describe($id)['is_active']);
     }
-
     public function testNobodyTouchesSomeoneElsesLayoutOrAnotherDashboardsLayout(): void
     {
-        $this->layouts->method('find')->willReturnMap([[4, $this->stored(4, userId: 99)], [5, $this->stored(5, type: 'employee')]]);
-        $this->layouts->expects($this->never())->method('activate');
-        $this->layouts->expects($this->never())->method('delete');
-        $this->layouts->expects($this->never())->method('rename');
+        $others   = $this->stored(userId: 99);
+        $employee = $this->stored(type: 'employee');
         $this->prefs->expects($this->never())->method('saveLayout');
-        $this->layouts->method('forUser')->willReturn([]);
 
         foreach (['activate', 'delete', 'rename'] as $action) {
-            foreach ([4, 5, 404] as $id) {
+            foreach ([$others, $employee, 404] as $id) {
                 $this->controller->manageManager($this->request(['action' => $action, 'id' => (string) $id, 'name' => 'Autre']));
                 $this->assertSame(__('dashboard_layouts_not_found'), $this->flash(), "$action #$id");
             }
         }
+        $this->assertSame('Matin', UserDashboardLayout::describe($others)['name']);
+        $this->assertNotNull(UserDashboardLayout::describe($employee));
     }
-
     public function testRenameAndDeleteOwnLayout(): void
     {
-        $this->layouts->method('find')->with(4)->willReturn($this->stored(4));
-        $this->layouts->method('forUser')->willReturn([['id' => 4, 'name' => 'Matin', 'layout' => [], 'is_active' => true, 'position' => 1]]);
-        $this->layouts->expects($this->once())->method('rename')->with(4, 'Soir');
-        $this->layouts->expects($this->once())->method('delete')->with(4);
+        $id = $this->stored(active: true);
 
-        $this->controller->manageManager($this->request(['action' => 'rename', 'id' => '4', 'name' => 'Soir']));
-        $this->controller->manageManager($this->request(['action' => 'delete', 'id' => '4']));
+        $this->controller->manageManager($this->request(['action' => 'rename', 'id' => (string) $id, 'name' => 'Soir']));
+        $this->assertSame('Soir', UserDashboardLayout::describe($id)['name']);
+
+        $this->controller->manageManager($this->request(['action' => 'delete', 'id' => (string) $id]));
+        $this->assertNull(UserDashboardLayout::describe($id));
     }
-
     public function testEmployeeDashboardUsesItsOwnType(): void
     {
-        $this->layouts->method('find')->with(5)->willReturn($this->stored(5, type: 'employee'));
+        $id = $this->stored(type: 'employee');
         $this->prefs->expects($this->once())->method('saveLayout')->with(7, 'employee', $this->anything());
 
-        $this->controller->manageEmployee($this->request(['action' => 'activate', 'id' => '5']));
+        $this->controller->manageEmployee($this->request(['action' => 'activate', 'id' => (string) $id]));
     }
-
     public function testRoleDefaultIsOwnerOnlyAndUsesTheOwnersCurrentLayout(): void
     {
         $current = ['order' => ['kpi_counters'], 'widths' => []];
@@ -179,10 +180,8 @@ final class DashboardLayoutsControllerTest extends TestCase
 
     public function testUnknownActionIsRejected(): void
     {
-        $this->layouts->expects($this->never())->method('createActive');
-
         $this->controller->manageManager($this->request(['action' => 'drop_everything']));
 
         $this->assertSame(__('dashboard_layouts_invalid'), $this->flash());
-    }
-}
+        $this->assertSame([], UserDashboardLayout::forUser(7, 'admin'));
+    }}
