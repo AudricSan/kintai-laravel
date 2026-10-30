@@ -1,0 +1,69 @@
+name: Bundles release
+
+# Publie une Release GitHub par bundle modifié, à chaque push sur une branche de canal. Les bundles vivent dans
+# bundles/<slug>/ de ce dépôt ; l'installateur de Kintai (BundleInstallerService) lit la release taguée
+# <slug>-vX.Y.Z et n'installe que le dossier bundles/<slug>/ de son zipball.
+#
+# Schéma de version X.Y.Z, comme pour chaque bundle auparavant :
+# - X.Y vient de "version" dans bundle.json (écrit X.Y.0, bumpé à la main à l'ouverture d'une ligne).
+# - alpha et beta -> <slug>-vX.Y.Z, prerelease, Z = plus haut tag <slug>-vX.Y.* existant + 1 (compteur partagé).
+# - main -> <slug>-vX.Y.0, release stable (ignorée si le tag existe déjà).
+
+on:
+  push:
+    branches: [alpha, beta, main]
+    paths:
+      - 'bundles/**'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Tag and publish a release for each changed bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE=$(git rev-list --max-parents=0 HEAD | tail -n1)
+          fi
+
+          for dir in $(git diff --name-only "$BEFORE" HEAD -- bundles | cut -d/ -f2 | sort -u); do
+            [ -f "bundles/$dir/bundle.json" ] || continue
+            BASE=$(php -r "echo json_decode(file_get_contents('bundles/$dir/bundle.json'), true)['version'];")
+            LINE="${BASE%.*}"
+
+            if [ "$BRANCH" = "main" ]; then
+              TAG="$dir-v$LINE.0"
+              PRERELEASE=""
+              if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+                echo "$TAG existe déjà : ignoré."
+                continue
+              fi
+            else
+              LAST=$(git tag -l "$dir-v$LINE.*" | sed "s/^$dir-v$LINE\.//" | grep -E '^[0-9]+$' | sort -n | tail -n1 || true)
+              TAG="$dir-v$LINE.$(( ${LAST:-0} + 1 ))"
+              PRERELEASE="--prerelease"
+            fi
+
+            git tag "$TAG"
+            git push origin "$TAG"
+            gh release create "$TAG" $PRERELEASE --target "$GITHUB_SHA" --title "$dir $TAG" --notes "Bundle $dir, version $TAG."
+          done

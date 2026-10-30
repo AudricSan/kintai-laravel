@@ -23,6 +23,9 @@ name: Release
 on:
   push:
     branches: [alpha, beta, main]
+    # Les bundles (bundles/<slug>/) ont leurs propres releases : bundles-release.yml.
+    paths-ignore:
+      - 'bundles/**'
 
 permissions:
   contents: write

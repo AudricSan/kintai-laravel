@@ -26,7 +26,7 @@ use App\Services\UpdateService;
  * kintai-laravel-bundles) : son repository_url désigne alors le dossier du
  * bundle (https://github.com/{owner}/{repo}/tree/{branche}/{dossier}), ses
  * releases sont taguées `{dossier}-v{version}`, et seul ce dossier du zipball
- * est installé.
+ * est installé. Dans le monorepo de Kintai, le dossier est « bundles/{slug} » et le tag « {slug}-v{version} ».
  */
 final class BundleInstallerService
 {
@@ -237,7 +237,7 @@ final class BundleInstallerService
             return null;
         }
 
-        $tag    = ($repository['directory'] !== null ? $repository['directory'] . '-' : '') . "v{$version}";
+        $tag    = ($repository['directory'] !== null ? basename($repository['directory']) . '-' : '') . "v{$version}";
         $apiUrl = "https://api.github.com/repos/{$repository['owner']}/{$repository['repo']}/releases/tags/{$tag}";
         $body = $this->http->get($apiUrl, [
             'User-Agent: Kintai-BundleInstaller/1.0',
@@ -269,8 +269,9 @@ final class BundleInstallerService
         if (preg_match('#^https://github\.com/([^/]+)/([^/]+?)/?$#', rtrim($repositoryUrl), $m)) {
             return ['owner' => $m[1], 'repo' => $m[2], 'directory' => null];
         }
-        // Le dossier devient un chemin dans l'archive et un nom de tag : un seul segment, jamais « . » ni « .. ».
-        if (preg_match('#^https://github\.com/([^/]+)/([^/]+)/tree/[^/]+/([A-Za-z0-9_][A-Za-z0-9_.-]{0,99})/?$#', rtrim($repositoryUrl), $m)) {
+        // Le dossier devient un chemin dans l'archive (« daily-report » ou « bundles/daily-report ») et, par son dernier
+        // segment, un nom de tag : jamais « . » ni « .. ».
+        if (preg_match('#^https://github\.com/([^/]+)/([^/]+)/tree/[^/]+/([A-Za-z0-9_][A-Za-z0-9_.-]{0,99}(?:/[A-Za-z0-9_][A-Za-z0-9_.-]{0,99})?)/?$#', rtrim($repositoryUrl), $m)) {
             return ['owner' => $m[1], 'repo' => $m[2], 'directory' => $m[3]];
         }
 

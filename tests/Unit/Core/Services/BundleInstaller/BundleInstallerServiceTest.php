@@ -515,7 +515,12 @@ return new class extends Migration {
             ['owner' => 'AudricSan', 'repo' => 'kintai-laravel-bundles', 'directory' => 'fake-bundle'],
             BundleInstallerService::parseRepositoryUrl('https://github.com/AudricSan/kintai-laravel-bundles/tree/main/fake-bundle'),
         );
-        foreach (['..', '.', 'a/b', ''] as $directory) {
+        // Monorepo de Kintai : le dossier est « bundles/{slug} », le tag « {slug}-v{version} ».
+        $this->assertSame(
+            ['owner' => 'AudricSan', 'repo' => 'kintai-laravel', 'directory' => 'bundles/daily-report'],
+            BundleInstallerService::parseRepositoryUrl('https://github.com/AudricSan/kintai-laravel/tree/main/bundles/daily-report'),
+        );
+        foreach (['..', '.', 'a/b/c', 'a/..', ''] as $directory) {
             $this->assertNull(BundleInstallerService::parseRepositoryUrl('https://github.com/AudricSan/kintai-laravel-bundles/tree/main/' . $directory), $directory);
         }
     }
