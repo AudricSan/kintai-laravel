@@ -7,19 +7,19 @@ namespace Tests\Unit\Services;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Services\RoleAssignmentSyncService;
 
 final class RoleAssignmentSyncServiceTest extends TestCase
 {
-    private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
     private ?RoleAssignmentSyncService $service = null;
 
     protected function setUp(): void
     {
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
@@ -27,7 +27,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
     private function service(): RoleAssignmentSyncService
     {
         if ($this->service === null) {
-            $this->service      = new RoleAssignmentSyncService($this->roles, $this->assignments);
+            $this->service      = new RoleAssignmentSyncService($this->assignments);
         }
 
         return $this->service;
@@ -39,9 +39,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncOwnerRoleAssignsWhenPromotedAndNotAlreadyOwner(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([]);
         $this->assignments->expects($this->once())->method('assign')->with(10, 1, 'global', null);
 
@@ -50,9 +48,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncOwnerRoleDoesNothingWhenAlreadyOwner(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 5, 'user_id' => 10, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
         ]);
@@ -64,9 +60,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncOwnerRoleRevokesWhenDemoted(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 5, 'user_id' => 10, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
         ]);
@@ -77,9 +71,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncOwnerRoleDoesNothingWhenDemotedAndNotOwner(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1]);
         $this->assignments->method('findByUser')->willReturn([]);
         $this->assignments->expects($this->never())->method('revoke');
 
@@ -89,9 +81,11 @@ final class RoleAssignmentSyncServiceTest extends TestCase
     public function testSyncOwnerRoleNoopsWhenOwnerRoleMissing(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findBySlug')->willReturn(null);
         $this->assignments->expects($this->never())->method('assign');
         $this->assignments->expects($this->never())->method('findByUser');
+        \Illuminate\Support\Facades\DB::table('role_assignments')->delete();
+        \Illuminate\Support\Facades\DB::table('roles')->where('slug', 'owner')->delete();
+        \App\Database\RequestMemo::flush();
 
         $this->service()->syncOwnerRole(10, true);
     }
@@ -102,10 +96,8 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncStoreRoleByIdAssignsWhenMissing(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['employees.view']);
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([]);
         $this->assignments->expects($this->once())->method('assign')->with(10, 2, 'store', 1);
 
@@ -116,10 +108,8 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncStoreRoleByIdReplacesExistingDifferentRoleOnSameStore(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn([]);
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn() => []);
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 9, 'user_id' => 10, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
@@ -131,10 +121,8 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncStoreRoleByIdDoesNothingWhenAlreadyCorrect(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn([]);
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn() => []);
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
@@ -146,9 +134,8 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testSyncStoreRoleByIdRejectsSystemRole(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Owner', 'is_system' => 1] : null);
         $this->assignments->expects($this->never())->method('assign');
 
         $this->assertNull($this->service()->syncStoreRoleById(10, 1, 1));
@@ -157,7 +144,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
     public function testSyncStoreRoleByIdRejectsUnknownRole(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(null);
+        kintai_test_roles(findById: fn() => null);
         $this->assignments->expects($this->never())->method('assign');
 
         $this->assertNull($this->service()->syncStoreRoleById(10, 1, 99));
@@ -169,16 +156,15 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testAssignableStoreRolesExcludesSystemRolesAndFlagsManaging(): void
     {
-        $this->roles->method('findAll')->willReturn([
+        kintai_test_role_table([
             ['id' => 1, 'name' => 'Owner', 'is_system' => 1],
             ['id' => 2, 'name' => 'Manager', 'is_system' => 0],
             ['id' => 3, 'name' => 'Employé', 'is_system' => 0],
         ]);
-        $this->roles->method('getPermissions')->willReturnMap([
+        kintai_test_roles(getPermissions: fn(int $id) => array_column([
             [2, ['employees.view', 'shifts.create']],
             [3, []],
-        ]);
-
+        ], 1, 0)[$id] ?? []);
         $roles = $this->service()->assignableStoreRoles();
 
         $this->assertCount(2, $roles);
@@ -189,31 +175,29 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testDefaultStoreRolePrefersRoleWithoutPermissions(): void
     {
-        $this->roles->method('findAll')->willReturn([
+        kintai_test_role_table([
             ['id' => 2, 'name' => 'Manager', 'is_system' => 0],
             ['id' => 3, 'name' => 'Employé', 'is_system' => 0],
         ]);
-        $this->roles->method('getPermissions')->willReturnMap([
+        kintai_test_roles(getPermissions: fn(int $id) => array_column([
             [2, ['employees.view']],
             [3, []],
-        ]);
-
+        ], 1, 0)[$id] ?? []);
         $this->assertSame(3, $this->service()->defaultStoreRole()['id']);
     }
 
     public function testDefaultStoreRoleFallsBackToFirstAssignable(): void
     {
-        $this->roles->method('findAll')->willReturn([
+        kintai_test_role_table([
             ['id' => 2, 'name' => 'Manager', 'is_system' => 0],
         ]);
-        $this->roles->method('getPermissions')->willReturn(['employees.view']);
-
+        kintai_test_roles(getPermissions: fn() => ['employees.view']);
         $this->assertSame(2, $this->service()->defaultStoreRole()['id']);
     }
 
     public function testDefaultStoreRoleIsNullWithoutDynamicRoles(): void
     {
-        $this->roles->method('findAll')->willReturn([
+        kintai_test_role_table([
             ['id' => 1, 'name' => 'Owner', 'is_system' => 1],
         ]);
 
@@ -227,16 +211,15 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testAllRolesIncludesSystemRolesAndFlagsManaging(): void
     {
-        $this->roles->method('findAll')->willReturn([
+        kintai_test_role_table([
             ['id' => 1, 'name' => 'Owner', 'is_system' => 1],
             ['id' => 2, 'name' => 'Manager', 'is_system' => 0],
             ['id' => 3, 'name' => 'Employé', 'is_system' => 0],
         ]);
-        $this->roles->method('getPermissions')->willReturnMap([
+        kintai_test_roles(getPermissions: fn(int $id) => array_column([
             [2, ['employees.view']],
             [3, []],
-        ]);
-
+        ], 1, 0)[$id] ?? []);
         $roles = $this->service()->allRoles();
 
         $this->assertCount(3, $roles);
@@ -249,9 +232,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testFindRoleReturnsSystemRole(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Owner', 'is_system' => 1] : null);
         $role = $this->service()->findRole(1);
 
         $this->assertSame('Owner', $role['name']);
@@ -260,10 +241,7 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testFindRoleReturnsNonSystemRole(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['employees.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'name' => 'Manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : []);
         $role = $this->service()->findRole(2);
 
         $this->assertSame('Manager', $role['name']);
@@ -272,18 +250,17 @@ final class RoleAssignmentSyncServiceTest extends TestCase
 
     public function testFindRoleReturnsNullForUnknownOrInvalidId(): void
     {
-        $this->roles->method('findById')->willReturn(null);
-
+        kintai_test_roles(findById: fn() => null);
         $this->assertNull($this->service()->findRole(99));
         $this->assertNull($this->service()->findRole(0));
     }
 
     public function testOwnerRoleDelegatesToFindBySlug(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1, 'name' => 'Owner']);
+        $owner = $this->service()->ownerRole();
 
-        $this->assertSame(['id' => 1, 'name' => 'Owner'], $this->service()->ownerRole());
+        $this->assertSame(1, $owner['id']);
+        $this->assertSame('owner', $owner['slug']);
     }
 
     // -------------------------------------------------------------------------
@@ -297,15 +274,13 @@ final class RoleAssignmentSyncServiceTest extends TestCase
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
             ['id' => 11, 'user_id' => 12, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->method('findById')->willReturnMap([
+        kintai_test_roles(findById: fn(int $id) => array_column([
             [2, ['id' => 2, 'name' => 'Manager', 'is_system' => 0]],
             [3, ['id' => 3, 'name' => 'Employé', 'is_system' => 0]],
-        ]);
-        $this->roles->method('getPermissions')->willReturnMap([
+        ], 1, 0)[$id] ?? null, getPermissions: static fn(int $id) => array_column([
             [2, ['employees.view']],
             [3, []],
-        ]);
-
+        ], 1, 0)[$id] ?? []);
         $map = $this->service()->storeRoleMapForStore(1);
 
         $this->assertSame(['role_id' => 2, 'name' => 'Manager', 'is_managing' => true], $map[10]);
@@ -319,11 +294,9 @@ final class RoleAssignmentSyncServiceTest extends TestCase
             ['id' => 5, 'user_id' => 10, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
             ['id' => 9, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 4],
         ]);
-        $this->roles->method('findById')->willReturnMap([
+        kintai_test_roles(findById: fn(int $id) => array_column([
             [2, ['id' => 2, 'name' => 'Manager', 'is_system' => 0]],
-        ]);
-        $this->roles->method('getPermissions')->willReturn(['employees.view']);
-
+        ], 1, 0)[$id] ?? null, getPermissions: static fn() => ['employees.view']);
         $map = $this->service()->storeRoleMapForUser(10);
 
         $this->assertArrayNotHasKey(0, $map);

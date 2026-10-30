@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Api\V1;
 use Tests\Support\ApiOwnerAuth;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\ShiftType;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -70,12 +70,8 @@ final class ShiftTypeControllerTest extends TestCase
             ['id' => 1, 'user_id' => 9, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
         $assignments->method('findByScope')->willReturn([]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 20, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['shifts.update']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-
-        return new ShiftTypeController(new AuditLogger(), new PermissionService($assignments, $roles));
+        kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['shifts.update'], getGlobalPermissionKeys: fn() => []);
+        return new ShiftTypeController(new AuditLogger(), new PermissionService($assignments));
     }
 
     private function asManager(Request $request): Request

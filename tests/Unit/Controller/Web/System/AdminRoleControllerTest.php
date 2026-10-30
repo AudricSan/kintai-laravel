@@ -11,7 +11,7 @@ use Illuminate\Container\Container;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -27,20 +27,23 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminRoleControllerTest extends TestCase
 {
-    private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminRoleController $controller = null;
 
+    /** Dernier rôle créé par l'action testée. */
+    private function lastRole(): array
+    {
+        return Role::query()->orderByDesc('id')->first()?->toArray() ?? [];
+    }
+
     protected function setUp(): void
     {
         $this->ensureViewFile('system.roles');
         $this->ensureViewFile('system.roles-form');
         $this->ensureViewFile('layout.app');
-
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->stores      = $this->createStub(StoreRepositoryInterface::class);
@@ -53,14 +56,13 @@ final class AdminRoleControllerTest extends TestCase
         if ($this->controller === null) {
             $this->controller = new AdminRoleController(
                 kintai_test_views(sys_get_temp_dir()),
-                $this->roles,
                 $this->assignments,
                 $this->users,
                 $this->stores,
                 new AuditLogger(),
                 $this->storeUsers,
-                new RoleAssignmentSyncService($this->roles, $this->assignments),
-                new OwnerGuard(new PermissionService($this->assignments, $this->roles), $this->users),
+                new RoleAssignmentSyncService($this->assignments),
+                new OwnerGuard(new PermissionService($this->assignments), $this->users),
             );
         }
 
@@ -90,7 +92,7 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testRolesRendersListWithAssignmentCounts(): void
     {
-        $this->roles->method('findAll')->willReturn([
+        kintai_test_role_table([
             ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1],
             ['id' => 2, 'name' => 'Manager', 'slug' => 'manager', 'is_system' => 0],
         ]);
@@ -116,7 +118,6 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testStoreRoleCreatesRoleWithPermissions(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $_POST = [
             'name'                    => 'Auditor',
             'description'             => 'Lecture seule',
@@ -126,22 +127,12 @@ final class AdminRoleControllerTest extends TestCase
         ];
         $req = $this->ownerRequest();
 
-        $this->roles->method('findBySlug')->willReturn(null);
-
         $captured = null;
-        $this->roles->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d + ['id' => 5];
-        });
-
         $capturedPermissions = null;
-        $this->roles->expects($this->once())->method('savePermissions')
-            ->willReturnCallback(function (int $roleId, array $perms) use (&$capturedPermissions) {
-                $capturedPermissions = $perms;
-            });
-
         $response = $this->controller()->storeRole($req);
 
+        $captured = $this->lastRole();
+        $capturedPermissions = Role::getPermissions((int) $this->lastRole()['id']);
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('Auditor', $captured['name']);
         $this->assertSame('auditor', $captured['slug']);
@@ -160,22 +151,15 @@ final class AdminRoleControllerTest extends TestCase
     public function testStoreRoleCapturesIsManagerFlagWhenChecked(): void
     {
         $_POST = ['name' => 'Manager Boutique', 'is_manager' => '1'];
-        $this->roles->method('findBySlug')->willReturn(null);
-
         $captured = null;
-        $this->roles->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d + ['id' => 6];
-        });
-
         $this->controller()->storeRole($this->ownerRequest());
 
+        $captured = $this->lastRole();
         $this->assertSame(1, $captured['is_manager']);
     }
 
     public function testStoreRoleCapturesGlobalScopeOnlyForGrantedPermissions(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $_POST = [
             'name'                => 'Auditor',
             'perm_shifts_view'    => '1',
@@ -184,25 +168,16 @@ final class AdminRoleControllerTest extends TestCase
             // scope_employees_view absent : reste local.
             'scope_shifts_update' => 'global', // permission non cochée : doit être ignorée.
         ];
-        $this->roles->method('findBySlug')->willReturn(null);
-        $this->roles->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 5]);
-
         $capturedGlobal = null;
-        $this->roles->expects($this->once())->method('savePermissions')
-            ->willReturnCallback(function (int $roleId, array $perms, array $global = []) use (&$capturedGlobal) {
-                $capturedGlobal = $global;
-            });
-
         $this->controller()->storeRole($this->ownerRequest());
 
+        $capturedGlobal = Role::getGlobalPermissionKeys((int) $this->lastRole()['id']);
         $this->assertSame(['shifts.view'], $capturedGlobal);
     }
 
     public function testStoreRoleRedirectsWithErrorWhenNameBlank(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $_POST = ['name' => '   '];
-        $this->roles->expects($this->never())->method('save');
 
         $response = $this->controller()->storeRole($this->ownerRequest());
 
@@ -212,19 +187,10 @@ final class AdminRoleControllerTest extends TestCase
     public function testStoreRoleDedupesSlugWhenAlreadyTaken(): void
     {
         $_POST = ['name' => 'Manager'];
-        $this->roles->method('findBySlug')->willReturnMap([
-            ['manager', ['id' => 2, 'slug' => 'manager']],
-            ['manager-2', null],
-        ]);
-
         $captured = null;
-        $this->roles->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d + ['id' => 6];
-        });
-
         $this->controller()->storeRole($this->ownerRequest());
 
+        $captured = $this->lastRole();
         $this->assertSame('manager-2', $captured['slug']);
     }
 
@@ -234,7 +200,7 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testEditRoleThrowsWhenNotFound(): void
     {
-        $this->roles->method('findById')->willReturn(null);
+        kintai_test_roles(findById: fn() => null);
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 99]);
 
@@ -247,8 +213,7 @@ final class AdminRoleControllerTest extends TestCase
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['employees.view']);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => ['employees.view']);
         $this->assignments->method('findByRole')->willReturn([
             ['id' => 1, 'user_id' => 7, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
@@ -270,7 +235,7 @@ final class AdminRoleControllerTest extends TestCase
     public function testEditRoleForOwnerRoleListsActiveUsersWithoutStoreMembership(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
         $this->assignments->method('findByRole')->willReturn([]);
         $this->users->method('findAll')->willReturn([
             ['id' => 7, 'display_name' => 'Jane', 'is_active' => 1],
@@ -289,7 +254,7 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testUpdateRoleThrowsForbiddenOnSystemRole(): void
     {
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 1]);
 
@@ -299,111 +264,78 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testUpdateRoleReplacesPermissions(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['employees.view']);
-        $this->roles->method('save')->willReturnCallback(fn(array $d) => $d);
-
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => ['employees.view']);
         $capturedPermissions = null;
-        $this->roles->expects($this->once())->method('savePermissions')
-            ->willReturnCallback(function (int $roleId, array $perms) use (&$capturedPermissions) {
-                $capturedPermissions = $perms;
-            });
-
         $_POST = ['name' => 'Manager', 'perm_shifts_view' => '1'];
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
 
         $response = $this->controller()->updateRole($req);
 
+        $capturedPermissions = Role::getPermissions(2);
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(['shifts.view'], $capturedPermissions);
     }
 
     public function testUpdateRolePreservesPermissionsOfDisabledBundles(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         // Aucun bundle activé → les catégories portées par un bundle (timeoff,
         // swaps…) sont masquées du formulaire : leurs cases ne sont ni
         // affichées ni prises en compte, mais les clés déjà accordées
         // survivent à la sauvegarde.
         Container::getInstance()->instance(BundleManager::class, FakeBundleManagerFactory::withActiveSlugs([]));
 
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['timeoff.view', 'timeoff.approve', 'employees.view']);
-        $this->roles->method('save')->willReturnCallback(fn(array $d) => $d);
-
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => ['timeoff.view', 'timeoff.approve', 'employees.view']);
         $capturedPermissions = null;
-        $this->roles->expects($this->once())->method('savePermissions')
-            ->willReturnCallback(function (int $roleId, array $perms) use (&$capturedPermissions) {
-                $capturedPermissions = $perms;
-            });
-
         $_POST = ['name' => 'Manager', 'perm_shifts_view' => '1', 'perm_swaps_view' => '1'];
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
 
         $this->controller()->updateRole($req);
 
-        sort($capturedPermissions);
         // employees.view (catégorie Core, décochée) disparaît ; swaps.view
         // (catégorie masquée, cochée par manipulation du POST) est ignorée ;
         // les clés timeoff.* déjà en base sont préservées.
+        $capturedPermissions = Role::getPermissions(2);
+        sort($capturedPermissions);
         $this->assertSame(['shifts.view', 'timeoff.approve', 'timeoff.view'], $capturedPermissions);
     }
 
     public function testUpdateRolePreservesGlobalScopeOfDisabledBundlePermissions(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         // Même scénario que testUpdateRolePreservesPermissionsOfDisabledBundles,
         // mais timeoff.view était en plus marquée "Toutes les boutiques" avant
         // cette édition : ce flag doit lui aussi survivre, pas seulement la clé.
         Container::getInstance()->instance(BundleManager::class, FakeBundleManagerFactory::withActiveSlugs([]));
 
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['timeoff.view', 'employees.view']);
-        $this->roles->method('getGlobalPermissionKeys')->willReturn(['timeoff.view']);
-        $this->roles->method('save')->willReturnCallback(fn(array $d) => $d);
-
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => ['timeoff.view', 'employees.view'], getGlobalPermissionKeys: fn() => ['timeoff.view']);
         $capturedGlobal = null;
-        $this->roles->expects($this->once())->method('savePermissions')
-            ->willReturnCallback(function (int $roleId, array $perms, array $global = []) use (&$capturedGlobal) {
-                $capturedGlobal = $global;
-            });
-
         $_POST = ['name' => 'Manager', 'perm_shifts_view' => '1'];
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
 
         $this->controller()->updateRole($req);
 
+        $capturedGlobal = Role::getGlobalPermissionKeys(2);
         $this->assertSame(['timeoff.view'], $capturedGlobal);
     }
 
     public function testUpdateRoleAcceptsBundleCategoryWhenBundleEnabled(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         // timeoff déclare sa catégorie de permissions (contrat 1.2).
         $manager = FakeBundleManagerFactory::withActiveSlugs(['timeoff'], permissions: ['timeoff' => ['timeoff' => ['view', 'create', 'update', 'approve', 'delete']]]);
         Container::getInstance()->instance(BundleManager::class, $manager);
         Container::getInstance()->instance(\App\Extension\ExtensionRegistry::class, new \App\Extension\ExtensionRegistry($manager));
 
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn([]);
-        $this->roles->method('save')->willReturnCallback(fn(array $d) => $d);
-
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => []);
         $capturedPermissions = null;
-        $this->roles->expects($this->once())->method('savePermissions')
-            ->willReturnCallback(function (int $roleId, array $perms) use (&$capturedPermissions) {
-                $capturedPermissions = $perms;
-            });
-
         $_POST = ['name' => 'Manager', 'perm_timeoff_view' => '1'];
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
 
         $this->controller()->updateRole($req);
 
+        $capturedPermissions = Role::getPermissions(2);
         $this->assertSame(['timeoff.view'], $capturedPermissions);
     }
 
@@ -413,7 +345,7 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testDeleteRoleThrowsForbiddenOnSystemRole(): void
     {
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'is_system' => 1]);
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 1]);
 
@@ -423,10 +355,8 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testDeleteRoleRedirectsWithErrorWhenStillAssigned(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->assignments->method('findByRole')->willReturn([['id' => 1]]);
-        $this->roles->expects($this->never())->method('delete');
 
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
@@ -438,16 +368,14 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testDeleteRoleDeletesWhenUnassigned(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Auditor', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Auditor', 'is_system' => 0]);
         $this->assignments->method('findByRole')->willReturn([]);
-        $this->roles->expects($this->once())->method('delete')->with(2);
-
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2]);
 
         $response = $this->controller()->deleteRole($req);
 
+        $this->assertNull(Role::findById(2), 'rôle supprimé');
         $this->assertSame(302, $response->getStatusCode());
     }
 
@@ -461,9 +389,9 @@ final class AdminRoleControllerTest extends TestCase
         // lever l'exception que pour un rôle système qui n'est PAS Owner
         // (hypothétique) — Owner lui-même est géré en portée globale, voir
         // testAddHolderAppliesOwnerRoleGloballyWithoutStoreCheck ci-dessous.
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Weird', 'slug' => 'weird-system', 'is_system' => 1]);
+        kintai_test_roles(findById: fn(int $id) => $id === 40 ? ['id' => 40, 'name' => 'Weird', 'slug' => 'weird-system', 'is_system' => 1] : null);
         $req = $this->ownerRequest();
-        $req->setRouteParams(['id' => 1]);
+        $req->setRouteParams(['id' => 40]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->addHolder($req);
@@ -471,12 +399,10 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testAddHolderAppliesOwnerRoleGloballyWithoutStoreCheck(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7]);
         $this->assignments->method('findByUser')->willReturn([]);
         $this->storeUsers->expects($this->never())->method('findByUser');
@@ -502,7 +428,7 @@ final class AdminRoleControllerTest extends TestCase
     public function testAddHolderRedirectsWithErrorWhenNoUserSelected(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->assignments->expects($this->never())->method('assign');
 
         $_POST = ['user_ids' => []];
@@ -520,7 +446,7 @@ final class AdminRoleControllerTest extends TestCase
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7]);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(7)->willReturn([]);
         $this->assignments->expects($this->never())->method('assign');
@@ -538,7 +464,7 @@ final class AdminRoleControllerTest extends TestCase
     public function testAddHolderAssignsEachValidUserToEveryStoreTheyBelongTo(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->users->method('findById')->willReturnMap([
             [7, ['id' => 7]],
             [8, ['id' => 8]],
@@ -574,9 +500,9 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testRemoveHolderThrowsForbiddenOnNonOwnerSystemRole(): void
     {
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Weird', 'slug' => 'weird-system', 'is_system' => 1]);
+        kintai_test_roles(findById: fn(int $id) => $id === 40 ? ['id' => 40, 'name' => 'Weird', 'slug' => 'weird-system', 'is_system' => 1] : null);
         $req = $this->ownerRequest();
-        $req->setRouteParams(['id' => 1, 'assignmentId' => 5]);
+        $req->setRouteParams(['id' => 40, 'assignmentId' => 5]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->removeHolder($req);
@@ -584,10 +510,8 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testRemoveHolderRevokesOwnerRoleGlobally(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
-        $this->roles->expects($this->atLeastOnce())->method('findBySlug')->with('owner')->willReturn(['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
         $this->assignments->method('findById')->willReturn(['id' => 5, 'role_id' => 1, 'user_id' => 7, 'scope_type' => 'global', 'scope_id' => null]);
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 5, 'role_id' => 1, 'user_id' => 7, 'scope_type' => 'global', 'scope_id' => null],
@@ -606,7 +530,7 @@ final class AdminRoleControllerTest extends TestCase
     public function testRemoveHolderRefusesToRemoveTheOwnerRoleFromTheActor(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
         $this->assignments->method('findById')->willReturn(['id' => 5, 'role_id' => 1, 'user_id' => 1, 'scope_type' => 'global', 'scope_id' => null]);
         $this->assignments->method('findByScope')->willReturn([
             ['id' => 5, 'role_id' => 1, 'user_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
@@ -623,7 +547,7 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testRemoveHolderThrowsNotFoundWhenAssignmentMissing(): void
     {
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->assignments->method('findById')->willReturn(null);
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2, 'assignmentId' => 5]);
@@ -634,7 +558,7 @@ final class AdminRoleControllerTest extends TestCase
 
     public function testRemoveHolderThrowsNotFoundWhenAssignmentBelongsToAnotherRole(): void
     {
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->assignments->method('findById')->willReturn(['id' => 5, 'role_id' => 99, 'user_id' => 7, 'scope_type' => 'store', 'scope_id' => 3]);
         $req = $this->ownerRequest();
         $req->setRouteParams(['id' => 2, 'assignmentId' => 5]);
@@ -646,7 +570,7 @@ final class AdminRoleControllerTest extends TestCase
     public function testRemoveHolderRevokesAssignment(): void
     {
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0]);
         $this->assignments->method('findById')->willReturn(['id' => 5, 'role_id' => 2, 'user_id' => 7, 'scope_type' => 'store', 'scope_id' => 3]);
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 5, 'role_id' => 2, 'user_id' => 7, 'scope_type' => 'store', 'scope_id' => 3],

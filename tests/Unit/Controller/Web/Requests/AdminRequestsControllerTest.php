@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -81,10 +81,8 @@ final class AdminRequestsControllerTest extends TestCase
         $roleAssignments->method('findByUser')->willReturn($isAdmin ? [] : [
             ['id' => 1, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->method('findById')->with(5)->willReturn(['id' => 5, 'is_system' => 0]);
-        $roles->method('getPermissions')->with(5)->willReturn(['timeoff.view', 'swaps.view']);
-        $permissions = new PermissionService($roleAssignments, $roles);
+        kintai_test_roles(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 5 ? ['timeoff.view', 'swaps.view'] : []);
+        $permissions = new PermissionService($roleAssignments);
 
         // Les demandes sont lues à travers les fournisseurs (PendingRequests), qui prennent leurs dépôts dans le
         // conteneur.

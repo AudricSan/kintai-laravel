@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -43,7 +43,6 @@ final class AdminShiftImportControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $roleSync = new RoleAssignmentSyncService(
-                $this->createStub(RoleRepositoryInterface::class),
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
             );
             $this->controller = new AdminShiftImportController(

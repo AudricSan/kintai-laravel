@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -53,11 +53,8 @@ final class TimeclockMassAssignmentTest extends TestCase
         $assignments->method('findByUser')->willReturn([
             ['id' => 1, 'user_id' => self::ME, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => self::MY_STORE],
         ]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 20, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn($keys);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-        return new PermissionService($assignments, $roles);
+        kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => $keys, getGlobalPermissionKeys: fn() => []);
+        return new PermissionService($assignments);
     }
 
     private function request(array $json, array $params = []): Request

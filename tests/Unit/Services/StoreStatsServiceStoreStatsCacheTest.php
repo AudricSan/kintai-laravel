@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -50,7 +50,6 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
                 $storeUsers,
                 $users,
                 new RoleAssignmentSyncService(
-                    $this->createStub(RoleRepositoryInterface::class),
                     $this->createStub(RoleAssignmentRepositoryInterface::class),
                 ),
             );

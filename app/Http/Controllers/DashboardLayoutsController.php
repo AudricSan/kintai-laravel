@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Extension\DashboardLayout;
 use App\Models\RoleDashboardLayout;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\UserDashboardLayout;
 use App\Models\UserDashboardPref;
 use Illuminate\Http\Request;
@@ -35,7 +35,6 @@ final class DashboardLayoutsController
     public const NAME_MAX = 60;
 
     public function __construct(
-        private readonly RoleRepositoryInterface $roles,
         private readonly DashboardLayoutResolver $resolver,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -137,7 +136,7 @@ final class DashboardLayoutsController
             return 'dashboard_layouts_owner_only';
         }
         $roleId = (int) $request->post('role_id', 0);
-        if ($roleId <= 0 || $this->roles->findById($roleId) === null) {
+        if ($roleId <= 0 || Role::findById($roleId) === null) {
             return 'dashboard_layouts_role_unknown';
         }
         if ($clear) {

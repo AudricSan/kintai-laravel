@@ -13,7 +13,7 @@ use App\Extension\ExtensionRegistry;
 use Illuminate\Container\Container;
 use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -41,7 +41,6 @@ final class AdminShiftControllerTest extends TestCase
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
-    private RoleRepositoryInterface&Stub $roles;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?AdminShiftController $controller = null;
@@ -66,7 +65,6 @@ final class AdminShiftControllerTest extends TestCase
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createStub(RoleRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
@@ -77,7 +75,7 @@ final class AdminShiftControllerTest extends TestCase
         if ($this->controller === null) {
             $view = kintai_test_views(sys_get_temp_dir());
             $auditLogger = new AuditLogger();
-            $permissions = new PermissionService($this->roleAssignments, $this->roles);
+            $permissions = new PermissionService($this->roleAssignments);
             $this->controller = new AdminShiftController(
                 $view,
                 $this->users,
@@ -809,13 +807,10 @@ final class AdminShiftControllerTest extends TestCase
     public function testShiftsTimelinePassesCanManageTrueForRoleGrantingShiftsUpdate(): void
     {
         $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->roleAssignments->expects($this->atLeastOnce())->method('findByUser')->with(9)->willReturn([
             ['id' => 1, 'user_id' => 9, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'slug' => 'manager', 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['shifts.view', 'shifts.update']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'slug' => 'manager', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view', 'shifts.update'] : []);
         $canManage = $this->renderTimelineAndCaptureCanManage(['id' => 9, 'is_admin' => false], [1]);
 
         $this->assertTrue($canManage);
@@ -825,13 +820,10 @@ final class AdminShiftControllerTest extends TestCase
     public function testShiftsTimelinePassesCanManageFalseForViewOnlyRole(): void
     {
         $this->roleAssignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->roleAssignments->expects($this->atLeastOnce())->method('findByUser')->with(14)->willReturn([
             ['id' => 1, 'user_id' => 14, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(3)->willReturn(['id' => 3, 'slug' => 'employee', 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(3)->willReturn(['shifts.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 3 ? ['id' => 3, 'slug' => 'employee', 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 3 ? ['shifts.view'] : []);
         $canManage = $this->renderTimelineAndCaptureCanManage(['id' => 14, 'is_admin' => false], [1]);
 
         $this->assertFalse($canManage);

@@ -10,7 +10,7 @@ use App\Http\Middleware\NotificationMiddleware;
 use App\Models\AppSetting;
 use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -61,7 +61,6 @@ final class NotificationMiddlewareTest extends TestCase
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );

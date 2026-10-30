@@ -6,7 +6,7 @@ namespace Tests\Unit\Core\Services\BundleInstaller;
 
 use App\Auth\PermissionCatalog;
 use App\Bundles\Bundle;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Services\BundleInstaller\BundlePermissionGranter;
 use PHPUnit\Framework\TestCase;
 
@@ -24,35 +24,31 @@ final class BundlePermissionGranterTest extends TestCase
 
     public function testGrantAddsOnlyMissingKeysAndKeepsTheGlobalScope(): void
     {
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->method('findBySlug')->with('manager')->willReturn(['id' => 7, 'slug' => 'manager']);
-        $roles->method('getPermissions')->with(7)->willReturn(['photos.view', 'shifts.view']);
-        $roles->method('getGlobalPermissionKeys')->with(7)->willReturn(['shifts.view']);
-        $roles->expects($this->once())->method('savePermissions')
-            ->with(7, ['photos.view', 'shifts.view', 'photos.upload'], ['shifts.view']);
+        kintai_test_roles(getPermissions: fn(int $id) => $id === 2 ? ['photos.view', 'shifts.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
 
-        $granted = (new BundlePermissionGranter($roles))->grantToManager(['photos' => ['view', 'upload']]);
+        $granted = (new BundlePermissionGranter())->grantToManager(['photos' => ['view', 'upload']]);
 
         $this->assertSame(['photos.upload'], $granted);
+        $this->assertEqualsCanonicalizing(['photos.view', 'shifts.view', 'photos.upload'], Role::getPermissions(2));
+        $this->assertSame(['shifts.view'], Role::getGlobalPermissionKeys(2), 'la portée globale est conservée');
     }
 
     public function testGrantSavesNothingWhenTheManagerAlreadyHasEverything(): void
     {
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->method('findBySlug')->willReturn(['id' => 7, 'slug' => 'manager']);
-        $roles->method('getPermissions')->willReturn(['photos.view']);
-        $roles->expects($this->never())->method('savePermissions');
+        kintai_test_roles(getPermissions: fn(int $id) => $id === 2 ? ['photos.view'] : []);
 
-        $this->assertSame([], (new BundlePermissionGranter($roles))->grantToManager(['photos' => ['view']]));
+        $this->assertSame([], (new BundlePermissionGranter())->grantToManager(['photos' => ['view']]));
+        $this->assertSame(['photos.view'], Role::getPermissions(2), 'rien n\'est réécrit');
     }
 
     public function testGrantDoesNothingWithoutAManagerRole(): void
     {
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->method('findBySlug')->willReturn(null);
-        $roles->expects($this->never())->method('savePermissions');
+        kintai_test_ready('roles');
+        \Illuminate\Support\Facades\DB::table('role_assignments')->delete();
+        \Illuminate\Support\Facades\DB::table('roles')->where('slug', 'manager')->delete();
+        \App\Database\RequestMemo::flush();
 
-        $this->assertSame([], (new BundlePermissionGranter($roles))->grantToManager(['photos' => ['view']]));
+        $this->assertSame([], (new BundlePermissionGranter())->grantToManager(['photos' => ['view']]));
     }
 }
 

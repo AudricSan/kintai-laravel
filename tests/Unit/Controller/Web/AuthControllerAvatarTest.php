@@ -10,7 +10,7 @@ use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserNavPref;
@@ -35,12 +35,11 @@ final class AuthControllerAvatarTest extends TestCase
 
         $storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $stores          = $this->createStub(StoreRepositoryInterface::class);
-        $roles           = $this->createStub(RoleRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments, $rememberTokens);
+        $auth = new AuthService($this->users, $storeUsers, $stores, $roleAssignments, $rememberTokens);
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),

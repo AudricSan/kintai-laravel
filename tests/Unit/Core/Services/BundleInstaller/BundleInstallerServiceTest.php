@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Migrations\Migrator;
 use App\InstalledBundleManifestStore;
 use Tests\Support\InstalledBundleExpectations;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Services\BundleInstaller\BundlePermissionGranter;
 use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\UpdateService;
@@ -436,36 +436,31 @@ return new class extends Migration {
     public function testFirstInstallGrantsTheDeclaredPermissionsToTheManagerRole(): void
     {
         $zipPath = $this->buildBundleDeclaringPermissions('GrantOnFirstInstall');
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->method('findBySlug')->with('manager')->willReturn(['id' => 2, 'slug' => 'manager']);
-        $roles->method('getPermissions')->willReturn(['shifts.view']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-        $roles->expects($this->once())->method('savePermissions')
-            ->with(2, ['shifts.view', 'fake_items.view', 'fake_items.manage'], []);
+        kintai_test_roles(getPermissions: fn(int $id) => $id === 2 ? ['shifts.view'] : [], getGlobalPermissionKeys: fn() => []);
 
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
-            permissionGranter: new BundlePermissionGranter($roles),
+            permissionGranter: new BundlePermissionGranter(),
         );
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
 
         $this->assertTrue($result->success);
+        $this->assertEqualsCanonicalizing(['shifts.view', 'fake_items.view', 'fake_items.manage'], \App\Models\Role::getPermissions(2));
     }
 
     public function testAnUpdateDoesNotGrantAnythingAgain(): void
     {
         // Un droit retiré par l'Owner depuis la première installation reste retiré après une mise à jour.
         $zipPath = $this->buildBundleDeclaringPermissions('NoGrantOnUpdate');
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->expects($this->never())->method('savePermissions');
+        kintai_test_roles(getPermissions: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
         $this->seedInstalled('fake-bundle', '0.9.0');
 
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
-            permissionGranter: new BundlePermissionGranter($roles),
+            permissionGranter: new BundlePermissionGranter(),
         );
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
@@ -477,13 +472,11 @@ return new class extends Migration {
     {
         // Classe d'entrée sans permissions() (pas un Bundle) : l'octroi échoue, le bundle reste installé.
         $zipPath = $this->buildFixtureZip();
-        $roles = $this->createMock(RoleRepositoryInterface::class);
-        $roles->expects($this->never())->method('savePermissions');
 
         $service = $this->makeService(
             fn() => 'https://example.test/fake.zip',
             function (string $url, string $dest) use ($zipPath) { return copy($zipPath, $dest); },
-            permissionGranter: new BundlePermissionGranter($roles),
+            permissionGranter: new BundlePermissionGranter(),
         );
 
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');

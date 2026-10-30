@@ -12,7 +12,7 @@ use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserNavPref;
@@ -78,7 +78,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
             $this->users,
             $this->storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
             $this->roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );

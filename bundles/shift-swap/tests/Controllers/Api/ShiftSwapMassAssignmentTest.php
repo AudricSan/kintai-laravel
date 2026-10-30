@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryIn
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -35,11 +35,8 @@ final class ShiftSwapMassAssignmentTest extends TestCase
         $assignments->method('findByUser')->willReturn([
             ['id' => 1, 'user_id' => self::ME, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => self::MY_STORE],
         ]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 20, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['swaps.create', 'swaps.update']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-        $this->permissions = new PermissionService($assignments, $roles);
+        kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['swaps.create', 'swaps.update'], getGlobalPermissionKeys: fn() => []);
+        $this->permissions = new PermissionService($assignments);
     }
 
     protected function tearDown(): void

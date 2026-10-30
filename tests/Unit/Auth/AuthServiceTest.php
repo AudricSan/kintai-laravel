@@ -11,7 +11,7 @@ use App\Auth\AuthService;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 
 final class AuthServiceTest extends TestCase
@@ -19,7 +19,6 @@ final class AuthServiceTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
-    private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private ?AuthService $auth = null;
 
@@ -30,7 +29,6 @@ final class AuthServiceTest extends TestCase
         $this->users           = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers      = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores          = $this->createStub(StoreRepositoryInterface::class);
-        $this->roles           = $this->createStub(RoleRepositoryInterface::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
 
@@ -38,7 +36,7 @@ final class AuthServiceTest extends TestCase
     private function auth(): AuthService
     {
         if ($this->auth === null) {
-            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores, $this->roles, $this->roleAssignments);
+            $this->auth = new AuthService($this->users, $this->storeUsers, $this->stores, $this->roleAssignments);
         }
 
         return $this->auth;
@@ -47,13 +45,12 @@ final class AuthServiceTest extends TestCase
     /** Simule une affectation Owner (portée globale, rôle système) pour cet utilisateur. */
     private function grantOwnerRole(int $userId): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->roleAssignments->method('findByUser')->willReturnCallback(
             fn(int $uid) => $uid === $userId ? [
                 ['id' => 1, 'user_id' => $userId, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
             ] : []
         );
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'slug' => 'owner', 'is_system' => 1]);
+        kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'slug' => 'owner', 'is_system' => 1] : null);
     }
 
     /**
@@ -64,17 +61,15 @@ final class AuthServiceTest extends TestCase
      */
     private function grantStoreRole(int $userId, int $storeId, int $roleId, array $permissions, bool $isManager): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->roleAssignments->method('findByUser')->willReturnCallback(
             fn(int $uid) => $uid === $userId ? [
                 ['id' => 2, 'user_id' => $userId, 'role_id' => $roleId, 'scope_type' => 'store', 'scope_id' => $storeId],
             ] : []
         );
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with($roleId)->willReturn([
+        kintai_test_roles(findById: fn() => [
             'id' => $roleId, 'slug' => 'manager', 'is_system' => 0, 'is_manager' => $isManager ? 1 : 0,
-        ]);
+        ], getPermissions: fn(int $id): array => $id === $roleId ? $permissions : []);
         // getPermissions n'est pas toujours lu (isManager() ne regarde que is_manager) : pas d'attente, réponse par rôle.
-        $this->roles->method('getPermissions')->willReturnCallback(fn(int $id): array => $id === $roleId ? $permissions : []);
     }
 
     protected function tearDown(): void

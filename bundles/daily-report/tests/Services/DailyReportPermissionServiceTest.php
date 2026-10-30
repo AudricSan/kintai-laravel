@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use App\Auth\PermissionService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 
 final class DailyReportPermissionServiceTest extends TestCase
 {
@@ -23,11 +23,8 @@ final class DailyReportPermissionServiceTest extends TestCase
         $assignments->method('findByUser')->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 1, 'scope_type' => $storeId === null ? 'global' : 'store', 'scope_id' => $storeId],
         ]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 1, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn($keys);
-
-        return new DailyReportPermissionService(new PermissionService($assignments, $roles));
+        kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 0], getPermissions: fn() => $keys);
+        return new DailyReportPermissionService(new PermissionService($assignments));
     }
 
     /** Service pour un utilisateur sans aucune permission (libre-service uniquement). */
@@ -35,9 +32,8 @@ final class DailyReportPermissionServiceTest extends TestCase
     {
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturn([]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
 
-        return new DailyReportPermissionService(new PermissionService($assignments, $roles));
+        return new DailyReportPermissionService(new PermissionService($assignments));
     }
 
     private function store(array $settings = []): array

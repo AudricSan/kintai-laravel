@@ -15,7 +15,7 @@ use App\Models\AppSetting;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -78,20 +78,15 @@ final class ApiStoreScopeTest extends TestCase
         $assignments->method('findByScope')->willReturn([
             ['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturnCallback(fn(int $id): array => match ($id) {
+        kintai_test_roles(findById: fn(int $id): array => match ($id) {
             10      => ['id' => 10, 'is_system' => 1],
             default => ['id' => 20, 'is_system' => 0],
-        });
-        $roles->method('getPermissions')->willReturn([
+        }, getPermissions: static fn() => [
             'shifts.view', 'shifts.create', 'shifts.update', 'shifts.delete',
             'employees.view', 'employees.update', 'employees.delete',
             'stores.view', 'stores.update',
-        ]);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-
-        $this->permissions = new PermissionService($assignments, $roles);
+        ], getGlobalPermissionKeys: static fn() => []);
+        $this->permissions = new PermissionService($assignments);
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }

@@ -15,7 +15,7 @@ use App\InstalledBundleManifestStore;
 use App\Database\DemoDataSeeder;
 use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\AppSettingsService;
 use App\Services\EnvFileWriter;
@@ -302,7 +302,7 @@ final class WebInstaller
 
         // AuthService::isAdmin() lit role_assignments (RBAC dynamique) — sans cette affectation, le compte créé par
         // l'installateur ne serait pas reconnu comme Owner.
-        $ownerRole = $app->make(RoleRepositoryInterface::class)->findBySlug('owner');
+        $ownerRole = Role::findBySlug('owner');
         if ($ownerRole === null) {
             throw new \RuntimeException('Rôle « owner » introuvable après les migrations.');
         }

@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -74,7 +74,6 @@ final class DailyReportRecipientsTest extends TestCase
 
         $permissions = new PermissionService(
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
         );
 
         return new DailyReportMailService(

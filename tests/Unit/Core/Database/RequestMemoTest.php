@@ -7,7 +7,6 @@ namespace Tests\Unit\Core\Database;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Database\RequestMemo;
 use App\Repositories\DatabaseRoleAssignmentRepository;
-use App\Repositories\DatabaseRoleRepository;
 use App\Models\Role;
 use PHPUnit\Framework\TestCase;
 
@@ -59,16 +58,15 @@ final class RequestMemoTest extends TestCase
 
     public function testRepeatedReadsHitTheDatabaseOnce(): void
     {
-        $roles = new DatabaseRoleRepository();
-        $role  = $roles->save(['name' => 'Gérant', 'slug' => 'manager']);
-        $roles->savePermissions((int) $role['id'], ['shifts.view', 'shifts.update']);
+        $role  = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
+        Role::savePermissions((int) $role['id'], ['shifts.view', 'shifts.update']);
         (new DatabaseRoleAssignmentRepository())->assign(7, (int) $role['id'], 'store', 1);
         $db = $this->capsule->getConnection();
         $db->enableQueryLog();
 
         for ($i = 0; $i < 10; $i++) {
-            $roles->findById((int) $role['id']);
-            $roles->getPermissions((int) $role['id']);
+            Role::findById((int) $role['id']);
+            Role::getPermissions((int) $role['id']);
             (new DatabaseRoleAssignmentRepository())->findByUser(7);
         }
 
@@ -77,44 +75,41 @@ final class RequestMemoTest extends TestCase
 
     public function testAWriteThroughAModelIsSeenByTheNextRead(): void
     {
-        $roles = new DatabaseRoleRepository();
-        $role  = $roles->save(['name' => 'Gérant', 'slug' => 'manager']);
-        $this->assertSame('Gérant', $roles->findById((int) $role['id'])['name']);
+        $role  = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
+        $this->assertSame('Gérant', Role::findById((int) $role['id'])['name']);
 
         Role::find($role['id'])->update(['name' => 'Responsable']);
 
-        $this->assertSame('Responsable', $roles->findById((int) $role['id'])['name']);
+        $this->assertSame('Responsable', Role::findById((int) $role['id'])['name']);
     }
 
     public function testRevokedAssignmentsAndRemovedPermissionsAreSeenAtOnce(): void
     {
-        $roles       = new DatabaseRoleRepository();
         $assignments = new DatabaseRoleAssignmentRepository();
-        $role        = $roles->save(['name' => 'Gérant', 'slug' => 'manager']);
-        $roles->savePermissions((int) $role['id'], ['shifts.view']);
+        $role        = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
+        Role::savePermissions((int) $role['id'], ['shifts.view']);
         $assignment = $assignments->assign(7, (int) $role['id'], 'store', 1);
         $this->assertCount(1, $assignments->findByUser(7));
-        $this->assertSame(['shifts.view'], $roles->getPermissions((int) $role['id']));
+        $this->assertSame(['shifts.view'], Role::getPermissions((int) $role['id']));
 
         $assignments->revoke((int) $assignment['id']);
         // Suppression en masse, sans modèle : la mémoire est quand même vidée.
-        $roles->savePermissions((int) $role['id'], []);
+        Role::savePermissions((int) $role['id'], []);
 
         $this->assertSame([], $assignments->findByUser(7));
-        $this->assertSame([], $roles->getPermissions((int) $role['id']));
+        $this->assertSame([], Role::getPermissions((int) $role['id']));
     }
 
     public function testDeletingARoleForgetsItsAssignments(): void
     {
-        $roles       = new DatabaseRoleRepository();
         $assignments = new DatabaseRoleAssignmentRepository();
-        $role        = $roles->save(['name' => 'Gérant', 'slug' => 'manager']);
+        $role        = Role::put(['name' => 'Gérant', 'slug' => 'manager']);
         $assignments->assign(7, (int) $role['id'], 'store', 1);
         $this->assertCount(1, $assignments->findByUser(7));
 
-        $roles->delete((int) $role['id']);
+        Role::remove((int) $role['id']);
 
         $this->assertSame([], $assignments->findByUser(7));
-        $this->assertNull($roles->findById((int) $role['id']));
+        $this->assertNull(Role::findById((int) $role['id']));
     }
 }

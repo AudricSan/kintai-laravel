@@ -11,7 +11,7 @@ use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -47,9 +47,8 @@ final class PhotoRetentionServiceTest extends TestCase
     {
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByScope')->willReturn(array_map(fn(int $id): array => ['user_id' => $id, 'role_id' => 1, 'scope_type' => 'global'], $ownerIds));
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 1, 'is_system' => 1]);
-        return new PermissionService($assignments, $roles);
+        kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 1]);
+        return new PermissionService($assignments);
     }
 
     public function testArchivesNotifiesOnceAndPurges(): void

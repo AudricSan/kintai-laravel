@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Api\V1;
 
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -38,12 +38,8 @@ final class ApiShiftSelfServiceTest extends TestCase
         $assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === self::MANAGER
             ? [['id' => 1, 'user_id' => self::MANAGER, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : []);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 2, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['shifts.view']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-
-        return new ShiftController(new AuditLogger(), new PermissionService($assignments, $roles));
+        kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['shifts.view'], getGlobalPermissionKeys: fn() => []);
+        return new ShiftController(new AuditLogger(), new PermissionService($assignments));
     }
 
     /** @return list<int> */

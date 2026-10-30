@@ -15,7 +15,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -41,7 +41,6 @@ final class AutoValidateCommandTest extends TestCase
 
         $permissions = new DailyReportPermissionService(new PermissionService(
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
         ));
         $mailService = new DailyReportMailService(
             $permissions,
@@ -50,7 +49,7 @@ final class AutoValidateCommandTest extends TestCase
             new \App\Services\UserSelection(
                 $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
                 $users,
-                new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
+                new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class)),
             ),
         );
 

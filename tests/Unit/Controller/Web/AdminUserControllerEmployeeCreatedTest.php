@@ -14,7 +14,7 @@ use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
 use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -91,11 +91,10 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('save')->willReturnArgument(0);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]);
-        $roles->method('findAll')->willReturn([['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]]);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]);
+        kintai_test_role_table([['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]]);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $permissions = new PermissionService($roleAssignments, $roles);
+        $permissions = new PermissionService($roleAssignments);
 
         return new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
@@ -103,7 +102,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             $stores,
             $storeUsers,
             new AuditLogger(),
-            new RoleAssignmentSyncService($roles, $roleAssignments),
+            new RoleAssignmentSyncService($roleAssignments),
             $permissions,
             new PlanLimitService($stores, $users, new LicenseClientService(['base_url' => '', 'api_key' => ''])),
             new OwnerGuard($permissions, $users),

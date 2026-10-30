@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -26,18 +26,16 @@ final class ShiftSwapRequestControllerTest extends TestCase
 {
     private ShiftSwapRequestRepositoryInterface&MockObject $swapRequests;
     private RoleAssignmentRepositoryInterface&MockObject $assignments;
-    private RoleRepositoryInterface&MockObject $roles;
     private ShiftSwapRequestController $controller;
 
     protected function setUp(): void
     {
         $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
         $this->assignments  = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles        = $this->createMock(RoleRepositoryInterface::class);
         $this->controller   = new ShiftSwapRequestController(
             $this->swapRequests,
             new AuditLogger(),
-            new PermissionService($this->assignments, $this->roles)
+            new PermissionService($this->assignments)
         );
     }
 
@@ -53,9 +51,7 @@ final class ShiftSwapRequestControllerTest extends TestCase
         $this->assignments->method('findByUser')->with($userId)->willReturn([
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ]);
-        $this->roles->method('findById')->with(20)->willReturn(['id' => 20, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->with(20)->willReturn(['swaps.view', 'swaps.update', 'swaps.delete']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 20 ? ['swaps.view', 'swaps.update', 'swaps.delete'] : []);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;

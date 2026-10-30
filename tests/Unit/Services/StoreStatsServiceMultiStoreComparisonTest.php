@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -40,7 +40,6 @@ final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
             $this->storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
-                $this->createStub(RoleRepositoryInterface::class),
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
             ),
         );

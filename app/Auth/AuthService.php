@@ -8,7 +8,7 @@ use App\Database\RequestMemo;
 use App\Models\User;
 use App\Repositories\DatabaseUserRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -42,7 +42,6 @@ final class AuthService
         private readonly UserRepositoryInterface $users,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
-        private readonly RoleRepositoryInterface $roles,
         private readonly RoleAssignmentRepositoryInterface $roleAssignments,
     ) {}
 
@@ -301,7 +300,7 @@ final class AuthService
             if ($assignment['scope_type'] !== 'global') {
                 continue;
             }
-            $role = $this->roles->findById((int) $assignment['role_id']);
+            $role = Role::findById((int) $assignment['role_id']);
             if ($role !== null && !empty($role['is_system'])) {
                 return true;
             }
@@ -333,7 +332,7 @@ final class AuthService
      */
     private function roleIsManagerType(int $roleId): bool
     {
-        $role = $this->roles->findById($roleId);
+        $role = Role::findById($roleId);
         if ($role === null) {
             return false;
         }

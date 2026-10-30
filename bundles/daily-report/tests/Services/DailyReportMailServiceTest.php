@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Services\TranslationService;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\TranslationRepositoryInterface;
 
 final class DailyReportMailServiceTest extends TestCase
@@ -26,14 +26,13 @@ final class DailyReportMailServiceTest extends TestCase
         // MailerService avec driver 'native' : mail() retourne false en CLI, ce qui est attendu.
         $this->permissions = new DailyReportPermissionService(new PermissionService(
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
         ));
         $mailer            = new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai Test']]);
         $translations      = kintai_test_real_translator('en', false);
         $this->service     = new DailyReportMailService($this->permissions, $mailer, $translations, new \App\Services\UserSelection(
             $this->createStub(\App\Repositories\StoreUserRepositoryInterface::class),
             $this->createStub(\App\Repositories\UserRepositoryInterface::class),
-            new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
+            new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class)),
         ));
     }
 

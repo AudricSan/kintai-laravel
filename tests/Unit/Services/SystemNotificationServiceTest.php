@@ -7,7 +7,7 @@ namespace Tests\Unit\Services;
 use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\AppSettingsService;
 use App\Services\NotificationService;
@@ -46,8 +46,7 @@ final class SystemNotificationServiceTest extends TestCase
             fn(int $id): array => ['id' => $id, 'user_id' => $id, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
             $ownerIds
         ));
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): array => ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
 
@@ -64,7 +63,7 @@ final class SystemNotificationServiceTest extends TestCase
             }
         };
 
-        return new SystemNotificationService(new OwnerGuard(new PermissionService($assignments, $roles), $users), $this->notifs, $this->settings, $source);
+        return new SystemNotificationService(new OwnerGuard(new PermissionService($assignments), $users), $this->notifs, $this->settings, $source);
     }
 
     /** @internal appelé par la source anonyme du test */

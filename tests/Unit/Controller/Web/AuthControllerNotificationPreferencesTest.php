@@ -13,7 +13,7 @@ use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserNavPref;
@@ -69,7 +69,6 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
             $users,
             $storeUsers,
             $stores,
-            $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );

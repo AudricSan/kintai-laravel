@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 
 final class AuthServiceProvider extends ServiceProvider
@@ -30,7 +30,6 @@ final class AuthServiceProvider extends ServiceProvider
                 $c->make(UserRepositoryInterface::class),
                 $c->make(StoreUserRepositoryInterface::class),
                 $c->make(StoreRepositoryInterface::class),
-                $c->make(RoleRepositoryInterface::class),
                 $c->make(RoleAssignmentRepositoryInterface::class),
             )
         );
@@ -39,7 +38,6 @@ final class AuthServiceProvider extends ServiceProvider
             PermissionService::class,
             fn(Container $c) => new PermissionService(
                 $c->make(RoleAssignmentRepositoryInterface::class),
-                $c->make(RoleRepositoryInterface::class),
             )
         );
     }

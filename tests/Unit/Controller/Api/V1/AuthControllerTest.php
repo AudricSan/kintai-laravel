@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Models\ApiToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -43,11 +43,10 @@ final class AuthControllerTest extends TestCase
         }
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $stores     = $this->createStub(StoreRepositoryInterface::class);
-        $roles           = $this->createStub(RoleRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
-        $this->auth       = new AuthService($this->users, $storeUsers, $stores, $roles, $roleAssignments);
+        $this->auth       = new AuthService($this->users, $storeUsers, $stores, $roleAssignments);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -221,7 +220,7 @@ final class AuthControllerTest extends TestCase
         $roleAssignments->method('findByUser')->willReturn([]);
         $this->noTokenExpected = true;
 
-        $auth       = new AuthService($users, $storeUsers, $stores, $this->createStub(RoleRepositoryInterface::class), $roleAssignments);
+        $auth       = new AuthService($users, $storeUsers, $stores, $roleAssignments);
         $controller = new AuthController($auth, $users, new AuditLogger());
 
         $response = $controller->login($this->makeRequest('POST', '/api/v1/auth/login', json: [

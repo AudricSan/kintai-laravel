@@ -54,7 +54,6 @@ final class EmployeeTimeoffControllerTest extends TestCase
                 $this->notifs,
                 new \App\Auth\PermissionService(
                     $this->createStub(\App\Repositories\RoleAssignmentRepositoryInterface::class),
-                    $this->createStub(\App\Repositories\RoleRepositoryInterface::class),
                 ),
             );
         }

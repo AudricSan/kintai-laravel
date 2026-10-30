@@ -16,7 +16,7 @@ use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -35,7 +35,6 @@ final class AdminResignationReportControllerTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RoleRepositoryInterface&Stub $roles;
     private ?AdminResignationReportController $controller = null;
 
     protected function setUp(): void
@@ -55,7 +54,6 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createStub(RoleRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -72,7 +70,7 @@ final class AdminResignationReportControllerTest extends TestCase
                 $this->resignationReports,
                 $this->storeUsers,
                 new AuditLogger(),
-                new PermissionService($this->assignments, $this->roles),
+                new PermissionService($this->assignments),
                 new ResignationDeactivation($this->resignationReports, $this->users),
                 new \App\Auth\UserAnonymizer(
                     $this->users,
@@ -208,7 +206,6 @@ final class AdminResignationReportControllerTest extends TestCase
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         // L'Owner n'a pas forcément de ligne store_user (voir install.php) mais doit
         // rester sélectionnable comme responsable sur n'importe quel store.
         $this->storeUsers->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([
@@ -229,12 +226,10 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 3, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->method('findById')->willReturnMap([
+        kintai_test_roles(findById: fn(int $id) => array_column([
             [1, ['id' => 1, 'slug' => 'owner', 'is_system' => 1]],
             [2, ['id' => 2, 'is_system' => 0]],
-        ]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['employees.update']);
-
+        ], 1, 0)[$id] ?? null, getPermissions: static fn(int $id) => $id === 2 ? ['employees.update'] : []);
         $method = new \ReflectionMethod($this->controller(), 'getManagersForReportForm');
         $method->setAccessible(true);
         $managers = $method->invoke($this->controller(), 1);
@@ -248,7 +243,6 @@ final class AdminResignationReportControllerTest extends TestCase
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         // Un membre du store sans la permission RBAC employees.update ne doit plus
         // apparaître, même si sa colonne legacy store_user.role vaut 'manager'
         // (colonne jamais resynchronisée quand les permissions d'un rôle changent).
@@ -262,9 +256,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['shifts.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
         $method = new \ReflectionMethod($this->controller(), 'getManagersForReportForm');
         $method->setAccessible(true);
         $managers = $method->invoke($this->controller(), 1);
@@ -398,7 +390,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->assignments->method('findByScope')->willReturn([
             ['id' => 1, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $this->roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
+        kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         $this->users->expects($this->never())->method('save');
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
@@ -673,8 +665,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === 5
             ? [['id' => 4, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : []);
-        $this->roles->method('findById')->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['shifts.view']);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['shifts.view']);
         $this->resignationReports->expects($this->never())->method('save');
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
@@ -691,8 +682,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturn([
             ['id' => 4, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id, 'is_system' => $id === 10 ? 1 : 0]);
-        $this->roles->method('getPermissions')->willReturn(['shifts.view']);
+        kintai_test_roles(findById: fn(int $id) => ['id' => $id, 'is_system' => $id === 10 ? 1 : 0], getPermissions: fn() => ['shifts.view']);
         $this->resignationReports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 99]);
 
         $this->assertSame(302, $this->controller()->storeResignationReport($req)->getStatusCode());

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use App\Repositories\DatabaseRoleRepository;
+use App\Models\Role;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\Role as EloquentRole;
 use App\Models\RolePermission;
@@ -13,7 +13,6 @@ use App\Models\RoleAssignment;
 
 final class DatabaseRoleRepositoryTest extends TestCase
 {
-    private DatabaseRoleRepository $repo;
 
     protected function setUp(): void
     {
@@ -47,8 +46,6 @@ final class DatabaseRoleRepositoryTest extends TestCase
             $table->string('scope_type');
             $table->integer('scope_id')->nullable();
         });
-
-        $this->repo = new DatabaseRoleRepository();
     }
 
     // -------------------------------------------------------------------------
@@ -60,33 +57,33 @@ final class DatabaseRoleRepositoryTest extends TestCase
         EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
         EloquentRole::create(['name' => 'Employé', 'slug' => 'employee']);
 
-        $this->assertCount(2, $this->repo->findAll());
+        $this->assertCount(2, Role::findAll());
     }
 
     public function testFindByIdReturnsRole(): void
     {
         $r = EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
-        $found = $this->repo->findById($r->id);
+        $found = Role::findById($r->id);
         $this->assertNotNull($found);
         $this->assertSame('manager', $found['slug']);
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findById(999));
+        $this->assertNull(Role::findById(999));
     }
 
     public function testFindBySlugReturnsRole(): void
     {
         EloquentRole::create(['name' => 'Owner', 'slug' => 'owner', 'is_system' => 1]);
-        $found = $this->repo->findBySlug('owner');
+        $found = Role::findBySlug('owner');
         $this->assertNotNull($found);
         $this->assertSame(1, (int) $found['is_system']);
     }
 
     public function testFindBySlugReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findBySlug('nope'));
+        $this->assertNull(Role::findBySlug('nope'));
     }
 
     // -------------------------------------------------------------------------
@@ -95,7 +92,7 @@ final class DatabaseRoleRepositoryTest extends TestCase
 
     public function testSaveCreatesRole(): void
     {
-        $result = $this->repo->save(['name' => 'Auditor', 'slug' => 'auditor']);
+        $result = Role::put(['name' => 'Auditor', 'slug' => 'auditor']);
         $this->assertArrayHasKey('id', $result);
         $this->assertSame('Auditor', $result['name']);
     }
@@ -103,7 +100,7 @@ final class DatabaseRoleRepositoryTest extends TestCase
     public function testSaveUpdatesRole(): void
     {
         $r = EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
-        $result = $this->repo->save(['id' => $r->id, 'name' => 'Store Manager']);
+        $result = Role::put(['id' => $r->id, 'name' => 'Store Manager']);
         $this->assertSame('Store Manager', $result['name']);
     }
 
@@ -114,14 +111,14 @@ final class DatabaseRoleRepositoryTest extends TestCase
     public function testDeleteRemovesRole(): void
     {
         $r = EloquentRole::create(['name' => 'Auditor', 'slug' => 'auditor']);
-        $count = $this->repo->delete($r->id);
+        $count = Role::remove($r->id);
         $this->assertSame(1, $count);
         $this->assertNull(EloquentRole::find($r->id));
     }
 
     public function testDeleteReturnsZeroWhenNotFound(): void
     {
-        $this->assertSame(0, $this->repo->delete(999));
+        $this->assertSame(0, Role::remove(999));
     }
 
     public function testDeleteAlsoRemovesDependentPermissionsAndAssignments(): void
@@ -130,7 +127,7 @@ final class DatabaseRoleRepositoryTest extends TestCase
         RolePermission::create(['role_id' => $r->id, 'permission_key' => 'documents.view']);
         RoleAssignment::create(['user_id' => 5, 'role_id' => $r->id, 'scope_type' => 'store', 'scope_id' => 1]);
 
-        $this->repo->delete($r->id);
+        Role::remove($r->id);
 
         $this->assertSame(0, RolePermission::where('role_id', $r->id)->count());
         $this->assertSame(0, RoleAssignment::where('role_id', $r->id)->count());
@@ -146,7 +143,7 @@ final class DatabaseRoleRepositoryTest extends TestCase
         RolePermission::create(['role_id' => $r->id, 'permission_key' => 'employees.view']);
         RolePermission::create(['role_id' => $r->id, 'permission_key' => 'employees.create']);
 
-        $keys = $this->repo->getPermissions($r->id);
+        $keys = Role::getPermissions($r->id);
         $this->assertCount(2, $keys);
         $this->assertContains('employees.view', $keys);
     }
@@ -156,9 +153,9 @@ final class DatabaseRoleRepositoryTest extends TestCase
         $r = EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
         RolePermission::create(['role_id' => $r->id, 'permission_key' => 'employees.view']);
 
-        $this->repo->savePermissions($r->id, ['shifts.view', 'shifts.create']);
+        Role::savePermissions($r->id, ['shifts.view', 'shifts.create']);
 
-        $keys = $this->repo->getPermissions($r->id);
+        $keys = Role::getPermissions($r->id);
         $this->assertCount(2, $keys);
         $this->assertNotContains('employees.view', $keys);
         $this->assertContains('shifts.create', $keys);
@@ -174,7 +171,7 @@ final class DatabaseRoleRepositoryTest extends TestCase
         RolePermission::create(['role_id' => $r->id, 'permission_key' => 'shifts.view', 'scope' => 'global']);
         RolePermission::create(['role_id' => $r->id, 'permission_key' => 'shifts.update', 'scope' => 'local']);
 
-        $keys = $this->repo->getGlobalPermissionKeys($r->id);
+        $keys = Role::getGlobalPermissionKeys($r->id);
         $this->assertSame(['shifts.view'], $keys);
     }
 
@@ -182,28 +179,28 @@ final class DatabaseRoleRepositoryTest extends TestCase
     {
         $r = EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
 
-        $this->repo->savePermissions($r->id, ['shifts.view', 'shifts.update'], ['shifts.view']);
+        Role::savePermissions($r->id, ['shifts.view', 'shifts.update'], ['shifts.view']);
 
-        $this->assertSame(['shifts.view'], $this->repo->getGlobalPermissionKeys($r->id));
-        $this->assertCount(2, $this->repo->getPermissions($r->id));
+        $this->assertSame(['shifts.view'], Role::getGlobalPermissionKeys($r->id));
+        $this->assertCount(2, Role::getPermissions($r->id));
     }
 
     public function testSavePermissionsIgnoresGlobalKeyNotInPermissionKeys(): void
     {
         $r = EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
 
-        $this->repo->savePermissions($r->id, ['shifts.view'], ['shifts.view', 'employees.view']);
+        Role::savePermissions($r->id, ['shifts.view'], ['shifts.view', 'employees.view']);
 
-        $this->assertSame(['shifts.view'], $this->repo->getGlobalPermissionKeys($r->id));
-        $this->assertSame(['shifts.view'], $this->repo->getPermissions($r->id));
+        $this->assertSame(['shifts.view'], Role::getGlobalPermissionKeys($r->id));
+        $this->assertSame(['shifts.view'], Role::getPermissions($r->id));
     }
 
     public function testSavePermissionsDefaultsToLocalScopeWithoutThirdArgument(): void
     {
         $r = EloquentRole::create(['name' => 'Manager', 'slug' => 'manager']);
 
-        $this->repo->savePermissions($r->id, ['shifts.view']);
+        Role::savePermissions($r->id, ['shifts.view']);
 
-        $this->assertSame([], $this->repo->getGlobalPermissionKeys($r->id));
+        $this->assertSame([], Role::getGlobalPermissionKeys($r->id));
     }
 }

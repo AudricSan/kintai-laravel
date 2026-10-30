@@ -7,7 +7,7 @@ namespace Tests\Unit\Core;
 use App\Auth\PermissionService;
 use App\Http\Middleware\ApiPermissionMiddleware;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,14 +17,12 @@ use PHPUnit\Framework\TestCase;
 
 final class ApiPermissionMiddlewareTest extends TestCase
 {
-    private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?ApiPermissionMiddleware $middleware = null;
 
     protected function setUp(): void
     {
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
@@ -34,7 +32,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
     {
         if ($this->middleware === null) {
             $this->middleware  = new ApiPermissionMiddleware(
-                new PermissionService($this->assignments, $this->roles),
+                new PermissionService($this->assignments),
                 $this->storeUsers,
             );
         }
@@ -72,8 +70,7 @@ final class ApiPermissionMiddlewareTest extends TestCase
             ['id' => 1, 'user_id' => $userId, 'role_id' => $roleId, 'scope_type' => 'store', 'scope_id' => $storeId],
         ]);
         // Le rôle n'est pas lu quand la portée exclut déjà la demande : pas d'attente, réponse par identifiant.
-        $this->roles->method('findById')->willReturnCallback(fn(int $id): ?array => $id === $roleId ? ['id' => $roleId, 'is_system' => 0] : null);
-        $this->roles->method('getPermissions')->willReturnCallback(fn(int $id): array => $id === $roleId ? $permissions : []);
+        kintai_test_roles(findById: fn(int $id): ?array => $id === $roleId ? ['id' => $roleId, 'is_system' => 0] : null, getPermissions: fn(int $id): array => $id === $roleId ? $permissions : []);
     }
 
     public function testRouteWithoutPermissionDeclaredPassesThrough(): void
@@ -200,13 +197,11 @@ final class ApiPermissionMiddlewareTest extends TestCase
 
     public function testOwnerSystemRoleGrantsEverything(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([
             ['id' => 1, 'user_id' => 1, 'role_id' => 1, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'is_system' => 1]);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'is_system' => 1] : null);
         $request = $this->makeRequest('stores.delete', 1, ['id' => '3']);
 
         $this->assertSame(200, $this->middleware()->handle($request, $this->next())->getStatusCode());

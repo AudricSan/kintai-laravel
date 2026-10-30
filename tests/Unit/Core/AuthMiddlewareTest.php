@@ -12,7 +12,7 @@ use App\FeatureManager;
 use App\Http\Middleware\AuthMiddleware;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -78,11 +78,7 @@ final class AuthMiddlewareTest extends TestCase
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 10, 'display_name' => 'Test']);
-
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 2, 'is_system' => $isSystemRole ? 1 : 0, 'is_manager' => $isManagerRole ? 1 : 0]);
-        $roles->method('getPermissions')->willReturn($permissions);
-
+        kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => $isSystemRole ? 1 : 0, 'is_manager' => $isManagerRole ? 1 : 0], getPermissions: fn() => $permissions);
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturn([
             [
@@ -98,10 +94,10 @@ final class AuthMiddlewareTest extends TestCase
         $stores     = $this->createStub(StoreRepositoryInterface::class);
 
         $this->container->instance(AuthService::class, new AuthService(
-            $users, $storeUsers, $stores, $roles, $assignments,
+            $users, $storeUsers, $stores, $assignments,
             $this->createStub(UserRepositoryInterface::class),
         ));
-        $this->container->instance(PermissionService::class, new PermissionService($assignments, $roles));
+        $this->container->instance(PermissionService::class, new PermissionService($assignments));
         $this->container->instance(StoreUserRepositoryInterface::class, $storeUsers);
         $this->container->instance(StoreRepositoryInterface::class, $stores);
     }
@@ -218,7 +214,6 @@ final class AuthMiddlewareTest extends TestCase
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
             $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         ));

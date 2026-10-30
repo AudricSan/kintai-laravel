@@ -11,7 +11,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -28,7 +28,6 @@ final class TimeoffRequestControllerTest extends TestCase
 {
     private TimeoffRequestRepositoryInterface&MockObject $timeoffRequests;
     private RoleAssignmentRepositoryInterface&MockObject $assignments;
-    private RoleRepositoryInterface&MockObject $roles;
     private TimeoffRequestController $controller;
     private StoreUserRepositoryInterface&Stub $storeUsers;
 
@@ -36,11 +35,10 @@ final class TimeoffRequestControllerTest extends TestCase
     {
         $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
         $this->assignments     = $this->createMock(RoleAssignmentRepositoryInterface::class);
-        $this->roles           = $this->createMock(RoleRepositoryInterface::class);
         $this->controller      = new TimeoffRequestController(
             $this->timeoffRequests,
             new AuditLogger(),
-            new PermissionService($this->assignments, $this->roles),
+            new PermissionService($this->assignments),
             $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class)
         );
     }
@@ -57,9 +55,7 @@ final class TimeoffRequestControllerTest extends TestCase
         $this->assignments->method('findByUser')->with($userId)->willReturn([
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ]);
-        $this->roles->method('findById')->with(20)->willReturn(['id' => 20, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->with(20)->willReturn(['timeoff.view', 'timeoff.update', 'timeoff.delete']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 20 ? ['timeoff.view', 'timeoff.update', 'timeoff.delete'] : []);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;

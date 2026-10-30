@@ -12,7 +12,7 @@ use Illuminate\Container\Container;
 use App\Models\ApiToken;
 use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -64,13 +64,11 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
         ]);
 
         $stores = $this->createStub(StoreRepositoryInterface::class);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
 
         // Demandeur : rôle système global (la garde d'accès à l'employé ciblé doit le laisser passer).
         $roleAssignments->method('findByUser')->willReturn([['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
-        $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
-
+        kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         $this->remember = $this->createMock(UserRepositoryInterface::class);
 
         $this->controller = new AdminUserController(
@@ -79,14 +77,14 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
             $stores,
             $this->createStub(StoreUserRepositoryInterface::class),
             new AuditLogger(),
-            new RoleAssignmentSyncService($roles, $roleAssignments),
-            new PermissionService($roleAssignments, $roles),
+            new RoleAssignmentSyncService($roleAssignments),
+            new PermissionService($roleAssignments),
             new PlanLimitService(
                 $stores,
                 $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
-            new OwnerGuard(new PermissionService($roleAssignments, $roles), $this->users),
+            new OwnerGuard(new PermissionService($roleAssignments), $this->users),
             new CredentialRevoker($this->remember),
             new UserAnonymizer($this->users, $roleAssignments, new CredentialRevoker($this->remember), sys_get_temp_dir()),
         );

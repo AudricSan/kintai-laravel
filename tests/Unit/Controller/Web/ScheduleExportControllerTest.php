@@ -10,7 +10,7 @@ use App\Exceptions\NotFoundException;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -58,7 +58,6 @@ final class ScheduleExportControllerTest extends TestCase
                 $users,
                 $this->storeUsers,
                 $stores,
-                $this->createStub(RoleRepositoryInterface::class),
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
             ),

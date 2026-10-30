@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Http\Middleware\PermissionMiddleware;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,14 +19,12 @@ use PHPUnit\Framework\TestCase;
 
 final class PermissionMiddlewareTest extends TestCase
 {
-    private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ?PermissionMiddleware $middleware = null;
 
     protected function setUp(): void
     {
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
     }
@@ -36,7 +34,7 @@ final class PermissionMiddlewareTest extends TestCase
     {
         if ($this->middleware === null) {
             $this->middleware  = new PermissionMiddleware(
-                new PermissionService($this->assignments, $this->roles),
+                new PermissionService($this->assignments),
                 kintai_test_views(sys_get_temp_dir()),
                 $this->storeUsers,
             );
@@ -69,14 +67,11 @@ final class PermissionMiddlewareTest extends TestCase
      */
     public function testRouteWithoutPermissionDeclaredPassesThroughWhenAnyPermissionIsGranted(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['photos.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['photos.view'] : []);
         $request  = $this->makeRequest(null, ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, $this->next());
 
@@ -85,15 +80,11 @@ final class PermissionMiddlewareTest extends TestCase
 
     public function testPublicRoutePassesThroughWhenAnyPermissionIsGranted(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['photos.view']);
-        $this->roles->expects($this->atLeastOnce())->method('getGlobalPermissionKeys')->with(2)->willReturn([]);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['photos.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? [] : []);
         $request = $this->makeRequest('public', ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -116,15 +107,11 @@ final class PermissionMiddlewareTest extends TestCase
      */
     public function testPublicRoutePassesWithUnlimitedScopeWhenRoleHasGlobalPermissionOnStoreScopedAssignment(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['photos.view']);
-        $this->roles->expects($this->atLeastOnce())->method('getGlobalPermissionKeys')->with(2)->willReturn(['photos.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn() => ['photos.view'], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? ['photos.view'] : []);
         $request  = $this->makeRequest('public', ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -137,15 +124,11 @@ final class PermissionMiddlewareTest extends TestCase
     /** Même scénario que ci-dessus mais pour une route sans permission déclarée du tout ($key = null). */
     public function testRouteWithoutPermissionDeclaredPassesWithUnlimitedScopeForGlobalPermissionOnRole(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['photos.view']);
-        $this->roles->expects($this->atLeastOnce())->method('getGlobalPermissionKeys')->with(2)->willReturn(['photos.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn() => ['photos.view'], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? ['photos.view'] : []);
         $request  = $this->makeRequest(null, ['id' => 10], [1]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -163,15 +146,11 @@ final class PermissionMiddlewareTest extends TestCase
      */
     public function testForbiddenWithoutTheDeclaredPermissionStaysForbiddenEvenWithUnrelatedGlobalPermission(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['employees.view']);
-        $this->roles->expects($this->atLeastOnce())->method('getGlobalPermissionKeys')->with(2)->willReturn(['employees.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['employees.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? ['employees.view'] : []);
         $this->expectException(ForbiddenException::class);
         $this->middleware()->handle($this->makeRequest('stores.view', ['id' => 10], [3]), $this->next());
     }
@@ -190,16 +169,13 @@ final class PermissionMiddlewareTest extends TestCase
 
     public function testScopedByStoresView(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         // Ex. admin.activity → 'stores.view' : un manager scopé sur un seul
         // store ne doit voir que le journal de ce store.
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 5, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['stores.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['stores.view'] : []);
         $request = $this->makeRequest('stores.view', ['id' => 10], [1, 3]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -211,14 +187,11 @@ final class PermissionMiddlewareTest extends TestCase
 
     public function testForbiddenWithoutTheDeclaredPermission(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 5, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['shifts.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
         $this->expectException(ForbiddenException::class);
         $this->middleware()->handle($this->makeRequest('stores.view', ['id' => 10], [3]), $this->next());
     }
@@ -241,15 +214,13 @@ final class PermissionMiddlewareTest extends TestCase
             ['id' => 5, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
             ['id' => 6, 'user_id' => 10, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 2],
         ]);
-        $this->roles->method('findById')->willReturnMap([
+        kintai_test_roles(findById: fn(int $id) => array_column([
             [2, ['id' => 2, 'is_system' => 0]],
             [3, ['id' => 3, 'is_system' => 0]],
-        ]);
-        $this->roles->method('getPermissions')->willReturnMap([
+        ], 1, 0)[$id] ?? null, getPermissions: static fn(int $id) => array_column([
             [2, ['employees.view']],
             [3, ['shifts.view']],
-        ]);
-
+        ], 1, 0)[$id] ?? []);
         $request = $this->makeRequest('employees.view', ['id' => 10], [1, 2]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -265,9 +236,7 @@ final class PermissionMiddlewareTest extends TestCase
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 6, 'user_id' => 10, 'role_id' => 3, 'scope_type' => 'store', 'scope_id' => 2],
         ]);
-        $this->roles->method('findById')->willReturn(['id' => 3, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['shifts.view']);
-
+        kintai_test_roles(findById: fn() => ['id' => 3, 'is_system' => 0], getPermissions: fn() => ['shifts.view']);
         $this->expectException(ForbiddenException::class);
 
         $this->middleware()->handle($this->makeRequest('employees.view', ['id' => 10], [2]), $this->next());
@@ -282,9 +251,7 @@ final class PermissionMiddlewareTest extends TestCase
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 7, 'user_id' => 10, 'role_id' => 4, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $this->roles->method('findById')->willReturn(['id' => 4, 'is_system' => 0]);
-        $this->roles->method('getPermissions')->willReturn(['employees.view']);
-
+        kintai_test_roles(findById: fn() => ['id' => 4, 'is_system' => 0], getPermissions: fn() => ['employees.view']);
         $request = $this->makeRequest('employees.view', ['id' => 10], null);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -302,15 +269,11 @@ final class PermissionMiddlewareTest extends TestCase
      */
     public function testPerPermissionGlobalScopeOnRoleNarrowsToNullForThatKey(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['shifts.view']);
-        $this->roles->expects($this->atLeastOnce())->method('getGlobalPermissionKeys')->with(2)->willReturn(['shifts.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
         $request  = $this->makeRequest('shifts.view', ['id' => 10], [3]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -323,15 +286,11 @@ final class PermissionMiddlewareTest extends TestCase
     /** La même affectation reste restreinte à son store pour une permission non global-flaggée. */
     public function testPerPermissionGlobalScopeDoesNotLeakToOtherPermissionsOnTheSameRole(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['shifts.view', 'shifts.update']);
-        $this->roles->expects($this->atLeastOnce())->method('getGlobalPermissionKeys')->with(2)->willReturn(['shifts.view']);
-
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['shifts.view', 'shifts.update'] : [], getGlobalPermissionKeys: fn(int $id) => $id === 2 ? ['shifts.view'] : []);
         $request  = $this->makeRequest('shifts.update', ['id' => 10], [3]);
         $response = $this->middleware()->handle($request, function (Request $r) {
             return response()->json(['managed' => $r->attributes->get('managed_store_ids')]);
@@ -380,7 +339,6 @@ final class PermissionMiddlewareTest extends TestCase
 
     public function testMembershipRuleStillGrantsViaScopedPermissionAndNarrows(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         // Un gestionnaire avec daily_reports.create sur le store passe par la
@@ -388,8 +346,7 @@ final class PermissionMiddlewareTest extends TestCase
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['daily_reports.create']);
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['daily_reports.create'] : []);
         $this->storeUsers->expects($this->never())->method('findMembership');
 
         $request  = $this->makeRequest(['perm' => 'daily_reports.create', 'membership' => true], ['id' => 10], null, ['id' => '1']);
@@ -419,14 +376,12 @@ final class PermissionMiddlewareTest extends TestCase
     /** Une permission RBAC existe ailleurs (porte grossière franchie) mais pas la clé exacte requise : 403. */
     public function testNonMembershipRuleForbiddenWhenSomePermissionExistsButNotTheRequiredOne(): void
     {
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         $this->assignments = $this->createMock(RoleAssignmentRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->assignments->expects($this->atLeastOnce())->method('findByUser')->with(10)->willReturn([
             ['id' => 1, 'user_id' => 10, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(2)->willReturn(['id' => 2, 'is_system' => 0]);
-        $this->roles->expects($this->atLeastOnce())->method('getPermissions')->with(2)->willReturn(['photos.view']);
+        kintai_test_roles(findById: fn(int $id) => $id === 2 ? ['id' => 2, 'is_system' => 0] : null, getPermissions: fn(int $id) => $id === 2 ? ['photos.view'] : []);
         $this->storeUsers->expects($this->never())->method('findMembership');
 
         $request = $this->makeRequest('daily_reports.delete', ['id' => 10], null, ['id' => '1']);

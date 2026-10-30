@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
 use App\Models\UserDashboardLayout;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\UserDashboardPref;
 
 /**
@@ -22,7 +22,6 @@ final class DashboardLayoutResolver
 {
     public function __construct(
         private readonly RoleAssignmentRepositoryInterface $assignments,
-        private readonly RoleRepositoryInterface $roles,
     ) {}
 
     /** Mises en page nommées de l'utilisateur pour ce tableau de bord (panneau « Personnaliser »). */
@@ -39,7 +38,7 @@ final class DashboardLayoutResolver
     public function roleOptions(string $dashboardType): array
     {
         $options = [];
-        foreach ($this->roles->findAll() as $role) {
+        foreach (Role::findAll() as $role) {
             $options[(int) $role['id']] = [
                 'name'        => (string) ($role['name'] ?? $role['slug'] ?? ('#' . $role['id'])),
                 'has_default' => RoleDashboardLayout::layoutFor((int) $role['id'], $dashboardType) !== null,
@@ -75,8 +74,8 @@ final class DashboardLayoutResolver
         }
         $ids = array_keys($ids);
         usort($ids, function (int $a, int $b): int {
-            $systemA = !empty($this->roles->findById($a)['is_system']) ? 0 : 1;
-            $systemB = !empty($this->roles->findById($b)['is_system']) ? 0 : 1;
+            $systemA = !empty(Role::findById($a)['is_system']) ? 0 : 1;
+            $systemB = !empty(Role::findById($b)['is_system']) ? 0 : 1;
             return [$systemA, $a] <=> [$systemB, $b];
         });
         return $ids;

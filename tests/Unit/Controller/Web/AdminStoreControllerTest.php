@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use Tests\Support\FakeBundleManagerFactory;
 use App\Extension\StoreFeatures;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -32,7 +32,6 @@ final class AdminStoreControllerTest extends TestCase
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private UserRepositoryInterface&Stub $users;
     private StoreStatsServiceInterface&Stub $storeStatsService;
-    private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private ?AdminStoreController $controller = null;
 
@@ -47,7 +46,6 @@ final class AdminStoreControllerTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
-        $this->roles = $this->createStub(RoleRepositoryInterface::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
     }
     /** Audit n°8 : quota de magasins atteint → retour au formulaire (erreur de validation), plus une page 403. */
@@ -64,8 +62,8 @@ final class AdminStoreControllerTest extends TestCase
             $storeService,
             $this->storeStatsService,
             new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs([])),
-            new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-            new PermissionService($this->roleAssignments, $this->roles),
+            new RoleAssignmentSyncService($this->roleAssignments),
+            new PermissionService($this->roleAssignments),
         );
         $_POST = ['code' => 'NEW', 'name' => 'Nouveau'];
         $req = Request::capture();
@@ -138,8 +136,8 @@ final class AdminStoreControllerTest extends TestCase
             $this->createStub(StoreServiceInterface::class),
             $this->storeStatsService,
             new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['daily-report'])), // messaging et store-photos désactivés
-            new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-            new PermissionService($this->roleAssignments, $this->roles),
+            new RoleAssignmentSyncService($this->roleAssignments),
+            new PermissionService($this->roleAssignments),
         );
 
         $req = Request::capture();
@@ -196,8 +194,8 @@ final class AdminStoreControllerTest extends TestCase
             // couvre que la soumission normale d'une case cochée (voir
             // testUpdateStorePreservesFeatureHiddenByDisabledBundle pour le cas masqué).
             new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['messaging', 'daily-report', 'store-photos', 'timeoff', 'shift-swap', 'shift-claim', 'timeclock'])),
-            new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-            new PermissionService($this->roleAssignments, $this->roles),
+            new RoleAssignmentSyncService($this->roleAssignments),
+            new PermissionService($this->roleAssignments),
         );
 
         $response = $controller->updateStore($req);
@@ -240,8 +238,8 @@ final class AdminStoreControllerTest extends TestCase
             $storeService,
             $this->storeStatsService,
             new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['daily-report'])), // messaging et store-photos désactivés
-            new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-            new PermissionService($this->roleAssignments, $this->roles),
+            new RoleAssignmentSyncService($this->roleAssignments),
+            new PermissionService($this->roleAssignments),
         );
 
         $response = $controller->updateStore($req);
@@ -320,16 +318,14 @@ final class AdminStoreControllerTest extends TestCase
         $this->roleAssignments->method('findByScope')->willReturn([
             ['id' => 5, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $this->roles->method('findById')->willReturnCallback(fn(int $id) => match ($id) {
+        kintai_test_roles(findById: fn(int $id) => match ($id) {
             10      => ['id' => 10, 'is_system' => 1],
             default => ['id' => $id, 'is_system' => 0],
-        });
-        $this->roles->method('getPermissions')->willReturnCallback(fn(int $id) => match ($id) {
+        }, getPermissions: fn(int $id) => match ($id) {
             20, 31 => ['shifts.view'],
             30      => ['shifts.view', 'shifts.update'],
             default => [],
-        });
-        $this->roles->method('getGlobalPermissionKeys')->willReturn([]);
+        }, getGlobalPermissionKeys: static fn() => []);
         $this->stores->method('findById')->willReturn(['id' => 1]);
 
         $req = Request::capture();
@@ -423,8 +419,8 @@ final class AdminStoreControllerTest extends TestCase
             $storeService,
             $this->storeStatsService,
             new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['messaging', 'daily-report', 'store-photos', 'timeoff', 'shift-swap', 'shift-claim', 'timeclock'])),
-            new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-            new PermissionService($this->roleAssignments, $this->roles),
+            new RoleAssignmentSyncService($this->roleAssignments),
+            new PermissionService($this->roleAssignments),
         );
 
         $controller->updateStore($req);
@@ -517,8 +513,8 @@ final class AdminStoreControllerTest extends TestCase
             $storeService,
             $this->storeStatsService,
             new StoreFeatures(new \App\Extension\ExtensionRegistry($manager), $manager),
-            new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-            new PermissionService($this->roleAssignments, $this->roles),
+            new RoleAssignmentSyncService($this->roleAssignments),
+            new PermissionService($this->roleAssignments),
         );
 
         $this->assertSame(302, $controller->updateStore($req)->getStatusCode());
@@ -538,8 +534,8 @@ final class AdminStoreControllerTest extends TestCase
                 $this->createStub(StoreServiceInterface::class),
                 $this->storeStatsService,
                 new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['messaging', 'daily-report', 'store-photos'])),
-                new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
-                new PermissionService($this->roleAssignments, $this->roles),
+                new RoleAssignmentSyncService($this->roleAssignments),
+                new PermissionService($this->roleAssignments),
             );
         }
 

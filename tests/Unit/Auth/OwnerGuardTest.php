@@ -8,7 +8,7 @@ use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\UserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -28,15 +28,13 @@ final class OwnerGuardTest extends TestCase
             fn(int $id): array => ['id' => $id, 'user_id' => $id, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
             array_keys($owners)
         ));
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
-
+        kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => isset($owners[$id])
             ? ['id' => $id, 'is_active' => ($owners[$id]['active'] ?? true) ? 1 : 0, 'deleted_at' => ($owners[$id]['deleted'] ?? false) ? '2026-01-01 00:00:00' : null]
             : ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
 
-        return new OwnerGuard(new PermissionService($assignments, $roles), $users);
+        return new OwnerGuard(new PermissionService($assignments), $users);
     }
 
     public function testNonOwnerTargetIsNeverBlocked(): void

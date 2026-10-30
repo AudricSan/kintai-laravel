@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Exceptions\ForbiddenException;
 use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -56,13 +56,9 @@ final class AdminUserControllerScopeTest extends TestCase
         $assignments->method('findByScope')->willReturn([
             ['id' => 1, 'user_id' => self::OWNER, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturnCallback(fn(int $id): array => $id === 10
+        kintai_test_roles(findById: fn(int $id): array => $id === 10
             ? ['id' => 10, 'is_system' => 1]
-            : ['id' => 20, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['employees.view', 'employees.update', 'employees.delete']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-
+            : ['id' => 20, 'is_system' => 0], getPermissions: static fn() => ['employees.view', 'employees.update', 'employees.delete'], getGlobalPermissionKeys: static fn() => []);
         $this->users      = $this->createMock(UserRepositoryInterface::class);
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $stores           = $this->createStub(StoreRepositoryInterface::class);
@@ -73,14 +69,14 @@ final class AdminUserControllerScopeTest extends TestCase
             $stores,
             $this->storeUsers,
             new AuditLogger(),
-            new RoleAssignmentSyncService($roles, $assignments),
-            new PermissionService($assignments, $roles),
+            new RoleAssignmentSyncService($assignments),
+            new PermissionService($assignments),
             new PlanLimitService(
                 $stores,
                 $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
-            new OwnerGuard(new PermissionService($assignments, $roles), $this->users),
+            new OwnerGuard(new PermissionService($assignments), $this->users),
         );
     }
 

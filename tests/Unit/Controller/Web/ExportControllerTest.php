@@ -20,7 +20,7 @@ use App\Models\Availability;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -71,8 +71,7 @@ final class ExportControllerTest extends TestCase
 
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturn([]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $permissions = new PermissionService($assignments, $roles);
+        $permissions = new PermissionService($assignments);
 
         $directory = new ExportDirectory($users, $stores);
         $schedule  = new ScheduleExportService();
@@ -87,7 +86,7 @@ final class ExportControllerTest extends TestCase
 
         $this->controller = new ExportController(
             kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
-            new AuthService($users, $storeUsers, $stores, $roles, $assignments),
+            new AuthService($users, $storeUsers, $stores, $assignments),
             new ExportAccess($permissions, $stores, $storeUsers),
             new ExportWriter(),
             new UserSelection($storeUsers, $users, $permissions),

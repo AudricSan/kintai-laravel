@@ -11,7 +11,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -42,7 +42,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RoleRepositoryInterface&Stub $roles;
     private EmployeeController $controller;
     private string $viewDir;
 
@@ -59,7 +58,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createStub(RoleRepositoryInterface::class);
 
         $this->viewDir    = $viewDir;
         $this->controller = $this->buildController();
@@ -84,7 +82,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
             ),
-            new PermissionService($this->assignments, $this->roles),
+            new PermissionService($this->assignments),
         );
     }
 
@@ -98,8 +96,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [
             ['id' => 1, 'user_id' => 9, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null);
-        $this->roles->method('getPermissions')->willReturnCallback(fn($a0) => $a0 === 5 ? ['shifts.update'] : []);
+        kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? ['shifts.update'] : []);
     }
 
     public function testCanManageTrueWhenRoleGrantsShiftsUpdateOnDisplayedStore(): void

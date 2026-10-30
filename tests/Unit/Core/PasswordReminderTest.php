@@ -9,7 +9,7 @@ use App\Auth\PasswordPolicy;
 use Illuminate\Container\Container;
 use App\Http\Middleware\PasswordReminderMiddleware;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -53,7 +53,6 @@ final class PasswordReminderTest extends TestCase
             $users,
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );

@@ -42,12 +42,12 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 - **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle,
   tests sur base SQLite en mémoire avec `kintai_test_database()` / `kintai_test_migrate()` / `kintai_test_user()`).
-  Faits (25) : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
+  Faits (26) : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
   `RoleDashboardLayout`, `BundleRegistry`, `InstalledBundle`, `UserDashboardLayout`, `CalendarSync` (3 modèles),
   `WebPushSubscription`, `DevicePushToken`, `RouteSlug`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`,
   `UserNavPrefs`, `Log` (lecture, `ActivityEntry`), `Availability`, `UserShiftTypeRate`, `AppSettings` (`AppSetting`),
-  `ShiftType`, `Shift`. Restent, de la plus petite à la plus utilisée : `Role` (permissions simulées dans presque tous les
-  tests de contrôleurs : ~690 tests à réécrire), `RoleAssignment`, `Store`, `StoreUser`, `User`.
+  `ShiftType`, `Shift`, `Role` (tests : `kintai_test_roles()` / `kintai_test_role_table()`). Restent : `RoleAssignment`, `Store`,
+  `StoreUser`, `User`.
   Chaque conversion remplace aussi les doubles de test par des tests sur base réelle. Outil : les méthodes du
   repository deviennent des méthodes statiques du modèle (noms réservés par Eloquent renommés : `save` → `put`…).
 - **Tâches planifiées** (plus de `CronRunner`) : commandes Artisan `kintai:*` planifiées par `Schedule` (`routes/console.php` pour le Core, `register()` du bundle pour les siennes) ;

@@ -8,7 +8,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 
 /**
  * Moteur de vérification des permissions dynamiques (rôles/role_permissions/
@@ -24,7 +24,6 @@ final class PermissionService
 
     public function __construct(
         private readonly RoleAssignmentRepositoryInterface $assignments,
-        private readonly RoleRepositoryInterface $roles,
     ) {}
 
     /**
@@ -130,7 +129,7 @@ final class PermissionService
             if ($role === null) {
                 continue;
             }
-            if (!empty($role['is_system']) || $this->roles->getPermissions((int) $assignment['role_id']) !== []) {
+            if (!empty($role['is_system']) || Role::getPermissions((int) $assignment['role_id']) !== []) {
                 $storeIds[] = (int) $assignment['scope_id'];
             }
         }
@@ -168,7 +167,7 @@ final class PermissionService
             if (!empty($role['is_system'])) {
                 return true;
             }
-            if ($this->roles->getGlobalPermissionKeys($roleId) !== []) {
+            if (Role::getGlobalPermissionKeys($roleId) !== []) {
                 return true;
             }
         }
@@ -304,12 +303,12 @@ final class PermissionService
      */
     public function canAssignRole(array $authUser, int $roleId, int $storeId): bool
     {
-        foreach ($this->roles->getPermissions($roleId) as $key) {
+        foreach (Role::getPermissions($roleId) as $key) {
             if (!$this->can($authUser, $key, $storeId)) {
                 return false;
             }
         }
-        foreach ($this->roles->getGlobalPermissionKeys($roleId) as $key) {
+        foreach (Role::getGlobalPermissionKeys($roleId) as $key) {
             if (!$this->hasUnrestrictedGrant($authUser, $key)) {
                 return false;
             }
@@ -364,7 +363,7 @@ final class PermissionService
     private function permissionIsGlobalOnRole(int $roleId, string $permissionKey): bool
     {
         if (!array_key_exists($roleId, $this->globalKeysCache)) {
-            $this->globalKeysCache[$roleId] = $this->roles->getGlobalPermissionKeys($roleId);
+            $this->globalKeysCache[$roleId] = Role::getGlobalPermissionKeys($roleId);
         }
         return in_array($permissionKey, $this->globalKeysCache[$roleId], true);
     }
@@ -378,13 +377,13 @@ final class PermissionService
         if (!empty($role['is_system'])) {
             return true;
         }
-        return in_array($permissionKey, $this->roles->getPermissions($roleId), true);
+        return in_array($permissionKey, Role::getPermissions($roleId), true);
     }
 
     private function role(int $roleId): ?array
     {
         if (!array_key_exists($roleId, $this->roleCache)) {
-            $this->roleCache[$roleId] = $this->roles->findById($roleId);
+            $this->roleCache[$roleId] = Role::findById($roleId);
         }
         return $this->roleCache[$roleId];
     }

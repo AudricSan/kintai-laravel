@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Api\V1;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Auth\UserTargetGuard;
 use App\BundleManager;
 use App\Exceptions\ValidationException;
@@ -30,18 +29,9 @@ final class NotificationPreferenceControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $capsule->getConnection()->getSchemaBuilder()->create('notification_preferences', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id');
-            $table->string('type', 64);
-            $table->string('channel', 16);
-            $table->boolean('enabled');
-            $table->unique(['user_id', 'type', 'channel']);
-        });
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(20);
 
         $this->usersById = [20 => ['id' => 20, 'quiet_hours_start' => null, 'quiet_hours_end' => null]];
         $users = $this->createStub(UserRepositoryInterface::class);

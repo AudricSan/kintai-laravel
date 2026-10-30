@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -61,7 +61,7 @@ final class AdminShiftResolveConflictTest extends TestCase
             new AuditLogger(),
             $this->notifs,
             $this->createStub(ShiftServiceInterface::class),
-            new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class), $this->createStub(RoleRepositoryInterface::class)),
+            new PermissionService($this->createStub(RoleAssignmentRepositoryInterface::class)),
             new AvailabilityGuard(),
         );
     }

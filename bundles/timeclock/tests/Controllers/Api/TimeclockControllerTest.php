@@ -11,7 +11,7 @@ use App\Exceptions\ConflictException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
@@ -30,7 +30,6 @@ final class TimeclockControllerTest extends TestCase
     private TimeclockRepositoryInterface&Stub $timeclocks;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RoleRepositoryInterface&Stub $roles;
     private ?TimeclockController $controller = null;
 
     protected function setUp(): void
@@ -38,7 +37,6 @@ final class TimeclockControllerTest extends TestCase
         $this->timeclocks  = $this->createStub(TimeclockRepositoryInterface::class);
         $this->storeUsers  = $this->createStub(StoreUserRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -49,7 +47,7 @@ final class TimeclockControllerTest extends TestCase
                 $this->timeclocks,
                 $this->storeUsers,
                 new AuditLogger(),
-                new PermissionService($this->assignments, $this->roles)
+                new PermissionService($this->assignments)
             );
         }
 
@@ -68,8 +66,7 @@ final class TimeclockControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 1 ? [
             ['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ] : []);
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 10 ? ['id' => 10, 'is_system' => 1] : null);
-
+        kintai_test_roles(findById: fn($a0) => $a0 === 10 ? ['id' => 10, 'is_system' => 1] : null);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
         return $req;
@@ -81,9 +78,7 @@ final class TimeclockControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 20 ? ['id' => 20, 'is_system' => 0] : null);
-        $this->roles->method('getPermissions')->willReturnCallback(fn($a0) => $a0 === 20 ? ['timeclock.view', 'timeclock.update', 'timeclock.delete'] : []);
-
+        kintai_test_roles(findById: fn($a0) => $a0 === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 20 ? ['timeclock.view', 'timeclock.update', 'timeclock.delete'] : []);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;

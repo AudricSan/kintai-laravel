@@ -11,7 +11,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -29,7 +29,6 @@ final class ShiftClaimControllerTest extends TestCase
 {
     private ShiftClaimRepositoryInterface&Stub $claims;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RoleRepositoryInterface&Stub $roles;
     private ?ShiftClaimController $controller = null;
     private StoreUserRepositoryInterface&Stub $storeUsers;
 
@@ -37,7 +36,6 @@ final class ShiftClaimControllerTest extends TestCase
     {
         $this->claims      = $this->createStub(ShiftClaimRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -46,7 +44,7 @@ final class ShiftClaimControllerTest extends TestCase
         if ($this->controller === null) {
             $this->controller  = new ShiftClaimController(
                 $this->claims,
-                new PermissionService($this->assignments, $this->roles),
+                new PermissionService($this->assignments),
                 $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class)
             );
         }
@@ -66,9 +64,7 @@ final class ShiftClaimControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 20 ? ['id' => 20, 'is_system' => 0] : null);
-        $this->roles->method('getPermissions')->willReturnCallback(fn($a0) => $a0 === 20 ? ['open_shifts.view', 'open_shifts.approve'] : []);
-
+        kintai_test_roles(findById: fn($a0) => $a0 === 20 ? ['id' => 20, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 20 ? ['open_shifts.view', 'open_shifts.approve'] : []);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => $userId]);
         return $req;

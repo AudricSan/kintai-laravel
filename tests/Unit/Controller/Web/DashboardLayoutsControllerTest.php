@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Models\RoleDashboardLayout;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\UserDashboardLayout;
 use App\Models\UserDashboardPref;
 use Illuminate\Http\Request;
@@ -21,8 +21,6 @@ use PHPUnit\Framework\TestCase;
 final class DashboardLayoutsControllerTest extends TestCase
 {
     use \Tests\Support\PrefsExpectations;
-
-    private RoleRepositoryInterface $roles;
     private DashboardLayoutsController $controller;
 
     protected function setUp(): void
@@ -32,14 +30,11 @@ final class DashboardLayoutsControllerTest extends TestCase
         kintai_test_migrate();
         kintai_test_user(1);
         kintai_test_user(7);
-        $this->roles      = $this->createStub(RoleRepositoryInterface::class);
-        $this->roles->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 2 ? ['id' => 2, 'name' => 'Manager'] : null);
-
+        kintai_test_roles(findById: fn(int $id): ?array => $id === 2 ? ['id' => 2, 'name' => 'Manager'] : null);
         $resolver = new DashboardLayoutResolver(
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->roles,
         );
-        $this->controller = new DashboardLayoutsController($this->roles, $resolver, new AuditLogger());
+        $this->controller = new DashboardLayoutsController($resolver, new AuditLogger());
     }
 
     protected function tearDown(): void

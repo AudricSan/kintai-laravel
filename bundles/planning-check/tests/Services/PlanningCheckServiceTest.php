@@ -16,7 +16,7 @@ use App\Auth\PermissionService;
 use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -95,11 +95,8 @@ final class PlanningCheckServiceTest extends TestCase
             default => [],
         });
         $assignments->method('findByScope')->willReturn([['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null, 'user_id' => 99]]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 1 ? ['id' => 1, 'is_system' => 1] : ['id' => $id, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['planning_check.approve']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-        $permissions = new PermissionService($assignments, $roles);
+        kintai_test_roles(findById: fn(int $id): ?array => $id === 1 ? ['id' => 1, 'is_system' => 1] : ['id' => $id, 'is_system' => 0], getPermissions: fn() => ['planning_check.approve'], getGlobalPermissionKeys: fn() => []);
+        $permissions = new PermissionService($assignments);
 
         $notifications = $this->createStub(NotificationService::class);
         $notifications->method('notifyMany')->willReturnCallback(function (array $ids, string $type, string $key, array $replace, ?int $ref, ?string $link): void {

@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterfa
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -39,11 +39,8 @@ final class ShiftClaimMassAssignmentTest extends TestCase
         $assignments->method('findByUser')->willReturn([
             ['id' => 1, 'user_id' => self::ME, 'role_id' => 20, 'scope_type' => 'store', 'scope_id' => self::MY_STORE],
         ]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 20, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['open_shifts.approve']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-        $this->permissions = new PermissionService($assignments, $roles);
+        kintai_test_roles(findById: fn() => ['id' => 20, 'is_system' => 0], getPermissions: fn() => ['open_shifts.approve'], getGlobalPermissionKeys: fn() => []);
+        $this->permissions = new PermissionService($assignments);
 
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->storeUsers->method('findMembership')->willReturnCallback(

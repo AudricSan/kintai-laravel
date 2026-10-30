@@ -10,7 +10,7 @@ use App\Models\CalendarSyncQueueItem;
 use App\Auth\AuthService;
 use App\Console\Commands\CalendarSyncCommand;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -52,7 +52,6 @@ final class CalendarLinkControllerTest extends TestCase
         $auth = new AuthService(
             $users, $storeUsers,
             $this->createStub(StoreRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
             $roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );

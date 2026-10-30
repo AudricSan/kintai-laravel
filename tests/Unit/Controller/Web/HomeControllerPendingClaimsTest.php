@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -68,8 +68,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
 
         $roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $roleAssignments->method('findByUser')->willReturn([]);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $permissions = new PermissionService($roleAssignments, $roles);
+        $permissions = new PermissionService($roleAssignments);
 
         $dashboardAlerts = new DashboardAlertService($usersRepo, $storeUsersRepo);
 

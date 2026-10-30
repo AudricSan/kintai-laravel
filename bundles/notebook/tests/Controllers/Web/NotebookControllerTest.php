@@ -9,7 +9,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -30,7 +30,6 @@ final class NotebookControllerTest extends TestCase
     private UserRepositoryInterface&Stub $users;
     private NotificationService&Stub $notifs;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RoleRepositoryInterface&Stub $roles;
     private ?NotebookController $controller = null;
 
     protected function setUp(): void
@@ -41,7 +40,6 @@ final class NotebookControllerTest extends TestCase
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->notifs      = $this->createStub(NotificationService::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles       = $this->createStub(RoleRepositoryInterface::class);
 
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1'], ['id' => 2, 'name' => 'Store 2']]);
         // Pas de findAll() par défaut ici : plusieurs tests le reconfigurent avec une valeur
@@ -63,7 +61,7 @@ final class NotebookControllerTest extends TestCase
                 $this->users,
                 new AuditLogger(),
                 $this->notifs,
-                new PermissionService($this->assignments, $this->roles),
+                new PermissionService($this->assignments),
             );
         }
 
@@ -84,7 +82,7 @@ final class NotebookControllerTest extends TestCase
                 ? [['id' => 1, 'user_id' => $userId, 'role_id' => 9, 'scope_type' => 'global', 'scope_id' => null]]
                 : []
         );
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 9 ? ['id' => 9, 'is_system' => 1] : null);
+        kintai_test_roles(findById: fn($a0) => $a0 === 9 ? ['id' => 9, 'is_system' => 1] : null);
     }
 
     private function grantStoreScopedRole(int $userId, int $storeId, array $permissions): void
@@ -92,9 +90,7 @@ final class NotebookControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null);
-        $this->roles->method('getPermissions')->willReturnCallback(fn($a0) => $a0 === 5 ? $permissions : []);
-        $this->roles->method('getGlobalPermissionKeys')->willReturnCallback(fn($a0) => $a0 === 5 ? [] : []);
+        kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? $permissions : [], getGlobalPermissionKeys: fn($a0) => $a0 === 5 ? [] : []);
     }
 
     private function request(int $userId, ?array $managedStoreIds): Request
@@ -208,14 +204,13 @@ final class NotebookControllerTest extends TestCase
     {
         $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->roles = $this->createMock(RoleRepositoryInterface::class);
         // Deux utilisateurs globalement scopés (ex. deux Owners) : les deux doivent être
         // notifiés, pas seulement l'auteur — vérifie que notifyMembers() ne s'arrête pas
         // au premier destinataire trouvé.
         $this->assignments->method('findByUser')->willReturnCallback(
             fn(int $uid) => [['id' => 1, 'user_id' => $uid, 'role_id' => 9, 'scope_type' => 'global', 'scope_id' => null]]
         );
-        $this->roles->expects($this->atLeastOnce())->method('findById')->with(9)->willReturn(['id' => 9, 'is_system' => 1]);
+        kintai_test_roles(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'is_system' => 1] : null);
         $_POST = ['content' => 'Pour tous'];
 
         $this->notes->method('save')->willReturn(['id' => 7]);
@@ -419,7 +414,7 @@ final class NotebookControllerTest extends TestCase
             $this->users,
             new AuditLogger(),
             $this->notifs,
-            new PermissionService($this->assignments, $this->roles),
+            new PermissionService($this->assignments),
         );
 
         $this->notes->method('findVisibleForStores')->willReturn([
@@ -450,7 +445,7 @@ final class NotebookControllerTest extends TestCase
             $this->users,
             new AuditLogger(),
             $this->notifs,
-            new PermissionService($this->assignments, $this->roles),
+            new PermissionService($this->assignments),
         );
 
         $this->notes->method('findVisibleForStores')->willReturn([

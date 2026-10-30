@@ -9,7 +9,7 @@ use App\Auth\PermissionCatalog;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -54,7 +54,6 @@ final class AdminRoleController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly RoleRepositoryInterface $roles,
         private readonly RoleAssignmentRepositoryInterface $assignments,
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
@@ -68,7 +67,7 @@ final class AdminRoleController
     public function roles(Request $request): Response
     {
 
-        $roles = $this->roles->findAll();
+        $roles = Role::findAll();
         $counts = [];
         foreach ($roles as &$role) {
             $counts[(int) $role['id']] = count($this->assignments->findByRole((int) $role['id']));
@@ -112,7 +111,7 @@ final class AdminRoleController
 
         ColorRule::assert($request->post('color', ''), 'color', true);
 
-        $saved = $this->roles->save([
+        $saved = Role::put([
             'name'        => $name,
             'slug'        => $slug,
             'color'       => $request->post('color', '') ?: null,
@@ -123,7 +122,7 @@ final class AdminRoleController
 
         $permissions = $this->postedPermissions($request);
         $globalPermissions = $this->postedGlobalScopeKeys($request);
-        $this->roles->savePermissions((int) $saved['id'], $permissions, $globalPermissions);
+        Role::savePermissions((int) $saved['id'], $permissions, $globalPermissions);
 
         $this->auditLogger->log($request, 'role.created', 'role', (int) $saved['id'], [
             'name'              => $name,
@@ -146,8 +145,8 @@ final class AdminRoleController
             'role'                  => $role,
             'permission_categories' => $this->visiblePermissionCategories(),
             'action_label_keys'     => self::ACTION_LABEL_KEYS,
-            'granted_permissions'   => $this->roles->getPermissions((int) $role['id']),
-            'granted_global_permissions' => $this->roles->getGlobalPermissionKeys((int) $role['id']),
+            'granted_permissions'   => Role::getPermissions((int) $role['id']),
+            'granted_global_permissions' => Role::getGlobalPermissionKeys((int) $role['id']),
             'holders'               => $this->roleHolders((int) $role['id']),
             'assignable_users'      => $isOwnerRole ? $this->activeUsers() : $this->assignableHolderCandidates(),
         ])->render());
@@ -169,7 +168,7 @@ final class AdminRoleController
         ColorRule::assert($request->post('color', ''), 'color', true);
 
         // Champ absent de la requête : valeur actuelle conservée (audit du 13/10/2026, M12).
-        $newRole = $this->roles->save([
+        $newRole = Role::put([
             'id'          => $role['id'],
             'name'        => $name,
             'color'       => $request->hasPost('color') ? ($request->post('color', '') ?: null) : ($role['color'] ?? null),
@@ -177,8 +176,8 @@ final class AdminRoleController
             'is_manager'  => $request->postFlag('is_manager', $role['is_manager'] ?? 0),
         ]);
 
-        $oldPermissions = $this->roles->getPermissions((int) $role['id']);
-        $oldGlobalPermissions = $this->roles->getGlobalPermissionKeys((int) $role['id']);
+        $oldPermissions = Role::getPermissions((int) $role['id']);
+        $oldGlobalPermissions = Role::getGlobalPermissionKeys((int) $role['id']);
         // Les catégories des bundles désactivés sont masquées du formulaire :
         // leurs clés déjà accordées (et leur portée globale/locale) sont
         // préservées telles quelles, pour réapparaître si le bundle est
@@ -190,7 +189,7 @@ final class AdminRoleController
         $hiddenGlobalKeys = array_intersect($oldGlobalPermissions, $hiddenKeys);
         $newPermissions = array_values(array_unique(array_merge($this->postedPermissions($request), $hiddenKeys)));
         $newGlobalPermissions = array_values(array_unique(array_merge($this->postedGlobalScopeKeys($request), $hiddenGlobalKeys)));
-        $this->roles->savePermissions((int) $role['id'], $newPermissions, $newGlobalPermissions);
+        Role::savePermissions((int) $role['id'], $newPermissions, $newGlobalPermissions);
 
         $this->auditLogger->logUpdate(
             $request,
@@ -216,7 +215,7 @@ final class AdminRoleController
             return redirect()->away($this->base() . '/admin/roles')->with('error', 'role_in_use');
         }
 
-        $this->roles->delete((int) $role['id']);
+        Role::remove((int) $role['id']);
         $this->auditLogger->log($request, 'role.deleted', 'role', (int) $role['id'], [
             'name' => $role['name'] ?? null,
         ]);
@@ -364,7 +363,7 @@ final class AdminRoleController
 
     private function findRoleOrFail(Request $request): array
     {
-        $role = $this->roles->findById((int) $request->route('id'));
+        $role = Role::findById((int) $request->route('id'));
         if ($role === null) {
             throw new NotFoundException(__('error_role_not_found'));
         }
@@ -470,7 +469,7 @@ final class AdminRoleController
         }
         $slug = $base;
         $attempt = 1;
-        while ($this->roles->findBySlug($slug) !== null) {
+        while (Role::findBySlug($slug) !== null) {
             $attempt++;
             $slug = $base . '-' . $attempt;
         }

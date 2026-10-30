@@ -6,7 +6,7 @@ namespace App\Services\BundleInstaller;
 
 use App\Auth\PermissionCatalog;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 
 /**
  * À la première installation d'un bundle (assistant de configuration ou catalogue), accorde au rôle Manager les
@@ -16,7 +16,7 @@ use App\Repositories\RoleRepositoryInterface;
  */
 final class BundlePermissionGranter
 {
-    public function __construct(private readonly RoleRepositoryInterface $roles) {}
+    public function __construct() {}
 
     /**
      * Accorde au rôle Manager les catégories déclarées par la classe d'entrée du bundle.
@@ -57,12 +57,12 @@ final class BundlePermissionGranter
      */
     public function grantToManager(array $categories): array
     {
-        $manager = $this->roles->findBySlug('manager');
+        $manager = Role::findBySlug('manager');
         if ($manager === null) {
             return [];
         }
         $roleId = (int) $manager['id'];
-        $current = $this->roles->getPermissions($roleId);
+        $current = Role::getPermissions($roleId);
         $new = [];
         foreach ($categories as $category => $actions) {
             foreach ($actions as $action) {
@@ -73,7 +73,7 @@ final class BundlePermissionGranter
             }
         }
         if ($new !== []) {
-            $this->roles->savePermissions($roleId, array_merge($current, $new), $this->roles->getGlobalPermissionKeys($roleId));
+            Role::savePermissions($roleId, array_merge($current, $new), Role::getGlobalPermissionKeys($roleId));
         }
         return $new;
     }

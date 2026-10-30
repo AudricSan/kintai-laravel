@@ -10,7 +10,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -33,7 +33,6 @@ final class DailyReportControllerTest extends TestCase
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private RoleAssignmentRepositoryInterface&Stub $assignments;
-    private RoleRepositoryInterface&Stub $roles;
     private ?DailyReportController $controller = null;
 
     protected function setUp(): void
@@ -42,7 +41,6 @@ final class DailyReportControllerTest extends TestCase
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->roles = $this->createStub(RoleRepositoryInterface::class);
 
         $this->stores->method('findById')->willReturnCallback(fn($a0) => $a0 === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
     }
@@ -55,7 +53,7 @@ final class DailyReportControllerTest extends TestCase
                 $this->reports,
                 $this->stores,
                 $this->storeUsers,
-                new DailyReportPermissionService(new PermissionService($this->assignments, $this->roles)),
+                new DailyReportPermissionService(new PermissionService($this->assignments)),
             );
         }
 
@@ -81,8 +79,7 @@ final class DailyReportControllerTest extends TestCase
         $this->assignments->method('findByUser')->willReturnCallback(fn($a0) => $a0 === $userId ? [
             ['id' => 1, 'user_id' => $userId, 'role_id' => 5, 'scope_type' => 'store', 'scope_id' => $storeId],
         ] : []);
-        $this->roles->method('findById')->willReturnCallback(fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null);
-        $this->roles->method('getPermissions')->willReturnCallback(fn($a0) => $a0 === 5 ? [$key] : []);
+        kintai_test_roles(findById: fn($a0) => $a0 === 5 ? ['id' => 5, 'is_system' => 0] : null, getPermissions: fn($a0) => $a0 === 5 ? [$key] : []);
     }
 
     // -------------------------------------------------------------------------

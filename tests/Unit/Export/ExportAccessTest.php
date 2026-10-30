@@ -11,7 +11,7 @@ use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Export\ExportAccess;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use PHPUnit\Framework\TestCase;
@@ -34,11 +34,7 @@ final class ExportAccessTest extends TestCase
         $assignments->method('findByUser')->willReturnCallback(
             fn(int $id): array => $id === 9 ? [['role_id' => 1, 'scope_type' => 'store', 'scope_id' => 3]] : []
         );
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 1, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['shifts.view', 'employees.view']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-
+        kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 0], getPermissions: fn() => ['shifts.view', 'employees.view'], getGlobalPermissionKeys: fn() => []);
         $stores = $this->createStub(StoreRepositoryInterface::class);
         $stores->method('findActive')->willReturn([['id' => 3], ['id' => 4]]);
 
@@ -55,7 +51,7 @@ final class ExportAccessTest extends TestCase
             default => [],
         });
 
-        $this->access = new ExportAccess(new PermissionService($assignments, $roles), $stores, $storeUsers);
+        $this->access = new ExportAccess(new PermissionService($assignments), $stores, $storeUsers);
     }
 
     private function dataset(string $permission, bool $self = false, bool $perPerson = true): ExportDataset

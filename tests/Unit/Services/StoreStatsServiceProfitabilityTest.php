@@ -12,7 +12,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Extension\Sales;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -41,7 +41,6 @@ final class StoreStatsServiceProfitabilityTest extends TestCase
             $storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
-                $this->createStub(RoleRepositoryInterface::class),
                 $this->createStub(RoleAssignmentRepositoryInterface::class),
             ),
             $sales,

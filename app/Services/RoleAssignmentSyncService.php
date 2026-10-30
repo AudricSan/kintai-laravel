@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 
 /**
  * Applique les affectations de rôle dynamique (role_assignments) décidées par
@@ -17,7 +17,6 @@ use App\Repositories\RoleRepositoryInterface;
 final class RoleAssignmentSyncService
 {
     public function __construct(
-        private readonly RoleRepositoryInterface $roles,
         private readonly RoleAssignmentRepositoryInterface $assignments,
     ) {}
 
@@ -30,11 +29,11 @@ final class RoleAssignmentSyncService
     public function assignableStoreRoles(): array
     {
         $out = [];
-        foreach ($this->roles->findAll() as $role) {
+        foreach (Role::findAll() as $role) {
             if (!empty($role['is_system'])) {
                 continue;
             }
-            $role['is_managing'] = $this->roles->getPermissions((int) $role['id']) !== [];
+            $role['is_managing'] = Role::getPermissions((int) $role['id']) !== [];
             $out[] = $role;
         }
         return $out;
@@ -49,8 +48,8 @@ final class RoleAssignmentSyncService
     public function allRoles(): array
     {
         $out = [];
-        foreach ($this->roles->findAll() as $role) {
-            $role['is_managing'] = !empty($role['is_system']) || $this->roles->getPermissions((int) $role['id']) !== [];
+        foreach (Role::findAll() as $role) {
+            $role['is_managing'] = !empty($role['is_system']) || Role::getPermissions((int) $role['id']) !== [];
             $out[] = $role;
         }
         return $out;
@@ -62,11 +61,11 @@ final class RoleAssignmentSyncService
         if ($roleId <= 0) {
             return null;
         }
-        $role = $this->roles->findById($roleId);
+        $role = Role::findById($roleId);
         if ($role === null) {
             return null;
         }
-        $role['is_managing'] = !empty($role['is_system']) || $this->roles->getPermissions($roleId) !== [];
+        $role['is_managing'] = !empty($role['is_system']) || Role::getPermissions($roleId) !== [];
         return $role;
     }
 
@@ -76,11 +75,11 @@ final class RoleAssignmentSyncService
         if ($roleId <= 0) {
             return null;
         }
-        $role = $this->roles->findById($roleId);
+        $role = Role::findById($roleId);
         if ($role === null || !empty($role['is_system'])) {
             return null;
         }
-        $role['is_managing'] = $this->roles->getPermissions($roleId) !== [];
+        $role['is_managing'] = Role::getPermissions($roleId) !== [];
         return $role;
     }
 
@@ -157,9 +156,9 @@ final class RoleAssignmentSyncService
         foreach ($assignments as $a) {
             $roleId = (int) $a['role_id'];
             if (!array_key_exists($roleId, $roleCache)) {
-                $role = $this->roles->findById($roleId);
+                $role = Role::findById($roleId);
                 if ($role !== null) {
-                    $role['is_managing'] = $this->roles->getPermissions($roleId) !== [];
+                    $role['is_managing'] = Role::getPermissions($roleId) !== [];
                 }
                 $roleCache[$roleId] = $role;
             }
@@ -185,13 +184,13 @@ final class RoleAssignmentSyncService
     /** Le rôle système Owner (slug 'owner'), pour afficher son vrai nom dans les formulaires plutôt qu'un libellé codé en dur. */
     public function ownerRole(): ?array
     {
-        return $this->roles->findBySlug('owner');
+        return Role::findBySlug('owner');
     }
 
     /** Assigne ou retire le rôle Owner (portée globale) selon le flag users.is_admin posté. */
     public function syncOwnerRole(int $userId, bool $isAdmin): void
     {
-        $ownerRole = $this->roles->findBySlug('owner');
+        $ownerRole = Role::findBySlug('owner');
         if ($ownerRole === null) {
             return;
         }

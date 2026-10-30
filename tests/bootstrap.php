@@ -250,6 +250,54 @@ function kintai_test_shifts(array $rows): void
         }
     }
 }
+// Aide des tests : rôles réels (lignes roles + role_permissions) pour les identifiants 1 à $upTo (60 par défaut). Chaque réglage est une
+// valeur ou un callable (identifiant du rôle -> valeur), comme les anciens doubles du dépôt de rôles :
+// $findById renvoie la ligne du rôle (null = rôle inconnu), $getPermissions ses clés, $getGlobalPermissionKeys celles de portée globale.
+function kintai_test_roles(mixed $findById = null, mixed $getPermissions = [], mixed $getGlobalPermissionKeys = [], int $upTo = 60): void
+{
+    kintai_test_ready('roles');
+    App\Database\RequestMemo::flush();
+    $resolve = static fn(mixed $spec, int $id): mixed => is_callable($spec) ? $spec($id) : $spec;
+    $db = Illuminate\Support\Facades\DB::class;
+    for ($id = 1; $id <= $upTo; $id++) {
+        $exists = $db::table('roles')->where('id', $id)->exists();
+        $row = $findById === null ? ($exists ? [] : null) : $resolve($findById, $id);   // sans $findById : seulement les rôles déjà présents
+        if (!is_array($row)) {
+            continue;
+        }
+        $row = array_intersect_key($row, array_flip(['name', 'slug', 'color', 'description', 'is_system', 'is_manager']));
+        if ($db::table('roles')->where('id', $id)->exists()) {
+            unset($row['slug'], $row['name']);   // le nom et le slug du rôle semé sont conservés
+            $row === [] || $db::table('roles')->where('id', $id)->update($row);
+        } else {
+            if (isset($row['slug']) && $db::table('roles')->where('slug', $row['slug'])->exists()) {
+                unset($row['slug']); // déjà pris par un rôle semé (owner, manager…)
+            }
+            $db::table('roles')->insert($row + ['id' => $id, 'name' => 'Role ' . $id, 'slug' => 'role-' . $id, 'is_system' => 0]);
+        }
+        $db::table('role_permissions')->where('role_id', $id)->delete();
+        $global = (array) $resolve($getGlobalPermissionKeys, $id);
+        foreach (array_unique(array_merge((array) $resolve($getPermissions, $id), $global)) as $key) {
+            $db::table('role_permissions')->insert(['role_id' => $id, 'permission_key' => $key, 'scope' => in_array($key, $global, true) ? 'global' : 'local']);
+        }
+    }
+    App\Database\RequestMemo::flush();
+}
+// Aide des tests : remplace le contenu de la table roles par ces lignes (id, name, slug, is_system, is_manager…).
+function kintai_test_role_table(array $rows): void
+{
+    kintai_test_ready('roles');
+    $db = Illuminate\Support\Facades\DB::class;
+    $db::table('role_assignments')->delete();
+    $db::table('role_permissions')->delete();
+    $db::table('roles')->delete();
+    foreach ($rows as $row) {
+        $row = array_intersect_key($row, array_flip(['id', 'name', 'slug', 'color', 'description', 'is_system', 'is_manager']));
+        $id = $row['id'] ?? null;
+        $db::table('roles')->insert($row + ['name' => 'Role ' . $id, 'slug' => 'role-' . $id, 'is_system' => 0]);
+    }
+    App\Database\RequestMemo::flush();
+}
 // Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
 // « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
 function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator

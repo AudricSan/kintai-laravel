@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\ShiftSwap\Controllers\Api\ShiftSwapRequestControlle
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -40,11 +40,8 @@ final class ApiSelfServiceListTest extends TestCase
         $assignments->method('findByUser')->willReturnCallback(fn(int $u) => $u === self::MANAGER
             ? [['id' => 1, 'user_id' => self::MANAGER, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : []);
-        $roles = $this->createStub(RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 2, 'is_system' => 0]);
-        $roles->method('getPermissions')->willReturn(['swaps.view']);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
-        $permissions = new PermissionService($assignments, $roles);
+        kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['swaps.view'], getGlobalPermissionKeys: fn() => []);
+        $permissions = new PermissionService($assignments);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
         return new ShiftSwapRequestController($repo, new AuditLogger(), $permissions);

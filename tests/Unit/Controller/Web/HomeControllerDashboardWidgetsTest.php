@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
+use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
@@ -52,7 +52,6 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
         $permissions = new PermissionService(
             $this->createStub(RoleAssignmentRepositoryInterface::class),
-            $this->createStub(RoleRepositoryInterface::class),
         );
         $dashboardAlerts = new DashboardAlertService($users, $storeUsers);
 

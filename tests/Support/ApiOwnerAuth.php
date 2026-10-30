@@ -6,7 +6,6 @@ namespace Tests\Support;
 
 use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleRepositoryInterface;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
 
@@ -29,11 +28,9 @@ final class ApiOwnerAuth
             ['id' => 1, 'user_id' => self::OWNER_ID, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
 
-        $roles = self::mock($test, RoleRepositoryInterface::class);
-        $roles->method('findById')->willReturn(['id' => 10, 'is_system' => 1]);
-        $roles->method('getGlobalPermissionKeys')->willReturn([]);
+        kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
 
-        return new PermissionService($assignments, $roles);
+        return new PermissionService($assignments);
     }
 
     /** createStub() est protégé : on l'appelle par réflexion depuis le test appelant. */
