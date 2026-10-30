@@ -16,7 +16,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
@@ -205,7 +205,6 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(ShiftRepositoryInterface::class),
             $c->make(ShiftTypeRepositoryInterface::class),
             $c->make(StoreUserRepositoryInterface::class),
-            $c->make(UserShiftTypeRateRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(RoleAssignmentSyncService::class),
             $c->make(\App\Extension\Sales::class),

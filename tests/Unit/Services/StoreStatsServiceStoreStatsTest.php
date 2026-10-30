@@ -12,7 +12,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
 
@@ -24,6 +24,8 @@ use App\Services\StoreStatsService;
  */
 final class StoreStatsServiceStoreStatsTest extends TestCase
 {
+    use \Tests\Support\UserRateExpectations;
+
     private ShiftRepositoryInterface $shifts;
     private StoreStatsService $service;
 
@@ -40,15 +42,11 @@ final class StoreStatsServiceStoreStatsTest extends TestCase
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findAll')->willReturn([]);
 
-        $userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
-        $userRates->method('findByUser')->willReturn([]);
-
         $this->service = new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
             $this->shifts,
             $shiftTypes,
             $storeUsers,
-            $userRates,
             $users,
             new RoleAssignmentSyncService(
                 $this->createStub(RoleRepositoryInterface::class),

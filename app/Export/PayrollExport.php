@@ -8,7 +8,7 @@ use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\ShiftWageCalculator;
 
 /**
@@ -21,7 +21,6 @@ final class PayrollExport implements ExportRowsProvider
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
-        private readonly UserShiftTypeRateRepositoryInterface $rates,
         private readonly ShiftWageCalculator $wages,
         private readonly ExportDirectory $directory,
     ) {}
@@ -45,7 +44,7 @@ final class PayrollExport implements ExportRowsProvider
                 }
                 if (!isset($personal[$userId])) {
                     $personal[$userId] = [];
-                    foreach ($this->rates->findByUser($userId) as $r) {
+                    foreach (UserShiftTypeRate::findByUser($userId) as $r) {
                         $personal[$userId][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
                     }
                 }

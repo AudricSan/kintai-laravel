@@ -15,7 +15,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -47,7 +47,6 @@ final class EmployeeControllerNavSettingsTest extends TestCase
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
-            $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
             new NotificationService(
                 new PushNotificationService([]),

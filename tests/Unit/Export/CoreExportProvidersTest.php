@@ -18,7 +18,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\ScheduleExportService;
 use App\Services\ShiftWageCalculator;
 use PHPUnit\Framework\TestCase;
@@ -26,6 +26,8 @@ use PHPUnit\Framework\TestCase;
 /** Fournisseurs de lignes du Core : ils ne lisent que le périmètre reçu et n'exposent aucune donnée sensible. */
 final class CoreExportProvidersTest extends TestCase
 {
+    use \Tests\Support\UserRateExpectations;
+
     private ExportDirectory $directory;
     private ShiftRepositoryInterface $shifts;
     private ShiftTypeRepositoryInterface $types;
@@ -124,9 +126,8 @@ final class CoreExportProvidersTest extends TestCase
 
     public function testPayrollUsesThePersonalRateBeforeTheTypeRate(): void
     {
-        $rates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
-        $rates->method('findByUser')->willReturnCallback(fn(int $id): array => $id === 5 ? [['shift_type_id' => 7, 'hourly_rate' => 2000]] : []);
-        $export = new PayrollExport($this->shifts, $this->types, $rates, new ShiftWageCalculator(), $this->directory);
+        $this->seedRate(5, 7, 2000.0);
+        $export = new PayrollExport($this->shifts, $this->types, new ShiftWageCalculator(), $this->directory);
 
         $rows = [...$export->rows($this->query())];
 

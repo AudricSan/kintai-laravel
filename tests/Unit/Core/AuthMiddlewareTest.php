@@ -20,7 +20,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\EmployeeStatsService;
@@ -60,7 +60,6 @@ final class AuthMiddlewareTest extends TestCase
         $this->container->instance(EmployeeStatsService::class, new EmployeeStatsService(
             $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(ShiftTypeRepositoryInterface::class),
-            $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
         ));

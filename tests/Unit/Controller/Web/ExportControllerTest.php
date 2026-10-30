@@ -26,7 +26,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\IcalService;
@@ -81,7 +81,7 @@ final class ExportControllerTest extends TestCase
         $this->bind(AvailabilitiesExport::class, new AvailabilitiesExport($directory));
         $this->bind(ShiftTypesExport::class, new ShiftTypesExport($types, $directory));
         $this->bind(StoresExport::class, new StoresExport($directory));
-        $this->bind(PayrollExport::class, new PayrollExport($shifts, $types, $this->createStub(UserShiftTypeRateRepositoryInterface::class), new ShiftWageCalculator(), $directory));
+        $this->bind(PayrollExport::class, new PayrollExport($shifts, $types, new ShiftWageCalculator(), $directory));
 
         $translations = kintai_test_real_translator();
 

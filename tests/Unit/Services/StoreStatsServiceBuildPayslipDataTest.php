@@ -12,7 +12,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
 
@@ -24,6 +24,8 @@ use App\Services\StoreStatsService;
  */
 final class StoreStatsServiceBuildPayslipDataTest extends TestCase
 {
+    use \Tests\Support\UserRateExpectations;
+
     public function testSplitsMultiTypeShiftAndExposesTypeBreakdown(): void
     {
         $stores = $this->createStub(StoreRepositoryInterface::class);
@@ -46,15 +48,11 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findMembership')->willReturn(null);
 
-        $userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
-        $userRates->method('findByUser')->willReturn([]);
-
         $service = new StoreStatsService(
             $stores,
             $shifts,
             $shiftTypes,
             $storeUsers,
-            $userRates,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
                 $this->createStub(RoleRepositoryInterface::class),

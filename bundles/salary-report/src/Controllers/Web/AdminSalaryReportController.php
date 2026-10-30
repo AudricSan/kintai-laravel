@@ -12,7 +12,7 @@ use kintai\Contract\Data\ShiftTypeRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
-use kintai\Contract\Data\UserShiftTypeRateRepositoryInterface;
+use kintai\Contract\Data\UserShiftTypeRate;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -68,7 +68,6 @@ final class AdminSalaryReportController
         private readonly Sales $sales,
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
-        private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
         private readonly StoreStatsServiceInterface $storeStatsService,
         private readonly PermissionService $permissions,
@@ -496,7 +495,7 @@ final class AdminSalaryReportController
             $uid = (int) ($s['user_id'] ?? 0);
             if ($uid > 0 && !isset($rateCache[$uid])) {
                 $rateCache[$uid] = [];
-                foreach ($this->userRates->findByUser($uid) as $r) {
+                foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                     $rateCache[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
                 }
             }

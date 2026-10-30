@@ -20,7 +20,7 @@ use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
@@ -68,7 +68,6 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
             $stores,
             $this->storeUsers,
             $users,
-            $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
             new NotificationService(
                 new PushNotificationService([]),

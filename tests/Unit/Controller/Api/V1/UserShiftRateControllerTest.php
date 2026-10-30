@@ -9,7 +9,7 @@ use App\Auth\UserTargetGuard;
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\NotFoundException;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Http\Controllers\Api\V1\UserShiftRateController;
@@ -21,13 +21,13 @@ use PHPUnit\Framework\TestCase;
 
 final class UserShiftRateControllerTest extends TestCase
 {
-    private UserShiftTypeRateRepositoryInterface&Stub $rates;
+    use \Tests\Support\UserRateExpectations;
+
     private UserRepositoryInterface&Stub $users;
     private ?UserShiftRateController $controller = null;
 
     protected function setUp(): void
     {
-        $this->rates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->users->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 20 ? ['id' => 20] : null);
     }
@@ -36,7 +36,7 @@ final class UserShiftRateControllerTest extends TestCase
     private function controller(): UserShiftRateController
     {
         if ($this->controller === null) {
-            $this->controller = new UserShiftRateController($this->rates, $this->guard(), new AuditLogger());
+            $this->controller = new UserShiftRateController($this->guard(), new AuditLogger());
         }
 
         return $this->controller;
@@ -55,8 +55,7 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testIndexReturnsRatesForUser(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->atLeastOnce())->method('findByUser')->with(20)->willReturn([['id' => 1, 'user_id' => 20]]);
+        $this->seedRate(20, 1, 10.0);
 
         $response = $this->controller()->index($this->requestFor(['user_id' => '20']));
 
@@ -68,7 +67,7 @@ final class UserShiftRateControllerTest extends TestCase
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(99)->willReturn(null);
-        $controller = new UserShiftRateController($this->rates, $this->guard(), new AuditLogger());
+        $controller = new UserShiftRateController($this->guard(), new AuditLogger());
 
         $this->expectException(NotFoundException::class);
         $controller->index($this->requestFor(['user_id' => '99']));
@@ -76,8 +75,7 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testShowThrowsWhenRateBelongsToAnotherUser(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'user_id' => 999]);
+        $this->seedRate(999, 1, 10.0, 5);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->show($this->requestFor(['user_id' => '20', 'id' => '5']));
@@ -89,10 +87,8 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testStoreSavesRateAndReturns201(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d) => $d['user_id'] === 20 && $d['shift_type_id'] === 3 && $d['hourly_rate'] === 15.5
-        ))->willReturn(['id' => 1, 'user_id' => 20, 'shift_type_id' => 3, 'hourly_rate' => 15.5]);
+        $this->prepareRateTarget(20, 3);
+        $this->expectRate(20, 3, 15.5);
 
         $req = $this->requestFor(['user_id' => '20'], ['shift_type_id' => 3, 'hourly_rate' => 15.5]);
         $response = $this->controller()->store($req);
@@ -106,11 +102,8 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testUpdateSavesRateForExistingRecord(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'user_id' => 20, 'hourly_rate' => 10.0]);
-        $this->rates->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d) => $d['id'] === 5 && $d['hourly_rate'] === 20.0
-        ))->willReturn(['id' => 5, 'user_id' => 20, 'hourly_rate' => 20.0]);
+        $this->seedRate(20, 3, 10.0, 5);
+        $this->expectRate(20, 3, 20.0);
 
         $req = $this->requestFor(['user_id' => '20', 'id' => '5'], ['hourly_rate' => 20.0]);
         $response = $this->controller()->update($req);
@@ -120,9 +113,6 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testUpdateThrowsWhenRateNotFound(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(null);
-
         $this->expectException(NotFoundException::class);
         $this->controller()->update($this->requestFor(['user_id' => '20', 'id' => '5'], ['hourly_rate' => 20.0]));
     }
@@ -133,9 +123,8 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testDestroyDeletesRate(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'user_id' => 20]);
-        $this->rates->expects($this->once())->method('delete')->with(5);
+        $this->seedRate(20, 3, 10.0, 5);
+        $this->expectRateRemoved(5);
 
         $response = $this->controller()->destroy($this->requestFor(['user_id' => '20', 'id' => '5']));
 
@@ -144,8 +133,7 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testDestroyThrowsWhenRateBelongsToAnotherUser(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'user_id' => 999]);
+        $this->seedRate(999, 1, 10.0, 5);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->destroy($this->requestFor(['user_id' => '20', 'id' => '5']));
@@ -167,8 +155,7 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testStoreWithAnEmptyBodyIsRefused(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->never())->method('save');
+        $this->expectNoRateWrite();
 
         $this->expectException(ValidationException::class);
         $this->controller()->store($this->requestFor(['user_id' => '20']));
@@ -187,8 +174,7 @@ final class UserShiftRateControllerTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidRates')]
     public function testStoreRefusesInvalidValues(array $body): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->rates->expects($this->never())->method('save');
+        $this->expectNoRateWrite();
 
         $this->expectException(ValidationException::class);
         $this->controller()->store($this->requestFor(['user_id' => '20'], $body));
@@ -196,11 +182,10 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testStoreRefusesAnUnknownShiftType(): void
     {
-        $this->rates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
         $shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $shiftTypes->expects($this->atLeastOnce())->method('findById')->with(404)->willReturn(null);
-        $controller = new UserShiftRateController($this->rates, $this->guard(), new AuditLogger(), $shiftTypes);
-        $this->rates->expects($this->never())->method('save');
+        $controller = new UserShiftRateController($this->guard(), new AuditLogger(), $shiftTypes);
+        $this->expectNoRateWrite();
 
         $this->expectException(ValidationException::class);
         $controller->store($this->requestFor(['user_id' => '20'], ['shift_type_id' => 404, 'hourly_rate' => 12]));

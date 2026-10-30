@@ -18,7 +18,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
@@ -80,7 +80,6 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
             $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
-            $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
             new RoleAssignmentSyncService($roles, $roleAssignments),
             new PermissionService($roleAssignments, $roles),

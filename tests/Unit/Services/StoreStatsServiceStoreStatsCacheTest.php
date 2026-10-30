@@ -11,7 +11,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -25,6 +25,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class StoreStatsServiceStoreStatsCacheTest extends TestCase
 {
+    use \Tests\Support\UserRateExpectations;
+
     private ShiftRepositoryInterface&Stub $shifts;
     private ?StoreStatsService $service = null;
 
@@ -40,19 +42,16 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
             $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
             $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
             $users = $this->createStub(UserRepositoryInterface::class);
-            $rates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
             $storeUsers->method('findByStore')->willReturn([['user_id' => 10]]);
             $shiftTypes->method('findByStore')->willReturn([]);
             $users->method('findAll')->willReturn([
                 ['id' => 10, 'first_name' => 'Aiko', 'last_name' => 'Sato', 'email' => 'a@kintai.test', 'password_hash' => '$2y$12$secret'],
             ]);
-            $rates->method('findByUser')->willReturn([]);
             $this->service = new StoreStatsService(
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->shifts,
                 $shiftTypes,
                 $storeUsers,
-                $rates,
                 $users,
                 new RoleAssignmentSyncService(
                     $this->createStub(RoleRepositoryInterface::class),

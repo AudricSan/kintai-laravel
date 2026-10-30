@@ -11,7 +11,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -24,6 +24,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class StoreStatsServiceCostByMonthTest extends TestCase
 {
+    use \Tests\Support\UserRateExpectations;
+
     private ShiftRepositoryInterface&Stub $shifts;
     private ?StoreStatsService $service = null;
 
@@ -39,22 +41,18 @@ final class StoreStatsServiceCostByMonthTest extends TestCase
             $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
             $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
             $users = $this->createStub(UserRepositoryInterface::class);
-            $rates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
             $storeUsers->method('findByStore')->willReturn([['user_id' => 10], ['user_id' => 11]]);
             $shiftTypes->method('findByStore')->willReturn([
                 ['id' => 1, 'name' => 'Matin', 'hourly_rate' => 1100],
                 ['id' => 2, 'name' => 'Soir', 'hourly_rate' => 1300],
             ]);
             $users->method('findAll')->willReturn([]);
-            $rates->method('findByUser')->willReturnCallback(
-                fn(int $uid) => $uid === 10 ? [['shift_type_id' => 2, 'hourly_rate' => 1500]] : []
-            );
+            $this->seedRate(10, 2, 1500.0);
             $this->service = new StoreStatsService(
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->shifts,
                 $shiftTypes,
                 $storeUsers,
-                $rates,
                 $users,
                 new RoleAssignmentSyncService(
                     $this->createStub(RoleRepositoryInterface::class),

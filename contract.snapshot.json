@@ -49,9 +49,9 @@
             "status": "stable",
             "target": "App\\Repositories\\UserRepositoryInterface"
         },
-        "kintai\\Contract\\Data\\UserShiftTypeRateRepositoryInterface": {
+        "kintai\\Contract\\Data\\UserShiftTypeRate": {
             "status": "stable",
-            "target": "App\\Repositories\\UserShiftTypeRateRepositoryInterface"
+            "target": "App\\Models\\UserShiftTypeRate"
         },
         "kintai\\Contract\\Exceptions\\ConflictException": {
             "status": "stable",

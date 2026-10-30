@@ -19,7 +19,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -81,7 +81,6 @@ final class AdminShiftControllerTest extends TestCase
                 $this->shifts,
                 $this->shiftTypes,
                 $this->storeUsers,
-                $this->createStub(UserShiftTypeRateRepositoryInterface::class),
                 $auditLogger,
                 $this->notifs,
                 $this->shiftService,

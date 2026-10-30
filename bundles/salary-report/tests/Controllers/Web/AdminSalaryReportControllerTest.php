@@ -22,7 +22,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -42,7 +42,6 @@ final class AdminSalaryReportControllerTest extends TestCase
     private array $dailyReports = [];
     private ShiftRepositoryInterface&Stub $shifts;
     private ShiftTypeRepositoryInterface&Stub $shiftTypes;
-    private UserShiftTypeRateRepositoryInterface&Stub $userRates;
     private StoreStatsServiceInterface&Stub $storeStatsService;
     private ?AdminSalaryReportController $controller = null;
 
@@ -62,7 +61,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->dailyReports = [];
         $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
         $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $this->userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
     }
 
@@ -82,7 +80,6 @@ final class AdminSalaryReportControllerTest extends TestCase
                 $this->sales(),
                 $this->shifts,
                 $this->shiftTypes,
-                $this->userRates,
                 new AuditLogger(),
                 $this->storeStatsService,
                 new PermissionService(

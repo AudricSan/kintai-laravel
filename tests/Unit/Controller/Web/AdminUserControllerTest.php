@@ -16,7 +16,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -35,6 +35,8 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminUserControllerTest extends TestCase
 {
+    use \Tests\Support\UserRateExpectations;
+
     private ?AdminUserController $controller = null;
     private UserRepositoryInterface&Stub $users;
     private StoreRepositoryInterface&Stub $stores;
@@ -42,7 +44,6 @@ final class AdminUserControllerTest extends TestCase
     private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private ShiftTypeRepositoryInterface&Stub $shiftTypes;
-    private UserShiftTypeRateRepositoryInterface&Stub $userRates;
     protected function setUp(): void
     {
         $this->ensureViewFile('staff.users');
@@ -56,7 +57,6 @@ final class AdminUserControllerTest extends TestCase
         $this->roles = $this->createStub(RoleRepositoryInterface::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $this->userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
     }
     public function testUsersRenders(): void
     {
@@ -102,7 +102,6 @@ final class AdminUserControllerTest extends TestCase
     public function testExportUsersJsonReturnsExpectedFields(): void
     {
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
-        $this->userRates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
@@ -114,7 +113,7 @@ final class AdminUserControllerTest extends TestCase
         ]);
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 1]]);
-        $this->userRates->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['shift_type_id' => 2, 'hourly_rate' => 1200]]);
+        $this->seedRate(5, 2, 1200.0);
         $this->shiftTypes->method('findAll')->willReturn([['id' => 2, 'name' => 'Salle']]);
 
         $response = $this->controller()->exportUsersJson($req);
@@ -146,7 +145,6 @@ final class AdminUserControllerTest extends TestCase
             [5, [['store_id' => 1]]],
             [6, [['store_id' => 2]]],
         ]);
-        $this->userRates->method('findByUser')->willReturn([]);
         $this->shiftTypes->method('findAll')->willReturn([]);
 
         $response = $this->controller()->exportUsersJson($req);
@@ -1106,7 +1104,6 @@ final class AdminUserControllerTest extends TestCase
 
     public function testSetUserRateForbiddenWhenManagingNoneOfTypeStores(): void
     {
-        $this->userRates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
         $this->users->method('findById')->willReturn(['id' => 10]);
         $this->shiftTypes->method('findById')->willReturn(['id' => 7, 'code' => 'MORNING']);
         $this->shiftTypes->method('getStoreIds')->willReturn([2]);
@@ -1115,7 +1112,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['employee' => '10']);
 
-        $this->userRates->expects($this->never())->method('save');
+        $this->expectNoRateWrite();
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->setUserRate($req);
@@ -1125,18 +1122,17 @@ final class AdminUserControllerTest extends TestCase
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
-        $this->userRates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
         $this->grantRequesterGlobalRole($this->roleAssignments, $this->roles);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10]);
         $this->shiftTypes->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'code' => 'MORNING']);
         $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(7)->willReturn([1, 2]);
-        $this->userRates->method('findRate')->willReturn(null);
+        $this->prepareRateTarget(10, 7);
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
         $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['employee' => '10']);
 
-        $this->userRates->expects($this->once())->method('save')->willReturnCallback(fn (array $d) => $d + ['id' => 1]);
+        $this->expectRate(10, 7, 1500.0);
 
         $response = $this->controller()->setUserRate($req);
 
@@ -1145,8 +1141,7 @@ final class AdminUserControllerTest extends TestCase
 
     public function testDeleteUserRateForbiddenWhenManagingNoneOfTypeStores(): void
     {
-        $this->userRates = $this->createMock(UserShiftTypeRateRepositoryInterface::class);
-        $this->userRates->method('findById')->willReturn(['id' => 3, 'user_id' => 10, 'shift_type_id' => 7]);
+        $this->seedRate(10, 7, 1000.0, 3);
         $this->shiftTypes->method('findById')->willReturn(['id' => 7, 'code' => 'MORNING']);
         $this->shiftTypes->method('getStoreIds')->willReturn([2]);
 
@@ -1154,7 +1149,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', [1]);
         $req->setRouteParams(['employee' => '10', 'rid' => '3']);
 
-        $this->userRates->expects($this->never())->method('delete');
+        $this->expectRateKept(3);
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteUserRate($req);
@@ -1289,7 +1284,6 @@ final class AdminUserControllerTest extends TestCase
                 $this->createStub(ShiftRepositoryInterface::class),
                 $this->shiftTypes,
                 $this->storeUsers,
-                $this->userRates,
                 new AuditLogger(),
                 new RoleAssignmentSyncService($this->roles, $this->roleAssignments),
                 new PermissionService($this->roleAssignments, $this->roles),

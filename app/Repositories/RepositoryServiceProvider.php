@@ -16,7 +16,6 @@ final class RepositoryServiceProvider extends ServiceProvider
         $this->app->singleton(StoreUserRepositoryInterface::class, fn() => new DatabaseStoreUserRepository());
         $this->app->singleton(ShiftTypeRepositoryInterface::class, fn() => new DatabaseShiftTypeRepository());
         $this->app->singleton(ShiftRepositoryInterface::class, fn() => new DatabaseShiftRepository());
-        $this->app->singleton(UserShiftTypeRateRepositoryInterface::class, fn() => new DatabaseUserShiftTypeRateRepository());
         $this->app->singleton(AppSettingsRepositoryInterface::class, fn() => new DatabaseAppSettingsRepository());
         $this->app->singleton(LogRepositoryInterface::class, fn() => new DatabaseLogRepository());
         $this->app->singleton(RoleRepositoryInterface::class, fn() => new DatabaseRoleRepository());

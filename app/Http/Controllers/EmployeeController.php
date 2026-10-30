@@ -17,7 +17,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Auth\PermissionService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,7 +46,6 @@ final class EmployeeController
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
-        private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
@@ -464,7 +463,7 @@ final class EmployeeController
         $currencyStyle = store_currency_style($storeObj);
         foreach ($memberIds as $uid) {
             $currencyMap[$uid] = $currency;
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $ratesMap[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }

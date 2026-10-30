@@ -12,7 +12,7 @@ use App\Extension\Absences;
 use App\Extension\Sales;
 use App\Extension\Swaps;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 
 final class StoreStatsService implements StoreStatsServiceInterface
 {
@@ -30,7 +30,6 @@ final class StoreStatsService implements StoreStatsServiceInterface
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
-        private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly UserRepositoryInterface $users,
         private readonly RoleAssignmentSyncService $roleSync,
         // Ventes journalières (contrat 1.14) ; sans elles (tests), celles de la requête courante.
@@ -83,7 +82,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
     {
         $rateCache = [];
         foreach ($memberIds as $uid) {
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $rateCache[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }
@@ -453,7 +452,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
         $rateCache     = [];
         foreach ($memberIds as $uid) {
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $rateCache[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }
@@ -546,7 +545,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $memberIds     = array_map(fn($m) => (int) $m['user_id'], $members);
         $rateCache     = [];
         foreach ($memberIds as $uid) {
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $rateCache[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }
@@ -666,7 +665,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
 
         $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
         $personalRates = [];
-        foreach ($this->userRates->findByUser($userId) as $r) {
+        foreach (UserShiftTypeRate::findByUser($userId) as $r) {
             $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
         }
         $wageCalc = new ShiftWageCalculator();
@@ -813,7 +812,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
 
         $rateCache = [];
         foreach ($memberIds as $uid) {
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $rateCache[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }
@@ -938,7 +937,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
 
         $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
         $personalRates = [];
-        foreach ($this->userRates->findByUser($userId) as $r) {
+        foreach (UserShiftTypeRate::findByUser($userId) as $r) {
             $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
         }
         $wageCalc = new ShiftWageCalculator();

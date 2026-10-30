@@ -18,7 +18,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\UserDisplayName;
@@ -42,7 +42,6 @@ final class AdminUserController
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
-        private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly PermissionService $permissions,
@@ -125,7 +124,6 @@ final class AdminUserController
         $employeeStatsService = new EmployeeStatsService(
             $this->shifts,
             $this->shiftTypes,
-            $this->userRates,
             $this->storeUsers,
             $this->stores,
         );
@@ -375,7 +373,7 @@ final class AdminUserController
             $uid = (int) $u['id'];
 
             $rates = [];
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $tid = (int) $r['shift_type_id'];
                 $rates[] = [
                     'shift_type'  => $shiftTypeNames[$tid] ?? ('#' . $tid),
@@ -694,7 +692,7 @@ final class AdminUserController
 
         // Taux actuels indexés par shift_type_id
         $userRates = [];
-        foreach ($this->userRates->findByUser($userId) as $r) {
+        foreach (UserShiftTypeRate::findByUser($userId) as $r) {
             $userRates[(int) $r['shift_type_id']] = $r;
         }
 
@@ -940,11 +938,11 @@ final class AdminUserController
             $this->assertAnyStoreAccess($request, $this->shiftTypes->getStoreIds($shiftTypeId));
         }
 
-        $existing = $this->userRates->findRate($userId, $shiftTypeId);
+        $existing = UserShiftTypeRate::findRate($userId, $shiftTypeId);
 
         if ($rateRaw === '') {
             if ($existing !== null) {
-                $this->userRates->delete((int) $existing['id']);
+                UserShiftTypeRate::remove((int) $existing['id']);
                 $this->auditLogger->log($request, 'user_rate.deleted', 'user_rate', (int) $existing['id'], [
                     'user_id'       => $userId,
                     'shift_type_id' => $shiftTypeId,
@@ -959,7 +957,7 @@ final class AdminUserController
             if ($existing !== null) {
                 $data = array_merge($existing, $data);
             }
-            $saved = $this->userRates->save($data);
+            $saved = UserShiftTypeRate::put($data);
             if ($existing !== null) {
                 $this->auditLogger->logUpdate($request, 'user_rate.saved', 'user_rate', (int) ($saved['id'] ?? 0), $existing, $saved, [
                     'user_id'       => $userId,
@@ -983,13 +981,13 @@ final class AdminUserController
         $rid    = (int) $request->route('rid');
         $this->assertCanActOnUser($request, $userId, 'employees.update');
 
-        $rate = $this->userRates->findById($rid);
+        $rate = UserShiftTypeRate::findById($rid);
         if ($rate !== null && (int) $rate['user_id'] === $userId) {
             $type = $this->shiftTypes->findById((int) $rate['shift_type_id']);
             if ($type !== null) {
                 $this->assertAnyStoreAccess($request, $this->shiftTypes->getStoreIds((int) $type['id']));
             }
-            $this->userRates->delete($rid);
+            UserShiftTypeRate::remove($rid);
             $this->auditLogger->log($request, 'user_rate.deleted', 'user_rate', $rid, [
                 'user_id'       => $userId,
                 'shift_type_id' => $rate['shift_type_id'] ?? null,

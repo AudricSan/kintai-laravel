@@ -18,7 +18,7 @@ use App\Extension\Absences;
 use App\Extension\Events;
 use App\Extension\ShiftFormSections;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Auth\PermissionService;
@@ -41,7 +41,6 @@ final class AdminShiftController
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
-        private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly ShiftServiceInterface $shiftService,
@@ -517,7 +516,7 @@ final class AdminShiftController
         $currencyStyle = store_currency_style($storeObj);
         foreach ($memberIds as $uid) {
             $currencyMap[$uid] = $currency;
-            foreach ($this->userRates->findByUser($uid) as $r) {
+            foreach (UserShiftTypeRate::findByUser($uid) as $r) {
                 $ratesMap[$uid][(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }
@@ -761,7 +760,7 @@ final class AdminShiftController
         $userId = (int) $request->query('user_id', 0);
         $personalRates = [];
         if ($userId > 0) {
-            foreach ($this->userRates->findByUser($userId) as $r) {
+            foreach (UserShiftTypeRate::findByUser($userId) as $r) {
                 $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
             }
         }

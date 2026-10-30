@@ -8,7 +8,7 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 
 final class EmployeeStatsService
 {
@@ -22,7 +22,6 @@ final class EmployeeStatsService
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
-        private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
     ) {}
@@ -51,7 +50,7 @@ final class EmployeeStatsService
             $typesMap[(int) $t['id']] = $t;
         }
         $personalRates = [];
-        foreach ($this->userRates->findByUser($userId) as $r) {
+        foreach (UserShiftTypeRate::findByUser($userId) as $r) {
             $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
         }
 

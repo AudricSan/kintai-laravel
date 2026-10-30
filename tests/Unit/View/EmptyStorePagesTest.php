@@ -10,7 +10,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -49,7 +49,6 @@ final class EmptyStorePagesTest extends TestCase
             $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
-            $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             $roleSync,
         );

@@ -8,7 +8,7 @@ use App\Auth\UserTargetGuard;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\ShiftTypeRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -18,7 +18,6 @@ use App\Validation\PayloadValidator;
 final class UserShiftRateController
 {
     public function __construct(
-        private readonly UserShiftTypeRateRepositoryInterface $rates,
         private readonly UserTargetGuard $guard,
         private readonly AuditLogger $auditLogger,
         // Vérifie que le type de shift existe ; facultatif pour les tests qui construisent le contrôleur à la main.
@@ -30,7 +29,7 @@ final class UserShiftRateController
     {
         $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'payroll.view');
-        return response()->json($this->rates->findByUser($userId));
+        return response()->json(UserShiftTypeRate::findByUser($userId));
     }
 
     /** GET /api/v1/users/{user_id}/rates/{id} */
@@ -40,7 +39,7 @@ final class UserShiftRateController
         $id     = (int) $request->route('id');
         $this->guard->require($request, $userId, 'payroll.view');
 
-        $rate = $this->rates->findById($id);
+        $rate = UserShiftTypeRate::findById($id);
         if ($rate === null || (int) $rate['user_id'] !== $userId) {
             throw new NotFoundException(__('error_rate_not_found'));
         }
@@ -61,7 +60,7 @@ final class UserShiftRateController
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $saved = $this->rates->save($data);
+        $saved = UserShiftTypeRate::put($data);
         $this->auditLogger->log($request, 'user_rate.saved', 'user_rate', (int) ($saved['id'] ?? 0), [
             'user_id'       => $userId,
             'shift_type_id' => $data['shift_type_id'] ?? null,
@@ -77,7 +76,7 @@ final class UserShiftRateController
         $id     = (int) $request->route('id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $rate = $this->rates->findById($id);
+        $rate = UserShiftTypeRate::findById($id);
         if ($rate === null || (int) $rate['user_id'] !== $userId) {
             throw new NotFoundException(__('error_rate_not_found'));
         }
@@ -87,7 +86,7 @@ final class UserShiftRateController
             $this->assertShiftTypeExists($body['shift_type_id']);
         }
 
-        $saved = $this->rates->save(array_merge($body, [
+        $saved = UserShiftTypeRate::put(array_merge($body, [
             'id'         => $id,
             'user_id'    => $userId,
             'updated_at' => date('Y-m-d H:i:s'),
@@ -115,12 +114,12 @@ final class UserShiftRateController
         $id     = (int) $request->route('id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        $rate = $this->rates->findById($id);
+        $rate = UserShiftTypeRate::findById($id);
         if ($rate === null || (int) $rate['user_id'] !== $userId) {
             throw new NotFoundException(__('error_rate_not_found'));
         }
 
-        $this->rates->delete($id);
+        UserShiftTypeRate::remove($id);
         $this->auditLogger->log($request, 'user_rate.deleted', 'user_rate', $id, [
             'user_id'       => $userId,
             'shift_type_id' => $rate['shift_type_id'] ?? null,

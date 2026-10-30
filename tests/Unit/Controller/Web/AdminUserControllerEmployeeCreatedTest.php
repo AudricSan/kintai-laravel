@@ -20,7 +20,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
@@ -104,7 +104,6 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             $this->createStub(ShiftRepositoryInterface::class),
             $this->createStub(ShiftTypeRepositoryInterface::class),
             $storeUsers,
-            $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
             new RoleAssignmentSyncService($roles, $roleAssignments),
             $permissions,

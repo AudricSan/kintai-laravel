@@ -12,7 +12,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
-use App\Repositories\UserShiftTypeRateRepositoryInterface;
+use App\Models\UserShiftTypeRate;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\StoreStatsService;
 
@@ -38,14 +38,12 @@ final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
 
         $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $shiftTypes->method('findByStore')->willReturn([]);
-        $userRates = $this->createStub(UserShiftTypeRateRepositoryInterface::class);
 
         $this->service = new StoreStatsService(
             $this->stores,
             $this->shifts,
             $shiftTypes,
             $this->storeUsers,
-            $userRates,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
                 $this->createStub(RoleRepositoryInterface::class),
