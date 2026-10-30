@@ -14,7 +14,6 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningPdfService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use App\Auth\PermissionService;
 use App\Mail\MailerService;
-use App\Mail\MailTransportInterface;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -132,17 +131,12 @@ final class PlanningCheckServiceTest extends TestCase
                 return $this->test->pdfBytes;
             }
         };
-        $transport = new class($test) implements MailTransportInterface {
-            public function __construct(private PlanningCheckServiceTest $test) {}
-
-            public function send(string $fromAddress, string $fromName, array $to, string $subject, string $htmlBody, array $attachmentPaths = [], array $extraHeaders = []): bool
-            {
-                $this->test->mails[] = ['to' => $to, 'subject' => $subject, 'attachments' => count($attachmentPaths), 'attached' => $attachmentPaths !== [] && is_file($attachmentPaths[0])];
-                return $this->test->mailOk;
-            }
-        };
+        $transport = $test->mailer(function (array $to, string $subject, string $htmlBody, int $attachments) use ($test): bool {
+            $test->mails[] = ['to' => $to, 'subject' => $subject, 'attachments' => $attachments, 'attached' => $attachments > 0];
+            return $test->mailOk;
+        });
         $mail = new PlanningMailService(
-            new MailerService(['driver' => 'native', 'from' => ['address' => 'noreply@kintai.test']], $transport),
+            new MailerService(['default' => 'sendmail', 'from' => ['address' => 'noreply@kintai.test']], $transport),
             $translations,
             $pdf,
             new \App\Services\UserSelection($members, $users, $permissions),
@@ -645,5 +639,32 @@ final class PlanningCheckServiceTest extends TestCase
 
         $this->assertSame([], $this->service->escalate($late));
         $this->assertSame('submitted', $this->repo->findFor(3, '2026-10-22')['status']);
+    }
+
+    /** Mailer de Laravel dont le transport transmet chaque message envoyé (destinataires, sujet, HTML, nombre de pièces jointes) à $onSend. */
+    public function mailer(\Closure $onSend): \Illuminate\Mail\Mailer
+    {
+        $transport = new class($onSend) extends \Symfony\Component\Mailer\Transport\AbstractTransport {
+            public function __construct(private \Closure $onSend)
+            {
+                parent::__construct();
+            }
+
+            protected function doSend(\Symfony\Component\Mailer\SentMessage $message): void
+            {
+                $email = $message->getOriginalMessage();
+                $to    = array_map(static fn($address): string => $address->getAddress(), $email->getTo());
+                if (($this->onSend)($to, (string) $email->getSubject(), (string) $email->getHtmlBody(), count($email->getAttachments())) === false) {
+                    throw new \Symfony\Component\Mailer\Exception\TransportException('Envoi refusé.');
+                }
+            }
+
+            public function __toString(): string
+            {
+                return 'test://';
+            }
+        };
+
+        return new \Illuminate\Mail\Mailer('test', $this->createStub(\Illuminate\Contracts\View\Factory::class), $transport);
     }
 }
