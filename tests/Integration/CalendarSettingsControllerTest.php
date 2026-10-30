@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\CalendarConnection;
 use App\Auth\UserAnonymizer;
 use App\Auth\CredentialRevoker;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -45,7 +46,6 @@ final class CalendarSettingsControllerTest extends TestCase
             $this->google,
             new GoogleCalendarClient($this->google, $this->http),
             new GoogleRedirectUri(new PublicUrlResolver($this->appSettings, 'https://kintai.test')),
-            $this->repo,
             new AuditLogger(),
         );
     }
@@ -145,7 +145,7 @@ final class CalendarSettingsControllerTest extends TestCase
 
         $anonymizer->anonymize($this->alice);
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
         $this->assertCount(1, $this->http->calls('DELETE', '/events/evt-1'), 'les événements ne suivent plus un compte supprimé');
         $this->assertCount(1, $this->http->callsEndingWith('POST', '/revoke'));
         $this->assertSame(0, $this->capsule->table('calendar_event_links')->count());

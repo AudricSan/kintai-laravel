@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\CalendarConnection;
+use App\Models\CalendarEventLink;
+use App\Models\CalendarSyncQueueItem;
 use App\Extension\Absences;
-use App\Repositories\CalendarSyncRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -47,7 +49,6 @@ final class CalendarSyncService
     private ?\Closure $absenceReader = null;
 
     public function __construct(
-        private readonly CalendarSyncRepositoryInterface $repo,
         private readonly GoogleCalendarClient $client,
         private readonly GoogleCalendarSettings $settings,
         private readonly SecretBox $secrets,
@@ -87,8 +88,8 @@ final class CalendarSyncService
             return;
         }
         $userIds = [(int) ($shift['user_id'] ?? 0), (int) ($before['user_id'] ?? 0)];
-        foreach ($this->repo->activeConnectionsForUsers($userIds) as $connection) {
-            $this->repo->enqueue((int) $connection['id'], 'shift', $shiftId);
+        foreach (CalendarConnection::activeForUsers($userIds) as $connection) {
+            CalendarSyncQueueItem::enqueue((int) $connection['id'], 'shift', $shiftId);
         }
     }
 
@@ -107,21 +108,21 @@ final class CalendarSyncService
 
         foreach ($this->shifts->findByUser($userId) as $shift) {
             if (empty($shift['deleted_at']) && $this->inWindow((string) ($shift['shift_date'] ?? '')) && $this->isPublished($shift)) {
-                $this->repo->enqueue($connectionId, 'shift', (int) $shift['id']);
+                CalendarSyncQueueItem::enqueue($connectionId, 'shift', (int) $shift['id']);
                 $present['shift:' . (int) $shift['id']] = true;
                 $queued++;
             }
         }
         foreach ($this->approvedAbsences($userId) as $absence) {
-            $this->repo->enqueue($connectionId, 'timeoff', (int) $absence['id']);
+            CalendarSyncQueueItem::enqueue($connectionId, 'timeoff', (int) $absence['id']);
             $present['timeoff:' . (int) $absence['id']] = true;
             $queued++;
         }
         foreach (['shift', 'timeoff'] as $type) {
-            foreach ($this->repo->linksForConnection($connectionId, $type) as $link) {
+            foreach (CalendarEventLink::forConnection($connectionId, $type) as $link) {
                 if (!isset($present[$type . ':' . (int) $link['source_id']])) {
                     // Source hors fenêtre, supprimée ou refusée : le traitement supprimera l'événement.
-                    $this->repo->enqueue($connectionId, $type, (int) $link['source_id']);
+                    CalendarSyncQueueItem::enqueue($connectionId, $type, (int) $link['source_id']);
                     $queued++;
                 }
             }
@@ -129,7 +130,7 @@ final class CalendarSyncService
 
         $options = self::options($connection);
         $options['reconciled_at'] = time();
-        $this->repo->updateConnection($connectionId, ['options' => json_encode($options)]);
+        CalendarConnection::patch($connectionId, ['options' => json_encode($options)]);
         return $queued;
     }
 
@@ -149,38 +150,38 @@ final class CalendarSyncService
     public function processQueue(int $limit = 100): array
     {
         $stats = ['processed' => 0, 'failed' => 0, 'revoked' => 0];
-        foreach ($this->repo->dueQueue($limit) as $item) {
-            $connection = $this->repo->findConnection((int) $item['connection_id']);
+        foreach (CalendarSyncQueueItem::due($limit) as $item) {
+            $connection = CalendarConnection::asArray((int) $item['connection_id']);
             if ($connection === null || ($connection['status'] ?? '') !== 'active') {
-                $this->repo->removeFromQueue((int) $item['id']);
+                CalendarSyncQueueItem::done((int) $item['id']);
                 continue;
             }
 
             try {
                 $this->syncSource($connection, (string) $item['source_type'], (int) $item['source_id']);
-                $this->repo->removeFromQueue((int) $item['id']);
-                $this->repo->updateConnection((int) $connection['id'], ['last_sync_at' => date('Y-m-d H:i:s'), 'last_error' => null]);
+                CalendarSyncQueueItem::done((int) $item['id']);
+                CalendarConnection::patch((int) $connection['id'], ['last_sync_at' => date('Y-m-d H:i:s'), 'last_error' => null]);
                 $stats['processed']++;
             } catch (GoogleCalendarException $e) {
                 if ($e->isAuthRevoked()) {
                     $this->markRevoked($connection, $e);
-                    $this->repo->removeFromQueue((int) $item['id']);
+                    CalendarSyncQueueItem::done((int) $item['id']);
                     $stats['revoked']++;
                 } elseif ($e->isRetryable() && (int) $item['attempts'] + 1 < self::MAX_ATTEMPTS) {
                     $attempts = (int) $item['attempts'] + 1;
                     $delay    = min(6 * 3600, 60 * (2 ** ($attempts - 1)));
-                    $this->repo->postponeQueueItem((int) $item['id'], $attempts, date('Y-m-d H:i:s', time() + $delay), $e->getMessage());
+                    CalendarSyncQueueItem::postpone((int) $item['id'], $attempts, date('Y-m-d H:i:s', time() + $delay), $e->getMessage());
                     $stats['failed']++;
                 } else {
                     // Refus définitif (requête invalide) ou essais épuisés : on abandonne cet élément, la
                     // réconciliation suivante le retentera, et l'erreur reste visible dans l'onglet Agendas.
-                    $this->repo->removeFromQueue((int) $item['id']);
-                    $this->repo->updateConnection((int) $connection['id'], ['last_error' => mb_substr($e->getMessage(), 0, 500)]);
+                    CalendarSyncQueueItem::done((int) $item['id']);
+                    CalendarConnection::patch((int) $connection['id'], ['last_error' => mb_substr($e->getMessage(), 0, 500)]);
                     $stats['failed']++;
                 }
             } catch (\Throwable $e) {
-                $this->repo->removeFromQueue((int) $item['id']);
-                $this->repo->updateConnection((int) $connection['id'], ['last_error' => mb_substr($e->getMessage(), 0, 500)]);
+                CalendarSyncQueueItem::done((int) $item['id']);
+                CalendarConnection::patch((int) $connection['id'], ['last_error' => mb_substr($e->getMessage(), 0, 500)]);
                 $stats['failed']++;
             }
         }
@@ -198,13 +199,13 @@ final class CalendarSyncService
         $connectionId = (int) $connection['id'];
         $token        = $this->accessToken($connection);
         $calendarId   = $this->ensureCalendar($connection, $token);
-        $link         = $this->repo->findLink($connectionId, $sourceType, $sourceId);
+        $link         = CalendarEventLink::lookup($connectionId, $sourceType, $sourceId);
         $built        = $this->desiredEvent($connection, $sourceType, $sourceId);
 
         if ($built === null) {
             if ($link !== null) {
                 $this->client->deleteEvent($token, $calendarId, (string) $link['external_event_id']);
-                $this->repo->deleteLink($connectionId, $sourceType, $sourceId);
+                CalendarEventLink::forget($connectionId, $sourceType, $sourceId);
             }
             return;
         }
@@ -216,7 +217,7 @@ final class CalendarSyncService
         if ($link !== null) {
             try {
                 $this->client->patchEvent($token, $calendarId, (string) $link['external_event_id'], $built['event']);
-                $this->repo->saveLink($connectionId, $sourceType, $sourceId, (string) $link['external_event_id'], $built['hash']);
+                CalendarEventLink::remember($connectionId, $sourceType, $sourceId, (string) $link['external_event_id'], $built['hash']);
                 return;
             } catch (GoogleCalendarException $e) {
                 if (!$e->isGone()) {
@@ -227,7 +228,7 @@ final class CalendarSyncService
         }
 
         $eventId = $this->client->insertEvent($token, $calendarId, $built['event']);
-        $this->repo->saveLink($connectionId, $sourceType, $sourceId, $eventId, $built['hash']);
+        CalendarEventLink::remember($connectionId, $sourceType, $sourceId, $eventId, $built['hash']);
     }
 
     // ── Connexion / déconnexion ─────────────────────────────────────────────
@@ -239,7 +240,7 @@ final class CalendarSyncService
      */
     public function connect(int $userId, string $refreshToken, ?string $email, array $options = []): array
     {
-        $connection = $this->repo->saveConnection($userId, [
+        $connection = CalendarConnection::replaceFor($userId, [
             'account_email' => $email,
             'refresh_token' => $this->secrets->encrypt($refreshToken),
             'options'       => json_encode($options + ['calendar_name_mode' => 'instance']),
@@ -250,7 +251,7 @@ final class CalendarSyncService
             $this->ensureCalendarFor($connection);
         } catch (\Throwable) {
         }
-        return $this->repo->findConnection((int) $connection['id']) ?? $connection;
+        return CalendarConnection::asArray((int) $connection['id']) ?? $connection;
     }
 
     /**
@@ -270,7 +271,7 @@ final class CalendarSyncService
      */
     public function disconnect(int $userId, bool $deleteCalendarEvents = false): void
     {
-        $connection = $this->repo->findConnectionByUser($userId);
+        $connection = CalendarConnection::ofUser($userId);
         if ($connection === null) {
             return;
         }
@@ -280,7 +281,7 @@ final class CalendarSyncService
                 if ($deleteCalendarEvents && ($connection['status'] ?? '') === 'active' && (string) $connection['calendar_id'] !== '') {
                     $token = $this->client->accessToken($refresh);
                     foreach (['shift', 'timeoff'] as $type) {
-                        foreach ($this->repo->linksForConnection((int) $connection['id'], $type) as $link) {
+                        foreach (CalendarEventLink::forConnection((int) $connection['id'], $type) as $link) {
                             $this->client->deleteEvent($token, (string) $connection['calendar_id'], (string) $link['external_event_id']);
                         }
                     }
@@ -290,7 +291,7 @@ final class CalendarSyncService
         } catch (\Throwable) {
             // Jeton déjà invalide ou réseau coupé : la liaison locale est supprimée dans tous les cas.
         }
-        $this->repo->deleteConnection((int) $connection['id']);
+        CalendarConnection::remove((int) $connection['id']);
     }
 
     // ── Internes ────────────────────────────────────────────────────────────
@@ -318,12 +319,12 @@ final class CalendarSyncService
 
         if ($id === '') {
             $id = $this->client->createCalendar($token, $wanted, $this->defaultTimeZone($connection));
-            $this->repo->updateConnection((int) $connection['id'], ['calendar_id' => $id, 'calendar_name' => $wanted]);
+            CalendarConnection::patch((int) $connection['id'], ['calendar_id' => $id, 'calendar_name' => $wanted]);
             $connection['calendar_id']   = $id;
             $connection['calendar_name'] = $wanted;
         } elseif ((string) ($connection['calendar_name'] ?? '') !== $wanted) {
             $this->client->renameCalendar($token, $id, $wanted);
-            $this->repo->updateConnection((int) $connection['id'], ['calendar_name' => $wanted]);
+            CalendarConnection::patch((int) $connection['id'], ['calendar_name' => $wanted]);
             $connection['calendar_name'] = $wanted;
         }
         return $id;
@@ -415,7 +416,7 @@ final class CalendarSyncService
     /** Liaison révoquée : le jeton ne sert plus, l'utilisateur en est averti (une seule fois). */
     private function markRevoked(array $connection, GoogleCalendarException $e): void
     {
-        $this->repo->updateConnection((int) $connection['id'], ['status' => 'revoked', 'last_error' => mb_substr($e->getMessage(), 0, 500)]);
+        CalendarConnection::patch((int) $connection['id'], ['status' => 'revoked', 'last_error' => mb_substr($e->getMessage(), 0, 500)]);
         try {
             $this->notifications->notify(
                 (int) $connection['user_id'],

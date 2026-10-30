@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\CalendarConnection;
+use App\Models\CalendarEventLink;
+use App\Models\CalendarSyncQueueItem;
 use Illuminate\Container\Container;
 use App\Services\Calendar\CalendarEventBuilder;
 use Illuminate\Translation\Translator;
@@ -65,16 +68,16 @@ final class CalendarSyncServiceTest extends TestCase
         $this->assertStringContainsString('https://kintai.test/employee/shifts/day?date=' . $this->day, $event['description']);
         $this->assertArrayNotHasKey('salary', $event);
 
-        $this->assertSame('evt-1', $this->repo->findLink(1, 'shift', (int) $shift['id'])['external_event_id']);
-        $this->assertSame('active', $this->repo->findConnectionByUser($this->alice)['status']);
-        $this->assertNotNull($this->repo->findConnectionByUser($this->alice)['last_sync_at']);
+        $this->assertSame('evt-1', CalendarEventLink::lookup(1, 'shift', (int) $shift['id'])['external_event_id']);
+        $this->assertSame('active', CalendarConnection::ofUser($this->alice)['status']);
+        $this->assertNotNull(CalendarConnection::ofUser($this->alice)['last_sync_at']);
     }
 
     public function testTheRefreshTokenIsNeverStoredInClear(): void
     {
         $this->connect($this->alice);
 
-        $stored = (string) $this->repo->findConnectionByUser($this->alice)['refresh_token'];
+        $stored = (string) CalendarConnection::ofUser($this->alice)['refresh_token'];
 
         $this->assertStringNotContainsString('REFRESH-', $stored);
         $this->assertStringStartsWith('enc1:', $stored);
@@ -123,8 +126,8 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->processQueue();
 
         $this->assertCount(1, $this->http->calls('DELETE', '/events/evt-1'), 'retiré de l’agenda d’Alice');
-        $this->assertNull($this->repo->findLink(1, 'shift', (int) $shift['id']));
-        $this->assertNotNull($this->repo->findLink(2, 'shift', (int) $shift['id']), 'ajouté à celui de Bob');
+        $this->assertNull(CalendarEventLink::lookup(1, 'shift', (int) $shift['id']));
+        $this->assertNotNull(CalendarEventLink::lookup(2, 'shift', (int) $shift['id']), 'ajouté à celui de Bob');
     }
 
     public function testADeletedShiftDeletesTheEvent(): void
@@ -138,7 +141,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->processQueue();
 
         $this->assertCount(1, $this->http->calls('DELETE', '/events/evt-1'));
-        $this->assertNull($this->repo->findLink(1, 'shift', (int) $shift['id']));
+        $this->assertNull(CalendarEventLink::lookup(1, 'shift', (int) $shift['id']));
     }
 
     public function testAnEventDeletedByHandOnGoogleIsRecreated(): void
@@ -153,7 +156,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->processQueue();
 
         $this->assertCount(2, $this->http->calls('POST', '/calendars/cal-1/events'));
-        $this->assertSame('evt-2', $this->repo->findLink(1, 'shift', (int) $shift['id'])['external_event_id']);
+        $this->assertSame('evt-2', CalendarEventLink::lookup(1, 'shift', (int) $shift['id'])['external_event_id']);
     }
 
     public function testShiftsOutsideTheSlidingWindowAreIgnored(): void
@@ -208,8 +211,8 @@ final class CalendarSyncServiceTest extends TestCase
 
         $this->assertSame(1, $stats['revoked']);
         $this->assertSame([[$this->alice, 'calendar_sync_error', 'notif_calendar_sync_error_body']], $this->notifications->sent);
-        $this->assertSame('revoked', $this->repo->findConnectionByUser($this->alice)['status']);
-        $this->assertSame([], $this->repo->dueQueue(10), 'plus rien à rejouer pour une liaison révoquée');
+        $this->assertSame('revoked', CalendarConnection::ofUser($this->alice)['status']);
+        $this->assertSame([], CalendarSyncQueueItem::due(10), 'plus rien à rejouer pour une liaison révoquée');
     }
 
     public function testATemporaryFailureIsRetriedLaterWithBackoff(): void
@@ -221,11 +224,11 @@ final class CalendarSyncServiceTest extends TestCase
         $stats = $this->sync->processQueue();
 
         $this->assertSame(1, $stats['failed']);
-        $this->assertSame([], $this->repo->dueQueue(10), 'reporté, pas immédiatement rejoué');
+        $this->assertSame([], CalendarSyncQueueItem::due(10), 'reporté, pas immédiatement rejoué');
         $item = $this->capsule->table('calendar_sync_queue')->first();
         $this->assertSame(1, (int) $item->attempts);
         $this->assertGreaterThan(date('Y-m-d H:i:s'), $item->next_attempt_at);
-        $this->assertSame('active', $this->repo->findConnectionByUser($this->alice)['status']);
+        $this->assertSame('active', CalendarConnection::ofUser($this->alice)['status']);
     }
 
     public function testCalendarIsRenamedWhenTheCompanyNameChanges(): void
@@ -257,7 +260,7 @@ final class CalendarSyncServiceTest extends TestCase
     {
         $this->sync->shiftChanged('saved', $this->shift($this->bob), null);
 
-        $this->assertSame([], $this->repo->dueQueue(10));
+        $this->assertSame([], CalendarSyncQueueItem::due(10));
     }
 
     public function testBurstOfWritesOnTheSameShiftCollapsesIntoOneQueueRow(): void
@@ -270,7 +273,7 @@ final class CalendarSyncServiceTest extends TestCase
             $this->sync->shiftChanged('saved', $shift, $shift);
         }
 
-        $this->assertCount(1, $this->repo->dueQueue(10));
+        $this->assertCount(1, CalendarSyncQueueItem::due(10));
     }
 
     public function testDisconnectCanRemoveTheEventsThenRevokesAndPurgesEverything(): void
@@ -283,8 +286,8 @@ final class CalendarSyncServiceTest extends TestCase
 
         $this->assertCount(1, $this->http->calls('DELETE', '/events/evt-1'));
         $this->assertCount(1, $this->http->calls('POST', '/revoke'));
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
-        $this->assertNull($this->repo->findLink(1, 'shift', (int) $shift['id']));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
+        $this->assertNull(CalendarEventLink::lookup(1, 'shift', (int) $shift['id']));
         $this->assertSame(0, $this->capsule->table('calendar_sync_queue')->count());
     }
 
@@ -298,7 +301,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->disconnect($this->alice);
 
         $this->assertCount(0, $this->http->calls('DELETE'));
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
     }
 
     public function testReconcileRemovesEventsWhoseSourceVanished(): void
@@ -318,11 +321,11 @@ final class CalendarSyncServiceTest extends TestCase
     public function testReconcileIsDueOnlyEverySixHours(): void
     {
         $connection = $this->connect($this->alice);
-        $fresh = $this->repo->findConnection((int) $connection['id']);
+        $fresh = CalendarConnection::asArray((int) $connection['id']);
         $this->assertFalse($this->sync->reconcileIsDue($fresh), 'connect() vient de réconcilier');
 
-        $this->repo->updateConnection((int) $connection['id'], ['options' => json_encode(['reconciled_at' => time() - 7 * 3600])]);
-        $this->assertTrue($this->sync->reconcileIsDue($this->repo->findConnection((int) $connection['id'])));
+        CalendarConnection::patch((int) $connection['id'], ['options' => json_encode(['reconciled_at' => time() - 7 * 3600])]);
+        $this->assertTrue($this->sync->reconcileIsDue(CalendarConnection::asArray((int) $connection['id'])));
     }
 
     public function testDeleteAllForUserPurgesLinksAndQueueToo(): void
@@ -332,7 +335,7 @@ final class CalendarSyncServiceTest extends TestCase
         $this->sync->processQueue();
         $this->sync->shiftChanged('saved', ['id' => 1, 'user_id' => $this->alice], null);
 
-        $this->repo->deleteAllForUser($this->alice);
+        CalendarConnection::removeAllFor($this->alice);
 
         foreach (['calendar_connections', 'calendar_event_links', 'calendar_sync_queue'] as $table) {
             $this->assertSame(0, $this->capsule->table($table)->count(), $table);

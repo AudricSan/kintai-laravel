@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\System;
 
-use App\Repositories\CalendarSyncRepositoryInterface;
+use App\Models\CalendarConnection;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -28,7 +28,6 @@ final class CalendarSettingsController
         private readonly GoogleCalendarSettings $settings,
         private readonly GoogleCalendarClient $client,
         private readonly GoogleRedirectUri $redirect,
-        private readonly CalendarSyncRepositoryInterface $repo,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -44,7 +43,7 @@ final class CalendarSettingsController
             'has_secret'    => $this->settings->hasSecret(),
             'available'     => $this->settings->isAvailable(),
             'redirect_uri'  => $this->redirect->resolve($this->base()),
-            'connections'   => $this->repo->countActiveConnections(),
+            'connections'   => CalendarConnection::countActive(),
             'check'         => in_array($check, ['ok', 'invalid_client', 'unreachable', 'incomplete'], true) ? $check : '',
         ])->render());
     }

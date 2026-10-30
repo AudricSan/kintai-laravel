@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Models\CalendarConnection;
 use App\Models\RouteSlug;
 use App\Models\User as EloquentUser;
 
@@ -109,7 +110,7 @@ final class DatabaseUserRepository implements UserRepositoryInterface
                 \App\Models\NotificationPreference::where('user_id', $id)->delete();
                 \App\Models\WebPushSubscription::where('user_id', $id)->delete();
                 // Liaison d'agenda externe, correspondances shift ↔ événement et file de synchronisation.
-                (new DatabaseCalendarSyncRepository())->deleteAllForUser($id);
+                CalendarConnection::removeAllFor($id);
             } catch (\Illuminate\Database\QueryException) {
                 // Table absente (migration pas encore jouée) : la suppression du compte prime.
             }

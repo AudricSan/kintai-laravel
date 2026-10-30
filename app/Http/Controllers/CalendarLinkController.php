@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\CalendarConnection;
 use App\Auth\AuthService;
-use App\Repositories\CalendarSyncRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,7 +37,6 @@ final class CalendarLinkController
         private readonly GoogleCalendarSettings $settings,
         private readonly GoogleCalendarClient $client,
         private readonly CalendarSyncService $sync,
-        private readonly CalendarSyncRepositoryInterface $repo,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly GoogleRedirectUri $redirect,
         private readonly AuditLogger $auditLogger,
@@ -120,7 +119,7 @@ final class CalendarLinkController
     public function options(Request $request): Response
     {
         $userId     = (int) ($this->auth->user()['id'] ?? 0);
-        $connection = $this->repo->findConnectionByUser($userId);
+        $connection = CalendarConnection::ofUser($userId);
         if ($connection === null) {
             return $this->back();
         }
@@ -130,8 +129,8 @@ final class CalendarLinkController
         $options = is_array($options) ? $options : [];
         $options['calendar_name_mode'] = $mode;
         $options['store_id']           = $storeId;
-        $this->repo->updateConnection((int) $connection['id'], ['options' => json_encode($options)]);
-        $connection = $this->repo->findConnection((int) $connection['id']) ?? $connection;
+        CalendarConnection::patch((int) $connection['id'], ['options' => json_encode($options)]);
+        $connection = CalendarConnection::asArray((int) $connection['id']) ?? $connection;
         try {
             $this->sync->ensureCalendarFor($connection);
         } catch (GoogleCalendarException) {
@@ -146,7 +145,7 @@ final class CalendarLinkController
     public function resync(Request $request): Response
     {
         $userId     = (int) ($this->auth->user()['id'] ?? 0);
-        $connection = $this->repo->findConnectionByUser($userId);
+        $connection = CalendarConnection::ofUser($userId);
         if ($connection !== null && ($connection['status'] ?? '') === 'active') {
             $this->sync->reconcile($connection);
             session()->flash('success', __('gcal_resync_queued'));

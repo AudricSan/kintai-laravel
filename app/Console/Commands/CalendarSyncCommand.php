@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Repositories\CalendarSyncRepositoryInterface;
+use App\Models\CalendarConnection;
 use App\Services\Calendar\GoogleCalendarSettings;
 use App\Services\CalendarSyncService;
 use Illuminate\Console\Command;
@@ -22,7 +22,7 @@ final class CalendarSyncCommand extends Command
 
     protected $description = 'Synchronisation des agendas externes';
 
-    public function handle(CalendarSyncRepositoryInterface $repo, CalendarSyncService $sync, GoogleCalendarSettings $settings): int
+    public function handle(CalendarSyncService $sync, GoogleCalendarSettings $settings): int
     {
         if (!$settings->isAvailable()) {
             $this->line(json_encode(['ok' => true, 'enabled' => false]));
@@ -31,7 +31,7 @@ final class CalendarSyncCommand extends Command
         }
 
         $reconciled = 0;
-        foreach ($repo->activeConnectionsForUsers($repo->activeUserIds()) as $connection) {
+        foreach (CalendarConnection::activeForUsers(CalendarConnection::activeUserIds()) as $connection) {
             if ($sync->reconcileIsDue($connection)) {
                 $reconciled += $sync->reconcile($connection);
             }

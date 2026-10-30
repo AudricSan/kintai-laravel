@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\CalendarConnection;
+use App\Models\CalendarSyncQueueItem;
 use App\Auth\AuthService;
 use App\Console\Commands\CalendarSyncCommand;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -55,7 +57,7 @@ final class CalendarLinkControllerTest extends TestCase
         );
 
         $this->controller = new CalendarLinkController(
-            $auth, $this->google, new GoogleCalendarClient($this->google, $this->http), $this->sync, $this->repo, $storeUsers,
+            $auth, $this->google, new GoogleCalendarClient($this->google, $this->http), $this->sync, $storeUsers,
             new GoogleRedirectUri(new PublicUrlResolver($this->appSettings, 'https://kintai.test')),
             new AuditLogger(),
         );
@@ -128,10 +130,10 @@ final class CalendarLinkControllerTest extends TestCase
         $response = $this->returnFromGoogle(['state' => $state, 'code' => 'the-code']);
 
         $this->assertStringEndsWith('/profile?tab=ical', $this->location($response));
-        $connection = $this->repo->findConnectionByUser($this->alice);
+        $connection = CalendarConnection::ofUser($this->alice);
         $this->assertSame('active', $connection['status']);
         $this->assertStringStartsWith('enc1:', $connection['refresh_token']);
-        $this->assertCount(1, $this->repo->dueQueue(10), 'le shift à venir est déjà en file');
+        $this->assertCount(1, CalendarSyncQueueItem::due(10), 'le shift à venir est déjà en file');
         $this->assertSame(['success'], $this->flashTypes());
         $this->assertFalse(session()->has('_kintai_gcal_oauth'), 'le state est à usage unique');
     }
@@ -142,13 +144,13 @@ final class CalendarLinkControllerTest extends TestCase
 
         $this->returnFromGoogle(['state' => 'forged', 'code' => 'c']);
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
         $this->assertSame(['danger'], $this->flashTypes());
         $this->assertCount(0, $this->http->calls('POST', '/token'), 'aucun échange de code avec un state invalide');
 
         // Retour de Google sans avoir jamais lancé la liaison dans cette session (autre session, rejeu).
         $this->returnFromGoogle(['state' => 'whatever', 'code' => 'c']);
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
     }
 
     public function testAStateCannotBeReplayed(): void
@@ -156,11 +158,11 @@ final class CalendarLinkControllerTest extends TestCase
         $this->http->when('POST', '/token', ['status' => 200, 'body' => json_encode(['refresh_token' => 'R'])]);
         $state = $this->startOauth();
         $this->returnFromGoogle(['state' => $state, 'code' => 'c']);
-        $this->repo->deleteAllForUser($this->alice);
+        CalendarConnection::removeAllFor($this->alice);
 
         $this->returnFromGoogle(['state' => $state, 'code' => 'c']);
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
     }
 
     public function testAnExpiredStateIsRejected(): void
@@ -170,7 +172,7 @@ final class CalendarLinkControllerTest extends TestCase
 
         $this->returnFromGoogle(['state' => $state, 'code' => 'c']);
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
     }
 
     public function testRefusingTheConsentLinksNothing(): void
@@ -179,7 +181,7 @@ final class CalendarLinkControllerTest extends TestCase
 
         $this->returnFromGoogle(['state' => $state, 'error' => 'access_denied']);
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
         $this->assertSame(['warning'], $this->flashTypes());
     }
 
@@ -190,7 +192,7 @@ final class CalendarLinkControllerTest extends TestCase
 
         $this->returnFromGoogle(['state' => $state, 'code' => 'bad']);
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
         $this->assertSame(['danger'], $this->flashTypes());
     }
 
@@ -199,14 +201,14 @@ final class CalendarLinkControllerTest extends TestCase
         $this->http->when('POST', '/token', ['status' => 200, 'body' => json_encode(['refresh_token' => 'R'])]);
         $state = $this->startOauth(['calendar_name_mode' => 'store', 'store_id' => '1']);
         $this->returnFromGoogle(['state' => $state, 'code' => 'c']);
-        $options = json_decode((string) $this->repo->findConnectionByUser($this->alice)['options'], true);
+        $options = json_decode((string) CalendarConnection::ofUser($this->alice)['options'], true);
         $this->assertSame(['store', 1], [$options['calendar_name_mode'], $options['store_id']]);
 
         // Un magasin où la personne ne travaille pas : repli sur le nom de l'entreprise.
         $this->membership = null;
         $state = $this->startOauth(['calendar_name_mode' => 'store', 'store_id' => '99']);
         $this->returnFromGoogle(['state' => $state, 'code' => 'c']);
-        $options = json_decode((string) $this->repo->findConnectionByUser($this->alice)['options'], true);
+        $options = json_decode((string) CalendarConnection::ofUser($this->alice)['options'], true);
         $this->assertSame(['instance', 0], [$options['calendar_name_mode'], $options['store_id']]);
     }
 
@@ -218,8 +220,8 @@ final class CalendarLinkControllerTest extends TestCase
 
         $this->controller->disconnect(Request::capture());
 
-        $this->assertNull($this->repo->findConnectionByUser($this->alice));
-        $this->assertNotNull($this->repo->findConnectionByUser($this->bob), 'aucun identifiant venu de la requête ne désigne la cible');
+        $this->assertNull(CalendarConnection::ofUser($this->alice));
+        $this->assertNotNull(CalendarConnection::ofUser($this->bob), 'aucun identifiant venu de la requête ne désigne la cible');
     }
 
     public function testOptionsRenameTheCalendarAtTheNextSync(): void
@@ -231,27 +233,26 @@ final class CalendarLinkControllerTest extends TestCase
         $this->controller->options(Request::capture());
         $this->sync->processQueue();
 
-        $this->assertSame('Shibuya', $this->repo->findConnectionByUser($this->alice)['calendar_name']);
+        $this->assertSame('Shibuya', CalendarConnection::ofUser($this->alice)['calendar_name']);
         $this->assertCount(1, $this->http->calls('PATCH', '/calendars/cal-1'));
     }
 
     public function testResyncDoesNothingForARevokedLink(): void
     {
         $connection = $this->sync->connect($this->alice, 'RA', null);
-        $this->repo->updateConnection((int) $connection['id'], ['status' => 'revoked']);
-        $this->repo->removeFromQueue(1);
+        CalendarConnection::patch((int) $connection['id'], ['status' => 'revoked']);
+        CalendarSyncQueueItem::done(1);
         $_POST = [];
 
         $this->controller->resync(Request::capture());
 
-        $this->assertSame([], $this->repo->dueQueue(10));
+        $this->assertSame([], CalendarSyncQueueItem::due(10));
     }
 
     public function testTheCommandDoesNothingWhileTheFeatureIsDisabledThenProcessesTheQueue(): void
     {
         $this->shifts->save(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
         $this->sync->connect($this->alice, 'RA', null);
-        app()->instance(\App\Repositories\CalendarSyncRepositoryInterface::class, $this->repo);
         app()->instance(\App\Services\CalendarSyncService::class, $this->sync);
         app()->instance(\App\Services\Calendar\GoogleCalendarSettings::class, $this->google);
 

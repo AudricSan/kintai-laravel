@@ -24,7 +24,6 @@ final class RepositoryServiceProvider extends ServiceProvider
         $this->app->singleton(UserNavPrefsRepositoryInterface::class, fn() => new DatabaseUserNavPrefsRepository());
         $this->app->singleton(NotificationRepositoryInterface::class, fn() => new DatabaseNotificationRepository());
         $this->app->singleton(WebPushSubscriptionRepositoryInterface::class, fn() => new DatabaseWebPushSubscriptionRepository());
-        $this->app->singleton(CalendarSyncRepositoryInterface::class, fn() => new DatabaseCalendarSyncRepository());
         $this->app->singleton(ApiTokenRepositoryInterface::class, fn() => new DatabaseApiTokenRepository());
         $this->app->singleton(AppSettingsRepositoryInterface::class, fn() => new DatabaseAppSettingsRepository());
         $this->app->singleton(LogRepositoryInterface::class, fn() => new DatabaseLogRepository());
