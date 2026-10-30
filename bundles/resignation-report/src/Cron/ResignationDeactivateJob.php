@@ -13,7 +13,7 @@ use kintai\Contract\Services\AuditLogger;
 /**
  * Tâche planifiée « resignation-deactivate » (contrat 1.8) : désactive le compte des démissionnaires dont la date de
  * démission est atteinte. À lancer une fois par jour : /cron/run/resignation-deactivate (jeton cron) ou
- * php scripts/cron.php resignation-deactivate.
+ * php artisan kintai:cron resignation-deactivate.
  */
 final class ResignationDeactivateJob implements CronJob
 {

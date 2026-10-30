@@ -7,8 +7,8 @@ namespace Tests\Unit\Scripts;
 use App\Bundles\BundleManifest;
 use PHPUnit\Framework\TestCase;
 
-/** Générateur de bundle (scripts/new-bundle.php) : le squelette produit est complet, valide et prêt à tester. */
-final class NewBundleScriptTest extends TestCase
+/** Générateur de bundle (kintai:new-bundle) : le squelette produit est complet, valide et prêt à tester. */
+final class NewBundleCommandTest extends TestCase
 {
     private string $dir;
 
@@ -25,7 +25,7 @@ final class NewBundleScriptTest extends TestCase
 
     private function generate(string ...$args): array
     {
-        $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__, 3) . '/scripts/new-bundle.php') . ' ' . implode(' ', array_map('escapeshellarg', $args)) . ' 2>&1';
+        $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__, 3) . '/artisan') . ' kintai:new-bundle '  . implode(' ', array_map('escapeshellarg', $args)) . ' 2>&1';
         exec($cmd, $output, $code);
         return [$code, implode("\n", $output)];
     }
@@ -35,9 +35,9 @@ final class NewBundleScriptTest extends TestCase
         [$code, $output] = $this->generate('my-sample', '--name=Mon exemple', '--dir=' . $this->dir);
         $this->assertSame(0, $code, $output);
 
-        $root = $this->dir . '/kintai-bundle-my-sample';
-        foreach (['bundle.json', 'composer.json', 'phpunit.xml', 'routes.php', 'src/MySampleBundle.php', 'src/Controllers/Web/MySampleController.php',
-                  'Views/index.blade.php', 'lang/fr.json', 'lang/en.json', 'lang/ja.json', 'tests/ContractTest.php', '.github/workflows/tests.yml', 'README.md', 'CHANGELOG.md'] as $file) {
+        $root = $this->dir . '/my-sample';
+        foreach (['bundle.json', 'routes.php', 'src/MySampleBundle.php', 'src/Controllers/Web/MySampleController.php',
+                  'Views/index.blade.php', 'lang/fr.json', 'lang/en.json', 'lang/ja.json', 'tests/ContractTest.php', 'README.md', 'CHANGELOG.md'] as $file) {
             $this->assertFileExists($root . '/' . $file);
         }
 
@@ -52,7 +52,6 @@ final class NewBundleScriptTest extends TestCase
             $this->assertArrayHasKey('bundle_my_sample', $lang);
             $this->assertArrayHasKey('my_sample_title', $lang);
         }
-        $this->assertJson((string) file_get_contents($root . '/composer.json'));
 
         foreach (['src/MySampleBundle.php', 'src/Controllers/Web/MySampleController.php', 'routes.php', 'tests/ContractTest.php'] as $php) {
             exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($root . '/' . $php) . ' 2>&1', $out, $lint);
@@ -75,7 +74,7 @@ final class NewBundleScriptTest extends TestCase
         [$code] = $this->generate('Bad_Slug', '--dir=' . $this->dir);
 
         $this->assertSame(2, $code);
-        $this->assertDirectoryDoesNotExist($this->dir . '/kintai-bundle-Bad_Slug');
+        $this->assertDirectoryDoesNotExist($this->dir . '/Bad_Slug');
     }
 
     private function rrmdir(string $dir): void

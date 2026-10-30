@@ -169,7 +169,7 @@ final class CronRunnerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // runLocal() — ligne de commande (scripts/cron.php), sans jeton
+    // runLocal() — ligne de commande (kintai:cron), sans jeton
     // -------------------------------------------------------------------------
 
     public function testRunLocalExecutesJobWithoutToken(): void

@@ -11,7 +11,7 @@ namespace App\Services;
  *  - tout lien interne (page ou image) pointe vers un fichier qui existe ;
  *  - signale les pages qui ne figurent pas dans la barre latérale (hors pages-relais d'anciens liens).
  *
- * Ne modifie rien. Voir `php scripts/check-wiki.php <dossier>`.
+ * Ne modifie rien. Voir `php artisan kintai:check-wiki <dossier>`.
  */
 final class WikiIntegrityChecker
 {

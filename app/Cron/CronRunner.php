@@ -99,7 +99,7 @@ final class CronRunner
     }
 
     /**
-     * Lance une tâche sans jeton : réservé à la ligne de commande (scripts/cron.php, crontab d'un serveur avec accès
+     * Lance une tâche sans jeton : réservé à la ligne de commande (kintai:cron, crontab d'un serveur avec accès
      * SSH), où l'accès au serveur vaut autorisation. Les appels HTTP passent toujours par run(), avec jeton.
      */
     public function runLocal(string $jobName, Request $request): Response

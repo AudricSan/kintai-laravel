@@ -18,9 +18,8 @@ use App\Foundation\Auth\KintaiGate;
 
 /**
  * Raccorde Laravel aux services de Kintai pendant la migration : les helpers de Laravel (__(), csrf_token(),
- * csrf_field(), session(), auth()) et le Gate rendent ce que rendaient les services de Kintai, et les scripts de
- * scripts/ deviennent des commandes Artisan.
- *
+ * csrf_field(), session(), auth()) et le Gate rendent ce que rendaient les services de Kintai ; les commandes Artisan
+ * de Kintai (kintai:cron…) sont déclarées ici.
  */
 final class KintaiServiceProvider extends ServiceProvider
 {
@@ -85,11 +84,15 @@ final class KintaiServiceProvider extends ServiceProvider
         // Le Gate de Laravel répond avec les permissions RBAC de Kintai.
         Gate::before(KintaiGate::before(...));
 
-        // Les scripts de scripts/ sont aussi des commandes Artisan (php artisan kintai:cron backup…).
-        Artisan::starting(static function (Artisan $artisan): void {
-            foreach (KintaiScriptCommand::SCRIPTS as $name => [$script, $description]) {
-                $artisan->add(new KintaiScriptCommand($name, $script, $description));
-            }
-        });
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \App\Console\Commands\CronCommand::class,
+                \App\Console\Commands\CronTokenCommand::class,
+                \App\Console\Commands\ContractCommand::class,
+                \App\Console\Commands\CheckWikiCommand::class,
+                \App\Console\Commands\CheckTranslationsCommand::class,
+                \App\Console\Commands\NewBundleCommand::class,
+            ]);
+        }
     }
 }

@@ -8,7 +8,7 @@ use kintai\Contract\Contract;
 
 /**
  * Instantané machine-lisible du contrat de bundle (surface de classes, fonctions, clés de traduction, signatures de
- * Bundle) : `contract.snapshot.json` à la racine du dépôt, régénéré par `php scripts/export-contract.php --write`.
+ * Bundle) : `contract.snapshot.json` à la racine du dépôt, régénéré par `php artisan kintai:contract --write`.
  *
  * Garde-fou de version (SemVer) : un retrait ou un changement d'une entrée STABLE exige une version MAJEURE supérieure ;
  * tout autre changement du contrat (ajout compris) exige au moins une version supérieure. Le test de CI échoue tant que

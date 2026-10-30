@@ -36,13 +36,14 @@ final class ScheduleConfigTest extends TestCase
         }
     }
 
-    public function testTheCronScriptSkipsAMissingJobWhenAskedTo(): void
+    public function testTheCronCommandSkipsAMissingJobWhenAskedTo(): void
     {
-        $script = (string) file_get_contents(dirname(__DIR__, 4) . '/scripts/cron.php');
         $routes = (string) file_get_contents(dirname(__DIR__, 4) . '/routes/console.php');
 
         // Une tâche de bundle désactivé ne fait pas échouer schedule:run chaque minute.
         $this->assertStringContainsString("'--if-available'", $routes);
-        $this->assertStringContainsString("\$arg === '--if-available'", $script);
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__, 4) . '/artisan') . ' kintai:cron tache-absente --if-available 2>&1', $output, $code);
+        $this->assertSame(0, $code, implode("
+", $output));
     }
 }

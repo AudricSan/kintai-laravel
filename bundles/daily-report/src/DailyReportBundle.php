@@ -167,7 +167,7 @@ final class DailyReportBundle extends Bundle
     }
 
     /**
-     * Tâche planifiée « auto-validate » (contrat 1.8) : /cron/run/auto-validate ou php scripts/cron.php auto-validate.
+     * Tâche planifiée « auto-validate » (contrat 1.8) : /cron/run/auto-validate ou php artisan kintai:cron auto-validate.
      */
     public function cronJobs(): array
     {

@@ -131,7 +131,7 @@ docker compose up -d
 
 Then open `http://localhost:8080/install.php` and install as above (SQLite works out of the box; for MySQL, give the installer your database server). The image runs Apache and PHP 8.3 with every extension Kintai uses, and serves only `public/`. Everything the instance owns lives in the `kintai-storage` volume: the SQLite database, backups, installed bundles, uploaded files, and `.env` and `config/database.local.php` (linked into the volume at start-up). Environment variables set in `docker-compose.yml` (`APP_URL`, `MAIL_*`…) reach PHP.
 
-To update, rebuild or pull a newer image and recreate the container (`docker compose build --pull && docker compose up -d`): pending migrations run at start-up. Do not use the one-click update inside a container, since its files are replaced when the container is recreated. Scheduled tasks run from one line in the host's crontab, every minute: `* * * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan schedule:run` (times in `config/schedule.php`), or through the cron URL with a token (see `scripts/cron.php`).
+To update, rebuild or pull a newer image and recreate the container (`docker compose build --pull && docker compose up -d`): pending migrations run at start-up. Do not use the one-click update inside a container, since its files are replaced when the container is recreated. Scheduled tasks run from one line in the host's crontab, every minute: `* * * * * docker compose -f /path/to/docker-compose.yml exec -T -u www-data kintai php artisan schedule:run` (times in `config/schedule.php`), or through the cron URL with a token (see `php artisan kintai:cron-token`).
 
 ---
 

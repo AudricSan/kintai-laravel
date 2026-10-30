@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService
 
 /**
  * Tâche planifiée « auto-validate » (contrat 1.8) : valide les rapports journaliers restés non validés après l'heure
- * limite de leur magasin. Lancée par /cron/run/auto-validate (jeton cron) ou php scripts/cron.php auto-validate.
+ * limite de leur magasin. Lancée par /cron/run/auto-validate (jeton cron) ou php artisan kintai:cron auto-validate.
  * Paramètres : date (Y-m-d, défaut : hier), all=1 (tous les magasins, sans filtre horaire).
  */
 final class AutoValidateJob implements CronJob

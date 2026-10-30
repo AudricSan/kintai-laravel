@@ -22,7 +22,7 @@ final class ContractSnapshotTest extends TestCase
         $this->assertSame(
             $snapshot,
             ContractSnapshot::export(),
-            'Le contrat a changé : lancez « php scripts/export-contract.php --write » (la règle de version est vérifiée) et commitez contract.snapshot.json.'
+            'Le contrat a changé : lancez « php artisan kintai:contract --write » (la règle de version est vérifiée) et commitez contract.snapshot.json.'
         );
     }
 

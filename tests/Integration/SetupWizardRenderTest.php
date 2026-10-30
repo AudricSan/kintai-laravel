@@ -77,7 +77,7 @@ final class SetupWizardRenderTest extends TestCase
                 'mobile' => ['available' => false, 'enabled' => false, 'has_project' => false, 'has_credentials' => false],
             ]],
             'operations' => ['backup_auto' => true, 'backup_keep' => 10, 'update_channel' => 'release', 'channels' => ['release', 'beta', 'alpha'],
-                'cron_command' => 'php /srv/scripts/cron.php', 'cron_url' => 'https://exemple.fr/cron/run/backup', 'cron_token_command' => 'php scripts/create-cron-token.php'],
+                'cron_command' => '* * * * * php artisan schedule:run', 'cron_url' => 'https://exemple.fr/cron/run/backup', 'cron_token_command' => 'php artisan kintai:cron-token'],
         ];
         $needle = ['organisation' => 'name="support_email"', 'store' => 'name="timezone"', 'notifications' => 'name="send_test"', 'operations' => 'name="update_channel"'];
 

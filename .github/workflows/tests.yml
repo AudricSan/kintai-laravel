@@ -261,5 +261,8 @@ jobs:
           php-version: '8.3'
           coverage: none
 
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
       - name: Check FR/JA translations are present and up to date
-        run: php scripts/check-translations.php
+        run: php artisan kintai:check-translations

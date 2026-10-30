@@ -10,5 +10,5 @@
     "namespace": "kintai\\Bundles\\Installed\\{{Studly}}",
     "entry_class": "kintai\\Bundles\\Installed\\{{Studly}}\\{{Studly}}Bundle",
     "license": "AGPL-3.0-only",
-    "homepage": "https://github.com/{{author}}/kintai-bundle-{{slug}}"
+    "homepage": "https://github.com/AudricSan/kintai-laravel/tree/main/bundles/{{slug}}"
 }

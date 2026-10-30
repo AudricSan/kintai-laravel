@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace kintai\Tests\Bundles\{{Studly}};
+namespace Tests\Bundles\{{Studly}};
 
+use App\Bundles\BundleManifest;
 use kintai\Bundles\Installed\{{Studly}}\{{Studly}}Bundle;
-use kintai\Core\BundleContract\BundleManifest;
-use kintai\Tests\Support\ContractUsageScanner;
-use kintai\Tests\Support\TranslationContractChecker;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\ContractUsageScanner;
+use Tests\Support\TranslationContractChecker;
 
 /**
- * Les trois contrôles que la CI impose à tout bundle (officiel ou tiers), dès la V1 :
+ * Les contrôles que la CI impose à tout bundle (officiel ou tiers) :
  *  1. bundle.json respecte le schéma ;
  *  2. le code n'utilise du Core que le contrat (classes kintai\Contract\… et fonctions déclarées) ;
  *  3. les traductions respectent le contrat (préfixe, parité fr/en/ja, collisions, clés connues).
@@ -44,7 +44,7 @@ final class ContractTest extends TestCase
 
     public function testTranslationsFollowTheContract(): void
     {
-        $report = TranslationContractChecker::violations($this->root, '{{slug}}', BASE_PATH . '/lang');
+        $report = TranslationContractChecker::violations($this->root, '{{slug}}', dirname($this->root, 2) . '/lang');
 
         $this->assertSame([], array_filter($report), json_encode($report, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }

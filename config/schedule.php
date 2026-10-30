@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  *   * * * * * cd /chemin/vers/kintai && php artisan schedule:run >> /dev/null 2>&1
  *
- * Chaque tâche tourne comme `php scripts/cron.php <tâche>` (même code, même journal), dans son propre processus. Une
+ * Chaque tâche tourne comme `php artisan kintai:cron <tâche>` (même code, même journal), dans son propre processus. Une
  * tâche d'un bundle absent ou désactivé est sautée sans erreur. Les URL /cron/run/{tâche} avec jeton restent
  * disponibles pour les hébergements qui ne savent appeler qu'une adresse.
  *

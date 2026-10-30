@@ -14,13 +14,13 @@ use Symfony\Component\HttpFoundation\Response;
  * `photo-retention` de store-photos…). Protégé par un jeton par tâche, stocké (haché) dans la table `cron_tokens`,
  * passé de préférence en en-tête `Authorization: Bearer <jeton>` (un `?token=` finit dans les journaux d'accès du
  * serveur) ; `?token=` reste accepté pour les planificateurs qui ne savent appeler qu'une URL. Jeton créé par
- * `php scripts/create-cron-token.php --user-id=1 --job=backup` ou la page d'administration.
+ * `php artisan kintai:cron-token --user-id=1 --job=backup` ou la page d'administration.
  *
  *    ─── Hébergement mutualisé (OVH…) : tâches planifiées de l'hébergeur ───────
  *     https://votresite.com/cron/run/auto-validate?token=VOTRE_JETON   (toutes les heures)
  *
  *    ─── Serveur avec accès SSH : crontab locale, sans jeton ─────────────────
- *     0 * * * * php /var/www/html/scripts/cron.php auto-validate >> /var/log/kintai-cron.log 2>&1
+ *     * * * * * cd /var/www/html && php artisan schedule:run >> /dev/null 2>&1
  */
 final class CronController
 {

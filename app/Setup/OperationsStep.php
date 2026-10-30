@@ -34,7 +34,7 @@ final class OperationsStep implements SetupStepInterface
             // Une ligne de crontab, chaque minute : le planificateur lance chaque tâche à son heure (config/schedule.php).
             'cron_command'  => '* * * * * cd ' . BASE_PATH . ' && php artisan schedule:run >> /dev/null 2>&1',
             'cron_url'      => $base . '/cron/run/backup',
-            'cron_token_command' => 'php ' . BASE_PATH . '/scripts/create-cron-token.php --user-id=1 --job=backup',
+            'cron_token_command' => 'cd ' . BASE_PATH . ' && php artisan kintai:cron-token --user-id=1 --job=backup',
         ];
     }
 

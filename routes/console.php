@@ -9,7 +9,7 @@ foreach ((array) config('schedule.jobs', []) as $job => $expression) {
     if (!is_string($expression) || $expression === '') {
         continue;
     }
-    Schedule::exec(PHP_BINARY, [base_path('scripts/cron.php'), (string) $job, '--if-available'])
+    Schedule::command('kintai:cron', [(string) $job, '--if-available'])
         ->cron($expression)
         ->name('kintai:cron ' . $job)
         // Une tâche encore en cours (grosse sauvegarde, agenda lent) n'est pas relancée ; verrou libéré après 2 h au pire.
