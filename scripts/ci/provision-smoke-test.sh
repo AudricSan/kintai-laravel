@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test de fumée : installation en ligne de commande (scripts/provision.php) sur une instance vierge.
+# Test de fumée : installation en ligne de commande (kintai:provision) sur une instance vierge.
 #
 # Vérifie les refus (entrées invalides, instance déjà installée, compte existant), puis une installation complète :
 # tables, compte admin avec le rôle Owner, URL publique, verrou, et connexion de cet admin au tableau de bord.
@@ -40,7 +40,7 @@ fail() {
 # Dernière ligne seulement : certains PHP affichent des avertissements de démarrage sur la sortie standard.
 sql() { php -r '$d = new PDO("sqlite:" . $argv[1]); echo $d->query($argv[2])->fetchColumn(), PHP_EOL;' "$ROOT/storage/app/database.sqlite" "$1" 2>/dev/null | tail -n 1 | tr -d '[:space:]'; }
 
-provision() { php scripts/provision.php "$@" > "$WORK/out.txt" 2>&1; }
+provision() { php artisan kintai:provision "$@" > "$WORK/out.txt" 2>&1; }
 
 EMAIL="provision-smoke@kintai.test"
 PASSWORD="$(php -r 'echo bin2hex(random_bytes(12));' 2>/dev/null | tail -n 1)"

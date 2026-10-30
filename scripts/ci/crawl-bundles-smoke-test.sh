@@ -38,7 +38,7 @@ EMAIL="crawl-bundles@kintai.test"
 PASSWORD="$(php -r 'echo bin2hex(random_bytes(12));' 2>/dev/null | tail -n 1)"
 DEMO_PASSWORD="Demo1234!"
 
-php scripts/provision.php --admin-email="$EMAIL" --admin-password="$PASSWORD" --seed > "$WORK/provision.txt" 2>&1 \
+php artisan kintai:provision --admin-email="$EMAIL" --admin-password="$PASSWORD" --seed > "$WORK/provision.txt" 2>&1 \
   || { cat "$WORK/provision.txt" >&2; echo "ÉCHEC : provision.php a échoué" >&2; exit 1; }
 
 for slug in $SLUGS; do
@@ -50,7 +50,7 @@ for slug in $SLUGS; do
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($argv[1], FilesystemIterator::SKIP_DOTS));
     foreach ($it as $f) { if ($f->isFile()) { $p = str_replace("\\", "/", $f->getPathname()); $z->addFile($p, $p); } }
     $z->close();' "kintai-bundle-$slug" "$WORK/$slug.zip" 2>/dev/null)
-  php scripts/ci/install-bundle-archive.php "$slug" "$WORK/$slug.zip" 2>&1 | grep -v "already loaded" | tee -a "$WORK/install.txt" \
+  php artisan kintai:install-bundle-archive "$slug" "$WORK/$slug.zip" 2>&1 | grep -v "already loaded" | tee -a "$WORK/install.txt" \
     | tail -n 1 | grep -q "installé" || { cat "$WORK/install.txt" >&2; echo "ÉCHEC : installation de $slug" >&2; exit 1; }
 done
 

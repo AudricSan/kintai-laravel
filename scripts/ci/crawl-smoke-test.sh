@@ -32,7 +32,7 @@ EMAIL="crawl-smoke@kintai.test"
 PASSWORD="$(php -r 'echo bin2hex(random_bytes(12));' 2>/dev/null | tail -n 1)"
 DEMO_PASSWORD="Demo1234!"
 
-php scripts/provision.php --admin-email="$EMAIL" --admin-password="$PASSWORD" --seed > "$WORK/provision.txt" 2>&1 \
+php artisan kintai:provision --admin-email="$EMAIL" --admin-password="$PASSWORD" --seed > "$WORK/provision.txt" 2>&1 \
   || { cat "$WORK/provision.txt" >&2; echo "ÉCHEC : provision.php a échoué" >&2; exit 1; }
 
 php -S "127.0.0.1:$PORT" -t public > "$WORK/server.log" 2>&1 &

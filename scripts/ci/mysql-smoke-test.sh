@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test de fumée MySQL : installation neuve (scripts/provision.php --db-driver=mysql, données de démonstration), migrations
+# Test de fumée MySQL : installation neuve (kintai:provision --db-driver=mysql, données de démonstration), migrations
 # rejouées sans rien en attente, connexion de l'Owner, pages principales et API. Jusqu'ici MySQL n'était jamais exécuté
 # en CI (audit n°8) : les écarts SQLite / MySQL n'étaient que déduits du code.
 #
@@ -52,7 +52,7 @@ EMAIL="mysql-smoke@kintai.test"
 PASSWORD="$(php -r 'echo bin2hex(random_bytes(12));' 2>/dev/null | tail -n 1)"
 
 # ─── Installation sur MySQL ──────────────────────────────────────────────
-php scripts/provision.php --admin-email="$EMAIL" --admin-password="$PASSWORD" --app-url=https://kintai.example.com \
+php artisan kintai:provision --admin-email="$EMAIL" --admin-password="$PASSWORD" --app-url=https://kintai.example.com \
   --db-driver=mysql --db-host="$HOST" --db-port="$DBPORT" --db-user="$DBUSER" --db-pass="$DBPASS" --db-name="$DBNAME" \
   --seed > "$WORK/out.txt" 2>&1 || fail "provision.php a échoué sur MySQL"
 

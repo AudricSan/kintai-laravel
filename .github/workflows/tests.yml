@@ -81,7 +81,7 @@ jobs:
         run: bash scripts/ci/import-smoke-test.sh legacy owner@kintai.test 'Owner-Passw0rd!' alice.martin@kintai.local 'Demo1234!' chloe.dupont@kintai.local 'Demo1234!'
 
   provision-smoke:
-    # Installation en ligne de commande (scripts/provision.php) sur une instance vierge : refus attendus, compte
+    # Installation en ligne de commande (kintai:provision) sur une instance vierge : refus attendus, compte
     # Owner, URL publique, connexion. Job séparé : chaque test exige une instance sans installation.
     runs-on: ubuntu-latest
 

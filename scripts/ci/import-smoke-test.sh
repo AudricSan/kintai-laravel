@@ -5,7 +5,7 @@
 #         [<e-mail> <mot de passe>]…
 #
 # L'instance à importer est déjà installée (en CI : l'ancien Kintai, AudricSan/Kintai, installé par son
-# scripts/provision.php avec les données de démonstration). Le script lance `php -S` sur public/, soumet le formulaire
+# kintai:provision avec les données de démonstration). Le script lance `php -S` sur public/, soumet le formulaire
 # de public/install.php en mode importation, puis vérifie que l'installation est verrouillée, que toutes les
 # migrations sont appliquées, que les comptes actifs sont tous repris, que la base d'origine n'a pas changé, et que
 # chaque compte donné peut se connecter et parcourir ses pages sans erreur (scripts/ci/crawl-smoke.php).

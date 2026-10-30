@@ -76,3 +76,11 @@ portées par `App\Exceptions\ValidationException::check()` (422, un message par 
 `ValidationResult` et `ValidatorInterface` n'existent plus. Les refus métier des contrôleurs (unicité, appartenance à un
 magasin, état d'une demande) restent des `ValidationException` explicites : ce ne sont pas des contrôles de format.
 Les dépôts JSON de langues et de traductions (`lang/*.json`) restent des classes de fichiers : il n'y a pas de table.
+
+## Scripts → Artisan (31/10/2026)
+
+`scripts/provision.php`, `scripts/seed-demo-data.php` et `scripts/ci/install-bundle-archive.php` sont remplacés par
+`php artisan kintai:provision`, `kintai:seed-demo-data` et `kintai:install-bundle-archive`. `scripts/generate-favicons.php`
+(outil GD d'images, sans framework) et `scripts/set-release-version.php` (publication) restent des scripts autonomes ;
+`bootstrap/boot.php` et `standalone.php` ne servent plus qu'à l'installateur web, qui démarre avant l'existence du `.env`.
+Les scripts de `scripts/ci/*.sh` et le workflow appellent les commandes.
