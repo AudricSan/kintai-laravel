@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Repositories\LogRepositoryInterface;
+use App\Models\ActivityEntry;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ActivityController
 {
     public function __construct(
-        private readonly LogRepositoryInterface $logs,
     ) {}
 
     public function index(Request $request): Response
@@ -32,8 +31,8 @@ final class ActivityController
         $page    = max(1, (int) ($request->query('page', '1') ?? '1'));
         $perPage = min(500, max(1, (int) ($request->query('per_page', '50') ?? '50')));
 
-        $rows  = $this->logs->findAll($page, $perPage, $filters);
-        $total = $this->logs->countAll($filters);
+        $rows  = ActivityEntry::findAll($page, $perPage, $filters);
+        $total = ActivityEntry::countAll($filters);
 
         return response()->json([
             'data'     => $rows,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Repositories\LogRepositoryInterface;
+use App\Models\ActivityEntry;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
 use Illuminate\Console\Command;
@@ -16,7 +16,7 @@ final class LogPurgeCommand extends Command
 
     protected $description = 'Purge du journal d\'activité';
 
-    public function handle(LogRepositoryInterface $logs, AppSettingsService $settings, AuditLogger $audit): int
+    public function handle(AppSettingsService $settings, AuditLogger $audit): int
     {
         $days = $settings->logRetentionDays();
         if ($days <= 0) {
@@ -26,7 +26,7 @@ final class LogPurgeCommand extends Command
         }
 
         $cutoff  = date('Y-m-d H:i:s', strtotime("-{$days} days"));
-        $deleted = $logs->purgeOlderThan($cutoff);
+        $deleted = ActivityEntry::purgeOlderThan($cutoff);
 
         $audit->log(request(), 'log.purged', 'system', null, ['retention_days' => $days, 'cutoff' => $cutoff, 'deleted' => $deleted]);
         $this->line(json_encode(['ok' => true, 'cutoff' => $cutoff, 'deleted' => $deleted]));

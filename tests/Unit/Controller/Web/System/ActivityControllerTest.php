@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web\System;
 
-use App\Repositories\LogRepositoryInterface;
+use App\Models\ActivityEntry;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -23,23 +23,22 @@ use PHPUnit\Framework\TestCase;
  */
 final class ActivityControllerTest extends TestCase
 {
-    private LogRepositoryInterface&MockObject $logs;
     private UserRepositoryInterface&Stub $users;
     private ActivityController $controller;
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        \Illuminate\Support\Facades\DB::table('stores')->insert([['id' => 3, 'name' => 'A', 'code' => 'A'], ['id' => 4, 'name' => 'B', 'code' => 'B']]);
         $viewDir = sys_get_temp_dir() . '/kintai-activity-controller-views';
         $this->writeViewFile($viewDir, 'system.activity-log', 'ok');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
-
-        $this->logs = $this->createMock(LogRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->users->method('findAll')->willReturn([]);
 
         $this->controller = new ActivityController(
             kintai_test_views($viewDir),
-            $this->logs,
             $this->users,
             new AuditLogger(),
         );
@@ -56,73 +55,60 @@ final class ActivityControllerTest extends TestCase
     {
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [3]);
-
-        $this->logs->expects($this->once())->method('findAll')
-            ->with(1, 100, $this->callback(fn(array $f) => ($f['store_ids'] ?? null) === [3]))
-            ->willReturn([]);
-        $this->logs->method('countAll')->with($this->callback(fn(array $f) => ($f['store_ids'] ?? null) === [3]))->willReturn(0);
+        $queries = [];
+        \Illuminate\Support\Facades\DB::listen(function ($query) use (&$queries): void {
+            $queries[] = $query->sql;
+        });
 
         $response = $this->controller->index($req);
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertNotEmpty(array_filter($queries, static fn(string $sql): bool => str_contains($sql, 'activity_log') && str_contains($sql, '"store_id" in (')), 'la requête est limitée aux magasins gérés');
     }
-
     public function testOwnerRequestDoesNotFilterByStore(): void
     {
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-
-        $this->logs->expects($this->once())->method('findAll')
-            ->with(1, 100, $this->callback(fn(array $f) => !array_key_exists('store_ids', $f)))
-            ->willReturn([]);
-        $this->logs->method('countAll')->willReturn(0);
+        $queries = [];
+        \Illuminate\Support\Facades\DB::listen(function ($query) use (&$queries): void {
+            $queries[] = $query->sql;
+        });
 
         $response = $this->controller->index($req);
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertEmpty(array_filter($queries, static fn(string $sql): bool => str_contains($sql, 'activity_log') && str_contains($sql, '"store_id" in (')));
     }
-
     public function testExportReturnsCsvWithMatchingRows(): void
     {
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
-
-        $this->logs->expects($this->once())->method('findAll')
-            ->with(1, 20000, [])
-            ->willReturn([
-                [
-                    'created_at' => '2026-09-18 10:00:00',
-                    'level'      => 'info',
-                    'channel'    => 'audit',
-                    'action'     => 'auth.login',
-                    'message'    => 'auth.login',
-                    'user_id'    => 1,
-                ],
-            ]);
+        \App\Models\ActivityEntry::create([
+            'created_at' => '2026-09-18 10:00:00', 'level' => 'info', 'channel' => 'audit', 'action' => 'auth.login', 'message' => 'auth.login', 'user_id' => null,
+        ]);
 
         $response = $this->controller->export($req);
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertStringContainsString('auth.login', $response->getContent());
     }
-
     public function testExportAppliesSameFiltersAsIndex(): void
     {
         $_GET = ['level' => 'error', 'channel' => 'audit'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [3]);
-
-        $this->logs->expects($this->once())->method('findAll')
-            ->with(1, 20000, $this->callback(fn(array $f) => ($f['level'] ?? null) === 'error'
-                && ($f['channel'] ?? null) === 'audit'
-                && ($f['store_ids'] ?? null) === [3]))
-            ->willReturn([]);
+        foreach ([['garde-moi', 'error', 'audit', 3], ['mauvais-niveau', 'info', 'audit', 3], ['autre-magasin', 'error', 'audit', 4], ['autre-canal', 'error', 'access', 3]] as [$message, $level, $channel, $store]) {
+            \App\Models\ActivityEntry::create(['message' => $message, 'level' => $level, 'channel' => $channel, 'store_id' => $store, 'created_at' => '2026-09-18 10:00:00']);
+        }
 
         $response = $this->controller->export($req);
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString('garde-moi', $response->getContent());
+        foreach (['mauvais-niveau', 'autre-magasin', 'autre-canal'] as $excluded) {
+            $this->assertStringNotContainsString($excluded, $response->getContent());
+        }
     }
-
     private function writeViewFile(string $dir, string $view, string $phpBody): void
     {
         $file = $dir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $view) . '.php';

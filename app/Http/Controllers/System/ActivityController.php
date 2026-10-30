@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\System;
 
-use App\Repositories\LogRepositoryInterface;
+use App\Models\ActivityEntry;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,7 +24,6 @@ final class ActivityController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly LogRepositoryInterface $logs,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -42,18 +41,18 @@ final class ActivityController
         $page    = max(1, (int) ($request->query('page') ?? 1));
         $perPage = 100;
 
-        $rows         = $this->logs->findAll($page, $perPage, $filters);
-        $total        = $this->logs->countAll($filters);
-        $channels     = $this->logs->findChannels();
-        $actions      = $this->logs->findActions();
-        $resourceTypes = $this->logs->findResourceTypes();
+        $rows         = ActivityEntry::findAll($page, $perPage, $filters);
+        $total        = ActivityEntry::countAll($filters);
+        $channels     = ActivityEntry::findChannels();
+        $actions      = ActivityEntry::findActions();
+        $resourceTypes = ActivityEntry::findResourceTypes();
 
         $levels = [
-            LogRepositoryInterface::LEVEL_DEBUG,
-            LogRepositoryInterface::LEVEL_INFO,
-            LogRepositoryInterface::LEVEL_WARNING,
-            LogRepositoryInterface::LEVEL_ERROR,
-            LogRepositoryInterface::LEVEL_CRITICAL,
+            ActivityEntry::LEVEL_DEBUG,
+            ActivityEntry::LEVEL_INFO,
+            ActivityEntry::LEVEL_WARNING,
+            ActivityEntry::LEVEL_ERROR,
+            ActivityEntry::LEVEL_CRITICAL,
         ];
 
         $usersMap = [];
@@ -101,8 +100,8 @@ final class ActivityController
         $keep   = (int) $keepDays;
         $cutoff = $keep > 0 ? date('Y-m-d H:i:s', strtotime("-{$keep} days")) : null;
 
-        $deleted = $cutoff !== null ? $this->logs->purgeOlderThan($cutoff) : $this->logs->purgeAll();
-        $this->logs->reclaimSpace();
+        $deleted = $cutoff !== null ? ActivityEntry::purgeOlderThan($cutoff) : ActivityEntry::purgeAll();
+        ActivityEntry::reclaimSpace();
 
         $this->auditLogger->log($request, 'activity_log.purged', 'system', null, [
             'keep_days' => $keep,
@@ -117,7 +116,7 @@ final class ActivityController
     public function export(Request $request): Response
     {
         $filters = $this->buildFilters($request);
-        $rows    = $this->logs->findAll(1, self::EXPORT_MAX_ROWS, $filters);
+        $rows    = ActivityEntry::findAll(1, self::EXPORT_MAX_ROWS, $filters);
 
         $usersMap = [];
         foreach ($this->users->findAll() as $u) {

@@ -25,7 +25,6 @@ final class CronControllerTest extends TestCase
         kintai_test_migrate();
         kintai_test_user(1);
         app()->instance(AppSettingsService::class, new AppSettingsService(new InMemoryAppSettings(['log_retention_days' => '0'])));
-        app()->instance(\App\Repositories\LogRepositoryInterface::class, new \App\Repositories\DatabaseLogRepository());
     }
 
     protected function tearDown(): void

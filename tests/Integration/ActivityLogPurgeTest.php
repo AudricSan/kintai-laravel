@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\DatabaseLogRepository;
-use App\Repositories\LogRepositoryInterface;
+use App\Models\ActivityEntry;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -18,15 +17,12 @@ use PHPUnit\Framework\TestCase;
 final class ActivityLogPurgeTest extends TestCase
 {
     private Capsule $capsule;
-    private DatabaseLogRepository $logs;
 
     protected function setUp(): void
     {
         $this->capsule = kintai_test_database();
 
         kintai_test_migrate();
-
-        $this->logs = new DatabaseLogRepository();
         foreach (['-400 days', '-100 days', '-10 days', '-1 day'] as $age) {
             \App\Models\ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'x', 'action' => 'test.action', 'created_at' => date('Y-m-d H:i:s')]);
             $id = (int) $this->capsule->getConnection()->table('activity_log')->max('id');
@@ -44,7 +40,7 @@ final class ActivityLogPurgeTest extends TestCase
     {
         $users = $this->createStub(UserRepositoryInterface::class);
 
-        return new ActivityController(kintai_test_views(sys_get_temp_dir()), $this->logs, $users, new AuditLogger());
+        return new ActivityController(kintai_test_views(sys_get_temp_dir()), $users, new AuditLogger());
     }
 
     private function purgeRequest(string $keepDays): Request
@@ -58,13 +54,13 @@ final class ActivityLogPurgeTest extends TestCase
 
     public function testPurgeAllEmptiesTheLog(): void
     {
-        $this->assertSame(4, $this->logs->purgeAll());
+        $this->assertSame(4, ActivityEntry::purgeAll());
         $this->assertSame(0, $this->rowCount());
     }
 
     public function testReclaimSpaceDoesNotFailAndKeepsTheRows(): void
     {
-        $this->logs->reclaimSpace();
+        ActivityEntry::reclaimSpace();
 
         $this->assertSame(4, $this->rowCount());
     }

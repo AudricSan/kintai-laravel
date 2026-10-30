@@ -7,9 +7,8 @@ namespace Tests\Unit\Core\Cron;
 use App\Console\Commands\BackupCommand;
 use App\Console\Commands\LicenseCheckCommand;
 use App\Console\Commands\LogPurgeCommand;
-use App\Models\ActivityEntry;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\DatabaseLogRepository;
+use App\Models\ActivityEntry;
 use App\Services\AppSettingsService;
 use App\Services\BackupService;
 use App\Services\LicenseClientService;
@@ -104,7 +103,6 @@ final class ScheduledCommandsTest extends TestCase
     private function purgeLog(array $settings): array
     {
         $this->settings($settings);
-        app()->instance(\App\Repositories\LogRepositoryInterface::class, new DatabaseLogRepository());
         [, $output] = kintai_test_command(new LogPurgeCommand());
 
         return json_decode($output, true);

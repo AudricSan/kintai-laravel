@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use App\Repositories\DatabaseLogRepository;
-use App\Repositories\LogRepositoryInterface;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\ActivityEntry;
 
 final class DatabaseLogRepositoryTest extends TestCase
 {
-    private DatabaseLogRepository $repo;
 
     protected function setUp(): void
     {
@@ -41,8 +38,6 @@ final class DatabaseLogRepositoryTest extends TestCase
             $table->string('session_id', 100)->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
-
-        $this->repo = new DatabaseLogRepository();
     }
 
     public function testFindAllPaginated(): void
@@ -51,13 +46,13 @@ final class DatabaseLogRepositoryTest extends TestCase
             ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => "msg{$i}", 'created_at' => date('Y-m-d H:i:s', strtotime("2025-01-{$i} 00:00:00"))]);
         }
 
-        $page1 = $this->repo->findAll(1, 10);
+        $page1 = ActivityEntry::findAll(1, 10);
         $this->assertCount(10, $page1);
 
-        $page2 = $this->repo->findAll(2, 10);
+        $page2 = ActivityEntry::findAll(2, 10);
         $this->assertCount(10, $page2);
 
-        $page3 = $this->repo->findAll(3, 10);
+        $page3 = ActivityEntry::findAll(3, 10);
         $this->assertCount(5, $page3);
 
         $this->assertSame('msg25', $page1[0]['message']);
@@ -69,25 +64,25 @@ final class DatabaseLogRepositoryTest extends TestCase
         for ($i = 1; $i <= 7; $i++) {
             ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => "msg{$i}", 'created_at' => date('Y-m-d H:i:s')]);
         }
-        $this->assertSame(7, $this->repo->countAll());
+        $this->assertSame(7, ActivityEntry::countAll());
     }
 
     public function testCountAllWithFilter(): void
     {
         ActivityEntry::create(['level' => 'error', 'channel' => 'test', 'message' => 'err', 'created_at' => date('Y-m-d H:i:s')]);
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'ok', 'created_at' => date('Y-m-d H:i:s')]);
-        $this->assertSame(1, $this->repo->countAll(['level' => 'error']));
+        $this->assertSame(1, ActivityEntry::countAll(['level' => 'error']));
     }
 
     public function testFindById(): void
     {
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'hello']);
         $id = ActivityEntry::first()->id;
-        $found = $this->repo->findById($id);
+        $found = ActivityEntry::findById($id);
         $this->assertNotNull($found);
         $this->assertSame('hello', $found['message']);
 
-        $this->assertNull($this->repo->findById(99999));
+        $this->assertNull(ActivityEntry::findById(99999));
     }
 
     public function testFindChannels(): void
@@ -95,7 +90,7 @@ final class DatabaseLogRepositoryTest extends TestCase
         ActivityEntry::create(['level' => 'info', 'channel' => 'alpha', 'message' => 'a']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'beta', 'message' => 'b']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'alpha', 'message' => 'a2']);
-        $channels = $this->repo->findChannels();
+        $channels = ActivityEntry::findChannels();
         sort($channels);
         $this->assertSame(['alpha', 'beta'], $channels);
     }
@@ -105,7 +100,7 @@ final class DatabaseLogRepositoryTest extends TestCase
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'a', 'action' => 'shift.created']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'b', 'action' => 'user.deleted']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'business', 'message' => 'c']);
-        $actions = $this->repo->findActions();
+        $actions = ActivityEntry::findActions();
         sort($actions);
         $this->assertSame(['shift.created', 'user.deleted'], $actions);
     }
@@ -114,7 +109,7 @@ final class DatabaseLogRepositoryTest extends TestCase
     {
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'a', 'resource_type' => 'shift']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'b', 'resource_type' => 'user']);
-        $types = $this->repo->findResourceTypes();
+        $types = ActivityEntry::findResourceTypes();
         sort($types);
         $this->assertSame(['shift', 'user'], $types);
     }
@@ -123,7 +118,7 @@ final class DatabaseLogRepositoryTest extends TestCase
     {
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'a', 'action' => 'shift.created', 'created_at' => '2025-01-02 00:00:00']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'b', 'action' => 'user.deleted', 'created_at' => '2025-01-01 00:00:00']);
-        $rows = $this->repo->findAll(1, 10, ['action' => 'shift.created']);
+        $rows = ActivityEntry::findAll(1, 10, ['action' => 'shift.created']);
         $this->assertCount(1, $rows);
         $this->assertSame('a', $rows[0]['message']);
     }
@@ -132,7 +127,7 @@ final class DatabaseLogRepositoryTest extends TestCase
     {
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'hello world', 'created_at' => '2025-01-01 00:00:00']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'goodbye', 'created_at' => '2025-01-02 00:00:00']);
-        $rows = $this->repo->findAll(1, 10, ['query' => 'hello']);
+        $rows = ActivityEntry::findAll(1, 10, ['query' => 'hello']);
         $this->assertCount(1, $rows);
     }
 
@@ -142,7 +137,7 @@ final class DatabaseLogRepositoryTest extends TestCase
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'store2', 'store_id' => 2, 'created_at' => '2025-01-02 00:00:00']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'store3', 'store_id' => 3, 'created_at' => '2025-01-03 00:00:00']);
 
-        $rows = $this->repo->findAll(1, 10, ['store_ids' => [1, 3]]);
+        $rows = ActivityEntry::findAll(1, 10, ['store_ids' => [1, 3]]);
 
         $this->assertCount(2, $rows);
         $messages = array_column($rows, 'message');
@@ -156,7 +151,7 @@ final class DatabaseLogRepositoryTest extends TestCase
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'store1', 'store_id' => 1, 'created_at' => '2025-01-01 00:00:00']);
 
         // Un manager scopé mais n'ayant la permission sur aucun store : store_ids = [].
-        $rows = $this->repo->findAll(1, 10, ['store_ids' => []]);
+        $rows = ActivityEntry::findAll(1, 10, ['store_ids' => []]);
 
         $this->assertCount(0, $rows);
     }
@@ -166,7 +161,7 @@ final class DatabaseLogRepositoryTest extends TestCase
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'store1', 'store_id' => 1, 'created_at' => '2025-01-01 00:00:00']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'store2', 'store_id' => 2, 'created_at' => '2025-01-02 00:00:00']);
 
-        $this->assertSame(1, $this->repo->countAll(['store_ids' => [1]]));
+        $this->assertSame(1, ActivityEntry::countAll(['store_ids' => [1]]));
     }
 
     public function testPurgeOlderThanDeletesOnlyOlderEntries(): void
@@ -174,7 +169,7 @@ final class DatabaseLogRepositoryTest extends TestCase
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'old', 'created_at' => '2025-01-01 00:00:00']);
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'recent', 'created_at' => '2026-06-01 00:00:00']);
 
-        $deleted = $this->repo->purgeOlderThan('2026-01-01 00:00:00');
+        $deleted = ActivityEntry::purgeOlderThan('2026-01-01 00:00:00');
 
         $this->assertSame(1, $deleted);
         $this->assertSame(1, ActivityEntry::count());
@@ -185,7 +180,7 @@ final class DatabaseLogRepositoryTest extends TestCase
     {
         ActivityEntry::create(['level' => 'info', 'channel' => 'test', 'message' => 'recent', 'created_at' => '2026-06-01 00:00:00']);
 
-        $this->assertSame(0, $this->repo->purgeOlderThan('2020-01-01 00:00:00'));
+        $this->assertSame(0, ActivityEntry::purgeOlderThan('2020-01-01 00:00:00'));
         $this->assertSame(1, ActivityEntry::count());
     }
 }
