@@ -421,30 +421,30 @@ final class AdminUserController
         try {
             $this->planLimits->assertCanCreateEmployee();
         } catch (PlanLimitExceededException) {
-            return redirect()->away($this->base() . '/admin/users/create?error=plan_limit_employees');
+            return redirect()->away($this->base() . '/admin/users/create')->with('error', 'plan_limit_employees');
         }
 
         $email = trim($request->post('email', ''));
         if ($email !== '' && $this->users->findByEmail($email) !== null) {
-            return redirect()->away($this->base() . '/admin/users/create?error=email_taken');
+            return redirect()->away($this->base() . '/admin/users/create')->with('error', 'email_taken');
         }
 
         if (trim($request->post('last_name', '')) === '' || trim($request->post('first_name', '')) === '') {
-            return redirect()->away($this->base() . '/admin/users/create?error=name_required');
+            return redirect()->away($this->base() . '/admin/users/create')->with('error', 'name_required');
         }
 
         if (trim($request->post('furigana_last_name', '')) === '' || trim($request->post('furigana_first_name', '')) === '') {
-            return redirect()->away($this->base() . '/admin/users/create?error=furigana_required');
+            return redirect()->away($this->base() . '/admin/users/create')->with('error', 'furigana_required');
         }
 
         $password = $request->post('password', '');
         $empCode  = strtoupper(trim($request->post('employee_code', ''))) ?: null;
         if ($empCode !== null && !EmployeeRouteBinder::isValidCode($empCode)) {
-            return redirect()->away($this->base() . '/admin/users/create?error=employee_code_invalid_url');
+            return redirect()->away($this->base() . '/admin/users/create')->with('error', 'employee_code_invalid_url');
         }
         // Code déjà pris : sans ce contrôle, la contrainte unique de la base donnait une erreur 500.
         if ($empCode !== null && $this->users->findByEmployeeCode($empCode) !== null) {
-            return redirect()->away($this->base() . '/admin/users/create?error=employee_code_taken');
+            return redirect()->away($this->base() . '/admin/users/create')->with('error', 'employee_code_taken');
         }
         if ($password === '') {
             // Mot de passe par défaut « 0000 », comme l'API et la réinitialisation : signalé comme à changer (rappel à
@@ -509,7 +509,7 @@ final class AdminUserController
         $this->auditLogger->log($request, 'user.created', 'user', (int) ($saved['id'] ?? 0), [
             'email' => $request->post('email', ''),
         ]);
-        return redirect()->away($this->base() . '/admin/users?success=created');
+        return redirect()->away($this->base() . '/admin/users')->with('success', 'created');
     }
 
     /**
@@ -869,7 +869,7 @@ final class AdminUserController
         if ($request->wantsJsonResponse()) {
             return response()->json(['success' => true]);
         }
-        return redirect()->away($this->base() . '/admin/users?success=updated');
+        return redirect()->away($this->base() . '/admin/users')->with('success', 'updated');
     }
 
     private function updateUserError(Request $request, array $user, string $error): Response
@@ -877,7 +877,7 @@ final class AdminUserController
         if ($request->wantsJsonResponse()) {
             return response()->json(['success' => false, 'error' => $error], 422);
         }
-        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit?error=' . $error);
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit')->with('error', $error);
     }
 
     public function deleteUser(Request $request): Response
@@ -890,7 +890,7 @@ final class AdminUserController
         // soit le pilote de base de données (voir UserAnonymizer).
         $this->anonymizer()->anonymize($id);
         $this->auditLogger->log($request, 'user.deleted', 'user', $id, []);
-        return redirect()->away($this->base() . '/admin/users?success=deleted');
+        return redirect()->away($this->base() . '/admin/users')->with('success', 'deleted');
     }
 
     public function resetPassword(Request $request): Response
@@ -909,7 +909,7 @@ final class AdminUserController
             'email' => $user['email'] ?? null,
         ], null, null);
 
-        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit?success=password_reset');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit')->with('success', 'password_reset');
     }
 
     // -------------------------------------------------------------------------
@@ -968,7 +968,7 @@ final class AdminUserController
             }
         }
 
-        return redirect()->away($this->base() . '/admin/users/' . employee_segment($userId) . '/edit?success=rate_updated');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($userId) . '/edit')->with('success', 'rate_updated');
     }
 
     public function deleteUserRate(Request $request): Response
@@ -990,7 +990,7 @@ final class AdminUserController
             ]);
         }
 
-        return redirect()->away($this->base() . '/admin/users/' . employee_segment($userId) . '/edit?success=rate_deleted');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($userId) . '/edit')->with('success', 'rate_deleted');
     }
 
     /** Identifiant de l'utilisateur connecté, null si inconnu. */

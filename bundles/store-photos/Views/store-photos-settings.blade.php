@@ -7,7 +7,7 @@ use kintai\Contract\View\Components\Flash;
 /** @var string $cleanupDelay */
 /** @var string $BASE_URL */
 
-echo Flash::fromQuery('success', ['saved' => __('save_success')])->render();
+echo Flash::fromSession('success', ['saved' => __('save_success')])->render();
 ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= __('store_photos_photo_settings') ?></h2>

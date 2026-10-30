@@ -120,7 +120,7 @@ final class ExportController
                 $period['from'], $period['to'], user_locale($user),
             );
         } catch (ForbiddenException) {
-            return redirect()->away($this->base() . '/exports?error=forbidden');
+            return redirect()->away($this->base() . '/exports')->with('error', 'forbidden');
         }
 
         $basename = 'kintai-' . $dataset->key . ($dataset->hasPeriod ? '-' . $period['from'] . '_' . $period['to'] : '');
@@ -128,7 +128,7 @@ final class ExportController
         if ($format === 'ics') {
             $ics = $this->ics($query, $user);
             if ($ics === null) {
-                return redirect()->away($this->base() . '/exports?error=ics_scope');
+                return redirect()->away($this->base() . '/exports')->with('error', 'ics_scope');
             }
             $this->trace($request, $user, $dataset, $scope, $query->storeIds, 'ics', $ics['count']);
 

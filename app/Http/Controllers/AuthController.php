@@ -111,9 +111,9 @@ final class AuthController
 
         return response($this->view->make('auth.login', [
             'title'      => __('login_page'),
-            'error'      => !empty($_GET['error']) && $_GET['error'] !== 'expired',
+            'error'      => !empty(session('error')) && session('error') !== 'expired',
             // Formulaire validé après expiration de la session (jeton CSRF refusé, voir CsrfMiddleware).
-            'expired'    => ($_GET['error'] ?? '') === 'expired',
+            'expired'    => (session('error', '')) === 'expired',
             'login_mode' => $_GET['mode'] ?? 'code',
             // Sélecteur de langue de la page de connexion (pour la session ; voir switchLanguage()).
             'login_languages' => $this->languages->findAllActive(),
@@ -166,7 +166,7 @@ final class AuthController
         // Lu par LoginThrottleMiddleware : seuls les échecs comptent dans la limitation.
         $request->attributes->set('auth_failed', true);
         $this->auditLogger->log($request, 'auth.login_failed', 'user', null, ['mode' => $mode]);
-        return redirect()->away($this->base() . '/login?error=1&mode=' . urlencode($mode));
+        return redirect()->away($this->base() . '/login?mode=' . urlencode($mode))->with('error', '1');
     }
 
     /** Bascule entre vue mobile et vue bureau (forcé en session). */
@@ -345,13 +345,13 @@ final class AuthController
             (string) $request->post('quiet_end', ''),
         );
         if (!$quietOk) {
-            return redirect()->away($back . '&error=quiet_hours_invalid');
+            return redirect()->away($back)->with('error', 'quiet_hours_invalid');
         }
         // shown[] : les lignes que le formulaire affichait (seules leurs cases sont enregistrées). Absent : tous les types actifs.
         $shown = $request->post('shown') !== null ? $list($request->post('shown')) : null;
         $this->notifPrefs->saveGrid($userId, $list($request->post('push', [])), $list($request->post('email', [])), $shown);
 
-        return redirect()->away($back . '&success=saved');
+        return redirect()->away($back)->with('success', 'saved');
     }
 
     /** Met à jour le profil de l'utilisateur. */
@@ -398,7 +398,7 @@ final class AuthController
             $this->auditLogger->logUpdate($request, 'user.update_profile', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
         }
 
-        return redirect()->away($this->base() . '/profile?success=1');
+        return redirect()->away($this->base() . '/profile')->with('success', '1');
     }
 
     /** Met à jour la photo de profil de l'utilisateur connecté. */
@@ -412,12 +412,12 @@ final class AuthController
         $userId = (int) $user['id'];
         $file   = $request->file('avatar');
         if ($file === null || !is_uploaded_file($file['tmp_name'])) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=avatar_invalid');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'avatar_invalid');
         }
 
         $dbUser = $this->users->findById($userId);
         if ($dbUser === null) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=error_generic');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'error_generic');
         }
 
         $avatarDir = BASE_PATH . '/storage/uploads/avatars/';
@@ -427,7 +427,7 @@ final class AuthController
 
         $compressed = $this->avatarOptimizer->optimize($file['tmp_name'], $avatarDir . 'user_' . $userId);
         if ($compressed === null) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=avatar_invalid');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'avatar_invalid');
         }
 
         // Un ancien avatar dans une extension différente (ex. .png → .jpg après
@@ -446,7 +446,7 @@ final class AuthController
 
         $this->auditLogger->logUpdate($request, 'user.avatar_updated', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
 
-        return redirect()->away($this->base() . '/profile?tab=info&success=avatar_saved');
+        return redirect()->away($this->base() . '/profile?tab=info')->with('success', 'avatar_saved');
     }
 
     /** Supprime la photo de profil de l'utilisateur connecté. */
@@ -474,7 +474,7 @@ final class AuthController
 
         $this->auditLogger->logUpdate($request, 'user.avatar_removed', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
 
-        return redirect()->away($this->base() . '/profile?tab=info&success=avatar_removed');
+        return redirect()->away($this->base() . '/profile?tab=info')->with('success', 'avatar_removed');
     }
 
     /**
@@ -519,22 +519,22 @@ final class AuthController
         $confirm  = $request->post('confirm_password', '');
 
         if ($newPass === '' || $newPass !== $confirm) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=password_mismatch');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'password_mismatch');
         }
 
         if (!PasswordPolicy::isLongEnough($newPass)) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=password_too_short');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'password_too_short');
         }
 
         $dbUser = $this->users->findById($userId);
         if ($dbUser === null) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=error_generic');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'error_generic');
         }
 
         // Toujours vérifier : un hash vide fait échouer password_verify(), donc refuse l'action.
         $storedHash = (string) ($dbUser['password_hash'] ?? '');
         if (!password_verify($current, $storedHash)) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=current_password_wrong');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'current_password_wrong');
         }
 
         $oldUser = $dbUser;
@@ -548,10 +548,10 @@ final class AuthController
             $this->revoker?->revokeAllFor($userId);
             $this->auditLogger->logUpdate($request, 'user.change_password', 'user', $userId, $oldUser, $dbUser, [], null, $userId);
         } catch (\Throwable) {
-            return redirect()->away($this->base() . '/profile?tab=info&error=error_generic');
+            return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'error_generic');
         }
 
-        return redirect()->away($this->base() . '/profile?tab=info&success=password_changed');
+        return redirect()->away($this->base() . '/profile?tab=info')->with('success', 'password_changed');
     }
 
     /** Exporte les données personnelles de l'utilisateur (RGPD portabilité). */
@@ -603,13 +603,13 @@ final class AuthController
         // Un Owner ne supprime pas son propre compte : la suppression anonymise et désactive le compte, ce qui
         // pourrait laisser l'instance sans administrateur. Il doit d'abord céder le rôle à un autre Owner.
         if ($this->auth->isAdmin()) {
-            return redirect()->away($this->base() . '/profile?tab=data&error=owner_cannot_delete');
+            return redirect()->away($this->base() . '/profile?tab=data')->with('error', 'owner_cannot_delete');
         }
 
         // Toujours vérifier : un hash vide fait échouer password_verify(), donc refuse l'action.
         $storedHash = (string) ($user['password_hash'] ?? '');
         if (!password_verify($password, $storedHash)) {
-            return redirect()->away($this->base() . '/profile?tab=data&error=current_password_wrong');
+            return redirect()->away($this->base() . '/profile?tab=data')->with('error', 'current_password_wrong');
         }
 
         // Anonymisation (données personnelles, avatar, rôles, jetons) : même traitement que la suppression

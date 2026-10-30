@@ -50,7 +50,7 @@ $tanukiPalette = [
     ['css' => 'highlight', 'color' => '#e8f5e9', 'label' => 'theme_tanuki_swatch_highlight'],
 ];
 
-echo Flash::fromQuery('success', ['default' => __('save_success')])->render();
+echo Flash::fromSession('success', ['default' => __('save_success')])->render();
 if (($error ?? null) === 'public_url_invalid') {
     echo Alert::make(__('public_url_invalid'))->danger()->render();
 }

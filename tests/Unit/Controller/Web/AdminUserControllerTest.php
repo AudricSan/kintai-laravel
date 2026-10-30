@@ -870,7 +870,7 @@ final class AdminUserControllerTest extends TestCase
         $response = $this->controller()->updateUser($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=employee_code_taken', $response->headers->get('Location') ?? '');
+        $this->assertStringContainsString('employee_code_taken', (string) session('error'));
     }
 
     /** Garder son propre code ne doit pas être pris pour un doublon. */

@@ -78,7 +78,7 @@ if ($_canManage) {
 }
 @endphp
 @if ($_canManage)
-{!! \App\View\Components\Flash::fromQuery('success', [
+{!! \App\View\Components\Flash::fromSession('success', [
     'created' => __('shift_created'), 'updated' => __('shift_updated'), 'deleted' => __('shift_deleted'),
     'bulk_deleted' => fn() => __('shifts_bulk_deleted', ['n' => (int) ($_GET['count'] ?? 0)]),
     'imported'     => fn() => __('shifts_imported', ['n' => (int) ($_GET['count'] ?? 0)]),

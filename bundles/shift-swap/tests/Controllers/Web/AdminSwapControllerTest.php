@@ -270,7 +270,8 @@ final class AdminSwapControllerTest extends TestCase
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['status' => 'accepted'] + $this->pendingSwap());
         $this->swapRequests->expects($this->never())->method('save');
 
-        $this->assertStringContainsString('error=invalid_state', $this->location($this->controller()->approveSwap($req)));
+        $this->location($this->controller()->approveSwap($req));
+        $this->assertStringContainsString('invalid_state', (string) session('error'));
     }
 
     public function testApproveSwapRefusesWhenAShiftWasReassignedSinceTheRequest(): void
@@ -284,7 +285,8 @@ final class AdminSwapControllerTest extends TestCase
         kintai_test_shifts([['id' => 10, 'user_id' => 8, 'store_id' => 5, 'shift_date' => '2026-09-01'] + ['id' => 10], ['id' => 20, 'user_id' => 2, 'store_id' => 5, 'shift_date' => '2026-09-02'] + ['id' => 20]]);
         $this->swapRequests->expects($this->never())->method('save');
 
-        $this->assertStringContainsString('error=invalid_state', $this->location($this->controller()->approveSwap($req)));
+        $this->location($this->controller()->approveSwap($req));
+        $this->assertStringContainsString('invalid_state', (string) session('error'));
     }
 
     public function testApproveSwapRefusesAConflictingSameDayExchange(): void
@@ -297,7 +299,8 @@ final class AdminSwapControllerTest extends TestCase
         kintai_test_shifts([['id' => 10, 'user_id' => 1, 'store_id' => 5, 'shift_date' => '2026-09-01'] + ['id' => 10], ['id' => 20, 'user_id' => 2, 'store_id' => 5, 'shift_date' => '2026-09-02'] + ['id' => 20]]);
         // Le demandeur a déjà un autre shift le 02/09 (date du shift qu'il recevrait).
         kintai_test_shifts([['id' => 99, 'user_id' => 1, 'store_id' => 5, 'shift_date' => '2026-09-02']]);
-        $this->assertStringContainsString('error=swap_conflict', $this->location($this->controller()->approveSwap($req)));
+        $this->location($this->controller()->approveSwap($req));
+        $this->assertStringContainsString('swap_conflict', (string) session('error'));
     }
 
     public function testApproveSwapExchangesTheShiftsOfAPendingSwap(): void
@@ -310,7 +313,8 @@ final class AdminSwapControllerTest extends TestCase
         kintai_test_shifts([['id' => 10, 'user_id' => 1, 'store_id' => 5, 'shift_date' => '2026-09-01'] + ['id' => 10], ['id' => 20, 'user_id' => 2, 'store_id' => 5, 'shift_date' => '2026-09-02'] + ['id' => 20]]);
         $this->swapRequests->expects($this->once())->method('save')->with($this->callback(fn(array $d) => $d['status'] === 'accepted'));
 
-        $this->assertStringContainsString('success=approved', $this->location($this->controller()->approveSwap($req)));
+        $this->location($this->controller()->approveSwap($req));
+        $this->assertStringContainsString('approved', (string) session('success'));
         $this->assertSame([10 => 2, 20 => 1], [10 => Shift::findById(10)['user_id'], 20 => Shift::findById(20)['user_id']]);
     }
 
@@ -323,7 +327,8 @@ final class AdminSwapControllerTest extends TestCase
         $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(31)->willReturn(['status' => 'accepted'] + $this->pendingSwap());
         $this->swapRequests->expects($this->never())->method('save');
 
-        $this->assertStringContainsString('error=invalid_state', $this->location($this->controller()->refuseSwap($req)));
+        $this->location($this->controller()->refuseSwap($req));
+        $this->assertStringContainsString('invalid_state', (string) session('error'));
     }
 
     /** Les shifts ont été réaffectés depuis l'échange : les « rendre » écraserait ce changement. */
@@ -341,7 +346,8 @@ final class AdminSwapControllerTest extends TestCase
         kintai_test_shifts([['id' => 10, 'user_id' => 8, 'store_id' => 5] + ['id' => 10], ['id' => 20, 'user_id' => 1, 'store_id' => 5] + ['id' => 20]]);
         $this->swapRequests->expects($this->once())->method('delete')->with(77);
 
-        $this->assertStringContainsString('success=deleted', $this->location($this->controller()->deleteSwap($req)));
+        $this->location($this->controller()->deleteSwap($req));
+        $this->assertStringContainsString('deleted', (string) session('success'));
     }
 
     public function testDeleteSwapRevertsShiftsWhenAccepted(): void

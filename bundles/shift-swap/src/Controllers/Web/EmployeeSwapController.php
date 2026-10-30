@@ -169,7 +169,7 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) ($savedSwap['id'] ?? 0)
         );
 
-        return redirect()->away($this->base() . '/employee/swaps?success=created');
+        return redirect()->away($this->base() . '/employee/swaps')->with('success', 'created');
     }
 
     public function acceptSwap(Request $request): Response
@@ -182,7 +182,7 @@ final class EmployeeSwapController
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
         if (($swap['status'] ?? '') !== 'pending' || ($swap['accepted_at'] ?? null) !== null) {
-            return redirect()->away($this->base() . '/employee/swaps?error=invalid_state');
+            return redirect()->away($this->base() . '/employee/swaps')->with('error', 'invalid_state');
         }
 
         $newSwap = array_merge($swap, [
@@ -205,7 +205,7 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) $swap['id']
         );
 
-        return redirect()->away($this->base() . '/employee/swaps?success=accepted');
+        return redirect()->away($this->base() . '/employee/swaps')->with('success', 'accepted');
     }
 
     public function refuseSwap(Request $request): Response
@@ -218,7 +218,7 @@ final class EmployeeSwapController
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
         if (($swap['status'] ?? '') !== 'pending' || ($swap['accepted_at'] ?? null) !== null) {
-            return redirect()->away($this->base() . '/employee/swaps?error=invalid_state');
+            return redirect()->away($this->base() . '/employee/swaps')->with('error', 'invalid_state');
         }
 
         $refusedSwap = array_merge($swap, ['status' => 'refused']);
@@ -238,7 +238,7 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) $swap['id']
         );
 
-        return redirect()->away($this->base() . '/employee/swaps?success=refused');
+        return redirect()->away($this->base() . '/employee/swaps')->with('success', 'refused');
     }
 
     public function cancelSwap(Request $request): Response
@@ -251,7 +251,7 @@ final class EmployeeSwapController
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
         if (($swap['status'] ?? '') !== 'pending') {
-            return redirect()->away($this->base() . '/employee/swaps?error=invalid_state');
+            return redirect()->away($this->base() . '/employee/swaps')->with('error', 'invalid_state');
         }
 
         $cancelledSwap = array_merge($swap, ['status' => 'cancelled']);
@@ -269,7 +269,7 @@ final class EmployeeSwapController
             '/employee/swaps?highlight=' . (int) $swap['id']
         );
 
-        return redirect()->away($this->base() . '/employee/swaps?success=cancelled');
+        return redirect()->away($this->base() . '/employee/swaps')->with('success', 'cancelled');
     }
 
     /** Valeurs de remplacement (:colleague/:my_date/:target_date/:store) pour les notifications d'échange. */

@@ -65,7 +65,7 @@ final class NotificationSettingsController
             ['notifications_retention_days' => (string) $old], ['notifications_retention_days' => (string) $new], [],
         );
 
-        return redirect()->away($this->base() . '/admin/notifications-settings?success=saved');
+        return redirect()->away($this->base() . '/admin/notifications-settings')->with('success', 'saved');
     }
 
     /** POST /admin/notifications-settings/test : notification de test à l'Owner, par tous les canaux actifs. */
@@ -77,17 +77,17 @@ final class NotificationSettingsController
 
         $this->notifications->notify($userId, NotificationPreferenceService::TEST_TYPE, 'notif_test_body', [], null, '/admin/notifications-settings');
 
-        return redirect()->away($this->base() . '/admin/notifications-settings?success=test&channels=' . implode(',', $channels));
+        return redirect()->away($this->base() . '/admin/notifications-settings?channels=' . implode(',', $channels))->with('success', 'test');
     }
 
     /** POST /admin/notifications-settings/vapid : nouvelles clés, tous les abonnements web actuels deviennent invalides. */
     public function regenerateVapid(Request $request): Response
     {
         if (!$this->vapid->regenerate()) {
-            return redirect()->away($this->base() . '/admin/notifications-settings?error=vapid_failed');
+            return redirect()->away($this->base() . '/admin/notifications-settings')->with('error', 'vapid_failed');
         }
         $this->auditLogger->log($request, 'notification_settings.vapid_regenerated', 'system');
 
-        return redirect()->away($this->base() . '/admin/notifications-settings?success=vapid');
+        return redirect()->away($this->base() . '/admin/notifications-settings')->with('success', 'vapid');
     }
 }

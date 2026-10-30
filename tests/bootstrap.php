@@ -143,6 +143,8 @@ function kintai_test_log(): Tests\Support\RecordingLog
 function kintai_test_database(): App\Database\LaravelCapsule
 {
     $app = $GLOBALS['kintai_test_app'];
+    // Les messages flashés d'un test précédent ne doivent pas servir au suivant.
+    $app['session.store']->forget(['success', 'error', 'warning', 'activation']);
     $app->forgetInstance('log');
     Illuminate\Support\Facades\Log::clearResolvedInstance('log');
     config(['database.connections.testing' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]]);

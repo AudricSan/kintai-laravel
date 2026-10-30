@@ -13,7 +13,7 @@ use kintai\Contract\View\Components\Flash;
 
 $_id = (int) $store['id'];
 $_days = [1 => 'planning_check_day_1', 2 => 'planning_check_day_2', 3 => 'planning_check_day_3', 4 => 'planning_check_day_4', 5 => 'planning_check_day_5', 6 => 'planning_check_day_6', 7 => 'planning_check_day_7'];
-$_error = (string) ($_GET['error'] ?? '');
+$_error = (string) (session('error', ''));
 ?>
 <?php include app('view')->getFinder()->find('planning-check::_assets'); ?>
 <div class="page-header">
@@ -23,7 +23,7 @@ $_error = (string) ($_GET['error'] ?? '');
     </div>
 </div>
 
-<?= Flash::fromQuery('success', ['saved' => __('planning_check_flash_saved'), 'test_sent' => __('planning_check_flash_test_sent')])->render() ?>
+<?= Flash::fromSession('success', ['saved' => __('planning_check_flash_saved'), 'test_sent' => __('planning_check_flash_test_sent')])->render() ?>
 <?php if ($_error !== ''): ?>
     <div class="alert alert--danger mb-sm"><?= htmlspecialchars(__('planning_check_flash_' . preg_replace('/[^a-z_]/', '', $_error))) ?></div>
 <?php endif; ?>

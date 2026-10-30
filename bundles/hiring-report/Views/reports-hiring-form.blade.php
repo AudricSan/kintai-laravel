@@ -22,7 +22,7 @@ $title = $mode === 'edit' ? __('hiring_report_edit_hiring_report') : __('hiring_
 
 $v = fn(string $key) => htmlspecialchars((string) ($report[$key] ?? ''));
 
-echo Flash::fromQuery('error', ['already_exists' => __('hiring_report_report_already_exists')])->render();
+echo Flash::fromSession('error', ['already_exists' => __('hiring_report_report_already_exists')])->render();
 ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= htmlspecialchars($title) ?></h2>

@@ -28,7 +28,7 @@ if (!function_exists('kintai_admin_swap_shift_label')) {
     }
 }
 
-echo Flash::fromQuery('error', ['swap_conflict' => __('shift_swap_swap_conflict_error')])->render();
+echo Flash::fromSession('error', ['swap_conflict' => __('shift_swap_swap_conflict_error')])->render();
 ?>
 <?php if ($shiftSwapCss = bundle_asset('shift-swap', 'css/shift-swap.css')): ?>
 <link rel="stylesheet" href="<?= $shiftSwapCss ?>">

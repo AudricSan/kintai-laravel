@@ -45,7 +45,7 @@ final class SetupWizardController
 
         $requested = (string) $request->query('step', '');
         $step = SetupWizard::isStep($requested) ? $requested : $this->wizard->step();
-        return $this->render($request, $step, ['error' => $request->query('error')]);
+        return $this->render($request, $step, ['error' => session('error')]);
     }
 
     /**
@@ -98,12 +98,12 @@ final class SetupWizardController
 
         $key = trim((string) $request->post('license_key', ''));
         if ($key === '') {
-            return redirect()->away($this->base() . '/admin/setup?step=license&error=missing_license_key');
+            return redirect()->away($this->base() . '/admin/setup?step=license')->with('error', 'missing_license_key');
         }
         $result = $this->license->activate($key);
         $this->auditLogger->log($request, 'license.activated', 'system', null, ['valid' => (bool) ($result['valid'] ?? false), 'from' => 'setup']);
         if (!($result['valid'] ?? false)) {
-            return redirect()->away($this->base() . '/admin/setup?step=license&error=license_invalid');
+            return redirect()->away($this->base() . '/admin/setup?step=license')->with('error', 'license_invalid');
         }
 
         $this->wizard->licenseDone();
@@ -149,7 +149,7 @@ final class SetupWizardController
         set_time_limit(0);
         $result = $this->wizard->install($slugs, $this->settings->bundleUpdateChannel());
         if ($result['error'] !== null) {
-            return redirect()->away($this->base() . '/admin/setup?step=bundles&error=' . $result['error']);
+            return redirect()->away($this->base() . '/admin/setup?step=bundles')->with('error', $result['error']);
         }
         $this->auditLogger->log($request, 'setup.bundles_installed', 'system', null, [
             'installed' => $result['installed'],

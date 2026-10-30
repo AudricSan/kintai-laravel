@@ -122,7 +122,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('tab=notifications', $this->location($response));
-        $this->assertStringContainsString('success=saved', $this->location($response));
+        $this->assertStringContainsString('saved', (string) session('success'));
         $rows = NotificationPreference::orderBy('channel')->get(['type', 'channel', 'enabled'])->toArray();
         $this->assertSame([
             ['type' => 'shift_updated', 'channel' => 'email', 'enabled' => true],
@@ -167,7 +167,7 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
 
         $response = $this->controller->saveNotificationPreferences(Request::capture());
 
-        $this->assertStringContainsString('error=quiet_hours_invalid', $this->location($response));
+        $this->assertStringContainsString('quiet_hours_invalid', (string) session('error'));
         $this->assertSame(0, NotificationPreference::count());
     }
 

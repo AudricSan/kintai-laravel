@@ -38,7 +38,7 @@ final class AppResetController
 
         $mode = (string) $request->post('mode', 'data');
         if (!in_array($mode, self::MODES, true)) {
-            return redirect()->away($this->base() . '/admin/backup?error=invalid_reset_mode');
+            return redirect()->away($this->base() . '/admin/backup')->with('error', 'invalid_reset_mode');
         }
         $keep = $this->validKeepCategories($request->post('keep', []));
 
@@ -59,13 +59,13 @@ final class AppResetController
 
         $mode = (string) $request->post('mode', 'data');
         if (!in_array($mode, self::MODES, true)) {
-            return redirect()->away($this->base() . '/admin/backup?error=invalid_reset_mode');
+            return redirect()->away($this->base() . '/admin/backup')->with('error', 'invalid_reset_mode');
         }
         $keep = $this->validKeepCategories($request->post('keep', []));
 
         $backupFilename = (string) $request->post('backup_filename', '');
         if ($backupFilename === '' || !file_exists($this->backup->getPath($backupFilename))) {
-            return redirect()->away($this->base() . '/admin/backup?error=reset_backup_missing');
+            return redirect()->away($this->base() . '/admin/backup')->with('error', 'reset_backup_missing');
         }
 
         $user = $request->attributes->get('auth_user') ?? [];
@@ -78,7 +78,7 @@ final class AppResetController
         }
 
         $this->reset->resetData($keep);
-        return redirect()->away($this->base() . '/admin/backup?success=reset_data');
+        return redirect()->away($this->base() . '/admin/backup')->with('success', 'reset_data');
     }
 
     /** @return string[] */

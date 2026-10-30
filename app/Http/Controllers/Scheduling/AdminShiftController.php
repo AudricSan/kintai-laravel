@@ -589,10 +589,9 @@ final class AdminShiftController
 
         $back = safe_redirect_path((string) $request->post('redirect_to', ''), '')
             ?: $this->base() . '/admin/shifts/timeline?store_id=' . $storeId;
-        $sep  = str_contains($back, '?') ? '&' : '?';
         if ($this->publication === null || !$this->publication->isEnabled($storeId)
             || preg_match('/^\d{4}-\d{2}-\d{2}$/', $until) !== 1) {
-            return redirect()->away($back . $sep . 'error=publish_invalid');
+            return redirect()->away($back)->with('error', 'publish_invalid');
         }
 
         $from   = $this->publication->publishedUntil($storeId);
@@ -604,7 +603,7 @@ final class AdminShiftController
             'notified'  => $result['notified'],
         ], $storeId);
 
-        return redirect()->away($back . $sep . 'success=published&notified=' . $result['notified']);
+        return redirect()->away($back)->with('success', 'published')->with('notified', $result['notified']);
     }
 
     /**
@@ -798,7 +797,7 @@ final class AdminShiftController
         $uid    = (int) $request->post('user_id', 0);
 
         if (!$isOpen && $uid > 0 && $this->hasApprovedTimeoffConflict($uid, $shiftDate)) {
-            return redirect()->away($this->base() . '/admin/shifts/create?error=timeoff_conflict&store_id=' . $storeId);
+            return redirect()->away($this->base() . '/admin/shifts/create?store_id=' . $storeId)->with('error', 'timeoff_conflict');
         }
 
         if (!$isOpen && $uid > 0 && !$this->availabilityForced($request)) {
@@ -856,11 +855,10 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->post('redirect_to', ''), '');
         if ($redirectTo !== '') {
-            $sep = str_contains($redirectTo, '?') ? '&' : '?';
-            return redirect()->away($redirectTo . $sep . 'success=created');
+            return redirect()->away($redirectTo)->with('success', 'created');
         }
 
-        return redirect()->away($this->base() . '/admin/shifts?success=created');
+        return redirect()->away($this->base() . '/admin/shifts')->with('success', 'created');
     }
 
     public function editShift(Request $request): Response
@@ -928,7 +926,7 @@ final class AdminShiftController
 
         $targetUid = $isOpen ? 0 : (int) $request->post('user_id', $shift['user_id']);
         if (!$isOpen && $targetUid > 0 && $this->hasApprovedTimeoffConflict($targetUid, $shiftDate)) {
-            return redirect()->away($this->base() . '/admin/shifts/' . $shift['id'] . '/edit?error=timeoff_conflict');
+            return redirect()->away($this->base() . '/admin/shifts/' . $shift['id'] . '/edit')->with('error', 'timeoff_conflict');
         }
 
         // Seulement quand la personne ou la date change : une simple retouche d'horaire ne doit pas redemander.
@@ -1019,11 +1017,10 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->post('redirect_to', ''), '');
         if ($redirectTo !== '') {
-            $sep = str_contains($redirectTo, '?') ? '&' : '?';
-            return redirect()->away($redirectTo . $sep . 'success=updated');
+            return redirect()->away($redirectTo)->with('success', 'updated');
         }
 
-        return redirect()->away($this->base() . '/admin/shifts?success=updated');
+        return redirect()->away($this->base() . '/admin/shifts')->with('success', 'updated');
     }
 
     /**
@@ -1074,10 +1071,9 @@ final class AdminShiftController
 
         $redirectTo = safe_redirect_path((string) $request->post('redirect_to', ''), '');
         if ($redirectTo !== '') {
-            $sep = str_contains($redirectTo, '?') ? '&' : '?';
-            return redirect()->away($redirectTo . $sep . 'success=conflict_resolved');
+            return redirect()->away($redirectTo)->with('success', 'conflict_resolved');
         }
-        return redirect()->away($this->base() . '/admin/shifts?success=deleted');
+        return redirect()->away($this->base() . '/admin/shifts')->with('success', 'deleted');
     }
 
     /**

@@ -14,7 +14,7 @@ $action = $mode === 'edit'
     ? $BASE_URL . '/admin/shift-types/' . (int) $shift_type['id'] . '/edit'
     : route_url('admin.shift_types.create');
 
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'store_required' => __('val_store_required'),
 ])->render();
 @endphp

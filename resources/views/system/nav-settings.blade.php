@@ -37,7 +37,7 @@ foreach ($sectionOrder as $sk) {
 // Barre mobile : entrées « mobile » de la navigation réelle, permises et actives pour ce magasin.
 $bottomNavPool = $_navigation->mobileChoices(true, $route_visible ?? fn(string $r): bool => true, $hasFeat);
 
-echo Flash::fromQuery('success', ['default' => __('operation_success'), '1' => __('operation_success')])->render();
+echo Flash::fromSession('success', ['default' => __('operation_success'), '1' => __('operation_success')])->render();
 @endphp
 <div class="page-header">
     <h2 class="page-header__title">{!! __('nav_settings') !!}</h2>

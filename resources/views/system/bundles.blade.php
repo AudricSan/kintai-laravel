@@ -13,8 +13,8 @@ use App\View\Components\Flash;
 $maxActiveBundles ??= null;
 $activeCount      ??= 0;
 
-echo Flash::fromQuery('success', ['default' => __('save_success')])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('success', ['default' => __('save_success')])->render();
+echo Flash::fromSession('error', [
     'bundle_quota_exceeded' => __('bundle_quota_exceeded', ['max' => $maxActiveBundles]),
 ])->render();
 @endphp

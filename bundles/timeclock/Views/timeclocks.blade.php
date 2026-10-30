@@ -25,7 +25,7 @@ $total           ??= count($entries);
 $page            ??= 1;
 $total_pages     ??= 1;
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'edited' => __('timeclock_edited'),
     'deleted' => __('timeclock_deleted'),
 ])->render();

@@ -317,7 +317,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $response = $this->controller()->approveShiftClaim($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=already_resolved', $this->locationOf($response));
+        $this->assertStringContainsString('already_resolved', (string) session('error'));
     }
 
     /**
@@ -361,7 +361,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $response = $this->controller()->approveShiftClaim($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=already_resolved', $this->locationOf($response));
+        $this->assertStringContainsString('already_resolved', (string) session('error'));
         $this->assertSame('pending', $reverted['status']);
         $this->assertNull($reverted['resolved_at']);
         $this->assertNull($reverted['resolved_by']);

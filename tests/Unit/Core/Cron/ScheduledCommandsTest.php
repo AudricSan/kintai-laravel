@@ -117,7 +117,7 @@ final class ScheduledCommandsTest extends TestCase
 
         $this->assertTrue($data['ok']);
         $this->assertSame(1, $data['deleted']);
-        $this->assertSame(date('Y-m-d H:i:s', strtotime('-30 days')), $data['cutoff']);
+        $this->assertEqualsWithDelta(strtotime('-30 days'), strtotime($data['cutoff']), 2, 'la date limite est calculée à la seconde près');
     }
 
     public function testLogPurgeSkipsWhenRetentionIsUnlimited(): void

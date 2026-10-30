@@ -154,7 +154,8 @@ final class ExportControllerTest extends TestCase
             $response = $this->controller->download($this->request(['dataset' => $dataset, 'target' => $target, 'format' => 'json']));
 
             $this->assertSame(302, $response->getStatusCode(), "$dataset/$target");
-            $this->assertStringContainsString('/exports?error=forbidden', $response->headers->get('Location'));
+            $this->assertStringContainsString('/exports', $response->headers->get('Location'));
+            $this->assertStringContainsString('forbidden', (string) session('error'));
         }
     }
 
@@ -166,7 +167,7 @@ final class ExportControllerTest extends TestCase
 
         $other = $this->controller->download($this->request(['dataset' => 'employees', 'target' => 'me', 'format' => 'ics']));
         $this->assertSame(302, $other->getStatusCode());
-        $this->assertStringNotContainsString('error=', $other->headers->get('Location'));
+        $this->assertNull(session('error'));
     }
 
     public function testUnknownDatasetOrFormatGoesBackToThePage(): void

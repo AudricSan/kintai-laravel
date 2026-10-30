@@ -246,7 +246,7 @@ trait HasStaffReportCrud
 
     private function redirectToList(int $storeId, string $slug, string $flag): Response
     {
-        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/' . $slug . '?success=' . $flag);
+        return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/' . $slug)->with('success', $flag);
     }
 
     /**

@@ -22,12 +22,12 @@ use App\View\Components\Flash;
  * @var string|null $BASE_URL
  */
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'activated'   => __('license_activated_success'),
     'refreshed'   => __('license_refreshed_success'),
     'deactivated' => __('license_deactivated_success'),
 ])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'missing_license_key'   => __('license_missing_key'),
     'server_not_configured' => __('license_server_not_configured'),
     'server_unreachable'    => __('license_server_unreachable'),

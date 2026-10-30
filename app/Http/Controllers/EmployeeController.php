@@ -538,7 +538,7 @@ final class EmployeeController
         $memberships = $this->storeUsers->findByUser($userId);
         $myStoreIds  = array_map(fn($m) => (int) $m['store_id'], $memberships);
         if (!in_array($storeId, $myStoreIds, true)) {
-            return redirect()->away($this->base() . '/profile?tab=availability&error=forbidden');
+            return redirect()->away($this->base() . '/profile?tab=availability')->with('error', 'forbidden');
         }
 
         $oldAvailabilities = Availability::findByUserAndStore($userId, $storeId);
@@ -572,7 +572,7 @@ final class EmployeeController
         $newAvailabilities = Availability::findByUserAndStore($userId, $storeId);
         $this->auditLogger->logUpdate($request, 'availability.updated', 'availability', null, $oldAvailabilities, $newAvailabilities, ['store_id' => $storeId], $storeId);
 
-        return redirect()->away($this->base() . '/profile?tab=availability&store_id=' . $storeId . '&success=saved');
+        return redirect()->away($this->base() . '/profile?tab=availability&store_id=' . $storeId)->with('success', 'saved');
     }
 
     // Bourse aux shifts : bundle distribué hors monorepo (kintai-bundle-shift-claim), voir docs/architecture.md
@@ -640,6 +640,6 @@ final class EmployeeController
             'bottom_nav' => $bottomItems,
         ], []);
 
-        return redirect()->away($this->base() . '/profile?tab=nav&success=1');
+        return redirect()->away($this->base() . '/profile?tab=nav')->with('success', '1');
     }
 }

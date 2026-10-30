@@ -42,18 +42,18 @@ $claimStatusLabels = [
 ];
 
 if ($_canManage) {
-    Flash::fromQuery('success', [
+    Flash::fromSession('success', [
         'published'      => __('shift_claim_open_shift_published'),
         'unpublished'    => __('shift_claim_open_shift_unpublished'),
         'claim_approved' => __('shift_claim_approved'),
         'claim_rejected' => __('shift_claim_rejected'),
     ])->render();
-    echo Flash::fromQuery('error', ['default' => __('error_generic')])->render();
+    echo Flash::fromSession('error', ['default' => __('error_generic')])->render();
 } else {
-    echo Flash::fromQuery('success', [
+    echo Flash::fromSession('success', [
         'claimed' => __('shift_claim_shift_claimed'), 'withdrawn' => __('shift_claim_withdrawn'),
     ])->render();
-    echo Flash::fromQuery('error', [
+    echo Flash::fromSession('error', [
         'already_claimed' => __('shift_claim_already_claimed'), 'forbidden' => __('shift_claim_action_impossible'),
         'not_found' => __('shift_claim_error_open_shift_unavailable'), 'own_shift' => __('shift_claim_error_open_shift_own'),
     ])->render();

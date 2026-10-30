@@ -33,7 +33,7 @@ $activeFilters = array_filter([
     'store_id' => $filter_store_id ?: null,
 ], fn($v) => $v !== null);
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('operation_success'),
     'updated' => __('user_updated'),
     'deleted' => __('operation_success'),

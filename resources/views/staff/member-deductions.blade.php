@@ -29,7 +29,7 @@ $fields = [
     'resident_tax_monthly' => ['label_key' => 'ded_resident_tax',         'rate_key' => 'resident_tax_monthly',      'is_flat' => true],
 ];
 
-echo Flash::fromQuery('success', ['default' => __('operation_success')])->render();
+echo Flash::fromSession('success', ['default' => __('operation_success')])->render();
 @endphp
 <div class="page-header">
     <h2 class="page-header__title">

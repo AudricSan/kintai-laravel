@@ -186,7 +186,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $this->assertSame('https://old.example.com', AppSetting::map()[PublicUrlResolver::SETTING_KEY]);
         $this->assertArrayNotHasKey('app_subtitle', AppSetting::map(), 'Rien ne doit être enregistré quand l\'URL est refusée.');
-        $this->assertStringContainsString('error=public_url_invalid', $this->locationOf($response));
+        $this->assertStringContainsString('public_url_invalid', (string) session('error'));
     }
 
     public function testSaveAcceptsAnEmptyPublicUrl(): void
@@ -288,7 +288,7 @@ final class OwnerSettingsControllerTest extends TestCase
             $response = $this->makeControllerWithLocale($dir)->save(Request::capture());
 
             $this->assertSame("APP_LOCALE=ja\n", file_get_contents($dir . '/.env'));
-            $this->assertStringContainsString('success=1', (string) ($response->headers->get('Location') ?? ''));
+            $this->assertStringContainsString('1', (string) session('success'));
         } finally {
             @unlink($dir . '/.env');
             @rmdir($dir);
@@ -302,7 +302,7 @@ final class OwnerSettingsControllerTest extends TestCase
         $_POST = ['app_locale' => 'ja', 'app_subtitle' => 'Ma société'];
         $response = $this->makeControllerWithLocale(sys_get_temp_dir() . '/kintai-missing-dir-' . uniqid())->save(Request::capture());
 
-        $this->assertStringContainsString('error=instance_locale_not_saved', (string) ($response->headers->get('Location') ?? ''));
+        $this->assertStringContainsString('instance_locale_not_saved', (string) session('error'));
         $this->assertSame('Ma société', AppSetting::map()['app_subtitle']);
     }
 }

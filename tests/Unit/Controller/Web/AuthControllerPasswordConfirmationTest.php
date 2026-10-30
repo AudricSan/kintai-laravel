@@ -135,7 +135,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
         $location = $this->locationOf($this->changePasswordTo(substr(bin2hex(random_bytes(8)), 0, PasswordPolicy::MIN_LENGTH - 1)));
 
-        $this->assertStringContainsString('error=password_too_short', $location);
+        $this->assertStringContainsString('password_too_short', (string) session('error'));
     }
 
     public function testFourCharactersNoLongerPass(): void
@@ -145,7 +145,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
         $location = $this->locationOf($this->changePasswordTo(substr(bin2hex(random_bytes(4)), 0, 4)));
 
-        $this->assertStringContainsString('error=password_too_short', $location);
+        $this->assertStringContainsString('password_too_short', (string) session('error'));
     }
 
     public function testAPasswordOfExactlyTheMinimumLengthIsAccepted(): void
@@ -154,7 +154,7 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
 
         $location = $this->locationOf($this->changePasswordTo(substr(bin2hex(random_bytes(8)), 0, PasswordPolicy::MIN_LENGTH)));
 
-        $this->assertStringNotContainsString('error=', $location);
+        $this->assertNull(session('error'));
     }
 
     public function testAccountDeletionRefusedWhenStoredHashIsEmpty(): void

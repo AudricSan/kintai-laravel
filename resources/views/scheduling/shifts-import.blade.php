@@ -8,7 +8,7 @@ use App\View\Components\Flash;
 /** @var array       $all_stores */
 /** @var string|null $error */
 
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'upload' => __('upload_error'),
     'parse'  => __('parse_error'),
     'empty'  => __('empty_file_error'),

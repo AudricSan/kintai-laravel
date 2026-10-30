@@ -40,13 +40,13 @@ if (!function_exists('kintai_swap_shift_cell')) {
     }
 }
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'approved' => __('approved'),
     'refused'  => __('rejected'),
     'created'  => __('shift_swap_swap_created_admin'),
     'deleted'  => __('shift_swap_swap_deleted'),
 ])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'invalid_state' => __('shift_swap_action_impossible'),
     'swap_conflict' => __('shift_swap_swap_conflict_error'),
 ])->render();

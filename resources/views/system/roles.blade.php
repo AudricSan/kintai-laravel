@@ -8,12 +8,12 @@ use App\View\Components\Flash;
 /** @var array $roles             Liste des rôles */
 /** @var array $assignment_counts Map role_id => nombre d'affectations */
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('save_success'),
     'updated' => __('save_success'),
     'deleted' => __('save_success'),
 ])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'role_in_use' => __('role_in_use'),
 ])->render();
 @endphp

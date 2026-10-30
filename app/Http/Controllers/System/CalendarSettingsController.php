@@ -63,7 +63,7 @@ final class CalendarSettingsController
             $before, ['enabled' => $enabled, 'client_id' => $clientId], ['secret_changed' => trim($secret) !== ''],
         );
 
-        return redirect()->away($this->base() . '/admin/calendar-settings?success=saved');
+        return redirect()->away($this->base() . '/admin/calendar-settings')->with('success', 'saved');
     }
 
     /** POST /admin/calendar-settings/test : vérifie l'identifiant et le secret auprès de Google. */

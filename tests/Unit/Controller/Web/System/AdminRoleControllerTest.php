@@ -495,7 +495,7 @@ final class AdminRoleControllerTest extends TestCase
         $response = $this->controller()->addHolder($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=holder_added', $this->redirectLocation($response));
+        $this->assertStringContainsString('holder_added', (string) session('success'));
         $this->assertSame([[7, 1, 'global', null]], $assigned);
     }
 
@@ -512,7 +512,7 @@ final class AdminRoleControllerTest extends TestCase
         $response = $this->controller()->addHolder($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=invalid_holder', $this->redirectLocation($response));
+        $this->assertStringContainsString('invalid_holder', (string) session('error'));
     }
 
     public function testAddHolderRedirectsWithErrorWhenSelectedUserHasNoStore(): void
@@ -532,7 +532,7 @@ final class AdminRoleControllerTest extends TestCase
         $response = $this->controller()->addHolder($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=invalid_holder', $this->redirectLocation($response));
+        $this->assertStringContainsString('invalid_holder', (string) session('error'));
     }
 
     public function testAddHolderAssignsEachValidUserToEveryStoreTheyBelongTo(): void
@@ -564,7 +564,7 @@ final class AdminRoleControllerTest extends TestCase
         $response = $this->controller()->addHolder($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=holder_added', $this->redirectLocation($response));
+        $this->assertStringContainsString('holder_added', (string) session('success'));
         $this->assertSame([
             [7, 2, 'store', 3],
             [8, 2, 'store', 3],
@@ -600,7 +600,7 @@ final class AdminRoleControllerTest extends TestCase
         $response = $this->controller()->removeHolder($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=holder_removed', $this->redirectLocation($response));
+        $this->assertStringContainsString('holder_removed', (string) session('success'));
     }
 
     public function testRemoveHolderRefusesToRemoveTheOwnerRoleFromTheActor(): void
@@ -659,7 +659,7 @@ final class AdminRoleControllerTest extends TestCase
         $response = $this->controller()->removeHolder($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=holder_removed', $this->redirectLocation($response));
+        $this->assertStringContainsString('holder_removed', (string) session('success'));
     }
 
     // -------------------------------------------------------------------------

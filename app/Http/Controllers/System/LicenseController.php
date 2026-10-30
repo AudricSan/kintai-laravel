@@ -64,7 +64,7 @@ final class LicenseController
     {
         $licenseKey = trim($request->post('license_key', ''));
         if ($licenseKey === '') {
-            return redirect()->away($this->base() . '/admin/license?error=missing_license_key');
+            return redirect()->away($this->base() . '/admin/license')->with('error', 'missing_license_key');
         }
 
         $result = $this->license->activate($licenseKey);
@@ -74,12 +74,12 @@ final class LicenseController
         ]);
 
         if (!($result['valid'] ?? false)) {
-            return redirect()->away($this->base() . '/admin/license?error=' . urlencode((string) ($result['error'] ?? 'unknown')));
+            return redirect()->away($this->base() . '/admin/license')->with('error', (string) ($result['error'] ?? 'unknown'));
         }
 
         $this->installPendingBundles($request);
 
-        return redirect()->away($this->base() . '/admin/license?success=activated');
+        return redirect()->away($this->base() . '/admin/license')->with('success', 'activated');
     }
 
     /**
@@ -122,13 +122,13 @@ final class LicenseController
         ]);
 
         if ($result === null) {
-            return redirect()->away($this->base() . '/admin/license?error=no_license');
+            return redirect()->away($this->base() . '/admin/license')->with('error', 'no_license');
         }
         if (!($result['valid'] ?? false)) {
-            return redirect()->away($this->base() . '/admin/license?error=' . urlencode((string) ($result['error'] ?? 'unknown')));
+            return redirect()->away($this->base() . '/admin/license')->with('error', (string) ($result['error'] ?? 'unknown'));
         }
 
-        return redirect()->away($this->base() . '/admin/license?success=refreshed');
+        return redirect()->away($this->base() . '/admin/license')->with('success', 'refreshed');
     }
 
     /** POST /admin/license/deactivate */
@@ -138,6 +138,6 @@ final class LicenseController
 
         $this->auditLogger->log($request, 'license.deactivated', 'system', null, []);
 
-        return redirect()->away($this->base() . '/admin/license?success=deactivated');
+        return redirect()->away($this->base() . '/admin/license')->with('success', 'deactivated');
     }
 }

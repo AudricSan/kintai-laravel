@@ -26,10 +26,10 @@ $typeLabels = [
     <h2 class="page-header__title"><?= __('timeoff_my_timeoff') ?></h2>
 </div>
 
-<?= \kintai\Contract\View\Components\Flash::fromQuery('success', [
+<?= \kintai\Contract\View\Components\Flash::fromSession('success', [
     'created' => __('timeoff_request_sent'), 'cancelled' => __('timeoff_cancelled'),
 ])->render() ?>
-<?= \kintai\Contract\View\Components\Flash::fromQuery('error', ['not_pending' => __('timeoff_error_not_pending'), 'invalid_state' => __('timeoff_action_impossible')])->render() ?>
+<?= \kintai\Contract\View\Components\Flash::fromSession('error', ['not_pending' => __('timeoff_error_not_pending'), 'invalid_state' => __('timeoff_action_impossible')])->render() ?>
 
 <!-- Formulaire création -->
 <?php

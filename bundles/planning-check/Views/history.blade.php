@@ -30,7 +30,7 @@ $_errorCode = (string) ($_GET['pc_error'] ?? '');
     </div>
 </div>
 
-<?= Flash::fromQuery('pc', $_success)->render() ?>
+<?= Flash::fromSession('pc', $_success)->render() ?>
 <?php if ($_errorCode !== ''): ?>
     <div class="alert alert--danger mb-sm"><?= htmlspecialchars(__('planning_check_err_' . preg_replace('/[^a-z_]/', '', $_errorCode))) ?></div>
 <?php endif; ?>

@@ -33,8 +33,8 @@ final class LanguageController
             'languages' => $this->languages->findAll(),
             // Langue de l'instance (APP_LOCALE) : choisie dans les paramètres de l'instance, plus ici.
             'instance_locale' => InstanceLocale::resolve($this->languages),
-            'error'     => $request->query('error'),
-            'success'   => $request->query('success'),
+            'error'     => session('error'),
+            'success'   => session('success'),
         ])->render());
     }
 
@@ -46,7 +46,7 @@ final class LanguageController
         $name = trim((string) $request->post('name', ''));
 
         if (!preg_match('/^[a-z]{2}(-[a-z]{2})?$/', $code) || $name === '' || mb_strlen($name) > 100) {
-            return redirect()->away($this->base() . '/admin/languages?error=invalid');
+            return redirect()->away($this->base() . '/admin/languages')->with('error', 'invalid');
         }
 
         $existing = $this->languages->findByCode($code);
@@ -64,7 +64,7 @@ final class LanguageController
             ['code' => $code, 'name' => $name],
         );
 
-        return redirect()->away($this->base() . '/admin/languages?success=' . ($existing ? 'updated' : 'created'));
+        return redirect()->away($this->base() . '/admin/languages')->with('success', $existing ? 'updated' : 'created');
     }
 
     /** POST /admin/languages/{code}/toggle-active */
@@ -74,18 +74,18 @@ final class LanguageController
         $code = (string) $request->route('code');
         $lang = $this->languages->findByCode($code);
         if (!$lang) {
-            return redirect()->away($this->base() . '/admin/languages?error=not_found');
+            return redirect()->away($this->base() . '/admin/languages')->with('error', 'not_found');
         }
         // La langue de l'instance ne peut être ni désactivée ni supprimée.
         if ($code === InstanceLocale::resolve($this->languages) && !empty($lang['is_active'])) {
-            return redirect()->away($this->base() . '/admin/languages?error=default_forbidden');
+            return redirect()->away($this->base() . '/admin/languages')->with('error', 'default_forbidden');
         }
 
         $this->languages->toggleActive($code, empty($lang['is_active']));
 
         $this->auditLogger->log($request, 'language.toggle_active', 'language', null, ['code' => $code]);
 
-        return redirect()->away($this->base() . '/admin/languages?success=toggled');
+        return redirect()->away($this->base() . '/admin/languages')->with('success', 'toggled');
     }
 
     /** POST /admin/languages/{code}/delete */
@@ -98,10 +98,10 @@ final class LanguageController
             return redirect()->away($this->base() . '/admin/languages');
         }
         if ($code === InstanceLocale::resolve($this->languages)) {
-            return redirect()->away($this->base() . '/admin/languages?error=delete_default_forbidden');
+            return redirect()->away($this->base() . '/admin/languages')->with('error', 'delete_default_forbidden');
         }
         if (!empty($lang['is_active']) && count($this->languages->findAllActive()) <= 1) {
-            return redirect()->away($this->base() . '/admin/languages?error=delete_last_active_forbidden');
+            return redirect()->away($this->base() . '/admin/languages')->with('error', 'delete_last_active_forbidden');
         }
 
         $this->languages->delete($code);
@@ -111,7 +111,7 @@ final class LanguageController
             'name' => $lang['name'],
         ]);
 
-        return redirect()->away($this->base() . '/admin/languages?success=deleted');
+        return redirect()->away($this->base() . '/admin/languages')->with('success', 'deleted');
     }
 
     /** GET /admin/languages/{code}/edit */
@@ -138,8 +138,8 @@ final class LanguageController
             'search'   => $search,
             'page'     => $page,
             'perPage'  => $perPage,
-            'error'    => $request->query('error'),
-            'success'  => $request->query('success'),
+            'error'    => session('error'),
+            'success'  => session('success'),
         ])->render());
     }
 

@@ -290,7 +290,7 @@ final class AdminSalaryReportController
 
         $existing = $this->salaryReports->findByStoreAndMonth($storeId, $targetMonth, $userId ?: null);
         if ($existing !== null) {
-            return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/salary/' . $existing['id'] . '/edit?error=already_exists');
+            return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/salary/' . $existing['id'] . '/edit')->with('error', 'already_exists');
         }
 
         $data = array_merge([

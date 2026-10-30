@@ -38,14 +38,14 @@ $defaultClose = '18:00';
 </div>
 
 @php
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'saved'            => __('save_success'),
     'password_changed' => __('password_changed_success'),
     'avatar_saved'     => __('avatar_saved'),
     'avatar_removed'   => __('avatar_removed'),
     '1'                => __('operation_success'),
 ])->render();
-$errMsg = match ($_GET['error'] ?? '') {
+$errMsg = match (session('error', '')) {
     'password_mismatch'      => __('password_mismatch'),
     'password_too_short'     => __('password_too_short'),
     'current_password_wrong' => __('current_password_wrong'),

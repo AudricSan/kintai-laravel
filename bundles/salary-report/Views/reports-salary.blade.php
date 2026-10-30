@@ -75,7 +75,7 @@ $months = [
     '10' => __('October'), '11' => __('November'), '12' => __('December'),
 ];
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('salary_report_sr_created'),
     'updated' => __('salary_report_sr_updated'),
     'deleted' => __('salary_report_sr_deleted'),

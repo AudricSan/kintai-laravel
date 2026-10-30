@@ -23,16 +23,16 @@ $channelLabels = [
     'email'    => __('notif_channel_email'),
 ];
 
-$flash = Flash::fromQuery('success', [
+$flash = Flash::fromSession('success', [
     'saved' => __('save_success'),
     'vapid' => __('notif_admin_vapid_done'),
 ]);
-if (($_GET['success'] ?? '') === 'test') {
+if ((session('success', '')) === 'test') {
     echo Alert::make(__('notif_admin_test_sent', ['channels' => implode(', ', array_map(fn($c) => $channelLabels[$c], $test_channels))]))->success()->render();
 } else {
     echo $flash->render();
 }
-if (($_GET['error'] ?? '') === 'vapid_failed') {
+if ((session('error', '')) === 'vapid_failed') {
     echo Alert::make(__('notif_admin_vapid_failed'))->danger()->render();
 }
 

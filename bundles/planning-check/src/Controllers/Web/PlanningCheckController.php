@@ -290,7 +290,7 @@ final class PlanningCheckController
         $this->repo->saveSettings((int) $store['id'], $settings);
         $this->auditLogger->logUpdate($request, 'planning_check.settings_saved', 'planning_check_settings', (int) $store['id'], $before, $settings, ['store_id' => (int) $store['id']], (int) $store['id']);
 
-        return redirect()->away($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings?success=saved');
+        return redirect()->away($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings')->with('success', 'saved');
     }
 
     /** POST /admin/stores/{id}/planning-check/test — envoie un PDF d'essai (planning de demain tel qu'il est) à l'utilisateur. */
@@ -301,7 +301,7 @@ final class PlanningCheckController
         $email = (string) ($user['email'] ?? '');
         $url = $this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings';
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            return redirect()->away($url . '?error=test_no_email');
+            return redirect()->away($url)->with('error', 'test_no_email');
         }
 
         $now = new \DateTimeImmutable('now');
@@ -312,7 +312,7 @@ final class PlanningCheckController
         $bytes = $this->pdf->generateBytes($store, $check, $day, ['validated_by' => '', 'generated_at' => $now->format('H:i')]);
         $result = $this->mail->send($store, $check, ['mail_recipients' => [$email]], $bytes, []);
 
-        return redirect()->away($url . ($result['ok'] ? '?success=test_sent' : '?error=test_failed'));
+        return redirect()->away($url)->with($result['ok'] ? 'success' : 'error', $result['ok'] ? 'test_sent' : 'test_failed');
     }
 
     /**

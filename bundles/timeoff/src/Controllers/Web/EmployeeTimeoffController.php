@@ -106,7 +106,7 @@ final class EmployeeTimeoffController
             $this->notifyManagers($storeId, (int) ($savedTimeoff['id'] ?? 0), $userId, $type, $startDate, $endDate);
         }
 
-        return redirect()->away($this->base() . '/employee/timeoff?success=created');
+        return redirect()->away($this->base() . '/employee/timeoff')->with('success', 'created');
     }
 
     /** @return int[] Magasins dont l'employé est membre (le premier sert de défaut). */
@@ -204,12 +204,12 @@ final class EmployeeTimeoffController
             throw new ForbiddenException(__('timeoff_error_request_not_found'));
         }
         if (($req['status'] ?? '') !== 'pending') {
-            return redirect()->away($this->base() . '/employee/timeoff?error=not_pending');
+            return redirect()->away($this->base() . '/employee/timeoff')->with('error', 'not_pending');
         }
 
         $cancelledReq = array_merge($req, ['status' => 'cancelled']);
         $this->timeoffRequests->save($cancelledReq);
         $this->auditLogger->logUpdate($request, 'timeoff.cancelled', 'timeoff_request', (int) $req['id'], $req, $cancelledReq, []);
-        return redirect()->away($this->base() . '/employee/timeoff?success=cancelled');
+        return redirect()->away($this->base() . '/employee/timeoff')->with('success', 'cancelled');
     }
 }

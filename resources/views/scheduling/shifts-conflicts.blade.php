@@ -15,7 +15,7 @@ use App\View\Components\Alert;
 /** @var int    $filter_store_id */
 /** @var string $filter_month */
 
-$_flashConflict = \App\View\Components\Flash::fromQuery('success', [
+$_flashConflict = \App\View\Components\Flash::fromSession('success', [
     'conflict_resolved'  => __('conflict_resolved_ok'),
     'conflicts_resolved' => fn() => __('conflicts_resolved_ok', ['n' => (int) ($_GET['count'] ?? 0)]),
 ]);

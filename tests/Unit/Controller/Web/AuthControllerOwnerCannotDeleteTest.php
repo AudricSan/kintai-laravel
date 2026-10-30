@@ -103,7 +103,7 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
 
         $this->assertSame(302, $response->getStatusCode());
         $location = (string) ($response->headers->get('Location', ''));
-        $this->assertStringContainsString('error=owner_cannot_delete', $location);
+        $this->assertStringContainsString('owner_cannot_delete', (string) session('error'));
     }
 
     public function testANonOwnerStillCanDeleteTheirAccount(): void

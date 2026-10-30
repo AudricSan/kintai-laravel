@@ -98,7 +98,7 @@ final class ErrorResponder
                 return response()->json(['error' => __('error_419_message'), 'code' => 'CSRF_TOKEN_MISMATCH'], 419);
             }
             if (\App\Auth\AuthService::sessionUserId() === null) {
-                return redirect()->away(base_url() . '/login?error=expired');
+                return redirect()->away(base_url() . '/login')->with('error', 'expired');
             }
 
             return self::page(419, '');

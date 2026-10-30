@@ -148,7 +148,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
             $response = $this->controller->save(Request::capture());
 
-            $this->assertStringContainsString('success=saved', $this->location($response));
+            $this->assertStringContainsString('saved', (string) session('success'));
             $this->assertSame($stored, $this->settings->get('notifications_retention_days'), "saisi : $posted");
         }
     }
@@ -175,7 +175,7 @@ final class NotificationSettingsControllerTest extends TestCase
         $this->assertCount(1, $this->mails, 'l\'e-mail part malgré les préférences et les heures silencieuses');
         $this->assertSame(['owner@exemple.fr'], $this->mails[0]['to']);
         $location = $this->location($response);
-        $this->assertStringContainsString('success=test', $location);
+        $this->assertStringContainsString('test', (string) session('success'));
         $this->assertStringContainsString('channels=bell,web_push,email', $location);
     }
 
@@ -196,7 +196,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
         $response = $this->controller->regenerateVapid(Request::capture());
 
-        $this->assertStringContainsString('success=vapid', $this->location($response));
+        $this->assertStringContainsString('vapid', (string) session('success'));
         $this->assertNotSame($before, $this->settings->get(VapidKeyStore::PUBLIC_KEY));
     }
 
@@ -223,7 +223,7 @@ final class NotificationSettingsControllerTest extends TestCase
 
     public function testTheChannelListOfTheLastTestIsLimitedToKnownChannels(): void
     {
-        $_GET = ['success' => 'test'];
+        session()->put('success', 'test');
 
         $html = $this->page(array_values(array_intersect(explode(',', 'bell,<script>,email'), ['bell', 'web_push', 'mobile', 'email'])));
 

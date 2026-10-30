@@ -26,7 +26,7 @@ if ($redirect_to !== '') {
     $action .= $sep . 'redirect_to=' . urlencode($redirect_to);
 }
 
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'timeoff_conflict' => __('shift_timeoff_conflict'),
 ])->render();
 @endphp

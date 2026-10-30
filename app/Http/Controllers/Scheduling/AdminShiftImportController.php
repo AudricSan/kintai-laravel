@@ -39,7 +39,7 @@ final class AdminShiftImportController
         return response($this->view->make('scheduling.shifts-import', [
             'title'      => 'Importer des shifts Excel',
             'all_stores' => $this->availableStores($managedIds),
-            'error'      => $request->query('error'),
+            'error'      => session('error'),
         ])->render());
     }
 
@@ -50,17 +50,17 @@ final class AdminShiftImportController
 
         $file = $_FILES['excel_file'] ?? null;
         if (!$file || $file['error'] !== UPLOAD_ERR_OK || empty($file['tmp_name'])) {
-            return redirect()->away($this->base() . '/admin/shifts/import?error=upload');
+            return redirect()->away($this->base() . '/admin/shifts/import')->with('error', 'upload');
         }
 
         if ($file['size'] > 20 * 1024 * 1024) {
-            return redirect()->away($this->base() . '/admin/shifts/import?error=upload');
+            return redirect()->away($this->base() . '/admin/shifts/import')->with('error', 'upload');
         }
 
         $allowedExtensions = ['xlsx', 'xls', 'xlsm', 'csv', 'ods'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, $allowedExtensions, true)) {
-            return redirect()->away($this->base() . '/admin/shifts/import?error=upload');
+            return redirect()->away($this->base() . '/admin/shifts/import')->with('error', 'upload');
         }
 
         $allowedMimes = [
@@ -74,7 +74,7 @@ final class AdminShiftImportController
         $mime = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
         if ($mime !== false && !in_array($mime, $allowedMimes, true)) {
-            return redirect()->away($this->base() . '/admin/shifts/import?error=upload');
+            return redirect()->away($this->base() . '/admin/shifts/import')->with('error', 'upload');
         }
 
         $uploadDir = BASE_PATH . '/storage/uploads/' . $storeId . '/';
@@ -104,11 +104,11 @@ final class AdminShiftImportController
             $service  = new ExcelShiftImportService($settings);
             $entries  = $service->parse($filePath, $file['name']);
         } catch (\Throwable) {
-            return redirect()->away($this->base() . '/admin/shifts/import?error=parse');
+            return redirect()->away($this->base() . '/admin/shifts/import')->with('error', 'parse');
         }
 
         if (empty($entries)) {
-            return redirect()->away($this->base() . '/admin/shifts/import?error=empty');
+            return redirect()->away($this->base() . '/admin/shifts/import')->with('error', 'empty');
         }
 
         $entries  = $this->mergeAdjacentEntries($entries);
@@ -176,7 +176,7 @@ final class AdminShiftImportController
         $shiftsJson = $request->post('shifts_json', '');
         $shifts     = is_string($shiftsJson) ? (json_decode($shiftsJson, true) ?: []) : [];
         if (empty($shifts)) {
-            return redirect()->away($this->base() . '/admin/shifts?success=imported&count=0');
+            return redirect()->away($this->base() . '/admin/shifts?count=0')->with('success', 'imported');
         }
 
         $cfg         = $this->stores->getImportSettings($storeId);
@@ -283,7 +283,7 @@ final class AdminShiftImportController
             'skipped'          => $skipped,
             'deleted_obsolete' => $obsoleteDeleted,
         ], $storeId);
-        return redirect()->away($this->base() . '/admin/shifts?success=imported&count=' . ($count + $updated));
+        return redirect()->away($this->base() . '/admin/shifts?count=' . ($count + $updated))->with('success', 'imported');
     }
 
     /**

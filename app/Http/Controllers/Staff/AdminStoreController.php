@@ -123,7 +123,7 @@ final class AdminStoreController
         $this->auditLogger->log($request, 'store.created', 'store', (int) ($savedStore['id'] ?? 0), [
             'name' => $request->post('name', ''),
         ]);
-        return redirect()->away($this->base() . '/admin/stores?success=created');
+        return redirect()->away($this->base() . '/admin/stores')->with('success', 'created');
     }
 
     public function editStore(Request $request): Response
@@ -251,7 +251,7 @@ final class AdminStoreController
         $this->auditLogger->logUpdate($request, 'store.updated', 'store', $storeId, $store, $newStoreData, [
             'name' => $request->post('name', $store['name'] ?? ''),
         ], $storeId);
-        return redirect()->away($this->base() . '/admin/stores?success=updated');
+        return redirect()->away($this->base() . '/admin/stores')->with('success', 'updated');
     }
 
     public function deleteStore(Request $request): Response
@@ -270,7 +270,7 @@ final class AdminStoreController
         $this->auditLogger->log($request, 'store.deleted', 'store', $id, [
             'name' => $store['name'] ?? null,
         ]);
-        return redirect()->away($this->base() . '/admin/stores?success=deleted');
+        return redirect()->away($this->base() . '/admin/stores')->with('success', 'deleted');
     }
 
     /**
@@ -343,9 +343,9 @@ final class AdminStoreController
         // Retour vers la fiche employé quand l'ajout part de là (champ caché), sinon vers la fiche du magasin.
         $dest = safe_redirect_path(
             (string) $request->post('redirect_to', ''),
-            $this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=member_added',
+            $this->base() . '/admin/stores/' . store_segment($storeId) . '/edit',
         );
-        return redirect()->away($dest);
+        return redirect()->away($dest)->with('success', 'member_added');
     }
 
     public function updateMemberRole(Request $request): Response
@@ -361,7 +361,7 @@ final class AdminStoreController
 
         $role = $this->roleSync->findAssignableRole((int) $request->post('role_id', 0));
         if ($role === null) {
-            return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?error=invalid_role');
+            return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit')->with('error', 'invalid_role');
         }
         $roleId  = (int) $role['id'];
         $userId  = (int) $membership['user_id'];
@@ -376,7 +376,7 @@ final class AdminStoreController
             'user_id' => $membership['user_id'] ?? null,
         ], $storeId);
 
-        return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=role_updated');
+        return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit')->with('success', 'role_updated');
     }
 
     public function removeMember(Request $request): Response
@@ -399,7 +399,7 @@ final class AdminStoreController
             'user_id' => $membership['user_id'] ?? null,
         ], $storeId);
 
-        return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=member_removed');
+        return redirect()->away($this->base() . '/admin/stores/' . store_segment($storeId) . '/edit')->with('success', 'member_removed');
     }
 
     public function editMemberDeductions(Request $request): Response
@@ -451,12 +451,12 @@ final class AdminStoreController
         ], $storeId);
 
         $redirectTo = $request->post('_redirect_to', '');
-        $fallback   = $this->base() . '/admin/stores/' . store_segment($storeId) . '/edit?success=deductions_saved';
+        $fallback   = $this->base() . '/admin/stores/' . store_segment($storeId) . '/edit';
         $target     = ($redirectTo !== '' && str_starts_with($redirectTo, $this->base() . '/admin/'))
             ? $redirectTo
             : $fallback;
 
-        return redirect()->away($target);
+        return redirect()->away($target)->with('success', 'deductions_saved');
     }
 
     public function storeStats(Request $request): Response

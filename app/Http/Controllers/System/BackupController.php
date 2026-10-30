@@ -37,7 +37,7 @@ final class BackupController
         $filename = (string) $request->query('filename', '');
         $path = $this->backup->getPath($filename);
         if ($filename === '' || !file_exists($path)) {
-            return redirect()->away($this->base() . '/admin/backup?success=error_not_found');
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'error_not_found');
         }
 
         return response()->fileStream($path, 'application/zip', basename($path));
@@ -47,7 +47,7 @@ final class BackupController
     {
 
         $backups = $this->backup->list();
-        $flash = $this->describeFlash((string) $request->query('success', ''));
+        $flash = $this->describeFlash((string) session('success', ''));
 
         return response($this->view->make('system.backup', [
             'title'   => 'Sauvegardes',
@@ -76,13 +76,13 @@ final class BackupController
             'backup_max_keep'     => $maxKeep,
         ]);
 
-        return redirect()->away($this->base() . '/admin/backup?success=settings_saved');
+        return redirect()->away($this->base() . '/admin/backup')->with('success', 'settings_saved');
     }
 
     public function updatePage(Request $request): Response
     {
 
-        $flash = $this->describeFlash((string) $request->query('success', ''));
+        $flash = $this->describeFlash((string) session('success', ''));
 
         $updateInfo = $this->githubUpdate->checkLatestRelease();
         $releaseNotesCondensed = $updateInfo !== null
@@ -136,7 +136,7 @@ final class BackupController
 
         $this->auditLogger->log($request, 'update.channel_changed', 'system', null, ['channel' => $channel]);
 
-        return redirect()->away($this->base() . '/admin/update?success=channel_' . $channel);
+        return redirect()->away($this->base() . '/admin/update')->with('success', 'channel_' . $channel);
     }
 
     /** POST /admin/update/apply — applique la dernière release GitHub disponible. */
@@ -153,7 +153,7 @@ final class BackupController
                 $result = $this->githubUpdate->applyUpdate();
             } catch (\Throwable $e) {
                 session()->flash('danger', __('error_prefix') . $e->getMessage());
-                return redirect()->away($this->base() . '/admin/update?success=error_failed');
+                return redirect()->away($this->base() . '/admin/update')->with('success', 'error_failed');
             }
 
             if (!$result['ok']) {
@@ -161,10 +161,10 @@ final class BackupController
                 // tout autre texte passe par la session, jamais par l'URL.
                 $code = (string) $result['error'];
                 if (preg_match('/^[a-z_]{1,60}$/', $code) === 1) {
-                    return redirect()->away($this->base() . '/admin/update?success=error_' . $code);
+                    return redirect()->away($this->base() . '/admin/update')->with('success', 'error_' . $code);
                 }
                 session()->flash('danger', __('error_prefix') . $code);
-                return redirect()->away($this->base() . '/admin/update?success=error_failed');
+                return redirect()->away($this->base() . '/admin/update')->with('success', 'error_failed');
             }
 
             $summary = sprintf(
@@ -183,7 +183,7 @@ final class BackupController
                 'migrations_applied' => $result['migrations_applied'],
             ]);
 
-            return redirect()->away($this->base() . '/admin/update?success=' . urlencode($summary));
+            return redirect()->away($this->base() . '/admin/update')->with('success', $summary);
         } finally {
             if (!$wasMaintenanceEnabled) {
                 $this->settings->setMany(['maintenance_mode_enabled' => '0']);
@@ -275,10 +275,10 @@ final class BackupController
                 'size'     => $result['size'],
                 'source'   => 'manual',
             ]);
-            return redirect()->away($this->base() . '/admin/backup?success=created_' . urlencode($result['filename']));
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'created_' . $result['filename']);
         } catch (\Throwable $e) {
             session()->flash('danger', __('error_prefix') . $e->getMessage());
-            return redirect()->away($this->base() . '/admin/backup?success=error_failed');
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'error_failed');
         }
     }
 
@@ -288,17 +288,17 @@ final class BackupController
         $filename = trim((string) $request->post('filename', ''));
 
         if ($filename === '') {
-            return redirect()->away($this->base() . '/admin/backup?success=error_no_file');
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'error_no_file');
         }
 
         try {
             $this->backup->restore($filename);
             $this->backup->enforceRetention($this->settings->backupMaxKeep());
             $this->auditLogger->log($request, 'backup.restored', 'system', null, ['filename' => $filename]);
-            return redirect()->away($this->base() . '/admin/backup?success=restored');
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'restored');
         } catch (\Throwable $e) {
             session()->flash('danger', __('error_prefix') . $e->getMessage());
-            return redirect()->away($this->base() . '/admin/backup?success=error_failed');
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'error_failed');
         }
     }
 
@@ -308,12 +308,12 @@ final class BackupController
         $filename = trim((string) $request->post('filename', ''));
 
         if ($filename === '') {
-            return redirect()->away($this->base() . '/admin/backup?success=error_no_file');
+            return redirect()->away($this->base() . '/admin/backup')->with('success', 'error_no_file');
         }
 
         $this->backup->delete($filename);
         $this->auditLogger->log($request, 'backup.deleted', 'system', null, ['filename' => $filename]);
-        return redirect()->away($this->base() . '/admin/backup?success=deleted');
+        return redirect()->away($this->base() . '/admin/backup')->with('success', 'deleted');
     }
 
     public function migrate(Request $request): Response
@@ -329,11 +329,11 @@ final class BackupController
                 $count = count($this->update->getPendingMigrations());
                 Artisan::call('migrate', ['--force' => true]);
                 $this->auditLogger->log($request, 'system.migration_applied', 'system', null, ['migrations_applied' => $count]);
-                return redirect()->away($this->base() . '/admin/update?success=migrated');
+                return redirect()->away($this->base() . '/admin/update')->with('success', 'migrated');
             } catch (\Throwable $e) {
                 $this->auditLogger->log($request, 'db.migration_failed', 'system', null, ['error' => $e->getMessage()]);
                 session()->flash('danger', __('error_prefix') . $e->getMessage());
-                return redirect()->away($this->base() . '/admin/update?success=error_failed');
+                return redirect()->away($this->base() . '/admin/update')->with('success', 'error_failed');
             }
         } finally {
             if (!$wasMaintenanceEnabled) {
@@ -347,11 +347,11 @@ final class BackupController
 
         $count = $this->backup->deleteAll();
         $this->auditLogger->log($request, 'backup.deleted_all', 'system', null, ['count' => $count]);
-        return redirect()->away($this->base() . '/admin/backup?success=deleted_all_' . $count);
+        return redirect()->away($this->base() . '/admin/backup')->with('success', 'deleted_all_' . $count);
     }
 
     /**
-     * Traduit le code brut de ?success=... (voir les redirections de ce contrôleur)
+     * Traduit le code brut du flash « success » (voir les redirections de ce contrôleur)
      * en message affichable, stylé succès/erreur. Sans ça, la vue affichait le code
      * tel quel (ex. "error_SQLSTATE[...]...") dans une boîte neutre non stylée en
      * erreur — voir CHANGELOG. Les tests existants continuent d'asserter sur le code

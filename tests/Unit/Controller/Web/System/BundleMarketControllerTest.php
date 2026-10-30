@@ -103,7 +103,7 @@ final class BundleMarketControllerTest extends TestCase
         $response = $this->makeController()->store(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=invalid', $this->locationOf($response));
+        $this->assertStringContainsString('invalid', (string) session('error'));
     }
 
     public function testStoreRejectsNonHttpsUrl(): void
@@ -113,7 +113,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->store(Request::capture());
 
-        $this->assertStringContainsString('error=invalid', $this->locationOf($response));
+        $this->assertStringContainsString('invalid', (string) session('error'));
     }
 
     public function testStoreRejectsDuplicateUrl(): void
@@ -124,7 +124,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->store(Request::capture());
 
-        $this->assertStringContainsString('error=duplicate', $this->locationOf($response));
+        $this->assertStringContainsString('duplicate', (string) session('error'));
     }
 
     public function testStoreCreatesRegistryAndRedirectsToSuccess(): void
@@ -133,7 +133,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->store(Request::capture());
 
-        $this->assertStringContainsString('success=created', $this->locationOf($response));
+        $this->assertStringContainsString('created', (string) session('success'));
         $this->assertSame(['Mon registry'], BundleRegistry::where('is_official', false)->pluck('name')->all());
     }
 
@@ -146,7 +146,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->destroy($req);
 
-        $this->assertStringContainsString('error=delete_official_forbidden', $this->locationOf($response));
+        $this->assertStringContainsString('delete_official_forbidden', (string) session('error'));
         $this->assertNotNull(BundleRegistry::find($official->id));
     }
 
@@ -159,7 +159,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->destroy($req);
 
-        $this->assertStringContainsString('success=deleted', $this->locationOf($response));
+        $this->assertStringContainsString('deleted', (string) session('success'));
         $this->assertNull(BundleRegistry::find($perso->id));
     }
 
@@ -275,7 +275,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('error=invalid', $this->locationOf($response));
+        $this->assertStringContainsString('invalid', (string) session('error'));
     }
 
     public function testInstallRejectsAThirdPartyBundleWithoutExplicitConfirmation(): void
@@ -289,7 +289,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('error=invalid', $this->locationOf($response));
+        $this->assertStringContainsString('invalid', (string) session('error'));
     }
 
     public function testInstallSucceedsForAThirdPartyBundleWithExplicitConfirmation(): void
@@ -309,7 +309,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('success=fake-bundle', $this->locationOf($response));
+        $this->assertStringContainsString('fake-bundle', (string) session('success'));
     }
 
     private const PIN_REGISTRY_URL = 'https://registry.example.test/registry.json';
@@ -356,7 +356,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('success=fake-bundle', $this->locationOf($response));
+        $this->assertStringContainsString('fake-bundle', (string) session('success'));
     }
 
     public function testInstallIsRefusedWhenTheTagWasMovedAfterTheRegistryPinnedIt(): void
@@ -369,7 +369,7 @@ final class BundleMarketControllerTest extends TestCase
 
         // L'URL ne porte qu'un code ; le détail (en session) est affiché par le layout, jamais lu dans l'URL.
         $location = $this->locationOf($response);
-        $this->assertStringContainsString('error=failed', $location);
+        $this->assertStringContainsString('failed', (string) session('error'));
         $this->assertStringNotContainsString('refus', urldecode($location));
         $flash = kintai_test_flash();
         $this->assertStringContainsString('refus', $flash['danger'] ?? '');
@@ -383,7 +383,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('error=', $this->locationOf($response));
+        $this->assertNotNull(session('error'));
     }
 
     public function testInstallStillWorksWhenTheRegistryDoesNotPinThisVersion(): void
@@ -393,7 +393,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('success=fake-bundle', $this->locationOf($response));
+        $this->assertStringContainsString('fake-bundle', (string) session('success'));
     }
 
     public function testTheExpectedCommitComesFromTheRegistryNotFromTheRequest(): void
@@ -406,7 +406,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->install(Request::capture());
 
-        $this->assertStringContainsString('error=', $this->locationOf($response));
+        $this->assertNotNull(session('error'));
     }
 
     public function testDryRunAlsoChecksThePinnedCommit(): void
@@ -427,7 +427,7 @@ final class BundleMarketControllerTest extends TestCase
 
         $response = $this->makeController()->uninstall(Request::capture());
 
-        $this->assertStringContainsString('error=invalid', $this->locationOf($response));
+        $this->assertStringContainsString('invalid', (string) session('error'));
     }
 
     public function testUninstallFailsForABundleNotManagedByTheInstaller(): void

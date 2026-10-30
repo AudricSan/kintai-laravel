@@ -88,7 +88,7 @@ final class AdminShiftTypeController
         ColorRule::assert($request->post('color', '#6366f1'));
         $storeIds = $this->postedStoreIds($request);
         if ($storeIds === []) {
-            return redirect()->away($this->base() . '/admin/shift-types/create?error=store_required');
+            return redirect()->away($this->base() . '/admin/shift-types/create')->with('error', 'store_required');
         }
         $this->assertAnyStoreAccess($request, $storeIds);
 
@@ -105,7 +105,7 @@ final class AdminShiftTypeController
 
         $this->auditLogger->log($request, 'shift_type.created', 'shift_type', (int) ($savedType['id'] ?? 0), ['code' => $request->post('code', ''), 'name' => $request->post('name', '')], $storeIds[0]);
 
-        return redirect()->away($this->base() . '/admin/shift-types?success=created');
+        return redirect()->away($this->base() . '/admin/shift-types')->with('success', 'created');
     }
 
     public function editShiftType(Request $request): Response
@@ -139,7 +139,7 @@ final class AdminShiftTypeController
 
         $submittedStoreIds = $this->postedStoreIds($request);
         if ($submittedStoreIds === []) {
-            return redirect()->away($this->base() . '/admin/shift-types/' . $type['id'] . '/edit?error=store_required');
+            return redirect()->away($this->base() . '/admin/shift-types/' . $type['id'] . '/edit')->with('error', 'store_required');
         }
 
         // Un gestionnaire de store ne voit dans son formulaire que les stores qu'il
@@ -171,7 +171,7 @@ final class AdminShiftTypeController
 
         $this->auditLogger->logUpdate($request, 'shift_type.updated', 'shift_type', (int) $type['id'], $type, $newData, [], $submittedStoreIds[0] ?? null);
 
-        return redirect()->away($this->base() . '/admin/shift-types?success=updated');
+        return redirect()->away($this->base() . '/admin/shift-types')->with('success', 'updated');
     }
 
     /**
@@ -203,7 +203,7 @@ final class AdminShiftTypeController
         }
         ShiftType::remove($id);
         $this->auditLogger->log($request, 'shift_type.deleted', 'shift_type', $id, ['code' => $type['code'] ?? '', 'name' => $type['name'] ?? ''], $storeIds[0] ?? null);
-        return redirect()->away($this->base() . '/admin/shift-types?success=deleted');
+        return redirect()->away($this->base() . '/admin/shift-types')->with('success', 'deleted');
     }
 
     public function toggleShiftTypeStore(Request $request): Response
@@ -222,7 +222,7 @@ final class AdminShiftTypeController
         if (!$enabled) {
             $remaining = array_diff(ShiftType::getStoreIds($id), [$storeId]);
             if ($remaining === []) {
-                return redirect()->away($this->base() . '/admin/shift-types?error=store_required');
+                return redirect()->away($this->base() . '/admin/shift-types')->with('error', 'store_required');
             }
             ShiftType::disableForStore($id, $storeId);
         } else {
@@ -238,7 +238,7 @@ final class AdminShiftTypeController
             $storeId,
         );
 
-        return redirect()->away($this->base() . '/admin/shift-types?success=' . ($enabled ? 'store_enabled' : 'store_disabled'));
+        return redirect()->away($this->base() . '/admin/shift-types')->with('success', $enabled ? 'store_enabled' : 'store_disabled');
     }
 
     /** @return int[] */

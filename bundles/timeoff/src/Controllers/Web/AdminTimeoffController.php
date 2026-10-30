@@ -170,7 +170,7 @@ final class AdminTimeoffController
             '/employee/timeoff?highlight=' . (int) ($saved['id'] ?? 0)
         );
 
-        return redirect()->away($this->base() . '/admin/timeoff?success=created');
+        return redirect()->away($this->base() . '/admin/timeoff')->with('success', 'created');
     }
 
     public function approveTimeoff(Request $request): Response
@@ -183,7 +183,7 @@ final class AdminTimeoffController
         // Seule une demande en attente se décide : sinon un gérant ressuscitait une demande annulée
         // par l'employé, ou ré-approuvait (double notification).
         if (($req['status'] ?? '') !== 'pending') {
-            return redirect()->away($this->base() . '/admin/timeoff?error=invalid_state');
+            return redirect()->away($this->base() . '/admin/timeoff')->with('error', 'invalid_state');
         }
         $decided = $this->decision($request, $req, 'approved');
         $this->timeoffRequests->save($decided);
@@ -196,7 +196,7 @@ final class AdminTimeoffController
             (int) $req['id'],
             '/employee/timeoff?highlight=' . (int) $req['id']
         );
-        return redirect()->away($this->base() . '/admin/timeoff?success=approved');
+        return redirect()->away($this->base() . '/admin/timeoff')->with('success', 'approved');
     }
 
     public function refuseTimeoff(Request $request): Response
@@ -207,7 +207,7 @@ final class AdminTimeoffController
         }
         $this->assertStoreAccess($request, (int) ($req['store_id'] ?? 0));
         if (($req['status'] ?? '') !== 'pending') {
-            return redirect()->away($this->base() . '/admin/timeoff?error=invalid_state');
+            return redirect()->away($this->base() . '/admin/timeoff')->with('error', 'invalid_state');
         }
         $decided = $this->decision($request, $req, 'refused');
         $this->timeoffRequests->save($decided);
@@ -220,7 +220,7 @@ final class AdminTimeoffController
             (int) $req['id'],
             '/employee/timeoff?highlight=' . (int) $req['id']
         );
-        return redirect()->away($this->base() . '/admin/timeoff?success=refused');
+        return redirect()->away($this->base() . '/admin/timeoff')->with('success', 'refused');
     }
 
     /**
@@ -261,7 +261,7 @@ final class AdminTimeoffController
 
         $this->timeoffRequests->delete((int) $req['id']);
 
-        return redirect()->away($this->base() . '/admin/timeoff?success=deleted');
+        return redirect()->away($this->base() . '/admin/timeoff')->with('success', 'deleted');
     }
 
     /**

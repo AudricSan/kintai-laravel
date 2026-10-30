@@ -16,7 +16,7 @@ $locked_type_ids ??= [];
 $type_store_ids ??= [];
 $all_stores     ??= [];
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created'         => __('shift_type_created'),
     'updated'         => __('shift_type_updated'),
     'deleted'         => __('shift_type_deleted'),
@@ -24,7 +24,7 @@ echo Flash::fromQuery('success', [
     'store_disabled'  => __('shift_type_store_disabled'),
 ])->render();
 
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'store_required' => __('val_store_required'),
 ])->render();
 @endphp

@@ -28,11 +28,11 @@ function swapShiftLabel(array $shifts_map, int $shiftId): string {
     </div>
 </div>
 
-<?= \kintai\Contract\View\Components\Flash::fromQuery('success', [
+<?= \kintai\Contract\View\Components\Flash::fromSession('success', [
     'created' => __('shift_swap_swap_request_sent'), 'accepted' => __('shift_swap_swap_accepted_wait_manager'),
     'refused' => __('rejected'), 'cancelled' => __('shift_swap_timeoff_cancelled'),
 ])->render() ?>
-<?php if (isset($_GET['error'])): ?>
+<?php if (session()->has('error')): ?>
     <div class="alert alert--danger mb-sm"><?= __('shift_swap_action_impossible') ?></div>
 <?php endif; ?>
 

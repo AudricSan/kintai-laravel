@@ -98,7 +98,7 @@ final class AdminController
             []
         );
 
-        return redirect()->away($this->base() . '/admin/nav-settings?success=1');
+        return redirect()->away($this->base() . '/admin/nav-settings')->with('success', '1');
     }
 
 }

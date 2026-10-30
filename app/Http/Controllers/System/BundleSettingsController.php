@@ -52,7 +52,7 @@ final class BundleSettingsController
         return response($this->view->make('system.bundles', [
             'title'            => __('bundle_settings'),
             'bundles'          => $bundles,
-            'success'          => isset($_GET['success']),
+            'success'          => session()->has('success'),
             'maxActiveBundles' => $maxActiveBundles,
             'activeCount'      => $activeCount,
         ])->render());
@@ -79,7 +79,7 @@ final class BundleSettingsController
         // Au-dessus du quota, seul l'ajout est refusé : l'Owner peut toujours réduire, un bundle à la fois.
         $maxActiveBundles = $this->planLimits->maxActiveBundles();
         if (!BundleActivationService::allowsChange($oldEnabled, $enabled, $maxActiveBundles)) {
-            return redirect()->away($this->base() . '/admin/bundles?error=bundle_quota_exceeded');
+            return redirect()->away($this->base() . '/admin/bundles')->with('error', 'bundle_quota_exceeded');
         }
 
         AppSetting::put(
@@ -93,7 +93,7 @@ final class BundleSettingsController
             'enabled_bundles' => $enabled,
         ], []);
 
-        return redirect()->away($this->base() . '/admin/bundles?success=1');
+        return redirect()->away($this->base() . '/admin/bundles')->with('success', '1');
     }
 
     private function officialBundleSlugs(): array

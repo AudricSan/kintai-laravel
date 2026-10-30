@@ -36,13 +36,13 @@ $statusLabels = [
     'cancelled' => __('cancelled'),
 ];
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'approved' => __('approved'),
     'refused'  => __('rejected'),
     'created'  => __('timeoff_created_admin'),
     'deleted'  => __('timeoff_deleted'),
 ])->render();
-echo Flash::fromQuery('error', ['invalid_state' => __('timeoff_action_impossible')])->render();
+echo Flash::fromSession('error', ['invalid_state' => __('timeoff_action_impossible')])->render();
 ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= __('timeoff_requests') ?> <span class="page-count">(<?= count($requests) ?>)</span></h2>

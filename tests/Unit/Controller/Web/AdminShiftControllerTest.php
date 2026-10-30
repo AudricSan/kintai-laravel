@@ -364,7 +364,7 @@ final class AdminShiftControllerTest extends TestCase
         $response = $this->controller()->storeShift($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=created', kintai_test_headers($response)['Location'] ?? '');
+        $this->assertStringContainsString('created', (string) session('success'));
     }
 
     /** Un type de shift ne peut désormais être appliqué qu'à un store où il est activé (table pivot). */
@@ -601,7 +601,7 @@ final class AdminShiftControllerTest extends TestCase
         $response = $this->controller()->updateShift($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=updated', kintai_test_headers($response)['Location'] ?? '');
+        $this->assertStringContainsString('updated', (string) session('success'));
     }
 
     /**

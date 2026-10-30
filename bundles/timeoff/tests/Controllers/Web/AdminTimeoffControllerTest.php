@@ -161,7 +161,7 @@ final class AdminTimeoffControllerTest extends TestCase
         $response = $this->controller()->approveTimeoff($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=invalid_state', $this->location($response));
+        $this->assertStringContainsString('invalid_state', (string) session('error'));
     }
 
     public function testRefuseTimeoffIgnoresARequestThatIsNotPending(): void
@@ -173,7 +173,8 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'approved']);
         $this->timeoffRequests->expects($this->never())->method('save');
 
-        $this->assertStringContainsString('error=invalid_state', $this->location($this->controller()->refuseTimeoff($req)));
+        $this->location($this->controller()->refuseTimeoff($req));
+        $this->assertStringContainsString('invalid_state', (string) session('error'));
     }
 
     public function testApproveTimeoffStillWorksOnAPendingRequest(): void
@@ -187,7 +188,8 @@ final class AdminTimeoffControllerTest extends TestCase
         $this->timeoffRequests->expects($this->once())->method('save')->with($this->callback(fn(array $d) => $d['status'] === 'approved'));
         $this->notifs->expects($this->once())->method('notify');
 
-        $this->assertStringContainsString('success=approved', $this->location($this->controller()->approveTimeoff($req)));
+        $this->location($this->controller()->approveTimeoff($req));
+        $this->assertStringContainsString('approved', (string) session('success'));
     }
 
     public function testStoreTimeoffForEmployeeRejectsEndBeforeStart(): void

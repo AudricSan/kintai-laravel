@@ -56,7 +56,7 @@ function drFormatNum(mixed $n, int $dec = 0): string {
 }
 ?>
 
-<?= \kintai\Contract\View\Components\Flash::fromQuery('success', ['deleted' => __('daily_report_deleted')])->render() ?>
+<?= \kintai\Contract\View\Components\Flash::fromSession('success', ['deleted' => __('daily_report_deleted')])->render() ?>
 
 <?php
 $_currentTime    = date('H:i');

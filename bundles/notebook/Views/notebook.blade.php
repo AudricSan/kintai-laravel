@@ -34,12 +34,12 @@ $can_create   ??= false;
     </a>
 </div>
 
-<?= Flash::fromQuery('success', [
+<?= Flash::fromSession('success', [
     'created' => __('notebook_created'),
     'updated' => __('notebook_updated'),
     'deleted' => __('notebook_deleted'),
 ])->render() ?>
-<?= Flash::fromQuery('error', [
+<?= Flash::fromSession('error', [
     'empty_content' => __('notebook_error_empty_content'),
     'forbidden'     => __('notebook_error_forbidden'),
 ])->render() ?>

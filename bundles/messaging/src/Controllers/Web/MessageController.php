@@ -149,7 +149,7 @@ final class MessageController
         )));
 
         if ($storeId === 0 || $subject === '' || $body === '' || empty($recipients)) {
-            return redirect()->away($this->base() . $urlPrefix . '/compose?error=missing_fields');
+            return redirect()->away($this->base() . $urlPrefix . '/compose')->with('error', 'missing_fields');
         }
         $this->assertStoreAccess($request, $storeId);
 
@@ -190,7 +190,7 @@ final class MessageController
             'recipients'  => $recipients,
         ], $storeId);
 
-        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId . '?success=sent');
+        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId)->with('success', 'sent');
     }
 
     public function messagesThread(Request $request): Response
@@ -292,7 +292,7 @@ final class MessageController
         if ($request->ajax()) {
             return response()->json(['ok' => true]);
         }
-        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId . '?success=replied');
+        return redirect()->away($this->base() . $urlPrefix . '/' . $threadId)->with('success', 'replied');
     }
 
     public function messagesDeleteThread(Request $request): Response
@@ -322,7 +322,7 @@ final class MessageController
             'subject'  => $thread['subject'] ?? '',
         ], $storeId ?: null);
 
-        return redirect()->away($this->base() . $urlPrefix . '?success=deleted');
+        return redirect()->away($this->base() . $urlPrefix)->with('success', 'deleted');
     }
 
     public function messagesDeleteMessage(Request $request): Response

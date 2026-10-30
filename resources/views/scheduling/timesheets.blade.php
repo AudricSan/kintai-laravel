@@ -37,7 +37,7 @@ $_week  = $timesheet['from'] ?? date('Y-m-d');
 $_prev  = date('Y-m-d', strtotime($_week . ' -7 days'));
 $_next  = date('Y-m-d', strtotime($_week . ' +7 days'));
 $_qs    = static fn(string $week): string => '?' . http_build_query(['store_id' => $store_id, 'week' => $week]);
-$_flash = Flash::fromQuery('success', [
+$_flash = Flash::fromSession('success', [
     'approved' => __('timesheet_approved_ok'),
     'reopened' => __('timesheet_reopened_ok'),
 ])->render();

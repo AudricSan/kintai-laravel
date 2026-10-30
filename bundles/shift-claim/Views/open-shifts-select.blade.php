@@ -12,7 +12,7 @@ use kintai\Contract\View\Components\Flash;
 $users_map  ??= [];
 $stores_map ??= [];
 
-echo Flash::fromQuery('error', ['default' => __('error_generic')])->render();
+echo Flash::fromSession('error', ['default' => __('error_generic')])->render();
 ?>
 <div class="page-header">
     <h2 class="page-header__title"><?= __('shift_claim_select_shift_to_publish') ?></h2>

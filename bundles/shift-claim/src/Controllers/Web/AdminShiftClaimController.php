@@ -186,7 +186,7 @@ final class AdminShiftClaimController
             );
         }
 
-        return redirect()->away($this->base() . '/admin/open-shifts?success=published');
+        return redirect()->away($this->base() . '/admin/open-shifts')->with('success', 'published');
     }
 
     public function unpublishShift(Request $request): Response
@@ -214,7 +214,7 @@ final class AdminShiftClaimController
             }
         }
         $this->auditLogger->logUpdate($request, 'shift.unpublished', 'shift', (int) $shift['id'], $old, $saved, ['withdrawn' => $withdrawn], (int) ($shift['store_id'] ?? 0) ?: null);
-        return redirect()->away($this->base() . '/admin/open-shifts?success=unpublished');
+        return redirect()->away($this->base() . '/admin/open-shifts')->with('success', 'unpublished');
     }
 
     public function approveShiftClaim(Request $request): Response
@@ -226,7 +226,7 @@ final class AdminShiftClaimController
         $oldClaim = $claim;
         // C-2 : guard statut pending
         if (($claim['status'] ?? '') !== 'pending') {
-            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts')->with('error', 'already_resolved');
         }
         $shift = Shift::findById((int) ($claim['shift_id'] ?? 0));
         if ($shift === null) {
@@ -234,7 +234,7 @@ final class AdminShiftClaimController
         }
         // C-3 : le shift doit être encore ouvert
         if (!(int) ($shift['is_open'] ?? 0)) {
-            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts')->with('error', 'already_resolved');
         }
         $this->assertStoreAccess($request, (int) ($shift['store_id'] ?? 0));
 
@@ -244,12 +244,12 @@ final class AdminShiftClaimController
         [$result, $savedClaim] = (new ShiftClaimApproval($this->shiftClaims, $this->stores, $this->notifs))
             ->approve($claim, $shift, $resolver);
         if ($result !== ShiftClaimApproval::APPROVED) {
-            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts')->with('error', 'already_resolved');
         }
 
         $this->auditLogger->logUpdate($request, 'shift_claim.approved', 'shift_claim', (int) $claim['id'], $oldClaim, $savedClaim, [], (int) ($shift['store_id'] ?? 0) ?: null);
 
-        return redirect()->away($this->base() . '/admin/open-shifts?success=claim_approved');
+        return redirect()->away($this->base() . '/admin/open-shifts')->with('success', 'claim_approved');
     }
 
     public function rejectShiftClaim(Request $request): Response
@@ -261,7 +261,7 @@ final class AdminShiftClaimController
         $oldClaim = $claim;
         // M-3 : guard statut pending
         if (($claim['status'] ?? '') !== 'pending') {
-            return redirect()->away($this->base() . '/admin/open-shifts?error=already_resolved');
+            return redirect()->away($this->base() . '/admin/open-shifts')->with('error', 'already_resolved');
         }
         $shift = Shift::findById((int) ($claim['shift_id'] ?? 0));
         if ($shift === null) {
@@ -289,7 +289,7 @@ final class AdminShiftClaimController
             '/employee/open-shifts?highlight=' . (int) $shift['id']
         );
 
-        return redirect()->away($this->base() . '/admin/open-shifts?success=claim_rejected');
+        return redirect()->away($this->base() . '/admin/open-shifts')->with('success', 'claim_rejected');
     }
 
     /** Valeurs de remplacement (:date/:start/:end/:store) pour les notifications de bourse aux shifts. */

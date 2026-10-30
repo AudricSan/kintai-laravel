@@ -17,11 +17,11 @@ $granted_global_permissions ??= [];
 $assignable_users ??= [];
 $isSystem = !empty($role['is_system']);
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'holder_added'   => __('role_holder_added'),
     'holder_removed' => __('role_holder_removed'),
 ])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'invalid_name'   => __('role_invalid_name'),
     'invalid_holder' => __('role_invalid_holder'),
 ])->render();

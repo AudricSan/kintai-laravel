@@ -83,9 +83,9 @@ $periodLabel = $period_mode === 'week'
 
 @endphp
 
-{!! Flash::fromQuery('success', [
+{!! Flash::fromSession('success', [
     'created' => __('shift_created'), 'updated' => __('shift_updated'), 'deleted' => __('shift_deleted'),
-    'published' => __('schedule_published_flash', ['count' => (string) (int) ($_GET['notified'] ?? 0)]),
+    'published' => __('schedule_published_flash', ['count' => (string) (int) session('notified', 0)]),
 ])->render() !!}
 @php
 // Compte rendu d'une copie de semaine ou d'un modèle appliqué : créés, puis non recopiés par raison.
@@ -100,11 +100,11 @@ $_weekReport = static function (string $key): string {
     return $parts === [] ? $text : $text . ' ' . __('week_skipped_intro') . ' ' . implode(', ', $parts) . '.';
 };
 @endphp
-{!! Flash::fromQuery('success', [
+{!! Flash::fromSession('success', [
     'week_copied' => $_weekReport('week_copied_flash'), 'template_applied' => $_weekReport('template_applied_flash'),
     'template_saved' => __('template_saved_flash'), 'template_deleted' => __('template_deleted_flash'),
 ])->render() !!}
-{!! Flash::fromQuery('error', [
+{!! Flash::fromSession('error', [
     'publish_invalid' => __('schedule_publish_invalid'), 'week_invalid' => __('week_invalid'),
     'week_source_empty' => __('week_source_empty'), 'template_invalid' => __('template_invalid'),
 ])->render() !!}

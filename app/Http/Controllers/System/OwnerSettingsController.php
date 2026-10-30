@@ -73,8 +73,8 @@ final class OwnerSettingsController
             'theme_dark_mode'   => $this->settings->themeDarkMode(),
             'instance_locale'   => $this->instanceLocale?->code(),
             'instance_languages' => $this->languages?->findAllActive() ?? [],
-            'success' => isset($_GET['success']),
-            'error'   => in_array($request->query('error'), ['public_url_invalid', 'instance_locale_not_saved', 'mail_from_invalid'], true) ? $request->query('error') : null,
+            'success' => session()->has('success'),
+            'error'   => in_array(session('error'), ['public_url_invalid', 'instance_locale_not_saved', 'mail_from_invalid'], true) ? session('error') : null,
         ])->render());
     }
 
@@ -95,7 +95,7 @@ final class OwnerSettingsController
         // Vide = on retombe sur config/mail.php.
         $mailFromAddress = trim((string) $request->post('mail_from_address', $this->settings->mailFromAddress()));
         if ($mailFromAddress !== '' && !filter_var($mailFromAddress, FILTER_VALIDATE_EMAIL)) {
-            return redirect()->away($this->base() . '/admin/owner-settings?error=mail_from_invalid');
+            return redirect()->away($this->base() . '/admin/owner-settings')->with('error', 'mail_from_invalid');
         }
         $mailFromName = substr(trim((string) $request->post('mail_from_name', $this->settings->mailFromName())), 0, 100);
 
@@ -138,7 +138,7 @@ final class OwnerSettingsController
         $publicUrlInput = trim((string) $request->post('app_public_url', $this->settings->get(PublicUrlResolver::SETTING_KEY)));
         $publicUrl      = $publicUrlInput === '' ? '' : PublicUrlResolver::normalize($publicUrlInput);
         if ($publicUrl === null) {
-            return redirect()->away($this->base() . '/admin/owner-settings?error=public_url_invalid');
+            return redirect()->away($this->base() . '/admin/owner-settings')->with('error', 'public_url_invalid');
         }
 
         $oldData = array_merge([
@@ -188,6 +188,6 @@ final class OwnerSettingsController
 
         $this->auditLogger->logUpdate($request, 'owner_settings.updated', 'system', null, $oldData, $newData, []);
 
-        return redirect()->away($this->base() . '/admin/owner-settings?' . ($localeError ? 'error=instance_locale_not_saved' : 'success=1'));
+        return redirect()->away($this->base() . '/admin/owner-settings')->with($localeError ? 'error' : 'success', $localeError ? 'instance_locale_not_saved' : '1');
     }
 }

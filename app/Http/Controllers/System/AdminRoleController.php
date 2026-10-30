@@ -80,7 +80,7 @@ final class AdminRoleController
             'title'             => __('roles'),
             'roles'             => $roles,
             'assignment_counts' => $counts,
-            'success'           => isset($_GET['success']),
+            'success'           => session()->has('success'),
         ])->render());
     }
 
@@ -107,7 +107,7 @@ final class AdminRoleController
         $name = trim($request->post('name', ''));
         $slug = $this->uniqueSlug($this->slugify($name));
         if ($name === '' || $slug === '') {
-            return redirect()->away($this->base() . '/admin/roles/create?error=invalid_name');
+            return redirect()->away($this->base() . '/admin/roles/create')->with('error', 'invalid_name');
         }
 
         ColorRule::assert($request->post('color', ''), 'color', true);
@@ -130,7 +130,7 @@ final class AdminRoleController
             'permissions'       => $permissions,
             'global_permissions' => $globalPermissions,
         ]);
-        return redirect()->away($this->base() . '/admin/roles?success=created');
+        return redirect()->away($this->base() . '/admin/roles')->with('success', 'created');
     }
 
     /** GET /admin/roles/{id}/edit */
@@ -163,7 +163,7 @@ final class AdminRoleController
 
         $name = trim($request->post('name', $role['name'] ?? ''));
         if ($name === '') {
-            return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?error=invalid_name');
+            return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit')->with('error', 'invalid_name');
         }
 
         ColorRule::assert($request->post('color', ''), 'color', true);
@@ -201,7 +201,7 @@ final class AdminRoleController
             $newRole + ['permissions' => $newPermissions, 'global_permissions' => $newGlobalPermissions],
             [],
         );
-        return redirect()->away($this->base() . '/admin/roles?success=updated');
+        return redirect()->away($this->base() . '/admin/roles')->with('success', 'updated');
     }
 
     /** POST /admin/roles/{id}/delete */
@@ -213,14 +213,14 @@ final class AdminRoleController
             throw new ForbiddenException(__('error_owner_role_undeletable'));
         }
         if (count($this->assignments->findByRole((int) $role['id'])) > 0) {
-            return redirect()->away($this->base() . '/admin/roles?error=role_in_use');
+            return redirect()->away($this->base() . '/admin/roles')->with('error', 'role_in_use');
         }
 
         $this->roles->delete((int) $role['id']);
         $this->auditLogger->log($request, 'role.deleted', 'role', (int) $role['id'], [
             'name' => $role['name'] ?? null,
         ]);
-        return redirect()->away($this->base() . '/admin/roles?success=deleted');
+        return redirect()->away($this->base() . '/admin/roles')->with('success', 'deleted');
     }
 
     /**
@@ -263,14 +263,14 @@ final class AdminRoleController
         }
 
         if ($validUserIds === []) {
-            return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?error=invalid_holder');
+            return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit')->with('error', 'invalid_holder');
         }
 
         $this->auditLogger->log($request, 'role.holder_added', 'role', (int) $role['id'], [
             'user_ids' => $validUserIds,
         ]);
 
-        return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?success=holder_added');
+        return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit')->with('success', 'holder_added');
     }
 
     /** POST /admin/roles/{id}/holders/{assignmentId}/delete */
@@ -299,7 +299,7 @@ final class AdminRoleController
             'store_id' => $assignment['scope_id'],
         ]);
 
-        return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit?success=holder_removed');
+        return redirect()->away($this->base() . '/admin/roles/' . $role['id'] . '/edit')->with('success', 'holder_removed');
     }
 
     /**

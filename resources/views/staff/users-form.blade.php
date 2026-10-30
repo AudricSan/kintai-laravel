@@ -37,13 +37,13 @@ $can = $user_can ?? fn(string $k): bool => true;
 // silencieusement une modification via l'autosave, voir user-form-autosave.js).
 $canEditUser = $mode !== 'edit' || $can('employees.update');
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'updated'        => __('user_updated'),
     'rate_updated'   => __('user_rate_updated'),
     'rate_deleted'   => __('user_rate_deleted'),
     'password_reset' => __('password_reset_success'),
 ])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'email_taken'          => __('email_taken'),
     'name_required'        => __('name_required'),
     'furigana_required'    => __('furigana_required'),

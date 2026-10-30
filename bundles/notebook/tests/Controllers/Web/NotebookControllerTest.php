@@ -145,7 +145,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->store($this->request(1, null));
 
-        $this->assertStringContainsString('error=empty_content', $this->redirectLocation($response));
+        $this->assertStringContainsString('empty_content', (string) session('error'));
     }
 
     public function testStoreCreatesAStoreScopedNoteWhenUserManagesThatStore(): void
@@ -176,7 +176,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->store($this->request(9, [1]));
 
-        $this->assertStringContainsString('success=created', $this->redirectLocation($response));
+        $this->assertStringContainsString('created', (string) session('success'));
     }
 
     public function testStoreRejectsAStoreScopedNoteOnAStoreTheUserDoesNotManage(): void
@@ -201,7 +201,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->store($this->request(9, [1]));
 
-        $this->assertStringContainsString('error=forbidden', $this->redirectLocation($response));
+        $this->assertStringContainsString('forbidden', (string) session('error'));
     }
 
     public function testStoreAllowsAnOrgWideNoteForAGloballyScopedUser(): void
@@ -235,7 +235,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->store($this->request(1, null));
 
-        $this->assertStringContainsString('success=created', $this->redirectLocation($response));
+        $this->assertStringContainsString('created', (string) session('success'));
     }
 
     // ── update() / destroy() : auteur vs notebook.manage ────────────────
@@ -256,7 +256,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->update($req);
 
-        $this->assertStringContainsString('success=updated', $this->redirectLocation($response));
+        $this->assertStringContainsString('updated', (string) session('success'));
     }
 
     public function testUpdateAllowsAManagerToEditSomeoneElsesNote(): void
@@ -273,7 +273,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->update($req);
 
-        $this->assertStringContainsString('success=updated', $this->redirectLocation($response));
+        $this->assertStringContainsString('updated', (string) session('success'));
     }
 
     public function testUpdateForbidsANonAuthorWithoutManagePermission(): void
@@ -319,7 +319,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->destroy($req);
 
-        $this->assertStringContainsString('success=deleted', $this->redirectLocation($response));
+        $this->assertStringContainsString('deleted', (string) session('success'));
     }
 
     // ── notes « toute l'organisation » : portée illimitée exigée ─────────
@@ -378,7 +378,8 @@ final class NotebookControllerTest extends TestCase
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
 
-        $this->assertStringContainsString('success=updated', $this->redirectLocation($this->controller()->togglePin($req)));
+        $this->redirectLocation($this->controller()->togglePin($req));
+        $this->assertStringContainsString('updated', (string) session('success'));
     }
 
     // ── togglePin() ──────────────────────────────────────────────────────
@@ -397,7 +398,7 @@ final class NotebookControllerTest extends TestCase
 
         $response = $this->controller()->togglePin($req);
 
-        $this->assertStringContainsString('success=updated', $this->redirectLocation($response));
+        $this->assertStringContainsString('updated', (string) session('success'));
     }
 
     // ── index() ──────────────────────────────────────────────────────────

@@ -110,7 +110,7 @@ final class AdminTimeclockController
         $this->auditLogger->logUpdate($request, 'timeclock.edited', 'timeclock', (int) $entry['id'], $entry, $updated, [], (int) ($entry['store_id'] ?? 0) ?: null);
 
         $date = $request->post('redirect_date', date('Y-m-d'));
-        return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date) . '&success=edited');
+        return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date))->with('success', 'edited');
     }
 
     public function timeclocksDelete(Request $request): Response
@@ -132,6 +132,6 @@ final class AdminTimeclockController
         $this->timeclocks->delete($id);
 
         $date = $request->query('date', date('Y-m-d'));
-        return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date) . '&success=deleted');
+        return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date))->with('success', 'deleted');
     }
 }

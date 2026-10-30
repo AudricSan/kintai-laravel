@@ -15,7 +15,7 @@ if ($storePhotosCss = bundle_asset('store-photos', 'css/photos.css')): ?>
 <link rel="stylesheet" href="<?= $storePhotosCss ?>">
 <?php endif;
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('store_photos_photo_created'),
     'deleted' => __('store_photos_photo_deleted'),
 ])->render();

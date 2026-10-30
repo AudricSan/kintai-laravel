@@ -127,7 +127,7 @@ final class AppResetControllerTest extends TestCase
         $response = $this->controller->prepare($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=invalid_reset_mode', $this->locationOf($response));
+        $this->assertStringContainsString('invalid_reset_mode', (string) session('error'));
         $this->assertCount(0, glob($this->tmpDir . '/storage/backups/*.zip') ?: [], 'aucune sauvegarde ne doit être créée pour un mode invalide');
     }
 
@@ -151,7 +151,7 @@ final class AppResetControllerTest extends TestCase
         $response = $this->controller->execute($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=reset_backup_missing', $this->locationOf($response));
+        $this->assertStringContainsString('reset_backup_missing', (string) session('error'));
         $this->assertSame(1, Capsule::table('users')->count(), 'rien ne doit être vidé si la sauvegarde est manquante');
     }
 
@@ -163,7 +163,7 @@ final class AppResetControllerTest extends TestCase
         $response = $this->controller->execute($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=reset_data', $this->locationOf($response));
+        $this->assertStringContainsString('reset_data', (string) session('success'));
         $this->assertSame(1, Capsule::table('users')->count(), 'users doit être conservé en mode données');
         $this->assertFileExists($this->tmpDir . '/storage/installed.lock');
     }

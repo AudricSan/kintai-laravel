@@ -23,13 +23,13 @@ final class Flash implements ComponentInterface
     }
 
     /**
-     * @param string $key       Query param key (e.g. 'success')
+     * @param string $key       Clé du message flashé en session (ex. 'success'), posé par `redirect()->with()`
      * @param array  $messages  Map of value => message/__() key
      */
-    public static function fromQuery(string $key, array $messages = []): self
+    public static function fromSession(string $key, array $messages = []): self
     {
         $instance = self::make($key);
-        $val = $_GET[$key] ?? '';
+        $val = (string) session($key, '');
         if ($val !== '') {
             $instance->messages = $messages;
             $instance->defaultMessage = $val;
@@ -59,9 +59,8 @@ final class Flash implements ComponentInterface
             return '';
         }
 
-        // Seuls les messages prévus par la vue s'affichent (ou son message 'default'). Afficher la valeur brute
-        // permettait à n'importe qui de fabriquer un lien (?success=…) montrant le texte de son choix dans un
-        // bandeau Kintai authentique. Les textes libres passent par la session (flash).
+        // Seuls les messages prévus par la vue s'affichent (ou son message 'default'). Le code vient désormais de la
+        // session (flash posé par le contrôleur) et non de l'URL : un lien forgé ne peut plus afficher un texte au choix.
         $message = $this->messages[$this->defaultMessage] ?? $this->messages['default'] ?? null;
         if ($message === null) {
             return '';

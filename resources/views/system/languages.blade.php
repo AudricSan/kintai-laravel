@@ -10,14 +10,14 @@ use App\View\Components\Badge;
 
 $activeCount = count(array_filter($languages, fn($l) => !empty($l['is_active'])));
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created'     => __('language_created_success'),
     'updated'     => __('language_updated_success'),
     'deleted'     => __('language_deleted_success'),
     'toggled'     => __('language_toggled_success'),
 ])->render();
 
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'invalid'                        => __('language_invalid_error'),
     'not_found'                      => __('language_not_found_error'),
     'default_forbidden'              => __('language_toggle_default_forbidden'),

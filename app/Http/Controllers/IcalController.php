@@ -126,7 +126,7 @@ final class IcalController
             'store_id' => $storeId,
         ], $storeId, $userId);
 
-        return redirect()->away($this->base() . '/profile?success=1');
+        return redirect()->away($this->base() . '/profile')->with('success', '1');
     }
 
 

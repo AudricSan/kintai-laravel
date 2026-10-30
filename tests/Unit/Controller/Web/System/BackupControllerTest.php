@@ -41,7 +41,7 @@ final class BackupControllerTest extends TestCase
 
         $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
-        $capsule = kintai_test_database();
+        $capsule = kintai_test_database();
 
         $this->updateService = new UpdateService($this->tmpDir);
 
@@ -163,7 +163,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->create($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=created_', $this->locationOf($response));
+        $this->assertStringContainsString('created_', (string) session('success'));
     }
 
     public function testIndexExposesBackupSettingsToTheView(): void
@@ -193,14 +193,14 @@ final class BackupControllerTest extends TestCase
         $response = $controller->download($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=error_not_found', $this->locationOf($response));
+        $this->assertStringContainsString('error_not_found', (string) session('success'));
     }
 
     public function testDownloadStreamsExistingBackup(): void
     {
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
-        $filename = urldecode(substr($this->locationOf($created), strlen('/admin/backup?success=created_')));
+        $filename = substr((string) session('success'), strlen('created_'));
 
         $_GET = ['filename' => $filename];
         $response = $controller->download($this->requestAs(true));
@@ -221,7 +221,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->update($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=error_no_update_available', $this->locationOf($response));
+        $this->assertStringContainsString('error_no_update_available', (string) session('success'));
     }
 
     public function testUpdateAppliesReleaseAndRedirectsWithSummary(): void
@@ -247,7 +247,8 @@ final class BackupControllerTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $location = $this->locationOf($response);
         // 2 fichiers + release-manifest.json de l'archive vérifiée.
-        $this->assertStringStartsWith('/admin/update?success=updated_2.0.0_files-3_deleted-0', $location);
+        $this->assertStringStartsWith('/admin/update', $location);
+        $this->assertStringContainsString('updated_2.0.0_files-3_deleted-0', (string) session('success'));
         $this->assertSame('2.0.0', $this->updateService->getCurrentVersion());
         $this->assertFileExists($this->tmpDir . '/README.md');
         $this->assertFalse($this->settings->maintenanceModeEnabled());
@@ -304,7 +305,8 @@ final class BackupControllerTest extends TestCase
         $response = $controller->migrate($this->requestAs(true));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringStartsWith('/admin/update?success=migrated', $this->locationOf($response));
+        $this->assertStringStartsWith('/admin/update', $this->locationOf($response));
+        $this->assertStringContainsString('migrated', (string) session('success'));
         $this->assertFalse($this->settings->maintenanceModeEnabled());
     }
 
@@ -317,7 +319,7 @@ final class BackupControllerTest extends TestCase
         $_POST = [];
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=settings_saved', $this->locationOf($response));
+        $this->assertStringContainsString('settings_saved', (string) session('success'));
         $this->assertTrue($this->settings->backupAutoEnabled());
         $this->assertSame(10, $this->settings->backupMaxKeep());
     }
@@ -354,7 +356,7 @@ final class BackupControllerTest extends TestCase
         $_POST = [];
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=channel_alpha', $this->locationOf($response));
+        $this->assertStringContainsString('channel_alpha', (string) session('success'));
         $this->assertSame('alpha', $this->settings->updateChannel());
     }
 
@@ -366,7 +368,7 @@ final class BackupControllerTest extends TestCase
         $response = $controller->saveChannel($this->requestAs(true));
         $_POST = [];
 
-        $this->assertStringContainsString('success=channel_release', $this->locationOf($response));
+        $this->assertStringContainsString('channel_release', (string) session('success'));
         $this->assertSame('release', $this->settings->updateChannel());
     }
 
@@ -443,7 +445,7 @@ final class BackupControllerTest extends TestCase
 
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
-        $filename = urldecode(substr($this->locationOf($created), strlen('/admin/backup?success=created_')));
+        $filename = substr((string) session('success'), strlen('created_'));
 
         $_POST = ['filename' => $filename];
         $response = $controller->restore($this->requestAs(true));
@@ -454,7 +456,7 @@ final class BackupControllerTest extends TestCase
         $this->assertContains('backup.restored', $actions);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=restored', $this->locationOf($response));
+        $this->assertStringContainsString('restored', (string) session('success'));
 
     }
 
@@ -464,7 +466,7 @@ final class BackupControllerTest extends TestCase
 
         $controller = $this->makeController();
         $created = $controller->create($this->requestAs(true));
-        $filename = urldecode(substr($this->locationOf($created), strlen('/admin/backup?success=created_')));
+        $filename = substr((string) session('success'), strlen('created_'));
 
         $_POST = ['filename' => $filename];
         $response = $controller->delete($this->requestAs(true));
@@ -473,7 +475,7 @@ final class BackupControllerTest extends TestCase
         $this->assertContains('backup.deleted', array_column(array_column($log->on('audit'), 'context'), 'action'));
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('success=deleted', $this->locationOf($response));
+        $this->assertStringContainsString('deleted', (string) session('success'));
 
     }
 

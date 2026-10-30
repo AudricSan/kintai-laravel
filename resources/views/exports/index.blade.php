@@ -17,7 +17,7 @@
 use App\View\Components\Card;
 use App\View\Components\UserPicker;
 
-$notice = in_array($_GET['error'] ?? '', ['forbidden', 'ics_scope'], true) ? (string) $_GET['error'] : '';
+$notice = in_array(session('error', ''), ['forbidden', 'ics_scope'], true) ? (string) session('error') : '';
 @endphp
 
 <div class="page-header">

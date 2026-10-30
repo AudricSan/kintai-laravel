@@ -20,7 +20,7 @@ $action = $mode === 'edit'
     ? $base . '/' . $reportId . '/edit'
     : $base . '/create';
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('operation_success'),
     'updated' => __('operation_success'),
 ])->render();

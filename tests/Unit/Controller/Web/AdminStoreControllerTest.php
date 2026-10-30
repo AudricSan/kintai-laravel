@@ -281,7 +281,7 @@ final class AdminStoreControllerTest extends TestCase
     public static function memberRedirects(): array
     {
         return [
-            'fiche employé (champ caché)' => ['/admin/users/057/edit?success=member_added', true],
+            'fiche employé (champ caché)' => ['/admin/users/057/edit', true],
             'site externe'                => ['https://evil.example/', false],
             'origine relative au schéma'  => ['//evil.example/', false],
             'antislash'                   => ['/\\evil.example/', false],
@@ -306,7 +306,7 @@ final class AdminStoreControllerTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $kept
             ? $this->assertSame($redirectTo, $location)
-            : $this->assertStringEndsWith('/admin/stores/1/edit?success=member_added', $location);
+            : $this->assertStringEndsWith('/admin/stores/1/edit', $location);
     }
 
     /** Prépare un gérant (id 2) du magasin 1 qui ne détient que shifts.view, et deux rôles assignables. */

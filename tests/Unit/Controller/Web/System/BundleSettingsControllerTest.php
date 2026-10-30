@@ -163,7 +163,9 @@ final class BundleSettingsControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->assertStringEndsWith('/admin/bundles?success=1', $controller->save($req)->headers->get('Location') ?? '');
+        $controller->save($req)->headers->get('Location') ?? '';
+        $this->assertStringEndsWith('/admin/bundles', $controller->save($req)->headers->get('Location') ?? '');
+        $this->assertStringContainsString('1', (string) session('success'));
         $this->assertNotNull(AppSetting::value('enabled_bundles'));
     }
 

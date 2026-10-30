@@ -13,7 +13,7 @@
     </div>
 </div>
 
-<?php if (isset($_GET['error'])): ?>
+<?php if (session()->has('error')): ?>
     <div class="alert alert--danger"><?= __('messaging_message_missing_fields') ?></div>
 <?php endif; ?>
 

@@ -11,7 +11,7 @@ use App\View\Components\Flash;
 $sort ??= 'name_asc';
 $can = $user_can ?? fn(string $k): bool => true;
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('store_created'),
     'updated' => __('store_updated'),
     'deleted' => __('store_deleted'),

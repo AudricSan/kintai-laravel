@@ -100,7 +100,7 @@ final class NotebookController
 
         $content = trim((string) $request->post('content', ''));
         if ($content === '') {
-            return redirect()->away($this->base() . '/notebook?error=empty_content');
+            return redirect()->away($this->base() . '/notebook')->with('error', 'empty_content');
         }
 
         $storeIdRaw = trim((string) $request->post('store_id', ''));
@@ -108,7 +108,7 @@ final class NotebookController
 
         if ($storeId === null) {
             if ($this->managedIds($request) !== null) {
-                return redirect()->away($this->base() . '/notebook?error=forbidden');
+                return redirect()->away($this->base() . '/notebook')->with('error', 'forbidden');
             }
         } else {
             $this->assertStoreAccess($request, $storeId);
@@ -137,7 +137,7 @@ final class NotebookController
 
         $this->notifyMembers($storeId, (int) ($saved['id'] ?? 0), $userId, $content);
 
-        return redirect()->away($this->base() . '/notebook?success=created');
+        return redirect()->away($this->base() . '/notebook')->with('success', 'created');
     }
 
     /** POST /notebook/{id}/update — auteur ou notebook.manage. */
@@ -148,7 +148,7 @@ final class NotebookController
 
         $content = trim((string) $request->post('content', ''));
         if ($content === '') {
-            return redirect()->away($this->base() . '/notebook?error=empty_content');
+            return redirect()->away($this->base() . '/notebook')->with('error', 'empty_content');
         }
 
         $old = $entry;
@@ -167,7 +167,7 @@ final class NotebookController
             $entry['store_id'] !== null ? (int) $entry['store_id'] : null
         );
 
-        return redirect()->away($this->base() . '/notebook?success=updated');
+        return redirect()->away($this->base() . '/notebook')->with('success', 'updated');
     }
 
     /** POST /notebook/{id}/delete — auteur ou notebook.manage. */
@@ -187,7 +187,7 @@ final class NotebookController
             $entry['store_id'] !== null ? (int) $entry['store_id'] : null
         );
 
-        return redirect()->away($this->base() . '/notebook?success=deleted');
+        return redirect()->away($this->base() . '/notebook')->with('success', 'deleted');
     }
 
     /** POST /notebook/{id}/pin — notebook.manage uniquement (déjà gardé par la route). */
@@ -202,7 +202,7 @@ final class NotebookController
         $entry['pinned'] = empty($entry['pinned']) ? 1 : 0;
         $this->notes->save($entry);
 
-        return redirect()->away($this->base() . '/notebook?success=updated');
+        return redirect()->away($this->base() . '/notebook')->with('success', 'updated');
     }
 
     private function requireEntry(Request $request): array

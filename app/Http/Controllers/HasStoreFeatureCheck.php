@@ -36,6 +36,6 @@ trait HasStoreFeatureCheck
         if ($features === [] || in_array($feature, $features, true)) {
             return null;
         }
-        return redirect()->away($this->base() . '/employee?error=feature_disabled');
+        return redirect()->away($this->base() . '/employee')->with('error', 'feature_disabled');
     }
 }

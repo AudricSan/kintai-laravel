@@ -67,7 +67,7 @@ final class AuthControllerAvatarTest extends TestCase
         $response = $this->controller->uploadAvatar(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertStringContainsString('error=avatar_invalid', kintai_test_headers($response)['Location'] ?? '');
+        $this->assertStringContainsString('avatar_invalid', (string) session('error'));
     }
 
     public function testRemoveAvatarRedirectsWithoutTouchingAnythingWhenNoAvatarSet(): void

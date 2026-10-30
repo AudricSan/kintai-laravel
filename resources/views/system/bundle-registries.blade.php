@@ -7,12 +7,12 @@ use App\View\Components\Badge;
 /** @var array $registries Liste de ['id' => int, 'name' => string, 'url' => string, 'is_official' => bool] */
 /** @var string|null $BASE_URL */
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'created' => __('bundle_registry_created_success'),
     'deleted' => __('bundle_registry_deleted_success'),
 ])->render();
 
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'invalid'                    => __('bundle_registry_invalid_error'),
     'duplicate'                  => __('bundle_registry_duplicate_error'),
     'delete_official_forbidden'  => __('bundle_registry_delete_official_forbidden'),

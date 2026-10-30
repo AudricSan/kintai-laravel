@@ -28,13 +28,13 @@ $storeId = (int) ($store['id'] ?? 0);
 
 $ded = $deductionSettings ?? [];
 
-echo Flash::fromQuery('success', [
+echo Flash::fromSession('success', [
     'updated'        => __('store_updated'),
     'member_added'   => __('member_added'),
     'role_updated'   => __('role_updated'),
     'member_removed' => __('member_removed'),
 ])->render();
-echo Flash::fromQuery('error', [
+echo Flash::fromSession('error', [
     'invalid_role' => __('role_invalid'),
 ])->render();
 @endphp

@@ -18,7 +18,7 @@ use App\View\Components\Flash;
  * @var string $check        résultat du dernier test : ok | invalid_client | unreachable | incomplete | ''
  */
 
-echo Flash::fromQuery('success', ['saved' => __('save_success')])->render();
+echo Flash::fromSession('success', ['saved' => __('save_success')])->render();
 $checkAlerts = [
     'ok'             => fn() => Alert::make(__('gcal_admin_check_ok'))->success(),
     'invalid_client' => fn() => Alert::make(__('gcal_admin_check_invalid'))->danger(),
