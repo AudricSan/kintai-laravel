@@ -9,7 +9,7 @@ use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\DevicePushToken;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -60,7 +60,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->roles = $this->createStub(RoleRepositoryInterface::class);
 
         $this->viewDir    = $viewDir;
-        $this->controller = $this->buildController($this->createStub(ShiftRepositoryInterface::class), $this->createStub(NotificationRepositoryInterface::class));
+        $this->controller = $this->buildController($this->createStub(ShiftRepositoryInterface::class));
 
         $this->storeUsers->method('findByUser')->willReturnCallback(fn($a0) => $a0 === 9 ? [
             ['user_id' => 9, 'store_id' => 1, 'role' => 'staff'],
@@ -69,7 +69,7 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY']);
     }
 
-    private function buildController(ShiftRepositoryInterface $shifts, NotificationRepositoryInterface $notifRepo): EmployeeController
+    private function buildController(ShiftRepositoryInterface $shifts): EmployeeController
     {
         return new EmployeeController(
             kintai_test_views($this->viewDir),
@@ -82,7 +82,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
             new AuditLogger(),
             $this->createStub(AvailabilityRepositoryInterface::class),
             new NotificationService(
-                $notifRepo,
                 new PushNotificationService([]),
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),
@@ -182,20 +181,18 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
             ['id' => 32, 'user_id' => 4, 'store_id' => 1, 'shift_date' => $date],
             ['id' => 33, 'user_id' => 9, 'store_id' => 1, 'shift_date' => date('Y-m-d', strtotime('+30 days'))],
         ]);
-        $notifRepo = $this->createMock(NotificationRepositoryInterface::class);
-        // Deux appels : les shifts affichés, puis les jours affichés (notifications de shifts supprimés).
-        $calls = [];
-        $notifRepo->expects($this->exactly(2))->method('markReadByReference')
-            ->willReturnCallback(function (int $uid, string $type, array $ids) use (&$calls) { $calls[$type] = [$uid, $ids]; });
+        // Les notifications des shifts affichés, puis celles des jours affichés (shifts supprimés), sont marquées lues.
+        foreach ([['shift', 31], ['shift', 32], ['shift_day', shift_day_reference($date)]] as [$type, $ref]) {
+            \App\Models\Notification::create(['user_id' => 9, 'type' => 'shift_assigned', 'body' => 'x', 'reference_type' => $type, 'reference_id' => $ref]);
+        }
 
         $_GET = ['store_id' => '1'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->assertSame(200, $this->buildController($shifts, $notifRepo)->shiftDay($req)->getStatusCode());
-        $this->assertSame([9, [31]], $calls['shift']);
-        $this->assertSame(9, $calls['shift_day'][0]);
-        $this->assertContains(shift_day_reference($date), $calls['shift_day'][1]);
+        $this->assertSame(200, $this->buildController($shifts)->shiftDay($req)->getStatusCode());
+        $read = \App\Models\Notification::whereNotNull('read_at')->pluck('reference_type', 'reference_id')->all();
+        $this->assertSame([31 => 'shift', shift_day_reference($date) => 'shift_day'], $read, 'seul le shift 31 de l\'employé 9 et son jour sont lus');
     }
 
     public function testShiftDayPassesTheHighlightedShiftToTheView(): void

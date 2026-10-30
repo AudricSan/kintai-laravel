@@ -14,7 +14,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Models\WebPushSubscription;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
@@ -87,7 +87,6 @@ final class AppServiceProvider extends ServiceProvider
     private function registerBusinessServices(): void
     {
         $this->app->singleton(NotificationService::class, fn(Container $c) => new NotificationService(
-            $c->make(NotificationRepositoryInterface::class),
             $c->make(PushNotificationService::class),
             $c->make('translator'),
             $c->make(UserRepositoryInterface::class),

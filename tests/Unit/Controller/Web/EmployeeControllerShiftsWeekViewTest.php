@@ -9,7 +9,7 @@ use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\DevicePushToken;
 use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -72,7 +72,6 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
             new AuditLogger(),
             $this->createStub(AvailabilityRepositoryInterface::class),
             new NotificationService(
-                $this->createStub(NotificationRepositoryInterface::class),
                 new PushNotificationService([]),
                 kintai_test_translator(),
                 $this->createStub(UserRepositoryInterface::class),

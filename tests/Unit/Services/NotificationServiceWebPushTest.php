@@ -7,7 +7,6 @@ namespace Tests\Unit\Services;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -76,7 +75,6 @@ final class NotificationServiceWebPushTest extends TestCase
 
 
         $this->service = new NotificationService(
-            new DatabaseNotificationRepository(),
             new PushNotificationService([]),
             kintai_test_real_translator(),
             $users,

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Contracts\Bus\Dispatcher;
 use App\Jobs\DeliverNotification;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -20,7 +20,6 @@ use App\Repositories\UserRepositoryInterface;
 class NotificationService
 {
     public function __construct(
-        private readonly NotificationRepositoryInterface $repo,
         private readonly PushNotificationService $push,
         private readonly Translator $translations,
         private readonly UserRepositoryInterface $users,
@@ -66,7 +65,7 @@ class NotificationService
         // body_key + params : le texte est retraduit à l'affichage dans la langue courante du lecteur (voir
         // notification_body()). body n'est qu'un instantané de repli, pour une clé devenue introuvable (ex. bundle
         // désactivé depuis) : on garde au moins le texte dans la langue du destinataire au moment de l'envoi.
-        $saved = $this->repo->save([
+        $saved = Notification::put([
             'user_id'      => $userId,
             'type'         => $type,
             'body_key'     => $bodyKey,
@@ -207,7 +206,7 @@ class NotificationService
     public function markReadFor(int $userId, string $referenceType, int|array $referenceId): void
     {
         try {
-            $this->repo->markReadByReference($userId, $referenceType, array_values(array_map('intval', (array) $referenceId)));
+            Notification::markReadByReference($userId, $referenceType, array_values(array_map('intval', (array) $referenceId)));
         } catch (\Throwable $e) {
             Log::warning('notification_mark_read_failed', ['user_id' => $userId, 'reference_type' => $referenceType, 'error' => $e->getMessage()]);
         }

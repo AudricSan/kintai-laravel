@@ -7,7 +7,7 @@ namespace App\Http\Controllers;
 use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Models\WebPushSubscription;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +20,6 @@ final class NotificationController
 
     public function __construct(
         private readonly AuthService $auth,
-        private readonly NotificationRepositoryInterface $repo,
         private readonly WebPushEndpointValidator $endpoints,
         private readonly ViewFactory $view,
     ) {}
@@ -33,13 +32,13 @@ final class NotificationController
     public function index(Request $request): Response
     {
         $userId     = (int) $this->auth->user()['id'];
-        $total      = $this->repo->countByUser($userId);
+        $total      = Notification::countByUser($userId);
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
         $page       = min($totalPages, max(1, (int) $request->query('page', 1)));
 
         return response($this->view->make('notifications.index', [
             'title'         => __('notifications'),
-            'notifications' => $this->repo->findByUser($userId, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
+            'notifications' => Notification::findByUser($userId, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
             'page'          => $page,
             'totalPages'    => $totalPages,
         ])->render());
@@ -58,12 +57,12 @@ final class NotificationController
         $userId = (int) $this->auth->user()['id'];
         $id     = (int) $request->route('id');
 
-        $notification = $this->repo->findById($id);
+        $notification = Notification::findById($id);
         if ($notification === null || (int) ($notification['user_id'] ?? 0) !== $userId) {
             throw new NotFoundException(__('error_resource_not_found'));
         }
 
-        $this->repo->markRead($id, $userId);
+        Notification::markRead($id, $userId);
 
         // Chemin interne uniquement (ni « // », ni « /\ » que les navigateurs lisent comme une autre origine) : un lien
         // enregistré avant ce contrôle, ou venu d'un bundle, ne doit jamais faire de cette route une redirection ouverte.
@@ -76,7 +75,7 @@ final class NotificationController
     {
         $userId = (int) $this->auth->user()['id'];
         $id     = (int) $request->route('id');
-        $this->repo->markRead($id, $userId);
+        Notification::markRead($id, $userId);
 
         if ($request->ajax()) {
             return response()->json(['ok' => true]);
@@ -89,7 +88,7 @@ final class NotificationController
     public function markAllRead(Request $request): Response
     {
         $userId = (int) $this->auth->user()['id'];
-        $this->repo->markAllRead($userId);
+        Notification::markAllRead($userId);
 
         if ($request->ajax()) {
             return response()->json(['ok' => true]);
@@ -101,7 +100,7 @@ final class NotificationController
     public function deleteAll(Request $request): Response
     {
         $userId = (int) $this->auth->user()['id'];
-        $this->repo->deleteAllForUser($userId);
+        Notification::deleteAllForUser($userId);
 
         if ($request->ajax()) {
             return response()->json(['ok' => true]);
@@ -182,8 +181,8 @@ final class NotificationController
         $afterId = max(0, (int) $request->query('after_id', 0));
         $known   = (int) $request->query('count', -1);
 
-        $new    = $this->repo->findAfterId($userId, $afterId, self::POLL_BATCH);
-        $count  = $this->repo->countUnread($userId);
+        $new    = Notification::findAfterId($userId, $afterId, self::POLL_BATCH);
+        $count  = Notification::countUnread($userId);
         $lastId = $new === [] ? $afterId : (int) end($new)['id'];
 
         $payload = [
@@ -210,7 +209,7 @@ final class NotificationController
     private function panelHtml(int $userId, int $unread): string
     {
         return $this->view->make('layout.partials._notif_panel', [
-            'notif_items'  => $this->repo->findUnreadByUser($userId, 10),
+            'notif_items'  => Notification::findUnreadByUser($userId, 10),
             'notif_unread' => $unread,
         ])->render();
     }

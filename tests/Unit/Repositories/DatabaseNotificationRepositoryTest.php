@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Models\Notification;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +15,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class DatabaseNotificationRepositoryTest extends TestCase
 {
-    private DatabaseNotificationRepository $repo;
 
     protected function setUp(): void
     {
@@ -38,20 +36,18 @@ final class DatabaseNotificationRepositoryTest extends TestCase
             $table->timestamp('read_at')->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
-
-        $this->repo = new DatabaseNotificationRepository();
     }
 
     private function add(int $userId, string $body = 'x', array $extra = []): array
     {
-        return $this->repo->save(array_merge([
+        return Notification::put(array_merge([
             'user_id' => $userId, 'type' => 't', 'body' => $body, 'is_read' => 0, 'created_at' => '2026-08-05 10:00:00',
         ], $extra));
     }
 
     public function testSaveInsertsAgainstRealSchemaWithBodyAndReferenceId(): void
     {
-        $saved = $this->repo->save([
+        $saved = Notification::put([
             'user_id'      => 5,
             'type'         => 'timeoff_approved',
             'reference_id' => 42,
@@ -84,7 +80,7 @@ final class DatabaseNotificationRepositoryTest extends TestCase
             'params'   => ['date' => '2026-08-05', 'store' => 'Shibuya 渋谷'],
         ]);
 
-        $found = $this->repo->findById((int) $saved['id']);
+        $found = Notification::findById((int) $saved['id']);
         $this->assertSame('notif_shift_assigned_body', $found['body_key']);
         $this->assertSame(['date' => '2026-08-05', 'store' => 'Shibuya 渋谷'], $found['params']);
     }
@@ -94,14 +90,14 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $saved = $this->add(5, 'x', ['params' => []]);
 
         $this->assertNull(Notification::find((int) $saved['id'])->params);
-        $this->assertSame([], $this->repo->findById((int) $saved['id'])['params']);
+        $this->assertSame([], Notification::findById((int) $saved['id'])['params']);
     }
 
     public function testSaveAndFindByUserRoundTripLink(): void
     {
         $this->add(5, 'Nouveau shift.', ['link' => '/employee/shifts/day?start=2026-08-05']);
 
-        $this->assertSame('/employee/shifts/day?start=2026-08-05', $this->repo->findByUser(5)[0]['link']);
+        $this->assertSame('/employee/shifts/day?start=2026-08-05', Notification::findByUser(5)[0]['link']);
     }
 
     public function testFindByUserReturnsNewestFirstWithOffset(): void
@@ -111,9 +107,9 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $c = $this->add(5, 'c');
         $this->add(6, 'other');
 
-        $this->assertSame([(int) $c['id'], (int) $b['id']], array_map(fn($r) => (int) $r['id'], $this->repo->findByUser(5, 2)));
-        $this->assertSame([(int) $a['id']], array_map(fn($r) => (int) $r['id'], $this->repo->findByUser(5, 2, 2)));
-        $this->assertSame(3, $this->repo->countByUser(5));
+        $this->assertSame([(int) $c['id'], (int) $b['id']], array_map(fn($r) => (int) $r['id'], Notification::findByUser(5, 2)));
+        $this->assertSame([(int) $a['id']], array_map(fn($r) => (int) $r['id'], Notification::findByUser(5, 2, 2)));
+        $this->assertSame(3, Notification::countByUser(5));
     }
 
     /**
@@ -127,21 +123,21 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $third  = $this->add(5, 'third');
         $this->add(6, 'other user');
 
-        $rows = $this->repo->findAfterId(5, (int) $first['id']);
+        $rows = Notification::findAfterId(5, (int) $first['id']);
 
         $this->assertSame(['second', 'third'], array_column($rows, 'body'));
-        $this->assertSame([], $this->repo->findAfterId(5, (int) $third['id']));
-        $this->assertCount(1, $this->repo->findAfterId(5, (int) $first['id'], 1));
-        $this->assertSame((int) $second['id'], (int) $this->repo->findAfterId(5, (int) $first['id'], 1)[0]['id']);
+        $this->assertSame([], Notification::findAfterId(5, (int) $third['id']));
+        $this->assertCount(1, Notification::findAfterId(5, (int) $first['id'], 1));
+        $this->assertSame((int) $second['id'], (int) Notification::findAfterId(5, (int) $first['id'], 1)[0]['id']);
     }
 
     public function testFindAfterIdIncludesReadRows(): void
     {
         $first = $this->add(5, 'first');
         $read  = $this->add(5, 'read');
-        $this->repo->markRead((int) $read['id'], 5);
+        Notification::markRead((int) $read['id'], 5);
 
-        $rows = $this->repo->findAfterId(5, (int) $first['id']);
+        $rows = Notification::findAfterId(5, (int) $first['id']);
 
         $this->assertCount(1, $rows);
         $this->assertSame(1, $rows[0]['is_read']);
@@ -151,9 +147,9 @@ final class DatabaseNotificationRepositoryTest extends TestCase
     {
         $saved = $this->add(5);
 
-        $this->repo->markRead((int) $saved['id'], 5);
+        Notification::markRead((int) $saved['id'], 5);
 
-        $found = $this->repo->findById((int) $saved['id']);
+        $found = Notification::findById((int) $saved['id']);
         $this->assertSame(1, $found['is_read']);
         $this->assertNotNull($found['read_at']);
     }
@@ -162,9 +158,9 @@ final class DatabaseNotificationRepositoryTest extends TestCase
     {
         $saved = $this->add(5);
 
-        $this->repo->markRead((int) $saved['id'], 999);
+        Notification::markRead((int) $saved['id'], 999);
 
-        $this->assertSame(0, $this->repo->findById((int) $saved['id'])['is_read']);
+        $this->assertSame(0, Notification::findById((int) $saved['id'])['is_read']);
     }
 
     public function testCountUnreadOnlyCountsUnreadForThatUser(): void
@@ -173,19 +169,19 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $this->add(5, 'b');
         $this->add(6, 'c');
 
-        $this->assertSame(2, $this->repo->countUnread(5));
+        $this->assertSame(2, Notification::countUnread(5));
 
-        $this->repo->markAllRead(5);
-        $this->assertSame(0, $this->repo->countUnread(5));
-        $this->assertSame(1, $this->repo->countUnread(6));
+        Notification::markAllRead(5);
+        $this->assertSame(0, Notification::countUnread(5));
+        $this->assertSame(1, Notification::countUnread(6));
     }
 
     public function testDeleteRemovesRow(): void
     {
         $saved = $this->add(5);
 
-        $this->assertSame(1, $this->repo->delete((int) $saved['id']));
-        $this->assertNull($this->repo->findById((int) $saved['id']));
+        $this->assertSame(1, Notification::remove((int) $saved['id']));
+        $this->assertNull(Notification::findById((int) $saved['id']));
     }
 
     public function testDeleteAllForUserRemovesOnlyThatUsersRowsReadOrNot(): void
@@ -193,12 +189,12 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $keptOtherUser = $this->add(6, 'c');
         $this->add(5, 'a');
         $read = $this->add(5, 'b');
-        $this->repo->markRead((int) $read['id'], 5);
+        Notification::markRead((int) $read['id'], 5);
 
-        $this->repo->deleteAllForUser(5);
+        Notification::deleteAllForUser(5);
 
-        $this->assertSame([], $this->repo->findByUser(5));
-        $this->assertNotNull($this->repo->findById((int) $keptOtherUser['id']));
+        $this->assertSame([], Notification::findByUser(5));
+        $this->assertNotNull(Notification::findById((int) $keptOtherUser['id']));
     }
     /** « Lu » automatique : seules les non lues du bon utilisateur, du bon type d'objet et du bon id sont touchées. */
     public function testMarkReadByReferenceTouchesOnlyTheMatchingUnreadNotificationsOfTheUser(): void
@@ -210,13 +206,13 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $otherUs = $this->add(6, 'e', ['reference_type' => 'shift', 'reference_id' => 12]);
         $noRef   = $this->add(5, 'f');
 
-        $this->repo->markReadByReference(5, 'shift', [12, 13]);
+        Notification::markReadByReference(5, 'shift', [12, 13]);
 
         foreach ([$hit1, $hit2] as $n) {
-            $this->assertSame(1, $this->repo->findById((int) $n['id'])['is_read']);
+            $this->assertSame(1, Notification::findById((int) $n['id'])['is_read']);
         }
         foreach ([$otherId, $otherTy, $otherUs, $noRef] as $n) {
-            $this->assertSame(0, $this->repo->findById((int) $n['id'])['is_read'], $n['body']);
+            $this->assertSame(0, Notification::findById((int) $n['id'])['is_read'], $n['body']);
         }
     }
 
@@ -224,18 +220,18 @@ final class DatabaseNotificationRepositoryTest extends TestCase
     {
         $n = $this->add(5, 'a', ['reference_type' => 'shift', 'reference_id' => 12, 'read_at' => '2026-08-01 09:00:00']);
 
-        $this->repo->markReadByReference(5, 'shift', [12]);
+        Notification::markReadByReference(5, 'shift', [12]);
 
-        $this->assertSame('2026-08-01 09:00:00', $this->repo->findById((int) $n['id'])['read_at']);
+        $this->assertSame('2026-08-01 09:00:00', Notification::findById((int) $n['id'])['read_at']);
     }
 
     public function testMarkReadByReferenceWithNoIdsDoesNothing(): void
     {
         $n = $this->add(5, 'a', ['reference_type' => 'shift', 'reference_id' => 12]);
 
-        $this->repo->markReadByReference(5, 'shift', []);
+        Notification::markReadByReference(5, 'shift', []);
 
-        $this->assertSame(0, $this->repo->findById((int) $n['id'])['is_read']);
+        $this->assertSame(0, Notification::findById((int) $n['id'])['is_read']);
     }
 
     /** La cloche ne montre que les non lues, de l'utilisateur concerné, plus récentes d'abord, dans la limite demandée. */
@@ -246,14 +242,14 @@ final class DatabaseNotificationRepositoryTest extends TestCase
         $this->add(6, 'autre utilisateur');
         $second = $this->add(5, 'b');
         $third  = $this->add(5, 'c');
-        $this->repo->markRead((int) $read['id'], 5);
+        Notification::markRead((int) $read['id'], 5);
 
-        $ids = array_column($this->repo->findUnreadByUser(5, 10), 'id');
+        $ids = array_column(Notification::findUnreadByUser(5, 10), 'id');
         $this->assertSame([(int) $third['id'], (int) $second['id'], (int) $first['id']], array_map('intval', $ids));
 
-        $this->assertCount(2, $this->repo->findUnreadByUser(5, 2));
+        $this->assertCount(2, Notification::findUnreadByUser(5, 2));
 
         // Une notification lue quitte la cloche mais reste dans l'historique complet.
-        $this->assertCount(4, $this->repo->findByUser(5, 10));
+        $this->assertCount(4, Notification::findByUser(5, 10));
     }
 }

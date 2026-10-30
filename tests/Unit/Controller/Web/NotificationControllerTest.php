@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\AuthService;
 use App\Models\WebPushSubscription;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
 
 final class NotificationControllerTest extends TestCase
 {
-    private NotificationRepositoryInterface&Stub $notifications;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
     private AuthService $auth;
     private ?NotificationController $controller = null;
@@ -34,6 +33,7 @@ final class NotificationControllerTest extends TestCase
         session()->put(auth()->getName(), 5);
         kintai_test_database();
         kintai_test_migrate();
+        kintai_test_user(5);
 
         $users = $this->createMock(UserRepositoryInterface::class);
         $users->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@example.com']);
@@ -49,8 +49,6 @@ final class NotificationControllerTest extends TestCase
             $this->roleAssignments,
             $this->createStub(UserRepositoryInterface::class),
         );
-
-        $this->notifications = $this->createStub(NotificationRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -59,7 +57,6 @@ final class NotificationControllerTest extends TestCase
         if ($this->controller === null) {
             $this->controller = new NotificationController(
                 $this->auth,
-                $this->notifications,
                 new WebPushEndpointValidator(static fn(string $host): array => ['142.250.74.10']),
                 kintai_test_views(dirname(__DIR__, 4) . '/resources/views'),
             );
@@ -101,12 +98,15 @@ final class NotificationControllerTest extends TestCase
      */
     public function testDeleteAllCallsRepositoryForCurrentUserOnly(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->once())->method('deleteAllForUser')->with(5);
+        $this->seedNotification(1, 5);
+        kintai_test_user(9);
+        $this->seedNotification(2, 9);
 
         $response = $this->controller()->deleteAll($this->makeRequest());
 
         $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame([], Notification::where('user_id', 5)->pluck('id')->all());
+        $this->assertCount(1, Notification::where('user_id', 9)->get(), 'celles des autres comptes restent');
     }
 
     public function testRedirectsKeepTheSubfolderPrefixWhenInstalledInASubfolder(): void
@@ -125,12 +125,12 @@ final class NotificationControllerTest extends TestCase
 
     public function testDeleteAllReturnsJsonForAjaxRequests(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->once())->method('deleteAllForUser')->with(5);
+        $this->seedNotification(1, 5);
 
         $response = $this->controller()->deleteAll($this->makeRequest(ajax: true));
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(0, Notification::where('user_id', 5)->count());
     }
 
     // -------------------------------------------------------------------------
@@ -261,23 +261,18 @@ final class NotificationControllerTest extends TestCase
 
     public function testOpenMarksReadAndRedirectsToStoredLink(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
-            'id' => 10, 'user_id' => 5, 'link' => '/employee/shifts/day?start=2026-08-03',
-        ]);
-        $this->notifications->expects($this->once())->method('markRead')->with(10, 5);
+        $this->seedNotification(10, 5, '/employee/shifts/day?start=2026-08-03');
 
         $response = $this->controller()->open($this->makeGetRequest(10));
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('/employee/shifts/day?start=2026-08-03', kintai_test_headers($response)['Location'] ?? null);
+        $this->assertNotNull(Notification::find(10)->read_at, 'marquée lue');
     }
 
     public function testOpenFallsBackToNotificationsListWhenNoLink(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'user_id' => 5, 'link' => null]);
-        $this->notifications->expects($this->once())->method('markRead')->with(10, 5);
+        $this->seedNotification(10, 5);
 
         $response = $this->controller()->open($this->makeGetRequest(10));
 
@@ -287,9 +282,7 @@ final class NotificationControllerTest extends TestCase
     /** Un lien stocké absolu/protocole-relatif (jamais généré par ce code, mais défensif) est ignoré. */
     public function testOpenIgnoresProtocolRelativeLink(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'user_id' => 5, 'link' => '//evil.example.com']);
-        $this->notifications->method('markRead');
+        $this->seedNotification(10, 5, '//evil.example.com');
 
         $response = $this->controller()->open($this->makeGetRequest(10));
 
@@ -301,9 +294,8 @@ final class NotificationControllerTest extends TestCase
     {
         foreach (['/\evil.example.com', '/ok\evil', "/ok
 x", 'https://evil.example.com'] as $bad) {
-            $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-            $this->notifications->method('findById')->with(10)->willReturn(['id' => 10, 'user_id' => 5, 'link' => $bad]);
-            $this->notifications->method('markRead');
+            Notification::query()->delete();
+            $this->seedNotification(10, 5, $bad);
             $this->controller = null;
 
             $response = $this->controller()->open($this->makeGetRequest(10));
@@ -314,19 +306,19 @@ x", 'https://evil.example.com'] as $bad) {
 
     public function testOpenThrowsNotFoundForAnotherUsersNotification(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'user_id' => 999, 'link' => null]);
-        $this->notifications->expects($this->never())->method('markRead');
+        kintai_test_user(999);
+        $this->seedNotification(10, 999);
 
-        $this->expectException(\App\Exceptions\NotFoundException::class);
-        $this->controller()->open($this->makeGetRequest(10));
+        try {
+            $this->controller()->open($this->makeGetRequest(10));
+            $this->fail('notification d\'un autre compte ouverte');
+        } catch (\App\Exceptions\NotFoundException) {
+            $this->assertNull(Notification::find(10)->read_at, 'non marquée lue');
+        }
     }
 
     public function testOpenThrowsNotFoundWhenNotificationDoesNotExist(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(null);
-
         $this->expectException(\App\Exceptions\NotFoundException::class);
         $this->controller()->open($this->makeGetRequest(10));
     }
@@ -360,13 +352,9 @@ x", 'https://evil.example.com'] as $bad) {
     public function testPollAsksRepositoryForRowsAfterTheCursorAndAdvancesIt(): void
     {
         $this->bindRouter();
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->expects($this->once())->method('findAfterId')->with(5, 40, 50)->willReturn([
-            ['id' => 41, 'type' => 'shift_assigned', 'body' => 'a', 'is_read' => 0],
-            ['id' => 43, 'type' => 'shift_assigned', 'body' => 'déjà lue', 'is_read' => 1],
-        ]);
-        $this->notifications->method('countUnread')->willReturn(1);
-        $this->notifications->method('findUnreadByUser')->willReturn([]);
+        $this->seedNotification(39, 5, null, 'ancienne', true);
+        $this->seedNotification(41, 5, null, 'a');
+        $this->seedNotification(43, 5, null, 'déjà lue', true);
 
         try {
             $data = $this->json($this->controller()->poll($this->makePollRequest(['after_id' => '40', 'count' => '0'])));
@@ -385,10 +373,9 @@ x", 'https://evil.example.com'] as $bad) {
 
     public function testPollOmitsPanelWhenNothingChanged(): void
     {
-        $this->notifications = $this->createMock(NotificationRepositoryInterface::class);
-        $this->notifications->method('findAfterId')->willReturn([]);
-        $this->notifications->method('countUnread')->willReturn(3);
-        $this->notifications->expects($this->never())->method('findUnreadByUser');
+        foreach ([38, 39, 40] as $id) {
+            $this->seedNotification($id, 5);
+        }
 
         try {
             $data = $this->json($this->controller()->poll($this->makePollRequest(['after_id' => '40', 'count' => '3'])));
@@ -405,11 +392,7 @@ x", 'https://evil.example.com'] as $bad) {
     public function testPollReturnsPanelWhenUnreadCountDiffersFromTheBrowser(): void
     {
         $this->bindRouter();
-        $this->notifications->method('findAfterId')->willReturn([]);
-        $this->notifications->method('countUnread')->willReturn(1);
-        $this->notifications->method('findUnreadByUser')->willReturn([
-            ['id' => 40, 'type' => 'shift_assigned', 'body' => 'Shift <b>', 'is_read' => 0, 'created_at' => '2026-10-19 10:00:00'],
-        ]);
+        $this->seedNotification(40, 5, null, 'Shift <b>');
 
         try {
             $data = $this->json($this->controller()->poll($this->makePollRequest(['after_id' => '40', 'count' => '2'])));
@@ -426,9 +409,6 @@ x", 'https://evil.example.com'] as $bad) {
     public function testPollPanelWhenEverythingIsReadStillLinksToTheHistory(): void
     {
         $this->bindRouter();
-        $this->notifications->method('findAfterId')->willReturn([]);
-        $this->notifications->method('countUnread')->willReturn(0);
-        $this->notifications->method('findUnreadByUser')->willReturn([]);
 
         try {
             $data = $this->json($this->controller()->poll($this->makePollRequest(['after_id' => '40', 'count' => '2'])));
@@ -439,5 +419,14 @@ x", 'https://evil.example.com'] as $bad) {
         $this->assertStringNotContainsString('notif-entry', $data['panel_html']);
         $this->assertStringContainsString('notif-dropdown__empty', $data['panel_html']);
         $this->assertStringContainsString('notif-dropdown__footer', $data['panel_html']);
+    }
+
+    /** Notification de test dans la table (type valide, non lue sauf demande). */
+    private function seedNotification(int $id, int $userId, ?string $link = null, string $body = 'x', bool $read = false): void
+    {
+        Notification::create([
+            'id' => $id, 'user_id' => $userId, 'type' => 'shift_assigned', 'body' => $body, 'link' => $link,
+            'read_at' => $read ? date('Y-m-d H:i:s') : null, 'created_at' => '2026-10-19 10:00:00',
+        ]);
     }
 }

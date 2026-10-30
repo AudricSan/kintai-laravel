@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -81,7 +80,7 @@ final class NotificationServiceTest extends TestCase
 
         $this->push         = $push;
         $this->translations = $translations;
-        $this->service      = new NotificationService(new DatabaseNotificationRepository(), $push, $translations, $this->users);
+        $this->service      = new NotificationService($push, $translations, $this->users);
     }
 
     private function registerUser(int $id, ?string $language): void
@@ -277,7 +276,6 @@ final class NotificationServiceTest extends TestCase
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
 
         return new NotificationService(
-            new DatabaseNotificationRepository(),
             $this->push,
             $this->translations,
             $this->users,
@@ -322,9 +320,8 @@ final class NotificationServiceTest extends TestCase
     /** Une panne du « lu » automatique ne doit jamais empêcher d'afficher la page. */
     public function testMarkReadForNeverThrows(): void
     {
-        $repo = $this->createStub(\App\Repositories\NotificationRepositoryInterface::class);
-        $repo->method('markReadByReference')->willThrowException(new \RuntimeException('base indisponible'));
-        $service = new NotificationService($repo, $this->push, $this->translations, $this->users);
+        kintai_test_database(); // sans migrations : la table des notifications n'existe pas
+        $service = new NotificationService($this->push, $this->translations, $this->users);
 
         $service->markReadFor(5, 'shift', [1, 2]);
 

@@ -9,7 +9,6 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -107,7 +106,6 @@ final class NotificationSettingsControllerTest extends TestCase
         $this->prefs = new NotificationPreferenceService($registry, $users);
 
         $notifications = new NotificationService(
-            new DatabaseNotificationRepository(),
             new PushNotificationService([]),
             $translations,
             $users,

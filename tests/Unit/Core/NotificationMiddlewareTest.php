@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use Illuminate\Container\Container;
 use App\Http\Middleware\NotificationMiddleware;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -36,6 +36,9 @@ final class NotificationMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(7);
         $this->container = new \Tests\Support\TestContainer();
         $this->view       = kintai_test_views(sys_get_temp_dir());
         $this->container->instance(ViewFactory::class, $this->view);
@@ -71,11 +74,7 @@ final class NotificationMiddlewareTest extends TestCase
 
     private function bindNotifications(): void
     {
-        $repo = $this->createStub(NotificationRepositoryInterface::class);
-        $repo->method('countUnread')->willReturn(0);
-        $repo->method('findByUser')->willReturn([]);
-        $repo->method('findUnreadByUser')->willReturn([]);
-        $this->container->instance(NotificationRepositoryInterface::class, $repo);
+        // Aucune notification : la base de test est vide.
     }
 
     private function noop(): \Closure
@@ -141,6 +140,7 @@ final class NotificationMiddlewareTest extends TestCase
     public function testPushWebConfigEmptyWhenTheSettingsAreUnreachable(): void
     {
         // Aucun VapidKeyStore dans le conteneur et pas de base : le middleware ne doit pas échouer pour autant.
+        kintai_test_database(); // sans migrations : les réglages sont injoignables
         $this->bindAuth(['id' => 7]);
         $this->bindNotifications();
         $middleware = new NotificationMiddleware($this->container);
@@ -152,21 +152,7 @@ final class NotificationMiddlewareTest extends TestCase
     public function testDegradesGracefullyWhenNotificationRepositoryThrows(): void
     {
         $this->bindAuth(['id' => 7]);
-        $this->container->instance(NotificationRepositoryInterface::class, new class implements NotificationRepositoryInterface {
-            public function findById(int $id): ?array { throw new \RuntimeException('table absente'); }
-            public function findByUser(int $userId, int $limit = 20, int $offset = 0): array { throw new \RuntimeException('table absente'); }
-            public function findUnreadByUser(int $userId, int $limit = 10): array { throw new \RuntimeException('table absente'); }
-            public function countByUser(int $userId): int { throw new \RuntimeException('table absente'); }
-            public function findAfterId(int $userId, int $afterId, int $limit = 50): array { throw new \RuntimeException('table absente'); }
-            public function countUnread(int $userId): int { throw new \RuntimeException('table absente'); }
-            public function save(array $data): array { throw new \RuntimeException('table absente'); }
-            public function markRead(int $id, int $userId): void { throw new \RuntimeException('table absente'); }
-            public function markAllRead(int $userId): void { throw new \RuntimeException('table absente'); }
-            public function markReadByReference(int $userId, string $referenceType, array $referenceIds): void { throw new \RuntimeException('table absente'); }
-            public function delete(int $id): int { throw new \RuntimeException('table absente'); }
-            public function purgeReadBefore(string $before, int $batchSize = 1000): int { throw new \RuntimeException('table absente'); }
-            public function deleteAllForUser(int $userId): void { throw new \RuntimeException('table absente'); }
-        });
+        kintai_test_database(); // sans migrations : la table des notifications n'existe pas
         $middleware = new NotificationMiddleware($this->container);
 
         $response = $middleware->handle(Request::capture(), $this->noop());
@@ -182,11 +168,9 @@ final class NotificationMiddlewareTest extends TestCase
     public function testSharesLastIdOfNewestNotification(): void
     {
         $this->bindAuth(['id' => 7]);
-        $repo = $this->createStub(NotificationRepositoryInterface::class);
-        $repo->method('countUnread')->willReturn(2);
-        $repo->method('findByUser')->willReturn([['id' => 42, 'type' => 't', 'is_read' => 1]]);
-        $repo->method('findUnreadByUser')->willReturn([['id' => 40, 'type' => 't'], ['id' => 38, 'type' => 't']]);
-        $this->container->instance(NotificationRepositoryInterface::class, $repo);
+        foreach ([[38, '2026-10-19 08:00:00', false], [40, '2026-10-19 09:00:00', false], [42, '2026-10-19 10:00:00', true]] as [$id, $at, $read]) {
+            Notification::create(['id' => $id, 'user_id' => 7, 'type' => 'shift_assigned', 'body' => 'x', 'created_at' => $at, 'read_at' => $read ? $at : null]);
+        }
 
         (new NotificationMiddleware($this->container))->handle(Request::capture(), $this->noop());
 
@@ -202,11 +186,12 @@ final class NotificationMiddlewareTest extends TestCase
     public function testSkipsAjaxRequests(): void
     {
         $this->bindAuth(['id' => 7]);
-        $repo = $this->createMock(NotificationRepositoryInterface::class);
-        $repo->expects($this->never())->method('countUnread');
-        $repo->expects($this->never())->method('findByUser');
-        $repo->expects($this->never())->method('findUnreadByUser');
-        $this->container->instance(NotificationRepositoryInterface::class, $repo);
+        $queries = 0;
+        \Illuminate\Support\Facades\DB::listen(function ($query) use (&$queries): void {
+            if (str_contains($query->sql, 'notifications')) {
+                $queries++;
+            }
+        });
 
         $_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
         try {
@@ -216,5 +201,6 @@ final class NotificationMiddlewareTest extends TestCase
         }
 
         $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(0, $queries, 'aucune requête sur les notifications');
     }
 }

@@ -8,7 +8,6 @@ use kintai\Contract\Extension\NotificationType;
 use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -299,7 +298,7 @@ final class NotificationPreferenceServiceTest extends TestCase
 
         $translations = kintai_test_real_translator();
 
-        return new NotificationService(new DatabaseNotificationRepository(), $push, $translations, $this->users, $this->registry, $prefs);
+        return new NotificationService($push, $translations, $this->users, $this->registry, $prefs);
     }
 
     public function testNotifyAttemptsPushByDefaultAndWithoutPreferenceService(): void

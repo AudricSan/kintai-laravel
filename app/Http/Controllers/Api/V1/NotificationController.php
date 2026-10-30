@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Api\Paginator;
 use App\Exceptions\NotFoundException;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,15 +18,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class NotificationController
 {
-    public function __construct(private readonly NotificationRepositoryInterface $notifications) {}
-
     /** GET /api/v1/notifications?limit=20 */
     public function index(Request $request): Response
     {
         $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
 
         [$page, $limit] = Paginator::params($request);
-        $items = $userId > 0 ? $this->notifications->findByUser($userId, 1000) : [];
+        $items = $userId > 0 ? Notification::findByUser($userId, 1000) : [];
 
         return response()->json(Paginator::paginate(array_map([$this, 'present'], $items), $page, $limit));
     }
@@ -50,7 +48,7 @@ final class NotificationController
     public function markRead(Request $request): Response
     {
         $item = $this->findOwn($request);
-        $this->notifications->markRead((int) $item['id'], (int) $item['user_id']);
+        Notification::markRead((int) $item['id'], (int) $item['user_id']);
         return response()->noContent();
     }
 
@@ -59,7 +57,7 @@ final class NotificationController
     {
         $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($userId > 0) {
-            $this->notifications->markAllRead($userId);
+            Notification::markAllRead($userId);
         }
         return response()->noContent();
     }
@@ -68,7 +66,7 @@ final class NotificationController
     public function destroy(Request $request): Response
     {
         $item = $this->findOwn($request);
-        $this->notifications->delete((int) $item['id']);
+        Notification::remove((int) $item['id']);
         return response()->noContent();
     }
 
@@ -79,7 +77,7 @@ final class NotificationController
      */
     private function findOwn(Request $request): array
     {
-        $item   = $this->notifications->findById((int) $request->route('id'));
+        $item   = Notification::findById((int) $request->route('id'));
         $userId = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
         if ($item === null || (int) ($item['user_id'] ?? 0) !== $userId) {
             throw new NotFoundException(__('error_notification_not_found'));

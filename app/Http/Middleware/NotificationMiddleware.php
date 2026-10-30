@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\VapidKeyStore;
-use App\Repositories\NotificationRepositoryInterface;
+use App\Models\Notification;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
@@ -58,7 +58,7 @@ final class NotificationMiddleware
             }
 
             try {
-                $repo = $this->container->make(NotificationRepositoryInterface::class);
+                $repo = $this->container->make(Notification::class);
 
                 $count    = $repo->countUnread($userId);
                 $dropdown = $repo->findUnreadByUser($userId, 10);

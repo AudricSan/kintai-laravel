@@ -10,7 +10,6 @@ use App\Jobs\DeliverNotification;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -115,7 +114,6 @@ final class NotificationEmailTest extends TestCase
         );
 
         return new NotificationService(
-            new DatabaseNotificationRepository(),
             new PushNotificationService([]),
             $translations,
             $users,

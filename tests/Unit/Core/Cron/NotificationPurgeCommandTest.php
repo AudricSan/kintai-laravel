@@ -6,7 +6,6 @@ namespace Tests\Unit\Core\Cron;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Console\Commands\NotificationPurgeCommand;
-use App\Repositories\DatabaseNotificationRepository;
 use App\Services\AppSettingsService;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
@@ -53,7 +52,6 @@ final class NotificationPurgeCommandTest extends TestCase
     private function purge(array $settings = []): array
     {
         app()->instance(AppSettingsService::class, new AppSettingsService(new InMemoryAppSettings($settings)));
-        app()->instance(AppRepositoriesNotificationRepositoryInterface::class, new DatabaseNotificationRepository());
         [$code, $output] = kintai_test_command(new NotificationPurgeCommand());
         app()->forgetInstance(AppSettingsService::class);
 
@@ -116,13 +114,12 @@ final class NotificationPurgeCommandTest extends TestCase
 
     public function testDeletesInBatchesUntilEverythingOldIsGone(): void
     {
-        $repo = new DatabaseNotificationRepository();
         for ($i = 0; $i < 25; $i++) {
             $this->notification(1, 200);
         }
         $keep = $this->notification(1, 1);
 
-        $deleted = $repo->purgeReadBefore($this->daysAgo(90), 10);
+        $deleted = Notification::purgeReadBefore($this->daysAgo(90), 10);
 
         $this->assertSame(25, $deleted);
         $this->assertSame(1, Notification::count());
@@ -131,7 +128,7 @@ final class NotificationPurgeCommandTest extends TestCase
 
     public function testPurgeWithNothingToDoReturnsZero(): void
     {
-        $this->assertSame(0, (new DatabaseNotificationRepository())->purgeReadBefore($this->daysAgo(90)));
+        $this->assertSame(0, Notification::purgeReadBefore($this->daysAgo(90)));
     }
 
     public function testDeletesWebPushSubscriptionsUnusedForMoreThan180Days(): void
