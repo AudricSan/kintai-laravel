@@ -8,7 +8,6 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
@@ -79,7 +78,7 @@ final class NotificationServiceWebPushTest extends TestCase
         $manager  = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-        $this->prefs = new NotificationPreferenceService(new DatabaseNotificationPreferenceRepository(), $registry, $users);
+        $this->prefs = new NotificationPreferenceService($registry, $users);
 
         $settings = new class implements AppSettingsRepositoryInterface {
             public array $values = [];

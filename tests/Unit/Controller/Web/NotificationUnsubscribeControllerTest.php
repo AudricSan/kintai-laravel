@@ -9,7 +9,6 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -60,7 +59,6 @@ final class NotificationUnsubscribeControllerTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $this->prefs  = new NotificationPreferenceService(
-            new DatabaseNotificationPreferenceRepository(),
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
             $this->createStub(UserRepositoryInterface::class),
         );

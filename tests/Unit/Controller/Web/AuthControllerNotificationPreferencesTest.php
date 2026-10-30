@@ -77,7 +77,6 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $prefs = new NotificationPreferenceService(
-            new DatabaseNotificationPreferenceRepository(),
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
             $users,
         );

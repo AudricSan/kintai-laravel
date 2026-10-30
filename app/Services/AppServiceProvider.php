@@ -22,7 +22,6 @@ use App\Repositories\UserRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\NotificationRepositoryInterface;
-use App\Repositories\NotificationPreferenceRepositoryInterface;
 use App\Repositories\WebPushSubscriptionRepositoryInterface;
 use App\Repositories\PasswordResetRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
@@ -138,7 +137,6 @@ final class AppServiceProvider extends ServiceProvider
             $c->make(WebPushEndpointValidator::class),
         ));
         $this->app->singleton(NotificationPreferenceService::class, fn(Container $c) => new NotificationPreferenceService(
-            $c->make(NotificationPreferenceRepositoryInterface::class),
             $c->make(NotificationTypeRegistry::class),
             $c->make(UserRepositoryInterface::class),
         ));

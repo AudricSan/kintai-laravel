@@ -10,7 +10,6 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
-use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
@@ -134,7 +133,7 @@ final class NotificationSettingsControllerTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-        $this->prefs = new NotificationPreferenceService(new DatabaseNotificationPreferenceRepository(), $registry, $users);
+        $this->prefs = new NotificationPreferenceService($registry, $users);
 
         $notifications = new NotificationService(
             new DatabaseNotificationRepository(),

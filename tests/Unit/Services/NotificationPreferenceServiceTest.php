@@ -9,7 +9,6 @@ use kintai\Contract\Extension\NotificationType;
 use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
@@ -37,7 +36,6 @@ if (!defined('BASE_PATH')) {
 final class NotificationPreferenceServiceTest extends TestCase
 {
     private NotificationTypeRegistry $registry;
-    private DatabaseNotificationPreferenceRepository $repo;
     private UserRepositoryInterface&Stub $users;
 
     /** @var array<int, array<string, mixed>> */
@@ -104,13 +102,12 @@ final class NotificationPreferenceServiceTest extends TestCase
             return $data;
         });
 
-        $this->repo = new DatabaseNotificationPreferenceRepository();
         $this->now  = new \DateTimeImmutable('2026-10-21 12:00:00');
     }
 
     private function service(): NotificationPreferenceService
     {
-        return new NotificationPreferenceService($this->repo, $this->registry, $this->users, fn() => $this->now);
+        return new NotificationPreferenceService($this->registry, $this->users, fn() => $this->now);
     }
 
     // --- valeurs par défaut et écarts -----------------------------------------------------------------------------
@@ -156,7 +153,7 @@ final class NotificationPreferenceServiceTest extends TestCase
     public function testSaveGridLeavesTypesTheFormDidNotShowUntouched(): void
     {
         $service = $this->service();
-        $this->repo->set(7, 'acme_news', 'push', false);
+        NotificationPreference::put(7, 'acme_news', 'push', false);
 
         // Le formulaire n'affichait que les trois types de shift ; acme_news (absent des listes cochées) ne bouge pas.
         $service->saveGrid(7, ['shift_assigned', 'shift_deleted'], ['shift_assigned', 'shift_deleted'], ['shift_assigned', 'shift_updated', 'shift_deleted']);
@@ -172,7 +169,7 @@ final class NotificationPreferenceServiceTest extends TestCase
     public function testSaveGridDoesNotTouchPreferencesOfInactiveTypes(): void
     {
         // Préférence enregistrée pour le type d'un bundle désormais désactivé : la grille ne le connaît plus.
-        $this->repo->set(7, 'old_bundle_type', 'push', false);
+        NotificationPreference::put(7, 'old_bundle_type', 'push', false);
 
         $this->service()->saveGrid(7, [], []);
 
@@ -181,7 +178,7 @@ final class NotificationPreferenceServiceTest extends TestCase
 
     public function testPreferencesAreIsolatedPerUser(): void
     {
-        $this->repo->set(7, 'shift_assigned', 'push', false);
+        NotificationPreference::put(7, 'shift_assigned', 'push', false);
         $service = $this->service();
 
         $this->assertFalse($service->isEnabled(7, 'shift_assigned', 'push'));
@@ -190,7 +187,7 @@ final class NotificationPreferenceServiceTest extends TestCase
 
     public function testGridGroupsActiveTypesByCategoryIncludingBundleTypes(): void
     {
-        $this->repo->set(7, 'acme_news', 'push', false);
+        NotificationPreference::put(7, 'acme_news', 'push', false);
 
         $grid = $this->service()->grid(7);
 
@@ -338,7 +335,7 @@ final class NotificationPreferenceServiceTest extends TestCase
 
     public function testNotifySkipsPushWhenTheUserTurnedItOffButStillFillsTheBell(): void
     {
-        $this->repo->set(7, 'shift_assigned', 'push', false);
+        NotificationPreference::put(7, 'shift_assigned', 'push', false);
         $attempts = 0;
 
         $this->notifier($this->service(), $attempts)->notify(7, 'shift_assigned', 'notif_shift_assigned_body');
@@ -383,7 +380,7 @@ final class NotificationPreferenceServiceTest extends TestCase
     public function testNotifyManyAppliesEachRecipientsOwnPreferences(): void
     {
         $this->usersById[8] = ['id' => 8, 'language' => 'fr', 'quiet_hours_start' => null, 'quiet_hours_end' => null];
-        $this->repo->set(8, 'shift_assigned', 'push', false);
+        NotificationPreference::put(8, 'shift_assigned', 'push', false);
         $attempts = 0;
 
         $this->notifier($this->service(), $attempts)->notifyMany([7, 8], 'shift_assigned', 'notif_shift_assigned_body');

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use kintai\Contract\Extension\NotificationType;
-use App\Repositories\NotificationPreferenceRepositoryInterface;
+use App\Models\NotificationPreference;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -36,7 +36,6 @@ final class NotificationPreferenceService
     private $clock;
 
     public function __construct(
-        private readonly NotificationPreferenceRepositoryInterface $repo,
         private readonly NotificationTypeRegistry $types,
         private readonly UserRepositoryInterface $users,
         ?callable $clock = null,
@@ -58,7 +57,7 @@ final class NotificationPreferenceService
         if ($missing === []) {
             return;
         }
-        $found = $this->repo->findByUsers($missing);
+        $found = NotificationPreference::deviationsFor($missing);
         foreach ($missing as $id) {
             $this->cache[$id] = $found[$id] ?? [];
         }
@@ -226,11 +225,11 @@ final class NotificationPreferenceService
     {
         $this->preload([$userId]);
         if ($enabled === $type->defaultFor($channel)) {
-            $this->repo->reset($userId, $type->type, $channel);
+            NotificationPreference::where('user_id', $userId)->where('type', $type->type)->where('channel', $channel)->delete();
             unset($this->cache[$userId][$type->type][$channel]);
             return;
         }
-        $this->repo->set($userId, $type->type, $channel, $enabled);
+        NotificationPreference::put($userId, $type->type, $channel, $enabled);
         $this->cache[$userId][$type->type][$channel] = $enabled;
     }
 }

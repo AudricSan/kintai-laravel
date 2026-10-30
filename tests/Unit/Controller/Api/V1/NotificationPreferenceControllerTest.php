@@ -59,7 +59,7 @@ final class NotificationPreferenceControllerTest extends TestCase
         $storeUsers->method('findByUser')->willReturn([]);
 
         $this->controller = new NotificationPreferenceController(
-            new NotificationPreferenceService(new DatabaseNotificationPreferenceRepository(), $registry, $users),
+            new NotificationPreferenceService($registry, $users),
             new UserTargetGuard($users, $storeUsers, ApiOwnerAuth::permissions($this)),
         );
     }

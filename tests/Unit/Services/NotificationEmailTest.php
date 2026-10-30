@@ -10,7 +10,6 @@ use App\Jobs\DeliverNotification;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
-use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DevicePushTokenRepositoryInterface;
 use App\Repositories\JsonLanguageRepository;
@@ -92,7 +91,7 @@ final class NotificationEmailTest extends TestCase
         $manager = (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
-        $this->prefs = new NotificationPreferenceService(new DatabaseNotificationPreferenceRepository(), $registry, $users);
+        $this->prefs = new NotificationPreferenceService($registry, $users);
 
         $this->settings = new InMemoryAppSettings(['app_public_url' => 'https://kintai.exemple.fr/app']);
         $this->tokens   = new UnsubscribeTokens($this->settings);
