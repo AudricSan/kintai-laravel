@@ -28,6 +28,7 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 | Base de données : `config/database.php` standard, variables `DB_*` du `.env` (écrites par l'installateur) | Natif |
 | Conteneur : `Illuminate\Foundation\Application`, alias du contrat par `Container::alias()`, liaisons explicites | Natif |
 | Commandes Artisan natives (`kintai:cron`, `cron-token`, `contract`, `check-wiki`, `check-translations`, `new-bundle`, `clean-orphans`) ; `public/install.php` et `scripts/provision.php` restent les installateurs, `seed-demo-data` et `generate-favicons` des scripts d'entretien | Natif / scripts |
+| Messages de retour : `redirect(...)->with('success'|'error', code)` (flash de session), lus par `Flash::fromSession()` et `session()` ; plus de `?success=` / `?error=` dans les URL | Natif |
 | Journal d'activité : canaux Monolog `business` (défaut), `audit`, `access` (`config/logging.php`), écrits dans `activity_log` par `App\Logging\ActivityLogHandler` ; `Log::info()` de Laravel partout | Natif |
 | CI : `tests.yml` (PHPUnit cœur + bundles, phpstan, parcours HTTP), `bundles-release.yml`, manifestes des bundles testés (`MonorepoManifestsTest`) | Natif |
 | Flash, anciennes valeurs, erreurs de validation : `session()->flash()`, `withErrors()` / `withInput()`, `$errors` (layouts) | Natif |
