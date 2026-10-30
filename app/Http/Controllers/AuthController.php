@@ -20,7 +20,7 @@ use App\Services\AuditLogger;
 use App\Services\AvatarImageOptimizer;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Services\Calendar\GoogleCalendarSettings;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -46,7 +46,6 @@ final class AuthController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
-        private readonly IcalTokenRepositoryInterface $icalTokens,
         private readonly UserNavPrefsRepositoryInterface $navPrefs,
         private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly LanguageRepositoryInterface $languages,
@@ -254,7 +253,7 @@ final class AuthController
                 continue;
             }
 
-            $tokenRow = $this->icalTokens->findOrCreateForUserAndStore($userId, $storeId);
+            $tokenRow = IcalToken::findOrCreateForUserAndStore($userId, $storeId);
 
             $feedUrl = "{$scheme}://{$host}{$base}/ical/{$tokenRow['token']}/{$storeId}/shifts.ics";
             $icalLinks[] = [

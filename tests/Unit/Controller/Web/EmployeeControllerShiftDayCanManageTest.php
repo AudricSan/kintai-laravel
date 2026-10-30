@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\DevicePushToken;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\NotificationRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -80,7 +80,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(UserDashboardPrefsRepositoryInterface::class),
             new NotificationService(

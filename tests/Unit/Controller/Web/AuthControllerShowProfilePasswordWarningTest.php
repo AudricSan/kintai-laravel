@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\AuthService;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -71,7 +71,6 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
             $storeUsers,
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $navPrefs,
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),

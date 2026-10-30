@@ -9,7 +9,7 @@ use App\Auth\CredentialRevoker;
 use App\Auth\UserAnonymizer;
 use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -99,7 +99,6 @@ final class AuthControllerCredentialRevocationTest extends TestCase
             $this->users,
             $this->createStub(StoreRepositoryInterface::class),
             $this->storeUsers,
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),

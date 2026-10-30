@@ -9,7 +9,7 @@ use App\Extension\DashboardStats;
 use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -48,7 +48,6 @@ final class EmployeeController
         private readonly UserRepositoryInterface $users,
         private readonly UserShiftTypeRateRepositoryInterface $userRates,
         private readonly AuditLogger $auditLogger,
-        private readonly IcalTokenRepositoryInterface $icalTokens,
         private readonly AvailabilityRepositoryInterface $availabilities,
         private readonly UserDashboardPrefsRepositoryInterface $dashboardPrefs,
         private readonly NotificationService $notifs,
@@ -227,7 +226,7 @@ final class EmployeeController
         $base      = $this->base();
         $icalLinks = [];
         foreach ($myStoreIds as $sid) {
-            $tokenRow = $this->icalTokens->findOrCreateForUserAndStore($userId, $sid);
+            $tokenRow = IcalToken::findOrCreateForUserAndStore($userId, $sid);
             if ($tokenRow) {
                 $icalLinks[$sid] = "{$scheme}://{$host}{$base}/ical/{$tokenRow['token']}/{$sid}/shifts.ics";
             }

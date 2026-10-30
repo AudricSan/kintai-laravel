@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use App\Repositories\DatabaseIcalTokenRepository;
+use App\Models\IcalToken;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\IcalToken as EloquentIcalToken;
 
 final class DatabaseIcalTokenRepositoryTest extends TestCase
 {
-    private DatabaseIcalTokenRepository $repo;
 
     protected function setUp(): void
     {
@@ -32,13 +31,11 @@ final class DatabaseIcalTokenRepositoryTest extends TestCase
             $table->timestamp('updated_at')->nullable();
             $table->unique(['user_id', 'store_id']);
         });
-
-        $this->repo = new DatabaseIcalTokenRepository();
     }
 
     public function testFindOrCreateForUserAndStoreCreatesWhenAbsent(): void
     {
-        $token = $this->repo->findOrCreateForUserAndStore(1, 2);
+        $token = IcalToken::findOrCreateForUserAndStore(1, 2);
 
         $this->assertArrayHasKey('token', $token);
         $this->assertSame(1, $token['user_id']);
@@ -48,8 +45,8 @@ final class DatabaseIcalTokenRepositoryTest extends TestCase
 
     public function testFindOrCreateForUserAndStoreReturnsExistingWithoutDuplicating(): void
     {
-        $first  = $this->repo->findOrCreateForUserAndStore(1, 2);
-        $second = $this->repo->findOrCreateForUserAndStore(1, 2);
+        $first  = IcalToken::findOrCreateForUserAndStore(1, 2);
+        $second = IcalToken::findOrCreateForUserAndStore(1, 2);
 
         $this->assertSame($first['token'], $second['token']);
         $this->assertCount(1, EloquentIcalToken::all());
@@ -62,23 +59,23 @@ final class DatabaseIcalTokenRepositoryTest extends TestCase
      */
     public function testDuplicateInsertViolatesUniqueConstraint(): void
     {
-        $this->repo->save(['user_id' => 1, 'store_id' => 2, 'token' => 'aaa', 'created_at' => date('Y-m-d H:i:s')]);
+        IcalToken::put(['user_id' => 1, 'store_id' => 2, 'token' => 'aaa', 'created_at' => date('Y-m-d H:i:s')]);
 
         $this->expectException(\Illuminate\Database\QueryException::class);
-        $this->repo->save(['user_id' => 1, 'store_id' => 2, 'token' => 'bbb', 'created_at' => date('Y-m-d H:i:s')]);
+        IcalToken::put(['user_id' => 1, 'store_id' => 2, 'token' => 'bbb', 'created_at' => date('Y-m-d H:i:s')]);
     }
 
     public function testFindByUserAndStoreReturnsNullWhenAbsent(): void
     {
-        $this->assertNull($this->repo->findByUserAndStore(1, 2));
+        $this->assertNull(IcalToken::findByUserAndStore(1, 2));
     }
 
     public function testDeleteByUserAndStoreRemovesToken(): void
     {
-        $this->repo->findOrCreateForUserAndStore(1, 2);
-        $count = $this->repo->deleteByUserAndStore(1, 2);
+        IcalToken::findOrCreateForUserAndStore(1, 2);
+        $count = IcalToken::deleteByUserAndStore(1, 2);
 
         $this->assertSame(1, $count);
-        $this->assertNull($this->repo->findByUserAndStore(1, 2));
+        $this->assertNull(IcalToken::findByUserAndStore(1, 2));
     }
 }

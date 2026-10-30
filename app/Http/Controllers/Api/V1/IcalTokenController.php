@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Auth\UserTargetGuard;
 use App\Exceptions\NotFoundException;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +14,6 @@ use Symfony\Component\HttpFoundation\Response;
 final class IcalTokenController
 {
     public function __construct(
-        private readonly IcalTokenRepositoryInterface $icalTokens,
         private readonly UserTargetGuard $guard,
         private readonly StoreUserRepositoryInterface $storeUsers,
     ) {}
@@ -24,7 +23,7 @@ final class IcalTokenController
     {
         $userId = (int) $request->route('user_id');
         $this->guard->require($request, $userId, 'employees.view');
-        return response()->json($this->icalTokens->findByUser($userId));
+        return response()->json(IcalToken::findByUser($userId));
     }
 
     /** GET /api/v1/users/{user_id}/ical-tokens/{store_id} */
@@ -34,7 +33,7 @@ final class IcalTokenController
         $storeId = (int) $request->route('store_id');
         $this->guard->require($request, $userId, 'employees.view');
 
-        $token = $this->icalTokens->findByUserAndStore($userId, $storeId);
+        $token = IcalToken::findByUserAndStore($userId, $storeId);
         if ($token === null) {
             throw new NotFoundException(__('error_ical_token_not_found'));
         }
@@ -55,7 +54,7 @@ final class IcalTokenController
         // findOrCreate plutôt qu'un save() inconditionnel : un second appel pour le
         // même user+store percuterait sinon la contrainte unique (user_id, store_id)
         // en base et remonterait en 500 au lieu de simplement rendre le token existant.
-        $saved = $this->icalTokens->findOrCreateForUserAndStore($userId, $storeId);
+        $saved = IcalToken::findOrCreateForUserAndStore($userId, $storeId);
 
         return response()->json($saved, 201);
     }
@@ -67,11 +66,11 @@ final class IcalTokenController
         $storeId = (int) $request->route('store_id');
         $this->guard->require($request, $userId, 'employees.update');
 
-        if ($this->icalTokens->findByUserAndStore($userId, $storeId) === null) {
+        if (IcalToken::findByUserAndStore($userId, $storeId) === null) {
             throw new NotFoundException(__('error_ical_token_not_found'));
         }
 
-        $this->icalTokens->deleteByUserAndStore($userId, $storeId);
+        IcalToken::deleteByUserAndStore($userId, $storeId);
         return response()->noContent();
     }
 
@@ -83,8 +82,8 @@ final class IcalTokenController
         $this->guard->require($request, $userId, 'employees.update');
         $this->assertMember($userId, $storeId);
 
-        $existing = $this->icalTokens->findByUserAndStore($userId, $storeId);
-        $saved    = $this->icalTokens->save(array_merge($existing ?? [], [
+        $existing = IcalToken::findByUserAndStore($userId, $storeId);
+        $saved    = IcalToken::put(array_merge($existing ?? [], [
             'user_id'    => $userId,
             'store_id'   => $storeId,
             'token'      => bin2hex(random_bytes(32)),

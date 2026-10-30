@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Auth\AuthService;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -72,7 +72,6 @@ final class AuthControllerUpdateProfileTest extends TestCase
             $users,
             $stores,
             $storeUsers,
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $languages,
@@ -110,8 +109,7 @@ final class AuthControllerUpdateProfileTest extends TestCase
         $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
 
         $controller = new AuthController(
-            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers,
-            $this->createStub(IcalTokenRepositoryInterface::class), $this->createStub(UserNavPrefsRepositoryInterface::class),
+            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $users, $stores, $storeUsers, $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class), $languages, new AvatarImageOptimizer(),
         );
 

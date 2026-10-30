@@ -10,7 +10,7 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -88,7 +88,6 @@ final class AuthControllerNotificationPreferencesTest extends TestCase
             $users,
             $stores,
             $storeUsers,
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),

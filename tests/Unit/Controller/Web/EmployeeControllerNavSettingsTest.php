@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\PermissionService;
 use App\Repositories\AvailabilityRepositoryInterface;
 use App\Models\DevicePushToken;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -49,7 +49,6 @@ final class EmployeeControllerNavSettingsTest extends TestCase
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(UserShiftTypeRateRepositoryInterface::class),
             new AuditLogger(),
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $this->createStub(UserDashboardPrefsRepositoryInterface::class),
             new NotificationService(

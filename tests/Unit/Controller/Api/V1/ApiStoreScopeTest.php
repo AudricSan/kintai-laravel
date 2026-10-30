@@ -13,7 +13,7 @@ use App\Exceptions\ValidationException;
 use App\Repositories\ApiTokenRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -353,10 +353,7 @@ final class ApiStoreScopeTest extends TestCase
         $this->storeUsers = $this->createMock(StoreUserRepositoryInterface::class);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30]);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(30)->willReturn([['store_id' => self::STORE_B]]);
-        $icalTokens = $this->createMock(IcalTokenRepositoryInterface::class);
-        $icalTokens->expects($this->never())->method('findByUser');
         $controller = new IcalTokenController(
-            $icalTokens,
             new UserTargetGuard($this->users, $this->storeUsers, $this->permissions),
             $this->storeUsers,
         );

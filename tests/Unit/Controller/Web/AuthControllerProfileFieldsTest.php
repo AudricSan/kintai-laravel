@@ -11,7 +11,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\AvailabilityRepositoryInterface;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -111,7 +111,6 @@ final class AuthControllerProfileFieldsTest extends TestCase
             $this->users,
             $stores,
             $storeUsers,
-            $this->createStub(IcalTokenRepositoryInterface::class),
             $this->createStub(UserNavPrefsRepositoryInterface::class),
             $this->createStub(AvailabilityRepositoryInterface::class),
             $languages,

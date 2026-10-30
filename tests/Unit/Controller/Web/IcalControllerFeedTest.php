@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use Illuminate\Container\Container;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -29,7 +29,6 @@ use PHPUnit\Framework\TestCase;
 /** Audit n°7 : le flux iCal d'un compte désactivé ou ayant quitté le magasin ne doit plus être servi. */
 final class IcalControllerFeedTest extends TestCase
 {
-    private IcalTokenRepositoryInterface&Stub $tokens;
     private ShiftRepositoryInterface&Stub $shifts;
     private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
@@ -38,13 +37,16 @@ final class IcalControllerFeedTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->tokens     = $this->createStub(IcalTokenRepositoryInterface::class);
         $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $this->stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->users      = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
 
-        $this->tokens->method('findByToken')->willReturnCallback(fn($a0) => $a0 === 'tok' ? ['id' => 1, 'user_id' => 9, 'store_id' => 3] : null);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(9);
+        \Illuminate\Support\Facades\DB::table('stores')->insert(['id' => 3, 'name' => 'Store', 'code' => 'ST']);
+        IcalToken::put(['user_id' => 9, 'store_id' => 3, 'token' => 'tok', 'created_at' => date('Y-m-d H:i:s')]);
         $this->stores->method('findById')->willReturnCallback(fn($a0) => $a0 === 3 ? ['id' => 3, 'code' => 'ST'] : null);
         $this->shifts->method('findByUser')->willReturn([]);
         $this->shifts->method('findRecentDeletionsByUserAndStore')->willReturn([]);
@@ -54,7 +56,6 @@ final class IcalControllerFeedTest extends TestCase
 
         $this->controller = new IcalController(
             new IcalService($translations),
-            $this->tokens,
             $this->shifts,
             $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->stores,

@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
-use App\Repositories\IcalTokenRepositoryInterface;
+use App\Models\IcalToken;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -25,7 +25,6 @@ final class IcalController
     use HasBaseUrl;
     public function __construct(
         private readonly IcalService                        $ical,
-        private readonly IcalTokenRepositoryInterface       $icalTokens,
         private readonly ShiftRepositoryInterface           $shifts,
         private readonly ShiftTypeRepositoryInterface       $shiftTypes,
         private readonly StoreRepositoryInterface           $stores,
@@ -44,7 +43,7 @@ final class IcalController
         $token   = $request->route('token') ?? '';
         $storeId = (int) ($request->route('store_id') ?? 0);
 
-        $tokenRow = $this->icalTokens->findByToken($token);
+        $tokenRow = IcalToken::findByToken($token);
         if (!$tokenRow || (int) $tokenRow['store_id'] !== $storeId) {
             throw new NotFoundException(__('error_ical_feed_not_found'));
         }
@@ -117,8 +116,8 @@ final class IcalController
         $userId  = (int) $user['id'];
         $storeId = (int) ($request->route('store_id') ?? 0);
 
-        $this->icalTokens->deleteByUserAndStore($userId, $storeId);
-        $saved = $this->icalTokens->save([
+        IcalToken::deleteByUserAndStore($userId, $storeId);
+        $saved = IcalToken::put([
             'user_id'    => $userId,
             'store_id'   => $storeId,
             'token'      => bin2hex(random_bytes(32)),
