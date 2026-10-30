@@ -31,7 +31,7 @@ use kintai\Contract\View\Components\EmptyState;
     <a href="<?= route_url('team.show', ['id' => (int) $u['id']]) ?>" class="team-card">
         <div class="team-card__body">
             <?php if (!empty($u['avatar_path'])): ?>
-                <img src="<?= route_url('user.avatar', ['user_id' => (int) $u['id']]) ?>" alt="" class="team-card__avatar">
+                <img src="<?= route_url('user.avatar', ['employee' => (int) $u['id']]) ?>" alt="" class="team-card__avatar">
             <?php else: ?>
                 <span class="avatar-chip team-card__avatar team-card__avatar--fallback <?= style_class(['--chip-bg' => $u['color'] ?? '#3B82F6']) ?>"><?= $initials ?></span>
             <?php endif; ?>
