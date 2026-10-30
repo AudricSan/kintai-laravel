@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Scheduling;
 
 use App\Http\Controllers\HasAdminAccess;
 
-use App\Repositories\ImportAliasRepositoryInterface;
+use App\Models\ImportAlias;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -32,7 +32,6 @@ final class AdminShiftImportController
         private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
-        private readonly ImportAliasRepositoryInterface $importAliases,
         private readonly RoleAssignmentSyncService $roleSync,
     ) {}
 
@@ -122,7 +121,7 @@ final class AdminShiftImportController
             fn($u) => in_array((int) $u['id'], $this->storeMemberIds($storeId), true)
         ));
 
-        $aliases = $this->importAliases->findByStore($storeId);
+        $aliases = ImportAlias::where('store_id', $storeId)->pluck('user_id', 'staff_name')->map(fn($id): int => (int) $id)->all();
         $entries = $this->resolveEntryUserIds($entries, $storeMembers, $aliases);
 
         foreach ($entries as &$e) {
@@ -387,8 +386,8 @@ final class AdminShiftImportController
             $name   = mb_strtolower(trim($s['staff_name'] ?? ''));
             $userId = (int) ($s['user_id'] ?? 0);
             if ($name === '') continue;
-            if ($userId > 0) $this->importAliases->upsert($storeId, $name, $userId);
-            else $this->importAliases->deleteAlias($storeId, $name);
+            if ($userId > 0) ImportAlias::updateOrCreate(['store_id' => $storeId, 'staff_name' => $name], ['user_id' => $userId]);
+            else ImportAlias::where('store_id', $storeId)->where('staff_name', $name)->delete();
         }
     }
 }

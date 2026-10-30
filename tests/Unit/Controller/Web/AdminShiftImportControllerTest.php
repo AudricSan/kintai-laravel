@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Auth\PermissionService;
-use App\Repositories\ImportAliasRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -34,6 +33,8 @@ final class AdminShiftImportControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
     }
 
@@ -53,7 +54,6 @@ final class AdminShiftImportControllerTest extends TestCase
                 $this->createStub(ShiftTypeRepositoryInterface::class),
                 $this->storeUsers,
                 new AuditLogger(),
-                $this->createStub(ImportAliasRepositoryInterface::class),
                 $roleSync,
             );
         }
