@@ -1,7 +1,7 @@
 /**
  * Recopie la saisie d'un formulaire refusé par une erreur de validation (bloc JSON #kintai-old-input, écrit par le
  * layout) dans le formulaire d'origine, retrouvé par son adresse d'envoi. Les mots de passe ne sont jamais conservés
- * côté serveur ; les champs cachés et les fichiers ne sont pas touchés.
+ * côté serveur (ErrorResponder) ; les champs cachés et les fichiers ne sont pas touchés.
  */
 (function () {
     'use strict';
@@ -40,6 +40,22 @@
     }
 
     var fields = old.fields;
+
+    // Valeur de saisie pour un nom de champ du navigateur (« a », « a[]», « a[b][c] ») dans l'objet flashé par Laravel.
+    function lookup(data, name) {
+        var keys = name.replace(/\]/g, '').split('[');
+        if (keys[keys.length - 1] === '') {
+            keys.pop();
+        }
+        var node = data;
+        for (var i = 0; i < keys.length; i++) {
+            if (node === null || typeof node !== 'object' || !Object.prototype.hasOwnProperty.call(node, keys[i])) {
+                return { has: false, value: null };
+            }
+            node = node[keys[i]];
+        }
+        return { has: true, value: node };
+    }
     Array.prototype.forEach.call(form.elements, function (el) {
         var name = el.name;
         if (!name || el.disabled) {
@@ -49,8 +65,9 @@
         if (type === 'hidden' || type === 'password' || type === 'file' || type === 'submit' || type === 'button') {
             return;
         }
-        var has = Object.prototype.hasOwnProperty.call(fields, name);
-        var value = has ? fields[name] : null;
+        var found = lookup(fields, name);
+        var has = found.has;
+        var value = has ? found.value : null;
 
         if (type === 'checkbox' || type === 'radio') {
             // Case non cochée : absente de l'envoi (sauf champ caché associé, alors « 0 »).

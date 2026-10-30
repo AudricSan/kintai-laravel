@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Artisan;
 use App\Exceptions\ForbiddenException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\SessionFlash;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
 use App\Services\BackupService;
@@ -153,7 +152,7 @@ final class BackupController
             try {
                 $result = $this->githubUpdate->applyUpdate();
             } catch (\Throwable $e) {
-                SessionFlash::put('danger', __('error_prefix') . $e->getMessage());
+                session()->flash('danger', __('error_prefix') . $e->getMessage());
                 return redirect()->away($this->base() . '/admin/update?success=error_failed');
             }
 
@@ -164,7 +163,7 @@ final class BackupController
                 if (preg_match('/^[a-z_]{1,60}$/', $code) === 1) {
                     return redirect()->away($this->base() . '/admin/update?success=error_' . $code);
                 }
-                SessionFlash::put('danger', __('error_prefix') . $code);
+                session()->flash('danger', __('error_prefix') . $code);
                 return redirect()->away($this->base() . '/admin/update?success=error_failed');
             }
 
@@ -278,7 +277,7 @@ final class BackupController
             ]);
             return redirect()->away($this->base() . '/admin/backup?success=created_' . urlencode($result['filename']));
         } catch (\Throwable $e) {
-            SessionFlash::put('danger', __('error_prefix') . $e->getMessage());
+            session()->flash('danger', __('error_prefix') . $e->getMessage());
             return redirect()->away($this->base() . '/admin/backup?success=error_failed');
         }
     }
@@ -298,7 +297,7 @@ final class BackupController
             $this->auditLogger->log($request, 'backup.restored', 'system', null, ['filename' => $filename]);
             return redirect()->away($this->base() . '/admin/backup?success=restored');
         } catch (\Throwable $e) {
-            SessionFlash::put('danger', __('error_prefix') . $e->getMessage());
+            session()->flash('danger', __('error_prefix') . $e->getMessage());
             return redirect()->away($this->base() . '/admin/backup?success=error_failed');
         }
     }
@@ -333,7 +332,7 @@ final class BackupController
                 return redirect()->away($this->base() . '/admin/update?success=migrated');
             } catch (\Throwable $e) {
                 $this->auditLogger->log($request, 'db.migration_failed', 'system', null, ['error' => $e->getMessage()]);
-                SessionFlash::put('danger', __('error_prefix') . $e->getMessage());
+                session()->flash('danger', __('error_prefix') . $e->getMessage());
                 return redirect()->away($this->base() . '/admin/update?success=error_failed');
             }
         } finally {
@@ -402,7 +401,7 @@ final class BackupController
             // Le détail de l'échec est déjà affiché par le layout depuis la session : pas de second bandeau.
             $decoded === 'error_failed' => null,
             // Jamais le texte brut de l'URL (n'importe qui pourrait fabriquer le lien) : le détail d'une erreur
-            // passe par App\SessionFlash, affiché par le layout.
+            // passe par la session (flash), affiché par le layout.
             str_starts_with($decoded, 'error_') => ['type' => 'danger', 'text' => __('error_generic')],
             default => null,
         };

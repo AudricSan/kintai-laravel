@@ -417,7 +417,7 @@ final class BackupControllerTest extends TestCase
 
     public function testDescribeFlashShowsNothingForAFailureWhoseDetailIsInTheSession(): void
     {
-        // Le détail est affiché par le layout depuis App\SessionFlash : pas de second bandeau.
+        // Le détail est affiché par le layout depuis la session : pas de second bandeau.
         $this->assertNull($this->describeFlash($this->makeController(), 'error_failed'));
     }
 

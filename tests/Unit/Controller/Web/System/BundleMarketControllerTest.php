@@ -57,7 +57,7 @@ final class BundleMarketControllerTest extends TestCase
 
     protected function tearDown(): void
     {
-        \App\SessionFlash::pull();
+        kintai_test_flash();
         $_GET = [];
         $_POST = [];
     }
@@ -402,9 +402,8 @@ final class BundleMarketControllerTest extends TestCase
         $location = $this->locationOf($response);
         $this->assertStringContainsString('error=failed', $location);
         $this->assertStringNotContainsString('refus', urldecode($location));
-        $flash = \App\SessionFlash::pull();
-        $this->assertSame('danger', $flash[0]['type'] ?? null);
-        $this->assertStringContainsString('refus', $flash[0]['text'] ?? '');
+        $flash = kintai_test_flash();
+        $this->assertStringContainsString('refus', $flash['danger'] ?? '');
     }
 
     public function testInstallIsRefusedWhenTheRegistryCannotBeReadToCheckThePin(): void

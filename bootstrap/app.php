@@ -27,6 +27,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\AccessLog::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
+            // $errors dans les vues : erreurs de validation flashées par withErrors().
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             // Session fermée quand le mot de passe a changé depuis son ouverture (y compris sur les autres appareils).
             \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class,

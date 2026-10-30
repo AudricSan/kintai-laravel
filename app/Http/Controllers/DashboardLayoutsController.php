@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\DashboardLayoutResolver;
-use App\SessionFlash;
 
 /**
  * Mises en page nommées d'un tableau de bord et défaut par rôle, depuis le panneau « Personnaliser » (formulaires POST,
@@ -76,10 +75,10 @@ final class DashboardLayoutsController
         };
 
         if ($error !== null) {
-            SessionFlash::put('error', __($error));
+            session()->flash('danger', __($error));
         } else {
             $this->auditLogger->log($request, 'dashboard_layouts.' . $action, 'user_dashboard_layouts', $userId, ['dashboard' => $dashboardType], null, $userId);
-            SessionFlash::put('success', __('dashboard_layouts_saved'));
+            session()->flash('success', __('dashboard_layouts_saved'));
         }
         return redirect()->away($back);
     }

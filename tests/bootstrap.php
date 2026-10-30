@@ -143,6 +143,24 @@ kintai_test_translator_reset();
 
 // Aide des tests : moteur de vues de Laravel sur un autre dossier de vues (vues d'essai, copie…), avec les directives et
 // les helpers de l'application.
+/**
+ * Messages flashés en session (success, danger, warning) par le code testé, retirés de la session : [type => texte].
+ *
+ * @return array<string, string>
+ */
+function kintai_test_flash(): array
+{
+    $messages = [];
+    foreach (['success', 'danger', 'warning'] as $type) {
+        if (session()->has($type)) {
+            $messages[$type] = (string) session($type);
+        }
+    }
+    session()->flush();
+
+    return $messages;
+}
+
 function kintai_test_views(string $path, bool $withLayout = false): Illuminate\View\Factory
 {
     $app    = $GLOBALS['kintai_test_app'];

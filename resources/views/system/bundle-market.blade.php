@@ -47,7 +47,7 @@ $bundleChipColor = function (string $seed): string {
     <div class="alert alert--success mb-sm">{{ __('bundle_market_channel_saved', ['channel' => $channels[$channelSaved] ?? $channelSaved]) }}</div>
 @endif
 @php // Seul le code « invalid » a son message ici ; le détail d'un échec (« failed ») est affiché par le layout
-// depuis la session (App\SessionFlash), jamais lu dans l'URL. @endphp
+// depuis la session (flash de la session), jamais lu dans l'URL. @endphp
 @if ($error === 'invalid')
     <div class="alert alert--danger mb-sm">{{ __('bundle_market_invalid_request') }}</div>
 @endif

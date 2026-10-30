@@ -8,12 +8,12 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Session\TokenMismatchException;
 use App\Exceptions\HttpException;
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\ValidationException;
 use App\Services\Log;
-use App\ValidationFeedback;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -46,9 +46,19 @@ final class ErrorResponder
             if ($wantsJson) {
                 return response()->json(['error' => $e->getMessage(), 'errors' => $e->errors], 422);
             }
-            // Formulaire web : retour au formulaire avec les messages précis et la saisie conservée.
-            return ValidationFeedback::redirectBack($e, $request)
-                ?? self::page(422, implode(' ', ValidationFeedback::messages($e)));
+            // Formulaire web envoyé depuis une page du site : retour à cette page (erreurs et saisie flashées).
+            $messages = array_values(array_unique(Arr::flatten($e->errors)));
+            if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true) && $request->headers->has('Referer')) {
+                $input = array_filter(
+                    $request->post(),
+                    static fn($value, $name): bool => !preg_match('/password|token|secret/i', (string) $name),
+                    ARRAY_FILTER_USE_BOTH,
+                );
+
+                return redirect()->back(303)->withErrors($e->errors)->withInput($input)->with('old_input_action', $request->url());
+            }
+
+            return self::page(422, implode(' ', $messages !== [] ? $messages : [$e->getMessage()]));
         }
 
         if ($e instanceof MethodNotAllowedException || $e instanceof MethodNotAllowedHttpException) {

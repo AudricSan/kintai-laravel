@@ -9,7 +9,6 @@ use App\Repositories\CalendarSyncRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\SessionFlash;
 use App\Services\AuditLogger;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleCalendarException;
@@ -48,7 +47,7 @@ final class CalendarLinkController
     public function connect(Request $request): Response
     {
         if (!$this->settings->isAvailable()) {
-            SessionFlash::put('warning', __('gcal_not_available'));
+            session()->flash('warning', __('gcal_not_available'));
             return $this->back();
         }
 
@@ -76,17 +75,17 @@ final class CalendarLinkController
 
         if (!is_array($pending) || (time() - (int) ($pending['at'] ?? 0)) > self::STATE_TTL
             || !hash_equals((string) ($pending['state'] ?? ''), (string) $request->query('state', ''))) {
-            SessionFlash::put('danger', __('gcal_state_invalid'));
+            session()->flash('danger', __('gcal_state_invalid'));
             return $this->back();
         }
         if ((string) $request->query('error', '') !== '') {
             // L'utilisateur a refusé (access_denied) ou Google a signalé une erreur : rien n'est lié.
-            SessionFlash::put('warning', __('gcal_denied'));
+            session()->flash('warning', __('gcal_denied'));
             return $this->back();
         }
         $code = (string) $request->query('code', '');
         if ($code === '') {
-            SessionFlash::put('danger', __('gcal_state_invalid'));
+            session()->flash('danger', __('gcal_state_invalid'));
             return $this->back();
         }
 
@@ -94,7 +93,7 @@ final class CalendarLinkController
             $tokens = $this->client->exchangeCode($code, (string) $pending['verifier'], $this->redirectUri($request));
         } catch (GoogleCalendarException $e) {
             Log::warning('google_calendar_connect_failed', ['user_id' => $userId, 'error' => $e->getMessage()]);
-            SessionFlash::put('danger', __('gcal_connect_failed'));
+            session()->flash('danger', __('gcal_connect_failed'));
             return $this->back();
         }
 
@@ -103,7 +102,7 @@ final class CalendarLinkController
             'store_id'           => (int) ($pending['store_id'] ?? 0),
         ]);
         $this->auditLogger->log($request, 'calendar.connected', 'user', $userId, ['provider' => 'google']);
-        SessionFlash::put('success', __('gcal_connected'));
+        session()->flash('success', __('gcal_connected'));
         return $this->back();
     }
 
@@ -113,7 +112,7 @@ final class CalendarLinkController
         $userId = (int) ($this->auth->user()['id'] ?? 0);
         $this->sync->disconnect($userId, (string) $request->post('delete_events', '') === '1');
         $this->auditLogger->log($request, 'calendar.disconnected', 'user', $userId, ['provider' => 'google']);
-        SessionFlash::put('success', __('gcal_disconnected'));
+        session()->flash('success', __('gcal_disconnected'));
         return $this->back();
     }
 
@@ -139,7 +138,7 @@ final class CalendarLinkController
             // Google injoignable : le renommage sera repris au prochain événement synchronisé.
         }
 
-        SessionFlash::put('success', __('gcal_options_saved'));
+        session()->flash('success', __('gcal_options_saved'));
         return $this->back();
     }
 
@@ -150,7 +149,7 @@ final class CalendarLinkController
         $connection = $this->repo->findConnectionByUser($userId);
         if ($connection !== null && ($connection['status'] ?? '') === 'active') {
             $this->sync->reconcile($connection);
-            SessionFlash::put('success', __('gcal_resync_queued'));
+            session()->flash('success', __('gcal_resync_queued'));
         }
         return $this->back();
     }

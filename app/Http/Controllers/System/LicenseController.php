@@ -12,7 +12,6 @@ use App\Services\AuditLogger;
 use App\Services\AppSettingsService;
 use App\Services\LicenseClientService;
 use App\Services\SetupWizard;
-use App\SessionFlash;
 use App\Services\PlanLimitService;
 use App\Http\Controllers\HasBaseUrl;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -97,7 +96,7 @@ final class LicenseController
         try {
             $result = $this->setupWizard->installPending($this->settings->bundleUpdateChannel());
         } catch (\Throwable $e) {
-            SessionFlash::put('warning', __('setup_pending_failed', ['list' => '—']));
+            session()->flash('warning', __('setup_pending_failed', ['list' => '—']));
             return;
         }
         $this->auditLogger->log($request, 'license.pending_bundles_installed', 'system', null, [
@@ -106,10 +105,10 @@ final class LicenseController
             'pending'   => $result['pending'],
         ]);
         if ($result['installed'] !== []) {
-            SessionFlash::put('success', __('setup_pending_installed', ['list' => implode(', ', $result['installed'])]));
+            session()->flash('success', __('setup_pending_installed', ['list' => implode(', ', $result['installed'])]));
         }
         if ($result['failed'] !== []) {
-            SessionFlash::put('warning', __('setup_pending_failed', ['list' => implode(', ', array_keys($result['failed']))]));
+            session()->flash('warning', __('setup_pending_failed', ['list' => implode(', ', array_keys($result['failed']))]));
         }
     }
 

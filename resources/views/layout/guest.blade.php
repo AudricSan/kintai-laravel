@@ -30,8 +30,13 @@
                 <div class="guest-notice">{{ $app_login_notice }}</div>
             @endif
             <div class="guest-card">
-                @foreach (\App\SessionFlash::pull() as $_flash)
-                    <div class="alert alert--{{ $_flash['type'] }} mb-sm">{{ $_flash['text'] }}</div>
+                @foreach (['success', 'danger', 'warning'] as $_flashType)
+                    @if (session()->has($_flashType))
+                        <div class="alert alert--{{ $_flashType }} mb-sm">{{ session($_flashType) }}</div>
+                    @endif
+                @endforeach
+                @foreach ($errors->all() as $_error)
+                    <div class="alert alert--danger mb-sm">{{ $_error }}</div>
                 @endforeach
                 @include('layout.partials._old-input')
                 @yield('content')            </div>

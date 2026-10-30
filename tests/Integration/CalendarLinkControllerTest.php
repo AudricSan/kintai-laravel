@@ -17,7 +17,6 @@ use App\Services\AuditLogger;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleRedirectUri;
 use App\Services\PublicUrlResolver;
-use App\SessionFlash;
 use Tests\Support\CalendarSyncFixture;
 use App\Http\Controllers\CalendarLinkController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -92,7 +91,7 @@ final class CalendarLinkControllerTest extends TestCase
 
     private function flashTypes(): array
     {
-        return array_column(SessionFlash::pull(), 'type');
+        return array_keys(kintai_test_flash());
     }
 
     public function testConnectRedirectsToGoogleWithPkceAndStoresStateServerSide(): void

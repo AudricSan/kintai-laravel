@@ -14,7 +14,6 @@ use App\Services\BundleActivationService;
 use App\Services\Log;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\SessionFlash;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
 use App\Services\BundleInstaller\BundleInstallerService;
@@ -204,7 +203,7 @@ final class BundleMarketController
         }
 
         if (!$this->installer->uninstall($slug)) {
-            SessionFlash::put('danger', (string) $this->installer->getLastError());
+            session()->flash('danger', (string) $this->installer->getLastError());
             return redirect()->away($this->base() . '/admin/bundles/market?error=failed');
         }
 
@@ -278,14 +277,14 @@ final class BundleMarketController
 
         $pin = $this->catalog->resolvePin($registryUrl, $slug, $version);
         if ($pin['error'] !== null) {
-            SessionFlash::put('danger', $pin['error']);
+            session()->flash('danger', $pin['error']);
             return redirect()->away($this->base() . '/admin/bundles/market?error=failed');
         }
 
         $result = $this->installer->install($slug, $repositoryUrl, $version, $registryUrl, null, $pin['commit']);
 
         if (!$result->success) {
-            SessionFlash::put('danger', (string) $result->error);
+            session()->flash('danger', (string) $result->error);
             return redirect()->away($this->base() . '/admin/bundles/market?error=failed');
         }
 

@@ -12,7 +12,6 @@ use App\Repositories\UserDashboardPrefsRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\DashboardLayoutResolver;
-use App\SessionFlash;
 use App\Http\Controllers\DashboardLayoutsController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -62,7 +61,7 @@ final class DashboardLayoutsControllerTest extends TestCase
 
     private function flash(): string
     {
-        return implode('|', array_column(SessionFlash::pull(), 'text'));
+        return implode('|', kintai_test_flash());
     }
 
     private function stored(int $id, int $userId = 7, string $type = 'admin', bool $active = false): array
