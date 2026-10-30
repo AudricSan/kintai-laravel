@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Cron;
+namespace App\Console\Commands;
 
 use App\Repositories\NotificationRepositoryInterface;
 use App\Repositories\WebPushSubscriptionRepositoryInterface;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppSettingsService;
+use Illuminate\Console\Command;
 
 /**
  * Purge des notifications : supprime les notifications LUES plus anciennes que le délai de rétention de l'Owner
@@ -16,37 +15,29 @@ use App\Services\AppSettingsService;
  *
  * Une notification non lue n'est jamais supprimée : elle attend d'être vue, quel que soit son âge.
  */
-final class NotificationPurgeJob implements CronJobInterface
+final class NotificationPurgeCommand extends Command
 {
     /** Un abonnement qu'aucun envoi n'a touché depuis ce délai est une adresse morte jamais signalée expirée. */
     public const SUBSCRIPTION_IDLE_DAYS = 180;
 
-    public function __construct(
-        private readonly NotificationRepositoryInterface $notifications,
-        private readonly WebPushSubscriptionRepositoryInterface $subscriptions,
-        private readonly AppSettingsService $settings,
-    ) {}
+    protected $signature = 'kintai:notification-purge';
 
-    public function getName(): string
-    {
-        return 'notification-purge';
-    }
+    protected $description = 'Purge des notifications lues';
 
-    public function run(Request $request): Response
+    public function handle(NotificationRepositoryInterface $notifications, WebPushSubscriptionRepositoryInterface $subscriptions, AppSettingsService $settings): int
     {
-        $days   = $this->settings->notificationsRetentionDays();
+        $days   = $settings->notificationsRetentionDays();
         $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
         $idle   = date('Y-m-d H:i:s', strtotime('-' . self::SUBSCRIPTION_IDLE_DAYS . ' days'));
 
-        $deleted = $this->notifications->purgeReadBefore($cutoff);
-        $expired = $this->subscriptions->purgeUnusedSince($idle);
-
-        return response()->json([
+        $this->line(json_encode([
             'ok'                    => true,
             'retention_days'        => $days,
             'cutoff'                => $cutoff,
-            'notifications_deleted' => $deleted,
-            'subscriptions_deleted' => $expired,
-        ]);
+            'notifications_deleted' => $notifications->purgeReadBefore($cutoff),
+            'subscriptions_deleted' => $subscriptions->purgeUnusedSince($idle),
+        ]));
+
+        return self::SUCCESS;
     }
 }

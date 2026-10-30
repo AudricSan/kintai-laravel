@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\DailyReport;
 
-use kintai\Bundles\Installed\DailyReport\Cron\AutoValidateJob;
 use kintai\Bundles\Installed\DailyReport\DailyReportBundle;
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
@@ -86,11 +85,6 @@ final class ContractDeclarationsTest extends TestCase
     public function testViewVariables(): void
     {
         $this->assertSame(['daily_report_staff_stores'], array_keys($this->bundle()->viewVariables()));
-    }
-
-    public function testCronJobs(): void
-    {
-        $this->assertSame([AutoValidateJob::class], $this->bundle()->cronJobs());
     }
 
     public function testNotificationTypes(): void

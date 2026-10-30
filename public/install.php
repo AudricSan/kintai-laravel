@@ -15,10 +15,11 @@ use App\Install\InstallInput;
 use App\Install\InstallRequirements;
 use App\Install\WebInstaller;
 use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Services\InstanceLocale;
 use App\Services\PublicUrlResolver;
-use App\Services\TranslationService;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Translation\FileLoader;
+use Illuminate\Translation\Translator;
 
 // ─── Déjà installé ────────────────────────────────────────────────────────────
 
@@ -58,11 +59,12 @@ $pageLocale = (static function () use ($languageCodes, $defaultLocale): string {
     return $defaultLocale;
 })();
 
-// __() passe par le TranslationService du conteneur ; l'application n'est pas encore démarrée, il est fourni ici.
-$registerTranslations = static function (string $locale) use ($languageRepository): void {
-    $translations = new TranslationService(new JsonTranslationRepository(BASE_PATH . '/lang'), $languageRepository);
-    $translations->setLocale($locale);
-    Container::getInstance()->instance(TranslationService::class, $translations);
+// __() passe par le traducteur de Laravel (lang/{locale}.json) ; l'application n'est pas encore démarrée, il est fourni ici.
+$registerTranslations = static function (string $locale): void {
+    $translator = new Translator(new FileLoader(new Filesystem(), BASE_PATH . '/lang'), $locale);
+    $translator->setFallback($locale);
+    Container::getInstance()->instance('translator', $translator);
+    \Illuminate\Support\Facades\Lang::clearResolvedInstance('translator');
 };
 $registerTranslations($pageLocale);
 
@@ -100,13 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
             // Le démarrage de l'application a remplacé les traductions : celles de la page sont reprises.
             $registerTranslations($pageLocale);
 
-            // Connexion de l'Owner (même session que l'application), puis assistant de configuration.
-            \App\Http\Middleware\SessionMiddleware::start($scheme === 'https');
-            Container::getInstance()->make(\App\Auth\AuthService::class)->attempt($input->email, $input->password);
-
             // Avec des comptes de démonstration, la page reste affichée : ils y sont listés.
             if ($result['demo_accounts'] === []) {
-                header('Refresh: 3; URL=' . $installBase . '/admin/setup');
+                header('Refresh: 3; URL=' . $installBase . '/login');
             }
         } catch (InstallFailure $e) {
             $registerTranslations($pageLocale);

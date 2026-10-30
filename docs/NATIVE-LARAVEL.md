@@ -47,8 +47,8 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
   `DevicePushToken`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`, `Log`, `Availability`,
   `UserShiftTypeRate`, `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `User`
   (227 fichiers). Chaque conversion remplace aussi les doubles de test par des tests sur base réelle.
-- **`CronRunner`** : registre des tâches (Core et bundles, contrat 1.8) lancées par `php artisan kintai:cron` depuis le planificateur de Laravel (`routes/console.php`,
-  `config/schedule.php`) et par `/cron/run/{tâche}` avec jeton, pour les hébergements qui ne savent appeler qu'une URL.
+- **Tâches planifiées** (plus de `CronRunner`) : commandes Artisan `kintai:*` planifiées par `Schedule` (`routes/console.php` pour le Core, `register()` du bundle pour les siennes) ;
+  `/cron/run/{tâche}` avec jeton lance la commande `kintai:{tâche}` si elle est planifiée, pour les hébergements qui ne savent appeler qu'une URL.
 - **Messages `?success=` / `?error=`** : codes dans l'URL traduits par `Flash` (35 vues, 139 redirections) ; les textes
   libres passent par la session. À convertir en `with('status', …)` si l'on veut la même mécanique partout.
 - **`base_url()`, `route_url()`, `kintai_normalize_script_name()`** : glue de sous-dossier (XAMPP, OVH mutualisé) ; la

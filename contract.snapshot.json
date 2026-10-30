@@ -25,10 +25,6 @@
             "status": "stable",
             "target": "Illuminate\\Container\\Container"
         },
-        "kintai\\Contract\\Cron\\CronJob": {
-            "status": "stable",
-            "target": "App\\Cron\\CronJobInterface"
-        },
         "kintai\\Contract\\Data\\AppSettingsRepositoryInterface": {
             "status": "stable",
             "target": "App\\Repositories\\AppSettingsRepositoryInterface"
@@ -523,7 +519,6 @@
         "callBootedCallbacks": "(): mixed",
         "callBootingCallbacks": "(): mixed",
         "commands": "($commands): mixed",
-        "cronJobs": "(): array",
         "dashboardStats": "(): array",
         "dashboardWidgets": "(): array",
         "eventListeners": "(): array",

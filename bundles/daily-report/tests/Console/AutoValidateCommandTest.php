@@ -2,33 +2,29 @@
 
 declare(strict_types=1);
 
-namespace Tests\Bundles\DailyReport\Cron;
+namespace Tests\Bundles\DailyReport\Console;
 
 use PHPUnit\Framework\TestCase;
 use App\Auth\PermissionService;
-use kintai\Bundles\Installed\DailyReport\Cron\AutoValidateJob;
+use kintai\Bundles\Installed\DailyReport\Console\AutoValidateCommand;
 use App\Mail\MailerService;
-use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use App\Services\TranslationService;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
-use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
-final class AutoValidateJobTest extends TestCase
+final class AutoValidateCommandTest extends TestCase
 {
-    private AutoValidateJob $job;
+    private DailyReportAutoValidateService $autoValidate;
 
     protected function setUp(): void
     {
@@ -62,31 +58,25 @@ final class AutoValidateJobTest extends TestCase
             ),
         );
 
-        $logger          = new AuditLogger();
-
         $autoValidate = new DailyReportAutoValidateService($stores, $reports, $users, $permissions, $pdfService, $mailService);
-        $this->job     = new AutoValidateJob($autoValidate, $logger);
+        $this->autoValidate = $autoValidate;
     }
 
-    // -------------------------------------------------------------------------
-    // getName()
-    // -------------------------------------------------------------------------
-
-    public function testGetNameReturnsAutoValidate(): void
+    /** @return array<string, mixed> sortie JSON de la commande */
+    private function execute(array $input = []): array
     {
-        $this->assertSame('auto-validate', $this->job->getName());
-    }
+        app()->instance(DailyReportAutoValidateService::class, $this->autoValidate);
+        app()->instance(\kintai\Contract\Services\AuditLogger::class, new AuditLogger());
+        [$code, $output] = kintai_test_command(new AutoValidateCommand(), $input);
+        $this->assertSame(0, $code);
 
-    // -------------------------------------------------------------------------
-    // run()
-    // -------------------------------------------------------------------------
+        return json_decode($output, true);
+    }
 
     public function testRunWithDefaultDateUsesYesterday(): void
     {
-        $response = $this->job->run($this->makeRequest());
-        $data     = json_decode($response->getContent(), true);
+        $data = $this->execute();
 
-        $this->assertSame(200, $response->getStatusCode());
         $this->assertTrue($data['ok']);
         $this->assertSame(date('Y-m-d', strtotime('yesterday')), $data['date']);
         $this->assertSame(0, $data['validated']);
@@ -95,29 +85,7 @@ final class AutoValidateJobTest extends TestCase
 
     public function testRunWithCustomDate(): void
     {
-        $response = $this->job->run($this->makeRequest(['date' => '2026-06-01']));
-        $data     = json_decode($response->getContent(), true);
-
-        $this->assertSame('2026-06-01', $data['date']);
+        $this->assertSame('2026-06-01', $this->execute(['--date' => '2026-06-01'])['date']);
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private function makeRequest(array $query = []): Request
-    {
-        $queryStr = $query ? '?' . http_build_query($query) : '';
-        $_SERVER  = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => "/cron/auto-validate$queryStr", 'SCRIPT_NAME' => '/index.php'];
-        $_GET     = $query;
-        $_POST    = $_COOKIE = $_FILES = [];
-        return Request::capture();
-    }
-
-    protected function tearDown(): void
-    {
-        $_SERVER = [];
-        $_GET    = [];
-        $_POST   = [];
-    }
 }

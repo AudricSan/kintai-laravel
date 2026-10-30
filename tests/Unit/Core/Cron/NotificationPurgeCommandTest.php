@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Core\Cron;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Cron\CronRunner;
-use App\Cron\NotificationPurgeJob;
+use App\Console\Commands\NotificationPurgeCommand;
 use App\Repositories\DatabaseNotificationRepository;
 use App\Repositories\DatabaseWebPushSubscriptionRepository;
-use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
@@ -17,7 +15,7 @@ use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 /** Purge des notifications lues (jamais des non lues) et des abonnements web push inutilisés, contre un vrai schéma. */
-final class NotificationPurgeJobTest extends TestCase
+final class NotificationPurgeCommandTest extends TestCase
 {
     protected function setUp(): void
     {
@@ -52,13 +50,16 @@ final class NotificationPurgeJobTest extends TestCase
         });
     }
 
-    private function job(array $settings = []): NotificationPurgeJob
+    /** Lance la commande avec ces réglages d'Owner ; renvoie sa sortie JSON décodée. */
+    private function purge(array $settings = []): array
     {
-        return new NotificationPurgeJob(
-            new DatabaseNotificationRepository(),
-            new DatabaseWebPushSubscriptionRepository(),
-            new AppSettingsService(new InMemoryAppSettings($settings)),
-        );
+        app()->instance(AppSettingsService::class, new AppSettingsService(new InMemoryAppSettings($settings)));
+        app()->instance(AppRepositoriesNotificationRepositoryInterface::class, new DatabaseNotificationRepository());
+        app()->instance(AppRepositoriesWebPushSubscriptionRepositoryInterface::class, new DatabaseWebPushSubscriptionRepository());
+        [$code, $output] = kintai_test_command(new NotificationPurgeCommand());
+        app()->forgetInstance(AppSettingsService::class);
+
+        return json_decode($output, true);
     }
 
     private function daysAgo(int $days): string
@@ -86,19 +87,13 @@ final class NotificationPurgeJobTest extends TestCase
         ])->id;
     }
 
-    public function testNameIsReservedForTheCore(): void
-    {
-        $this->assertSame('notification-purge', $this->job()->getName());
-        $this->assertContains('notification-purge', CronRunner::CORE_JOBS);
-    }
-
     public function testDeletesOnlyReadNotificationsOlderThanTheRetention(): void
     {
         $oldRead    = $this->notification(1, 100);
         $recentRead = $this->notification(1, 10);
         $oldUnread  = $this->notification(1, null, 400);
 
-        $response = json_decode($this->job()->run(Request::capture())->getContent(), true);
+        $response = $this->purge();
 
         $this->assertTrue($response['ok']);
         $this->assertSame(90, $response['retention_days']);
@@ -113,11 +108,11 @@ final class NotificationPurgeJobTest extends TestCase
         $this->notification(1, 20);
         $this->notification(1, 5);
 
-        $this->job(['notifications_retention_days' => '14'])->run(Request::capture());
+        $this->purge(['notifications_retention_days' => '14']);
         $this->assertSame(1, Notification::count(), 'lue depuis 20 jours > 14 : supprimée ; 5 jours : conservée');
 
         $this->notification(1, 8);
-        $this->job(['notifications_retention_days' => '1'])->run(Request::capture());
+        $this->purge(['notifications_retention_days' => '1']);
         $this->assertSame(1, Notification::count(), 'une valeur sous le minimum est ramenée à 7 jours : celle de 8 jours est supprimée, celle de 5 jours reste');
     }
 
@@ -148,7 +143,7 @@ final class NotificationPurgeJobTest extends TestCase
         $neverUsedNew = $this->subscription('https://push.example/never-new', null, 5);
         $active      = $this->subscription('https://push.example/active', 3, 400);
 
-        $response = json_decode($this->job()->run(Request::capture())->getContent(), true);
+        $response = $this->purge();
 
         $this->assertSame(2, $response['subscriptions_deleted']);
         $this->assertNull(WebPushSubscription::find($dead));

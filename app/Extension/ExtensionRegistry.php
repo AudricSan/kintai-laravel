@@ -57,7 +57,6 @@ final class ExtensionRegistry
     private ?array $notificationTypes = null;
 
     /** @var array<string, list<class-string>>|null */
-    private ?array $cronJobs = null;
 
     /** @var array<string, list<PendingRequestsProvider>>|null */
     private ?array $pendingRequestsProviders = null;
@@ -323,41 +322,6 @@ final class ExtensionRegistry
             }
         }
         return $this->notificationTypes = $types;
-    }
-
-    /**
-     * Classes de tâches planifiées déclarées par les bundles actifs, par slug de bundle. Une valeur qui n'est pas le
-     * nom d'une classe existante implémentant l'interface des tâches est ignorée et journalisée.
-     *
-     * @return array<string, list<class-string>>
-     */
-    public function cronJobsByBundle(): array
-    {
-        if ($this->cronJobs !== null) {
-            return $this->cronJobs;
-        }
-
-        $bySlug = [];
-        foreach ($this->bundles->getBundles() as $bundle) {
-            try {
-                $declared = $bundle->cronJobs();
-            } catch (\Throwable $e) {
-                Log::warning('bundle_extension_failed', ['bundle' => $bundle->getName(), 'point' => 'cronJobs', 'error' => $e->getMessage()]);
-                continue;
-            }
-            $valid = [];
-            foreach (is_array($declared) ? $declared : [] as $class) {
-                if (is_string($class) && class_exists($class) && is_subclass_of($class, \App\Cron\CronJobInterface::class)) {
-                    $valid[] = $class;
-                } else {
-                    Log::warning('bundle_extension_invalid', ['bundle' => $bundle->getName(), 'point' => 'cronJobs']);
-                }
-            }
-            if ($valid !== []) {
-                $bySlug[$bundle->getName()] = $valid;
-            }
-        }
-        return $this->cronJobs = $bySlug;
     }
 
     /**

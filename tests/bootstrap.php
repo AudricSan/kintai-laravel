@@ -15,6 +15,17 @@ $app = $GLOBALS["kintai_test_app"] = require dirname(__DIR__) . "/bootstrap/stan
 $app->loadEnvironmentFrom('.env.testing');
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+// Les bundles du dépôt (bundles/<slug>) : leurs migrations suivent celles du Cœur et leurs vues ont leur espace de noms,
+// sans dépendre de l'ordre des tests ni d'un bundle activé dans la base de l'instance.
+foreach (glob(dirname(__DIR__) . '/bundles/*', GLOB_ONLYDIR) ?: [] as $bundleDirectory) {
+    if (is_dir($bundleDirectory . '/database/migrations')) {
+        $app->make('migrator')->path($bundleDirectory . '/database/migrations');
+    }
+    if (is_dir($bundleDirectory . '/Views')) {
+        $app->make('view')->addNamespace(basename($bundleDirectory), $bundleDirectory . '/Views');
+    }
+}
+
 // Aides des tests : routeur de Laravel vierge, que ResetAuthSessionFingerprint remplace par celui de l'application
 // avant chaque test.
 $GLOBALS['kintai_test_router'] = $app->make('router');
@@ -66,6 +77,16 @@ Illuminate\Http\Request::macro('setRouteParams', function (array $params): void 
     }
     $this->setRouteResolver(static fn () => $route);
 });
+
+// Aide des tests : exécute une commande Artisan (ses services viennent du conteneur de test) ; renvoie [code de sortie, sortie].
+function kintai_test_command(Illuminate\Console\Command $command, array $input = []): array
+{
+    $command->setLaravel($GLOBALS['kintai_test_app']);
+    $output = new Symfony\Component\Console\Output\BufferedOutput();
+    $code   = $command->run(new Symfony\Component\Console\Input\ArrayInput($input), $output);
+
+    return [$code, trim($output->fetch())];
+}
 
 // Aide des tests : remplace le journal de Laravel par un RecordingLog qui retient les entrées (Log::info, AuditLogger…).
 // Une base neuve (kintai_test_database) remet le vrai journal.

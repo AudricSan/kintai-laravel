@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Scripts;
+namespace Tests\Unit\Console;
 
 use App\Bundles\BundleManifest;
 use PHPUnit\Framework\TestCase;

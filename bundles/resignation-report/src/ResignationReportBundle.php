@@ -7,7 +7,8 @@ namespace kintai\Bundles\Installed\ResignationReport;
 use kintai\Contract\Bundle;
 use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\NavItem;
-use kintai\Bundles\Installed\ResignationReport\Cron\ResignationDeactivateJob;
+use Illuminate\Console\Scheduling\Schedule;
+use kintai\Bundles\Installed\ResignationReport\Console\DeactivateCommand;
 use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 
@@ -36,6 +37,9 @@ final class ResignationReportBundle extends Bundle
 
     public function register(): void
     {
+        // Tâche planifiée : commande Artisan du bundle, lancée par le planificateur de Laravel.
+        $this->commands([DeactivateCommand::class]);
+        $this->callAfterResolving(Schedule::class, static fn(Schedule $schedule) => $schedule->command('kintai:resignation-deactivate')->dailyAt('00:15')->withoutOverlapping());
         $this->registerServices();
         $this->loadViewsFrom($this->getPath() . '/Views', 'resignation-report');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
@@ -84,11 +88,4 @@ final class ResignationReportBundle extends Bundle
         ];
     }
 
-    /**
-     * Tâche planifiée (contrat 1.8) : désactive chaque jour les comptes dont la date de démission est atteinte.
-     */
-    public function cronJobs(): array
-    {
-        return [ResignationDeactivateJob::class];
-    }
 }

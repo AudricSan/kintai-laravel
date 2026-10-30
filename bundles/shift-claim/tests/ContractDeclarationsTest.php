@@ -141,7 +141,6 @@ final class ContractDeclarationsTest extends TestCase
         $this->assertSame([], $bundle->viewVariables());
         $this->assertSame([], $bundle->actions());
         $this->assertSame([], $bundle->profileSections());
-        $this->assertSame([], $bundle->cronJobs());
         $this->assertSame([], $bundle->absenceProviders());
         $this->assertSame([], $bundle->attendanceProviders());
         $this->assertSame([], $bundle->salesProviders());

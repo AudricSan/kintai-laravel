@@ -19,7 +19,7 @@ use App\Foundation\Auth\KintaiGate;
 /**
  * Raccorde Laravel aux services de Kintai pendant la migration : les helpers de Laravel (__(), csrf_token(),
  * csrf_field(), session(), auth()) et le Gate rendent ce que rendaient les services de Kintai ; les commandes Artisan
- * de Kintai (kintai:cron…) sont déclarées ici.
+ * de Kintai (kintai:backup, kintai:cron-token…) sont déclarées ici.
  */
 final class KintaiServiceProvider extends ServiceProvider
 {
@@ -86,7 +86,12 @@ final class KintaiServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \App\Console\Commands\CronCommand::class,
+                \App\Console\Commands\BackupCommand::class,
+                \App\Console\Commands\LogPurgeCommand::class,
+                \App\Console\Commands\LicenseCheckCommand::class,
+                \App\Console\Commands\NotificationPurgeCommand::class,
+                \App\Console\Commands\SystemNotificationsCommand::class,
+                \App\Console\Commands\CalendarSyncCommand::class,
                 \App\Console\Commands\CronTokenCommand::class,
                 \App\Console\Commands\ContractCommand::class,
                 \App\Console\Commands\CheckWikiCommand::class,

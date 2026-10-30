@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\DailyReport;
 
-use kintai\Bundles\Installed\DailyReport\Cron\AutoValidateJob;
+use Illuminate\Console\Scheduling\Schedule;
+use kintai\Bundles\Installed\DailyReport\Console\AutoValidateCommand;
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;
@@ -55,6 +56,9 @@ final class DailyReportBundle extends Bundle
 
     public function register(): void
     {
+        // Tâche planifiée : commande Artisan du bundle, lancée par le planificateur de Laravel.
+        $this->commands([AutoValidateCommand::class]);
+        $this->callAfterResolving(Schedule::class, static fn(Schedule $schedule) => $schedule->command('kintai:auto-validate')->hourly()->withoutOverlapping());
         $this->registerServices();
         $this->loadViewsFrom($this->getPath() . '/Views', 'daily-report');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
@@ -166,13 +170,6 @@ final class DailyReportBundle extends Bundle
         ];
     }
 
-    /**
-     * Tâche planifiée « auto-validate » (contrat 1.8) : /cron/run/auto-validate ou php artisan kintai:cron auto-validate.
-     */
-    public function cronJobs(): array
-    {
-        return [AutoValidateJob::class];
-    }
 
     /**
      * Types de notification : rapport soumis (aux valideurs), rapport validé (à l'auteur). Format enrichi (contrat 1.23) :

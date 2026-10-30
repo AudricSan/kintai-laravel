@@ -67,11 +67,6 @@ final class ContractDeclarationsTest extends TestCase
         $this->assertSame(10, $store->order);
     }
 
-    public function testCronJobs(): void
-    {
-        $this->assertSame([\kintai\Bundles\Installed\ResignationReport\Cron\ResignationDeactivateJob::class], $this->bundle()->cronJobs());
-    }
-
     /** Le bundle n'apporte rien d'autre au Core. */
     public function testNoOtherContribution(): void
     {

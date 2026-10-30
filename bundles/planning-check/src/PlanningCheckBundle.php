@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\PlanningCheck;
 
-use kintai\Bundles\Installed\PlanningCheck\Cron\EscalateJob;
+use Illuminate\Console\Scheduling\Schedule;
+use kintai\Bundles\Installed\PlanningCheck\Console\EscalateCommand;
 use kintai\Bundles\Installed\PlanningCheck\Repositories\DatabasePlanningCheckRepository;
 use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckOverlayResolver;
@@ -54,6 +55,9 @@ final class PlanningCheckBundle extends Bundle
 
     public function register(): void
     {
+        // Tâche planifiée : commande Artisan du bundle, lancée par le planificateur de Laravel.
+        $this->commands([EscalateCommand::class]);
+        $this->callAfterResolving(Schedule::class, static fn(Schedule $schedule) => $schedule->command('kintai:planning-check-escalate')->everyFifteenMinutes()->withoutOverlapping());
         $this->registerServices();
         $this->loadViewsFrom($this->getPath() . '/Views', 'planning-check');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
@@ -117,11 +121,6 @@ final class PlanningCheckBundle extends Bundle
         return ['planning_check' => ['view', 'submit', 'approve', 'settings']];
     }
 
-    /** Tâche planifiée « planning-check-escalate » (contrat 1.8) : alerte des valideurs à l'heure limite. */
-    public function cronJobs(): array
-    {
-        return [EscalateJob::class];
-    }
 
     /** Types de notification (contrat 1.23) : planning à valider, validé, refusé, en retard, envoi échoué. */
     public function notificationTypes(): array

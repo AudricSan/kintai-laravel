@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\StorePhoto;
 
-use kintai\Bundles\Installed\StorePhoto\Cron\PhotoRetentionJob;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
 use kintai\Bundles\Installed\StorePhoto\StorePhotoBundle;
@@ -59,9 +58,8 @@ final class ContractDeclarationsTest extends TestCase
         $this->assertSame(80, $features[0]->order);
     }
 
-    public function testCronJobAndNotificationType(): void
+    public function testNotificationType(): void
     {
-        $this->assertSame([PhotoRetentionJob::class], $this->bundle()->cronJobs());
         $declared = $this->bundle()->notificationTypes();
         $this->assertSame(['photo_archived'], array_keys($declared));
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use App\Auth\AuthService;
-use App\Cron\CalendarSyncJob;
+use App\Console\Commands\CalendarSyncCommand;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -247,30 +247,26 @@ final class CalendarLinkControllerTest extends TestCase
         $this->assertSame([], $this->repo->dueQueue(10));
     }
 
-    public function testTheCronJobDoesNothingWhileTheFeatureIsDisabledThenProcessesTheQueue(): void
+    public function testTheCommandDoesNothingWhileTheFeatureIsDisabledThenProcessesTheQueue(): void
     {
         $this->shifts->save(['store_id' => 1, 'user_id' => $this->alice, 'shift_type_id' => 1, 'shift_date' => $this->day, 'start_time' => '09:00', 'end_time' => '17:00', 'starts_at' => $this->day . ' 09:00:00', 'ends_at' => $this->day . ' 17:00:00']);
         $this->sync->connect($this->alice, 'RA', null);
-        $job = new CalendarSyncJob($this->repo, $this->sync, $this->google);
+        app()->instance(\App\Repositories\CalendarSyncRepositoryInterface::class, $this->repo);
+        app()->instance(\App\Services\CalendarSyncService::class, $this->sync);
+        app()->instance(\App\Services\Calendar\GoogleCalendarSettings::class, $this->google);
 
         $this->google->save(false, 'client-id', null);
-        $disabled = json_decode($job->run(Request::capture())->getContent(), true);
+        [, $output] = kintai_test_command(new CalendarSyncCommand());
+        $disabled = json_decode($output, true);
         $this->assertFalse($disabled['enabled']);
         $this->assertCount(0, $this->http->calls('POST', '/events'));
 
         $this->google->save(true, 'client-id', null);
-        $enabled = json_decode($job->run(Request::capture())->getContent(), true);
+        [, $output] = kintai_test_command(new CalendarSyncCommand());
+        $enabled = json_decode($output, true);
         $this->assertTrue($enabled['enabled']);
         $this->assertSame(1, $enabled['processed']);
         $this->assertCount(1, $this->http->calls('POST', '/events'));
-    }
-
-    public function testTheJobNameIsReservedForTheCore(): void
-    {
-        $job = new CalendarSyncJob($this->repo, $this->sync, $this->google);
-
-        $this->assertSame('calendar-sync', $job->getName());
-        $this->assertContains('calendar-sync', \App\Cron\CronRunner::CORE_JOBS);
     }
     // -------------------------------------------------------------------------
     // Encart du profil

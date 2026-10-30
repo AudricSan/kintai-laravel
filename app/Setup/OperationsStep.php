@@ -31,7 +31,7 @@ final class OperationsStep implements SetupStepInterface
             'backup_keep'   => $this->settings->backupMaxKeep(),
             'update_channel' => $this->settings->updateChannel(),
             'channels'      => self::CHANNELS,
-            // Une ligne de crontab, chaque minute : le planificateur lance chaque tâche à son heure (config/schedule.php).
+            // Une ligne de crontab, chaque minute : le planificateur lance chaque tâche à son heure (routes/console.php, `php artisan schedule:list`).
             'cron_command'  => '* * * * * cd ' . BASE_PATH . ' && php artisan schedule:run >> /dev/null 2>&1',
             'cron_url'      => $base . '/cron/run/backup',
             'cron_token_command' => 'cd ' . BASE_PATH . ' && php artisan kintai:cron-token --user-id=1 --job=backup',

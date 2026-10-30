@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use App\Auth\UserAnonymizer;
-use App\Cron\CalendarSyncJob;
 use App\Services\Calendar\CalendarEventBuilder;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleCalendarSettings;
@@ -30,7 +29,7 @@ final class ContainerResolvableConstructorsTest extends TestCase
     {
         $out = [];
         foreach ([
-            CalendarSyncService::class, CalendarSyncJob::class, SecretBox::class, GoogleCalendarClient::class,
+            CalendarSyncService::class, SecretBox::class, GoogleCalendarClient::class,
             GoogleCalendarSettings::class, GoogleRedirectUri::class, CalendarEventBuilder::class,
             CalendarLinkController::class, CalendarSettingsController::class, UserAnonymizer::class, AuthController::class,
         ] as $class) {

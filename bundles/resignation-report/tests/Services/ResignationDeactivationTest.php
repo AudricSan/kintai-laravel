@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ResignationReport\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\ResignationReport\Cron\ResignationDeactivateJob;
+use kintai\Bundles\Installed\ResignationReport\Console\DeactivateCommand;
 use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use Tests\Support\BundleMigrationHarness;
@@ -74,13 +74,13 @@ final class ResignationDeactivationTest extends TestCase
         $this->assertNull($this->reports->findById((int) $report['id'])['deactivated_at']);
     }
 
-    public function testTheCronJobReportsWhatItDid(): void
+    public function testTheCommandReportsWhatItDid(): void
     {
         $this->reports->save(['store_id' => 1, 'user_id' => 5, 'resignation_date' => date('Y-m-d', strtotime('-1 day'))]);
-        $job = new ResignationDeactivateJob($this->deactivation, new AuditLogger());
-
-        $this->assertSame('resignation-deactivate', $job->getName());
-        $body = json_decode($job->run(Request::capture())->getContent(), true);
+        app()->instance(ResignationDeactivation::class, $this->deactivation);
+        app()->instance(\kintai\Contract\Services\AuditLogger::class, new AuditLogger());
+        [, $output] = kintai_test_command(new DeactivateCommand());
+        $body = json_decode($output, true);
         $this->assertSame(1, $body['deactivated']);
     }
 }

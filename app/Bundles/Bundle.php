@@ -169,18 +169,6 @@ abstract class Bundle extends ServiceProvider
     }
 
     /**
-     * Point d'extension « tâches planifiées » (contrat 1.8) : classes implémentant kintai\Contract\Cron\CronJob,
-     * résolues par le conteneur et lancées par un planificateur externe via /cron/run/{nom}?token=… (jeton créé par
-     * l'Owner). Le nom (getName()) doit être unique ; ceux du Core (backup, log-purge, license-check, notification-purge, system-notifications, calendar-sync) sont réservés.
-     *
-     * @return list<class-string>
-     */
-    public function cronJobs(): array
-    {
-        return [];
-    }
-
-    /**
      * Fournisseurs de demandes en attente (contrat 1.9) : le Core les lit pour la page « Demandes », le compteur du
      * tableau de bord et les alertes, sans connaître les tables du bundle.
      *

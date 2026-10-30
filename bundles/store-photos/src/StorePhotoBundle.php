@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\StorePhoto;
 
-use kintai\Bundles\Installed\StorePhoto\Cron\PhotoRetentionJob;
+use Illuminate\Console\Scheduling\Schedule;
+use kintai\Bundles\Installed\StorePhoto\Console\RetentionCommand;
 use kintai\Bundles\Installed\StorePhoto\Repositories\DatabaseStorePhotoRepository;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Bundle;
@@ -36,6 +37,9 @@ final class StorePhotoBundle extends Bundle
 
     public function register(): void
     {
+        // Tâche planifiée : commande Artisan du bundle, lancée par le planificateur de Laravel.
+        $this->commands([RetentionCommand::class]);
+        $this->callAfterResolving(Schedule::class, static fn(Schedule $schedule) => $schedule->command('kintai:photo-retention')->dailyAt('02:00')->withoutOverlapping());
         $this->app->singleton(StorePhotoRepositoryInterface::class, fn() => new DatabaseStorePhotoRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'store-photos');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
@@ -69,13 +73,6 @@ final class StorePhotoBundle extends Bundle
         return [new StoreFeature('photos', 'store_photos_feature_photos', 'store_photos_feature_photos_desc', '📷', 80)];
     }
 
-    /**
-     * Tâche planifiée (contrat 1.8) : rétention des photos, /cron/run/photo-retention.
-     */
-    public function cronJobs(): array
-    {
-        return [PhotoRetentionJob::class];
-    }
 
     /**
      * Type de notification : envoi de photos archivé, prévenu aux Owners avant suppression définitive. Format enrichi
