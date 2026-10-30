@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Routing;
 
 use App\Models\RouteSlug;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 
 /**
  * Magasin ↔ segment d'URL : son alias courant (slug saisi à la main, sinon son nom, ex. 所沢東町店).
@@ -17,7 +17,6 @@ final class StoreRouteBinder implements RouteParamBinder
     private ?array $current = null;
 
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
     ) {}
 
     public function resolve(string $segment): ?BoundParam
@@ -45,7 +44,7 @@ final class StoreRouteBinder implements RouteParamBinder
         }
 
         // Ancien lien par identifiant numérique.
-        $store = ctype_digit($segment) ? $this->stores->findById((int) $segment) : null;
+        $store = ctype_digit($segment) ? Store::findById((int) $segment) : null;
         if ($store !== null && empty($store['deleted_at'])) {
             $id = (int) $segment;
             return new BoundParam($id, !isset($current[$id]));

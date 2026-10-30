@@ -8,7 +8,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -46,7 +46,6 @@ final class StoreStatsServiceCostByMonthTest extends TestCase
             $users->method('findAll')->willReturn([]);
             $this->seedRate(10, 2, 1500.0);
             $this->service = new StoreStatsService(
-                $this->createStub(StoreRepositoryInterface::class),
                 $users,
                 new RoleAssignmentSyncService(
                 ),

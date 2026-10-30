@@ -6,7 +6,7 @@ namespace Tests\Bundles\Messaging\Controllers\Web;
 
 use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageController;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -35,13 +35,10 @@ final class MessageThreadNotificationsTest extends TestCase
 
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findAll')->willReturn([]);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findAll')->willReturn([]);
-
+        kintai_test_stores(findAll: fn() => []);
         return new MessageController(
             $view,
             $users,
-            $stores,
             $repo,
             new AuditLogger(),
             $notifs,

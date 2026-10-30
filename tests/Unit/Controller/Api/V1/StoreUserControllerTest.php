@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Api\V1;
 
 use App\Exceptions\ValidationException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 
 final class StoreUserControllerTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private StoreUserController $controller;
 
@@ -28,10 +27,9 @@ final class StoreUserControllerTest extends TestCase
         kintai_test_database();
         kintai_test_migrate();
         kintai_test_fk_off();
-        $this->stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->users      = $this->createStub(UserRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 3]);
-        $this->controller = new StoreUserController($this->stores, $this->users, new AuditLogger());
+        kintai_test_stores(findById: fn() => ['id' => 3]);
+        $this->controller = new StoreUserController($this->users, new AuditLogger());
     }
 
     protected function tearDown(): void
@@ -103,7 +101,7 @@ final class StoreUserControllerTest extends TestCase
 
     public function testACallerCannotDeleteTheirOwnMembership(): void
     {
-        $this->stores->method('findById')->willReturn(['id' => 3]);
+        kintai_test_stores(findById: fn() => ['id' => 3]);
         kintai_test_store_users(findById: fn() => ['id' => 9, 'store_id' => 3, 'user_id' => 2]);
         $this->expectException(ForbiddenException::class);
         $this->controller->destroy($this->actingAs(2, $this->request([], ['store_id' => '3', 'id' => '9'])));
@@ -111,7 +109,7 @@ final class StoreUserControllerTest extends TestCase
 
     public function testACallerCannotDeactivateTheirOwnMembership(): void
     {
-        $this->stores->method('findById')->willReturn(['id' => 3]);
+        kintai_test_stores(findById: fn() => ['id' => 3]);
         kintai_test_store_users(findById: fn() => ['id' => 9, 'store_id' => 3, 'user_id' => 2, 'is_active' => 1]);
         $this->expectException(ForbiddenException::class);
         $this->controller->update($this->actingAs(2, $this->request(['is_active' => 0], ['store_id' => '3', 'id' => '9'])));
@@ -119,7 +117,7 @@ final class StoreUserControllerTest extends TestCase
 
     public function testAnotherMembersMembershipCanStillBeDeleted(): void
     {
-        $this->stores->method('findById')->willReturn(['id' => 3]);
+        kintai_test_stores(findById: fn() => ['id' => 3]);
         kintai_test_store_users(findById: fn() => ['id' => 9, 'store_id' => 3, 'user_id' => 5]);
         $response = $this->controller->destroy($this->actingAs(2, $this->request([], ['store_id' => '3', 'id' => '9'])));
 

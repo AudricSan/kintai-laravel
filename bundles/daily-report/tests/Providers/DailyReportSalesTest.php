@@ -6,7 +6,7 @@ namespace Tests\Bundles\DailyReport\Providers;
 
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\DailySales;
 use PHPUnit\Framework\TestCase;
 
@@ -20,10 +20,8 @@ final class DailyReportSalesTest extends TestCase
     {
         $repo = $this->createStub(DailyReportRepositoryInterface::class);
         $repo->method('findByStoreAndDateRange')->willReturn($reports);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturn(['id' => 4, 'daily_report_settings' => $mode === null ? null : json_encode(['cumulative_mode' => $mode])]);
-
-        return new DailyReportSales($repo, $stores);
+        kintai_test_stores(findById: fn() => ['id' => 4, 'daily_report_settings' => $mode === null ? null : json_encode(['cumulative_mode' => $mode])]);
+        return new DailyReportSales($repo);
     }
 
     public function testDaysAreSortedWithoutDeletedReports(): void

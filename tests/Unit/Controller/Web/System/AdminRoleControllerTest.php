@@ -12,7 +12,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -28,7 +28,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminRoleControllerTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
-    private StoreRepositoryInterface&Stub $stores;
     private ?AdminRoleController $controller = null;
 
     /** Dernier rôle créé par l'action testée. */
@@ -44,7 +43,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile('system.roles-form');
         $this->ensureViewFile('layout.app');
         $this->users       = $this->createStub(UserRepositoryInterface::class);
-        $this->stores      = $this->createStub(StoreRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -54,7 +52,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->controller = new AdminRoleController(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->users,
-                $this->stores,
                 new AuditLogger(),
                 new RoleAssignmentSyncService(),
                 new OwnerGuard(new PermissionService(), $this->users),
@@ -205,12 +202,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testEditRoleRendersHoldersList(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Manager', 'is_system' => 0], getPermissions: fn() => ['employees.view']);
         kintai_test_assignments(findByRole: fn() => [
             ['id' => 1, 'user_id' => 7, 'scope_type' => 'store', 'scope_id' => 3],
         ]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(3)->willReturn(['id' => 3, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 3 ? ['id' => 3, 'name' => 'Store A'] : null);
         $this->users->method('findAll')->willReturn([
             ['id' => 7, 'display_name' => 'Jane', 'is_active' => 1],
             ['id' => 8, 'display_name' => 'Inactive Joe', 'is_active' => 0],

@@ -8,7 +8,7 @@ use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\InstalledBundleManifestStore;
 use App\Models\AppSetting;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\BundleActivationService;
 use App\Services\LicenseClientService;
@@ -50,7 +50,6 @@ final class SetupWizardTest extends TestCase
             return null;
         };
         $planLimits = new PlanLimitService(
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );

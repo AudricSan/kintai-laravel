@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
@@ -45,9 +45,7 @@ final class HomeControllerScopingTest extends TestCase
     ): HomeController {
         $usersRepo = $this->createStub(UserRepositoryInterface::class);
         $usersRepo->method('findAll')->willReturn($users);
-
-        $storesRepo = $this->createStub(StoreRepositoryInterface::class);
-        $storesRepo->method('findAll')->willReturn($stores);
+        kintai_test_stores(findAll: fn() => $stores);
         kintai_test_shifts(array_map(fn(array $s): array => $s + ['shift_date' => date('Y-m-d')], $shiftsToday));
         // Widgets financial_overview/hr_absenteeism exclus : ces tests portent sur le
         // scoping managed_store_ids, pas sur le calcul RH/financier (storeStats() n'est
@@ -70,7 +68,6 @@ final class HomeControllerScopingTest extends TestCase
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
-            $storesRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

@@ -13,7 +13,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -71,7 +71,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $this->auth = new AuthService(
             $this->users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 
@@ -89,7 +88,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->auth,
             new AuditLogger(),
             $this->users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker($this->remember),

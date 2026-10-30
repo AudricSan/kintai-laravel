@@ -8,7 +8,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -26,7 +26,6 @@ final class EmployeeShiftClaimController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly AuditLogger $auditLogger,
@@ -62,7 +61,7 @@ final class EmployeeShiftClaimController
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];
-        foreach ($this->stores->findAll() as $s) {
+        foreach (Store::findAll() as $s) {
             $storesMap[(int) $s['id']] = $s['name'] ?? ('#' . $s['id']);
         }
 
@@ -182,7 +181,7 @@ final class EmployeeShiftClaimController
             return;
         }
 
-        $store        = $this->stores->findById($storeId);
+        $store        = Store::findById($storeId);
         $claimant     = $this->users->findById($claimantId);
         $claimantName = trim(($claimant['last_name'] ?? '') . ' ' . ($claimant['first_name'] ?? ''));
         $claimantName = $claimantName !== '' ? $claimantName : ('#' . $claimantId);

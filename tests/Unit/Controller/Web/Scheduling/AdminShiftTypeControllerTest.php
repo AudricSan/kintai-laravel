@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web\Scheduling;
 
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminShiftTypeControllerTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private ?AdminShiftTypeController $controller = null;
 
     protected function setUp(): void
@@ -29,7 +28,6 @@ final class AdminShiftTypeControllerTest extends TestCase
         $this->ensureViewFile('scheduling.shift-types');
         $this->ensureViewFile('scheduling.shift-types-form');
         $this->ensureViewFile('layout.app');
-        $this->stores      = $this->createStub(StoreRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -39,7 +37,6 @@ final class AdminShiftTypeControllerTest extends TestCase
             $view = kintai_test_views(sys_get_temp_dir());
             $this->controller = new AdminShiftTypeController(
                 $view,
-                $this->stores,
                 new AuditLogger(),
             );
         }
@@ -132,8 +129,7 @@ final class AdminShiftTypeControllerTest extends TestCase
     {
         kintai_test_shift_types([['id' => 5, 'code' => 'MORNING', 'name' => 'Matin']]);
         kintai_test_shift_type_stores(5, [1, 2]);
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'A'], ['id' => 2, 'name' => 'B']]);
-
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'A'], ['id' => 2, 'name' => 'B']]);
         $req = $this->makePostRequest(['code' => 'MORNING', 'name' => 'Renommé', 'store_ids' => ['1', '2']]);
         $req->attributes->set('managed_store_ids', [1, 2]);
         $req->setRouteParams(['id' => 5]);
@@ -299,7 +295,7 @@ final class AdminShiftTypeControllerTest extends TestCase
             kintai_test_shift_types([
                 ['id' => 1, 'name' => 'Partagé', 'store_ids' => [1, 2]], ['id' => 2, 'name' => 'Le mien', 'store_ids' => [1]],
             ]);
-            $this->stores->method('findAll')->willReturn([]);
+            kintai_test_stores(findAll: fn() => []);
             $req = Request::capture();
             $req->attributes->set('managed_store_ids', [1]);
 

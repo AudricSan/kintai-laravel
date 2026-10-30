@@ -15,7 +15,7 @@ use App\Export\StoresExport;
 use App\Models\Availability;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -39,10 +39,9 @@ final class CoreExportProvidersTest extends TestCase
             5 => ['id' => 5, 'first_name' => 'Aki', 'last_name' => 'Sato', 'display_name' => '', 'email' => 'aki@example.test', 'password_hash' => 'SECRET', 'remember_token' => 'TOKEN', 'bio' => 'privé', 'is_active' => 1],
             6 => ['id' => 6, 'first_name' => 'Ben', 'last_name' => 'Roy', 'display_name' => 'Benny', 'email' => 'ben@example.test', 'is_active' => 1],
         ][$id] ?? null);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 3
+        kintai_test_stores(findById: fn(int $id): ?array => $id === 3
             ? ['id' => 3, 'code' => 'ST', 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo', 'currency' => 'JPY', 'api_token' => 'SECRET'] : null);
-        $this->directory = new ExportDirectory($users, $stores);
+        $this->directory = new ExportDirectory($users);
         kintai_test_shifts([
             ['id' => 1, 'user_id' => 5, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'duration_minutes' => 480, 'shift_type_id' => 7, 'notes' => 'a'],
             ['id' => 2, 'user_id' => 6, 'store_id' => 3, 'shift_date' => '2026-11-01', 'start_time' => '10:00', 'end_time' => '14:00', 'pause_minutes' => 0, 'duration_minutes' => 240, 'shift_type_id' => 7],

@@ -7,7 +7,7 @@ namespace Tests\Bundles\TimeOff\Controllers\Web;
 
 use kintai\Bundles\Installed\TimeOff\Controllers\Web\AdminTimeoffController;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -23,7 +23,6 @@ final class AdminTimeoffControllerTest extends TestCase
 {
     private TimeoffRequestRepositoryInterface&Stub $timeoffRequests;
     private UserRepositoryInterface&Stub $users;
-    private StoreRepositoryInterface&Stub $stores;
     private NotificationService&Stub $notifs;
     private ?AdminTimeoffController $controller = null;
 
@@ -36,7 +35,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $this->timeoffRequests = $this->createStub(TimeoffRequestRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -52,7 +50,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
                 $this->timeoffRequests,
                 new AuditLogger(),
                 $this->notifs,
-                $this->stores,
                 $this->users,
             );
         }
@@ -293,7 +290,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->writeViewContent($viewDir, 'timeoff', "<?php echo json_encode(array_map(fn(\$r) => \$r['id'], \$requests));");
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);

@@ -8,7 +8,7 @@ namespace Tests\Bundles\TeamDirectory\Controllers\Web;
 use kintai\Bundles\Installed\TeamDirectory\Controllers\Web\TeamDirectoryController;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -63,16 +63,13 @@ final class TeamDirectoryControllerTest extends TestCase
             [self::COLLEAGUE_INACTIVE, [['store_id' => 10]]],
             [self::OTHER_STORE_USER, [['store_id' => 20]]],
         ], 1, 0)[$id] ?? []);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 10, 'name' => 'Store A'],
             ['id' => 20, 'name' => 'Store B'],
         ]);
-
         $this->controller = new TeamDirectoryController(
             $view,
             $this->users,
-            $this->stores,
         );
     }
 

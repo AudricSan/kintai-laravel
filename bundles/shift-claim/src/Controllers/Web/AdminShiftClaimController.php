@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterfa
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -27,7 +27,6 @@ final class AdminShiftClaimController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly ShiftServiceInterface $shiftService,
         private readonly AuditLogger $auditLogger,
@@ -240,7 +239,7 @@ final class AdminShiftClaimController
         $resolver = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
 
         // Attribution, fermeture de la bourse, refus des autres candidats et notifications : même logique que l'API.
-        [$result, $savedClaim] = (new ShiftClaimApproval($this->shiftClaims, $this->stores, $this->notifs))
+        [$result, $savedClaim] = (new ShiftClaimApproval($this->shiftClaims, $this->notifs))
             ->approve($claim, $shift, $resolver);
         if ($result !== ShiftClaimApproval::APPROVED) {
             return redirect()->away($this->base() . '/admin/open-shifts')->with('error', 'already_resolved');
@@ -294,7 +293,7 @@ final class AdminShiftClaimController
     /** Valeurs de remplacement (:date/:start/:end/:store) pour les notifications de bourse aux shifts. */
     private function shiftReplace(array $shift): array
     {
-        $store = $this->stores->findById((int) ($shift['store_id'] ?? 0));
+        $store = Store::findById((int) ($shift['store_id'] ?? 0));
         return [
             'date'  => $shift['shift_date'] ?? '',
             'start' => substr($shift['start_time'] ?? '', 0, 5),

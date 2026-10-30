@@ -10,7 +10,7 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -29,7 +29,6 @@ final class DailyReportController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly DailyReportRepositoryInterface $reports,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly DailyReportPermissionService $permissions,
         private readonly DailyReportPdfService $pdfService,
@@ -137,11 +136,11 @@ final class DailyReportController
         $managedIds     = $request->attributes->get('managed_store_ids');
         $isUnrestricted = !empty($authUser['is_admin']) || $managedIds === null;
         if ($isUnrestricted) {
-            $allStores      = $this->stores->findActive();
+            $allStores      = Store::findActive();
             $storeIdsFilter = [];
         } else {
             $allStores  = array_values(array_filter(
-                array_map(fn($id) => $this->stores->findById($id), $managedIds),
+                array_map(fn($id) => Store::findById($id), $managedIds),
             ));
             $storeIdsFilter = $managedIds;
         }
@@ -187,7 +186,7 @@ final class DailyReportController
 
             $sid = (int) $report['store_id'];
             if (!isset($storeCache[$sid])) {
-                $storeCache[$sid] = $this->stores->findById($sid);
+                $storeCache[$sid] = Store::findById($sid);
             }
             $report['store_obj'] = $storeCache[$sid];
 
@@ -224,7 +223,7 @@ final class DailyReportController
             $rv2['author'] = $userCache[$uid];
             $sid = (int) $rv2['store_id'];
             if (!isset($storeCache[$sid])) {
-                $storeCache[$sid] = $this->stores->findById($sid);
+                $storeCache[$sid] = Store::findById($sid);
             }
             $rv2['store_obj'] = $storeCache[$sid];
         }
@@ -847,7 +846,7 @@ final class DailyReportController
             'cumulative_mode'       => $data['cumulative_mode'] ?? 'per_day',
         ];
 
-        $savedStore = $this->stores->save(array_merge($store, [
+        $savedStore = Store::put(array_merge($store, [
             'daily_report_settings' => json_encode($settings, JSON_UNESCAPED_UNICODE),
             'updated_at'            => date('Y-m-d H:i:s'),
         ]));
@@ -909,7 +908,7 @@ final class DailyReportController
 
     private function requireStore(int $id): array
     {
-        $store = $this->stores->findById($id);
+        $store = Store::findById($id);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }

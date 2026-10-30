@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\TimeOff\Controllers\Web;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -27,7 +27,6 @@ final class EmployeeTimeoffController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly UserRepositoryInterface $users,
         private readonly NotificationService $notifs,
@@ -47,7 +46,7 @@ final class EmployeeTimeoffController
 
         $stores = [];
         foreach ($this->memberStoreIds($userId) as $sid) {
-            $store = $this->stores->findById($sid);
+            $store = Store::findById($sid);
             if ($store !== null) {
                 $stores[] = ['id' => $sid, 'name' => $store['name'] ?? ('#' . $sid)];
             }

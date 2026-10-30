@@ -11,7 +11,7 @@ use App\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
@@ -30,16 +30,14 @@ use PHPUnit\Framework\TestCase;
 final class DailyReportControllerTest extends TestCase
 {
     private DailyReportRepositoryInterface&Stub $reports;
-    private StoreRepositoryInterface&Stub $stores;
     private ?DailyReportController $controller = null;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
-        $this->stores->method('findById')->willReturnCallback(fn($a0) => $a0 === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
+        kintai_test_stores(findById: fn($a0) => $a0 === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -48,7 +46,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         if ($this->controller === null) {
             $this->controller = new DailyReportController(
                 $this->reports,
-                $this->stores,
                 new DailyReportPermissionService(new PermissionService()),
             );
         }

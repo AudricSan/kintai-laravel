@@ -11,7 +11,7 @@ use App\Models\AppSetting;
 use App\Models\Notification;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -57,7 +57,6 @@ final class NotificationMiddlewareTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
         $this->container->instance(AuthService::class, $auth);

@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Api\V1;
 
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\PlanLimitExceededException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -19,13 +19,12 @@ use PHPUnit\Framework\TestCase;
 
 final class StoreControllerTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private StoreServiceInterface&Stub $storeService;
     private ?StoreController $controller = null;
 
     protected function setUp(): void
     {
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->storeService = $this->createStub(StoreServiceInterface::class);
     }
 
@@ -33,7 +32,7 @@ final class StoreControllerTest extends TestCase
     private function controller(): StoreController
     {
         if ($this->controller === null) {
-            $this->controller = new StoreController($this->stores, $this->storeService, new AuditLogger(), ApiOwnerAuth::permissions($this));
+            $this->controller = new StoreController($this->storeService, new AuditLogger(), ApiOwnerAuth::permissions($this));
         }
 
         return $this->controller;
@@ -86,10 +85,7 @@ final class StoreControllerTest extends TestCase
     /** PUT /api/v1/stores/{id} avec {} était accepté (200 sans rien changer). */
     public function testUpdateWithAnEmptyBodyIsRefused(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 5, 'code' => 'TKY']);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(findById: fn() => ['id' => 5, 'code' => 'TKY']);
         $this->expectException(ValidationException::class);
         $this->controller()->update($this->updateRequest([]));
     }
@@ -111,33 +107,21 @@ final class StoreControllerTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidStoreUpdates')]
     public function testUpdateRefusesInvalidValues(array $body): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 5, 'code' => 'TKY']);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(findById: fn() => ['id' => 5, 'code' => 'TKY']);
         $this->expectException(ValidationException::class);
         $this->controller()->update($this->updateRequest($body));
     }
 
     public function testUpdateRefusesACodeUsedByAnotherStore(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 5, 'code' => 'TKY']);
-        $this->stores->expects($this->atLeastOnce())->method('findByCode')->with('OSK')->willReturn(['id' => 6, 'code' => 'OSK']);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(findById: fn() => ['id' => 5, 'code' => 'TKY'], findByCode: fn() => ['id' => 6, 'code' => 'OSK']);
         $this->expectException(ValidationException::class);
         $this->controller()->update($this->updateRequest(['code' => 'osk']));
     }
 
     public function testUpdateWritesOnlyTheValidatedFields(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 5, 'code' => 'TKY']);
-        $this->stores->expects($this->once())->method('save')
-            ->with(['name' => 'Tokyo Est', 'is_active' => 0, 'id' => 5])
-            ->willReturn(['id' => 5, 'name' => 'Tokyo Est']);
-
+        kintai_test_stores(findById: fn() => ['id' => 5, 'code' => 'TKY']);
         $response = $this->controller()->update($this->updateRequest(['name' => ' Tokyo Est ', 'is_active' => false, 'created_at' => 'x', 'daily_report_settings' => '{}']));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -146,10 +130,8 @@ final class StoreControllerTest extends TestCase
     /** DELETE /api/v1/stores/{id} passe par StoreService (suppression douce + rôles retirés), comme le web. */
     public function testDestroyDelegatesToTheStoreService(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->storeService = $this->createMock(StoreServiceInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 5]);
-        $this->stores->expects($this->never())->method('delete');
+        kintai_test_stores(findById: fn() => ['id' => 5]);
         $this->storeService->expects($this->once())->method('deleteStore')->with(5);
 
         $req = $this->makeJsonRequest([]);

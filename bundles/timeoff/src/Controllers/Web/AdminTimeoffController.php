@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\TimeOff\Controllers\Web;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -26,7 +26,6 @@ final class AdminTimeoffController
         private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
     ) {}
 

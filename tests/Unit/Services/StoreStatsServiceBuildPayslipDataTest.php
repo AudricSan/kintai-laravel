@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -28,8 +28,10 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
 
     public function testSplitsMultiTypeShiftAndExposesTypeBreakdown(): void
     {
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('getDeductionSettings')->willReturn(['enabled' => false]);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
+        Store::saveDeductionSettings(1, ['enabled' => false]);
         kintai_test_shifts([
             [
                 'shift_date' => '2026-08-05', 'start_time' => '07:00', 'end_time' => '18:00',
@@ -42,7 +44,6 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
         ]);
         kintai_test_store_users(findMembership: fn() => null);
         $service = new StoreStatsService(
-            $stores,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
             ),

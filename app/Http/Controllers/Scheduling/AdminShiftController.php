@@ -11,7 +11,7 @@ use App\Services\SchedulePublication;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use kintai\Contract\Event\OpenShiftClosed;
 use App\Extension\Absences;
@@ -37,7 +37,6 @@ final class AdminShiftController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly ShiftServiceInterface $shiftService,
@@ -201,7 +200,7 @@ final class AdminShiftController
      */
     private function shiftNotificationReplace(string $shiftDate, string $startTime, string $endTime, int $storeId): array
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         return [
             'date'  => $shiftDate,
             'start' => substr($startTime, 0, 5),
@@ -257,7 +256,7 @@ final class AdminShiftController
 
         // Get filtered shifts from service
         $allShifts = $this->shiftService->getShiftsForAdmin(
-            $managedIds ?? array_map(fn($s) => (int)$s['id'], $this->stores->findAll()),
+            $managedIds ?? array_map(fn($s) => (int)$s['id'], Store::findAll()),
             $filterMonth,
             $filterStoreId,
             $filterUserId
@@ -368,7 +367,7 @@ final class AdminShiftController
 
         // Jour de début de semaine (paramètre du store sélectionné ou premier accessible)
         $wsdStore     = $filterStoreId > 0
-            ? $this->stores->findById($filterStoreId)
+            ? Store::findById($filterStoreId)
             : ($this->availableStores($managedIds)[0] ?? null);
         $weekStartDay = max(1, min(7, (int) ($wsdStore['week_start_day'] ?? 1)));
 
@@ -452,7 +451,7 @@ final class AdminShiftController
         }
 
         // Jour de début de semaine selon le store sélectionné
-        $storeObjEarly = $filterStoreId > 0 ? $this->stores->findById($filterStoreId) : ($availStores[0] ?? null);
+        $storeObjEarly = $filterStoreId > 0 ? Store::findById($filterStoreId) : ($availStores[0] ?? null);
         $weekStartDay  = max(1, min(7, (int) ($storeObjEarly['week_start_day'] ?? 1)));
 
         // Plage de dates selon le mode et le jour de début de semaine
@@ -508,7 +507,7 @@ final class AdminShiftController
         // Taux horaires et devise
         $ratesMap    = [];
         $currencyMap = [];
-        $storeObj    = $filterStoreId > 0 ? $this->stores->findById($filterStoreId) : null;
+        $storeObj    = $filterStoreId > 0 ? Store::findById($filterStoreId) : null;
         $currency      = strtoupper(trim($storeObj['currency'] ?? 'JPY'));
         $currencyStyle = store_currency_style($storeObj);
         foreach ($memberIds as $uid) {
@@ -645,7 +644,7 @@ final class AdminShiftController
         }
 
         // Jour de début de semaine selon le store
-        $printStoreObj = $filterStoreId > 0 ? $this->stores->findById($filterStoreId) : ($availStores[0] ?? null);
+        $printStoreObj = $filterStoreId > 0 ? Store::findById($filterStoreId) : ($availStores[0] ?? null);
         $weekStartDay  = max(1, min(7, (int) ($printStoreObj['week_start_day'] ?? 1)));
 
         if ($viewMode === 'week') {

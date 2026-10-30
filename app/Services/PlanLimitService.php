@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\PlanLimitExceededException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -25,7 +25,6 @@ final class PlanLimitService
     private const FREE_MAX_ACTIVE_BUNDLES = 4;
 
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly LicenseClientService $license,
     ) {
@@ -53,7 +52,7 @@ final class PlanLimitService
 
     public function currentStoreCount(): int
     {
-        return $this->stores->countActive();
+        return Store::countActive();
     }
 
     public function currentEmployeeCount(): int
@@ -64,7 +63,7 @@ final class PlanLimitService
     public function assertCanCreateStore(): void
     {
         $max = $this->maxStores();
-        if ($max !== null && $this->stores->countActive() >= $max) {
+        if ($max !== null && Store::countActive() >= $max) {
             throw new PlanLimitExceededException(__('plan_limit_stores'));
         }
     }

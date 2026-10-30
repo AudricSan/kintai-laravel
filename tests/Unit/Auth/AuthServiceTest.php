@@ -10,14 +10,13 @@ use PHPUnit\Framework\MockObject\Stub;
 use App\Auth\AuthService;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\StoreUser;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 
 final class AuthServiceTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
-    private StoreRepositoryInterface&Stub $stores;
     private ?AuthService $auth = null;
 
     protected function setUp(): void
@@ -28,14 +27,13 @@ final class AuthServiceTest extends TestCase
         session()->forget(auth()->getName());
 
         $this->users           = $this->createStub(UserRepositoryInterface::class);
-        $this->stores          = $this->createStub(StoreRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function auth(): AuthService
     {
         if ($this->auth === null) {
-            $this->auth = new AuthService($this->users, $this->stores);
+            $this->auth = new AuthService($this->users);
         }
 
         return $this->auth;
@@ -143,11 +141,10 @@ final class AuthServiceTest extends TestCase
     public function testAttemptByCodeSucceeds(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $store = ['id' => 5, 'code' => 'STORE01'];
         $user  = array_merge($this->activeUser(), ['employee_code' => 'EMP001']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findByCode')->with('STORE01')->willReturn($store);
+        kintai_test_stores(findByCode: fn() => $store);
         $this->users->expects($this->atLeastOnce())->method('findByEmployeeCode')->with('EMP001')->willReturn($user);
         kintai_test_store_users(findMembership: fn() => ['role' => 'staff']);
         $result = $this->auth()->attemptByCode('EMP001', 'STORE01', 'secret123');
@@ -156,13 +153,13 @@ final class AuthServiceTest extends TestCase
 
     public function testAttemptByCodeFailsForUnknownStore(): void
     {
-        $this->stores->method('findByCode')->willReturn(null);
+        kintai_test_stores(findByCode: fn() => null);
         $this->assertFalse($this->auth()->attemptByCode('EMP001', 'UNKNOWN', 'pass'));
     }
 
     public function testAttemptByCodeFailsForUnknownEmployee(): void
     {
-        $this->stores->method('findByCode')->willReturn(['id' => 1, 'code' => 'S']);
+        kintai_test_stores(findByCode: fn() => ['id' => 1, 'code' => 'S']);
         $this->users->method('findByEmployeeCode')->willReturn(null);
 
         $this->assertFalse($this->auth()->attemptByCode('NOBODY', 'S', 'pass'));
@@ -172,7 +169,7 @@ final class AuthServiceTest extends TestCase
     {
         $store = ['id' => 5, 'code' => 'S'];
         $user  = $this->activeUser();
-        $this->stores->method('findByCode')->willReturn($store);
+        kintai_test_stores(findByCode: fn() => $store);
         $this->users->method('findByEmployeeCode')->willReturn($user);
         kintai_test_store_users(findMembership: fn() => null);
         $this->assertFalse($this->auth()->attemptByCode('EMP', 'S', 'secret123'));
@@ -180,13 +177,8 @@ final class AuthServiceTest extends TestCase
 
     public function testAttemptByCodeNormalizesStoreCode(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         // Code en minuscules doit être normalisé en majuscules
-        $this->stores->expects($this->once())
-            ->method('findByCode')
-            ->with('STORE01')
-            ->willReturn(null);
-
+        kintai_test_stores(findByCode: fn() => null);
         $this->auth()->attemptByCode('EMP', 'store01', 'pass');
     }
 

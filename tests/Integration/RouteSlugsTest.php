@@ -6,7 +6,7 @@ namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\RouteSlug;
-use App\Repositories\DatabaseStoreRepository;
+use App\Models\Store;
 use App\Repositories\DatabaseUserRepository;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\StoreRouteBinder;
@@ -43,7 +43,7 @@ final class RouteSlugsTest extends TestCase
         $this->capsule->getConnection()->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
         RouteSlug::setCurrent('store', 1, '所沢東町店', false);
 
-        $binder = new StoreRouteBinder(new DatabaseStoreRepository());
+        $binder = new StoreRouteBinder();
 
         $this->assertSame(1, $binder->resolve('所沢東町店')?->id);
         $this->assertFalse($binder->resolve('1')->canonical);
@@ -85,7 +85,7 @@ final class RouteSlugsTest extends TestCase
         $this->insertUser(18, '015');
         (new DatabaseUserRepository())->save(['id' => 18, 'employee_code' => '016']);
 
-        (new DatabaseStoreRepository())->delete(1);
+        Store::remove(1);
         (new DatabaseUserRepository())->delete(18);
 
         $this->assertSame(0, $db->table('route_slugs')->count());

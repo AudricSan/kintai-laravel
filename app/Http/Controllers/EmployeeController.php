@@ -12,7 +12,7 @@ use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserDashboardPref;
@@ -41,7 +41,6 @@ final class EmployeeController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -64,7 +63,7 @@ final class EmployeeController
         [$shiftsToday, $upcomingShifts] = self::personalShifts(SchedulePublication::staffView(Shift::findByUser($userId)), $today);
 
         $storesMap   = [];
-        foreach ($this->stores->findAllWithDeleted() as $s) {
+        foreach (Store::findAllWithDeleted() as $s) {
             $storesMap[(int) $s['id']] = $s['name'] ?? ('#' . $s['id']);
         }
 
@@ -175,7 +174,7 @@ final class EmployeeController
         $myStoreIds  = array_unique(array_map(fn($m) => (int) $m['store_id'], $memberships));
 
         // Jour de début de semaine (premier store de l'employé)
-        $empFirstStore = !empty($myStoreIds) ? $this->stores->findById($myStoreIds[0]) : null;
+        $empFirstStore = !empty($myStoreIds) ? Store::findById($myStoreIds[0]) : null;
         $weekStartDay  = max(1, min(7, (int) ($empFirstStore['week_start_day'] ?? 1)));
 
         $colleagueIds = [];
@@ -209,7 +208,7 @@ final class EmployeeController
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];
-        foreach ($this->stores->findAllWithDeleted() as $s) {
+        foreach (Store::findAllWithDeleted() as $s) {
             $storesMap[(int) $s['id']] = $s['name'] ?? '';
         }
 
@@ -310,7 +309,7 @@ final class EmployeeController
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];
-        foreach ($this->stores->findAllWithDeleted() as $s) {
+        foreach (Store::findAllWithDeleted() as $s) {
             $storesMap[(int) $s['id']] = $s['name'] ?? '#' . $s['id'];
         }
 
@@ -381,7 +380,7 @@ final class EmployeeController
         $storesList = [];
         $storesMap  = [];
         foreach ($myStoreIds as $sid) {
-            $st = $this->stores->findById($sid);
+            $st = Store::findById($sid);
             if ($st !== null) {
                 $storesList[]    = $st;
                 $storesMap[$sid] = $st['name'] ?? ('#' . $sid);
@@ -455,7 +454,7 @@ final class EmployeeController
         // Taux horaires et devise (store affiché)
         $ratesMap    = []; // uid → shift_type_id → hourly_rate
         $currencyMap = []; // uid → currency string
-        $storeObj    = $filterStoreId > 0 ? $this->stores->findById($filterStoreId) : null;
+        $storeObj    = $filterStoreId > 0 ? Store::findById($filterStoreId) : null;
         $currency      = strtoupper(trim($storeObj['currency'] ?? 'JPY'));
         $currencyStyle = store_currency_style($storeObj);
         foreach ($memberIds as $uid) {

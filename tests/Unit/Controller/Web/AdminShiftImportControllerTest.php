@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\AuditLogger;
@@ -45,7 +45,6 @@ final class AdminShiftImportControllerTest extends TestCase
             $this->controller = new AdminShiftImportController(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->createStub(UserRepositoryInterface::class),
-                $this->createStub(StoreRepositoryInterface::class),
                 new AuditLogger(),
                 $roleSync,
             );

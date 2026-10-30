@@ -15,7 +15,7 @@ use App\Extension\Absences;
 use App\Extension\ExportDatasets;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -45,7 +45,6 @@ final class ExportController
         private readonly ExportAccess                 $access,
         private readonly ExportWriter                 $writer,
         private readonly UserSelection                $selection,
-        private readonly StoreRepositoryInterface     $stores,
         private readonly ScheduleExportService        $schedule,
         private readonly IcalService                  $ical,
         private readonly AuditLogger                  $auditLogger,
@@ -159,7 +158,7 @@ final class ExportController
             $targets['me'] = __('export_target_me');
         }
         foreach ($storeIds as $id) {
-            $targets['store:' . $id] = (string) ($this->stores->findById($id)['name'] ?? ('#' . $id));
+            $targets['store:' . $id] = (string) (Store::findById($id)['name'] ?? ('#' . $id));
         }
         if (count($storeIds) > 1) {
             $targets[self::TARGET_ALL] = __('export_target_all');
@@ -191,7 +190,7 @@ final class ExportController
         }
         $personId = $query->userIds[0];
         $storeId  = $query->storeIds[0];
-        $store    = $this->stores->findById($storeId);
+        $store    = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_resource_not_found'));
         }

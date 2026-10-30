@@ -15,7 +15,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserNavPref;
@@ -58,7 +58,6 @@ final class AuthMiddlewareTest extends TestCase
             $this->createStub(LanguageRepositoryInterface::class),
         );
         $this->container->instance(EmployeeStatsService::class, new EmployeeStatsService(
-            $this->createStub(StoreRepositoryInterface::class),
         ));
     }
 
@@ -87,14 +86,11 @@ final class AuthMiddlewareTest extends TestCase
                 'scope_id'   => $isSystemRole ? null : 1,
             ],
         ]);
-        $stores     = $this->createStub(StoreRepositoryInterface::class);
 
         $this->container->instance(AuthService::class, new AuthService(
-            $users, $stores,
-            $this->createStub(UserRepositoryInterface::class),
+            $users,
         ));
         $this->container->instance(PermissionService::class, new PermissionService());
-        $this->container->instance(StoreRepositoryInterface::class, $stores);
     }
 
     private function handle(): Response
@@ -207,7 +203,6 @@ final class AuthMiddlewareTest extends TestCase
         $users = $this->createStub(UserRepositoryInterface::class);
         $this->container->instance(AuthService::class, new AuthService(
             $users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         ));
 

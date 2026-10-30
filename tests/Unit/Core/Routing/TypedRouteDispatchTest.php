@@ -9,7 +9,7 @@ use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\RouteSegments;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -61,11 +61,8 @@ final class TypedRouteDispatchTest extends TestCase
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         kintai_test_route_slugs([18 => '016', 26 => null]);
         RouteSlug::setCurrent('store', 3, '所沢寿町店', false);
-
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(fn(int $id) => $id === 3 ? ['store' => 3] : null);
-
-        app()->instance(StoreRouteBinder::class, new StoreRouteBinder($stores));
+        kintai_test_stores(findById: fn(int $id) => $id === 3 ? ['id' => 3] : null);
+        app()->instance(StoreRouteBinder::class, new StoreRouteBinder());
         app()->instance(EmployeeRouteBinder::class, new EmployeeRouteBinder());
 
         $this->router = kintai_test_router();

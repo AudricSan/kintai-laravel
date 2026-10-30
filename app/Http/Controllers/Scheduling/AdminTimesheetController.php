@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Exceptions\NotFoundException;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\TimesheetApproval;
 use App\Repositories\UserRepositoryInterface;
@@ -29,7 +29,6 @@ final class AdminTimesheetController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly TimesheetService $timesheets,
         private readonly PermissionService $permissions,
@@ -54,7 +53,7 @@ final class AdminTimesheetController
             $this->assertStoreAccess($request, $storeId);
             $user = $request->attributes->get('auth_user') ?? [];
             $this->permissions->requireOnStore($user, 'shifts.view', $storeId);
-            $store = $this->stores->findById($storeId);
+            $store = Store::findById($storeId);
             $weekStart = $this->weekStart($store, (string) ($request->query('week') ?? ''));
             $data = $this->timesheets->week($storeId, $weekStart);
             $approval = TimesheetApproval::where('store_id', $storeId)->where('week_start', $weekStart)->first();
@@ -156,7 +155,7 @@ final class AdminTimesheetController
         $storeId = (int) ($input('store_id') ?? 0);
         $this->assertStoreAccess($request, $storeId);
         $this->permissions->requireOnStore($request->attributes->get('auth_user') ?? [], $permission, $storeId);
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }

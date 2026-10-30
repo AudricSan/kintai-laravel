@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
 use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface as Repo;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
@@ -25,7 +25,6 @@ final class PlanningCheckService
 {
     public function __construct(
         private readonly Repo $repo,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
@@ -107,7 +106,7 @@ final class PlanningCheckService
      */
     public function submit(int $storeId, string $date, int $userId, bool $confirmEmpty, \DateTimeImmutable $now): array
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         $settings = $this->repo->settings($storeId);
         if ($store === null || empty($settings['enabled'])) {
             return $this->fail('not_enabled');
@@ -175,7 +174,7 @@ final class PlanningCheckService
         if ($check['status'] !== Repo::STATUS_SUBMITTED) {
             return $this->fail('bad_status', $check);
         }
-        $store = $this->stores->findById($check['store_id']);
+        $store = Store::findById($check['store_id']);
         if ($store === null) {
             return $this->fail('not_found', $check);
         }
@@ -213,7 +212,7 @@ final class PlanningCheckService
         if ($check['status'] !== Repo::STATUS_VALIDATED) {
             return $this->fail('bad_status', $check);
         }
-        $store = $this->stores->findById($check['store_id']);
+        $store = Store::findById($check['store_id']);
         if ($store === null) {
             return $this->fail('not_found', $check);
         }
@@ -235,7 +234,7 @@ final class PlanningCheckService
      */
     public function sendNow(int $storeId, string $date, int $userId, bool $confirmEmpty, \DateTimeImmutable $now): array
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         $settings = $this->repo->settings($storeId);
         if ($store === null || empty($settings['enabled'])) {
             return $this->fail('not_enabled');
@@ -264,7 +263,7 @@ final class PlanningCheckService
      */
     public function forceRecheck(int $storeId, string $date): array
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         $settings = $this->repo->settings($storeId);
         if ($store === null || empty($settings['enabled'])) {
             return $this->fail('not_enabled');
@@ -327,7 +326,7 @@ final class PlanningCheckService
         if ($reason === '') {
             return $this->fail('reason_required', $check);
         }
-        $store = $this->stores->findById($check['store_id']);
+        $store = Store::findById($check['store_id']);
         $check = $this->repo->update($check['id'], [
             'status'        => Repo::STATUS_REJECTED,
             'rejected_by'   => $userId,
@@ -351,7 +350,7 @@ final class PlanningCheckService
     {
         $escalated = [];
         foreach ($this->repo->enabledStoreIds() as $storeId) {
-            $store = $this->stores->findById($storeId);
+            $store = Store::findById($storeId);
             if ($store === null) {
                 continue;
             }

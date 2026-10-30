@@ -11,7 +11,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -51,7 +51,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
             $this->users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 
@@ -60,7 +59,6 @@ final class AuthControllerPasswordConfirmationTest extends TestCase
             $auth,
             new AuditLogger(),
             $this->users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );

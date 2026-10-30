@@ -8,7 +8,7 @@ use App\Auth\OwnerGuard;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -18,7 +18,6 @@ use App\Services\AuditLogger;
 final class StoreUserController
 {
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         // Facultatif pour les tests qui construisent le contrôleur à la main : sans lui, personne n'est Owner.
@@ -138,7 +137,7 @@ final class StoreUserController
 
     private function requireStore(int $id): void
     {
-        if ($this->stores->findById($id) === null) {
+        if (Store::findById($id) === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
     }

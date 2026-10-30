@@ -8,7 +8,7 @@ use App\Api\Paginator;
 use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -19,7 +19,6 @@ use App\Validation\PayloadValidator;
 final class StoreController
 {
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly StoreServiceInterface $storeService,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
@@ -30,7 +29,7 @@ final class StoreController
     {
         [$page, $limit] = Paginator::params($request);
         $authUser = $this->authUser($request);
-        $items    = $this->stores->findAll();
+        $items    = Store::findAll();
 
         if (!$this->permissions->hasUnrestrictedGrant($authUser, 'stores.view')) {
             $items = array_values(array_filter(
@@ -69,14 +68,14 @@ final class StoreController
         $data = PayloadValidator::validateUpdate($request->json()->all() ?? [], ApiPayloadRules::storeUpdate());
         if (isset($data['code'])) {
             $data['code'] = strtoupper($data['code']);
-            $other = $this->stores->findByCode($data['code']);
+            $other = Store::findByCode($data['code']);
             if ($other !== null && (int) $other['id'] !== $id) {
                 $message = __('val_store_code_taken', ['code' => $data['code']]);
                 throw new ValidationException(['code' => $message], $message);
             }
         }
 
-        $saved = $this->stores->save(array_merge($data, ['id' => $id]));
+        $saved = Store::put(array_merge($data, ['id' => $id]));
         $this->auditLogger->logUpdate($request, 'store.updated', 'store', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data);
         return response()->json($saved);
     }
@@ -101,7 +100,7 @@ final class StoreController
     private function requireStore(Request $request, string $permissionKey): array
     {
         $id    = (int) $request->route('id');
-        $store = $this->stores->findById($id);
+        $store = Store::findById($id);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }

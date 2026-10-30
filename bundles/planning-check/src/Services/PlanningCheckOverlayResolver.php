@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
 use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface as Repo;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 
 /**
  * Décide, pour un utilisateur et un instant, quelle fenêtre de page proposer : la validation à effectuer (valideur), le
@@ -27,7 +27,6 @@ final class PlanningCheckOverlayResolver
 
     public function __construct(
         private readonly Repo $repo,
-        private readonly StoreRepositoryInterface $stores,
         private readonly PlanningCheckService $service,
         private readonly PlanningShiftRows $rows,
     ) {}
@@ -59,7 +58,7 @@ final class PlanningCheckOverlayResolver
         // 1) Une validation à effectuer.
         $approvable = array_values(array_filter($candidates, static fn(int $id): bool => (bool) $can('planning_check.approve', $id)));
         foreach ($this->repo->submittedForStores($approvable) as $check) {
-            $store = $this->stores->findById($check['store_id']);
+            $store = Store::findById($check['store_id']);
             if ($store === null) {
                 continue;
             }
@@ -79,7 +78,7 @@ final class PlanningCheckOverlayResolver
         // 2) Le planning de demain à soumettre, ou la barre pendant la correction.
         $submittable = array_values(array_filter($storeIds, static fn(int $id): bool => (bool) $can('planning_check.submit', $id)));
         foreach ($submittable as $storeId) {
-            $store = $this->stores->findById($storeId);
+            $store = Store::findById($storeId);
             if ($store === null) {
                 continue;
             }

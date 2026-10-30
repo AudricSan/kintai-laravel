@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\DailyReport\Services;
 
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\UserRepositoryInterface;
 
 /**
@@ -22,7 +22,6 @@ use kintai\Contract\Data\UserRepositoryInterface;
 final class DailyReportAutoValidateService
 {
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly DailyReportRepositoryInterface $reports,
         private readonly UserRepositoryInterface $users,
         private readonly DailyReportPermissionService $permissions,
@@ -43,7 +42,7 @@ final class DailyReportAutoValidateService
     {
         $result = ['validated' => 0, 'skipped' => 0, 'errors' => []];
 
-        foreach ($this->stores->findActive() as $store) {
+        foreach (Store::findActive() as $store) {
             $settings = $this->permissions->getSettings($store);
 
             if (!$this->permissions->isEnabled($store)) {

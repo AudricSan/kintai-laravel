@@ -9,7 +9,7 @@ use App\Exceptions\ValidationException;
 use App\Mail\MailerService;
 use App\Models\DevicePushToken;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
@@ -214,11 +214,11 @@ final class SetupStepsTest extends TestCase
 
     private function storeStep(StoreServiceInterface $service, array $existing = []): StoreStep
     {
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findAll')->willReturn($existing);
+        \Illuminate\Support\Facades\DB::table('stores')->delete();
+        kintai_test_stores(findAll: fn() => array_map(fn(array $row, int $i) => ['id' => $i + 1] + $row, $existing, array_keys($existing)));
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr']]);
-        return new StoreStep($service, $stores, new InstanceLocale($languages));
+        return new StoreStep($service, new InstanceLocale($languages));
     }
 
     public function testTheFirstStoreIsCreatedWithACodeDerivedFromItsNameAndTheOwnerIsAttached(): void

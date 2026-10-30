@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Store;
+
 use App\Models\StoreUser;
 
 use Illuminate\Http\Request;
@@ -18,7 +20,7 @@ trait HasAdminAccess
 
     protected function availableStores(?array $managedIds): array
     {
-        $all = $this->stores->findAll();
+        $all = Store::findAll();
         if ($managedIds === null) {
             return $all;
         }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Export;
 
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 
 /**
@@ -20,7 +20,6 @@ final class ExportDirectory
 
     public function __construct(
         private readonly UserRepositoryInterface $userRepo,
-        private readonly StoreRepositoryInterface $storeRepo,
     ) {}
 
     /** @return array<string, mixed>|null */
@@ -32,7 +31,7 @@ final class ExportDirectory
     /** @return array<string, mixed>|null */
     public function store(int $id): ?array
     {
-        return array_key_exists($id, $this->stores) ? $this->stores[$id] : $this->stores[$id] = $this->storeRepo->findById($id);
+        return array_key_exists($id, $this->stores) ? $this->stores[$id] : $this->stores[$id] = Store::findById($id);
     }
 
     public function userName(int $id): string

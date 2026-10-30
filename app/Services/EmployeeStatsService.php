@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserShiftTypeRate;
 
@@ -20,7 +20,6 @@ final class EmployeeStatsService
     ];
 
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
     ) {}
 
     public function calculate(int $userId, string $month = ''): array
@@ -55,7 +54,7 @@ final class EmployeeStatsService
         $currency     = 'JPY';
         $currencyStyle = 'kanji';
         if (!empty($memberships)) {
-            $store         = $this->stores->findById((int) $memberships[0]['store_id']);
+            $store         = Store::findById((int) $memberships[0]['store_id']);
             $currency      = strtoupper(trim($store['currency'] ?? 'JPY'));
             $currencyStyle = store_currency_style($store);
         }

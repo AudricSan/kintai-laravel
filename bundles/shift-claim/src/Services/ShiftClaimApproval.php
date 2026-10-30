@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\ShiftClaim\Services;
 
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Contract\Data\Shift;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Services\NotificationService;
 
 /**
@@ -24,7 +24,6 @@ final class ShiftClaimApproval
 
     public function __construct(
         private readonly ShiftClaimRepositoryInterface $claims,
-        private readonly StoreRepositoryInterface $stores,
         private readonly NotificationService $notifs,
     ) {}
 
@@ -81,7 +80,7 @@ final class ShiftClaimApproval
     /** @return array{date: string, start: string, end: string, store: string} */
     private function shiftReplace(array $shift): array
     {
-        $store = $this->stores->findById((int) ($shift['store_id'] ?? 0));
+        $store = Store::findById((int) ($shift['store_id'] ?? 0));
         return [
             'date'  => $shift['shift_date'] ?? '',
             'start' => substr($shift['start_time'] ?? '', 0, 5),

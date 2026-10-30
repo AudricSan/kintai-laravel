@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -69,9 +69,7 @@ final class AdminRequestsControllerTest extends TestCase
             ['id' => 1, 'first_name' => 'Alice', 'last_name' => 'A'],
             ['id' => 2, 'first_name' => 'Bob', 'last_name' => 'B'],
         ]);
-
-        $storesRepo = $this->createStub(StoreRepositoryInterface::class);
-        $storesRepo->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store 1']]);
         kintai_test_store_users(findByStore: fn() => []);
         kintai_test_shifts([['id' => 10, 'shift_date' => '2026-08-10', 'start_time' => '09:00:00', 'end_time' => '17:00:00']]);
         kintai_test_assignments(findByUser: fn() => $isAdmin ? [] : [
@@ -83,12 +81,10 @@ final class AdminRequestsControllerTest extends TestCase
         // Les demandes sont lues à travers les fournisseurs (PendingRequests), qui prennent leurs dépôts dans le
         // conteneur.
         $container = Container::getInstance();
-        $container->instance(StoreRepositoryInterface::class, $storesRepo);
 
         return new AdminRequestsController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
-            $storesRepo,
             $permissions,
         );
     }

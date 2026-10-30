@@ -6,7 +6,7 @@ namespace Tests\Unit\Core\Services;
 
 use App\Models\AppSetting;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Exceptions\PlanLimitExceededException;
@@ -21,13 +21,11 @@ use PHPUnit\Framework\TestCase;
 
 final class StoreServiceTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private ?StoreService $service = null;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -37,11 +35,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $languages = $this->createStub(LanguageRepositoryInterface::class);
             $languages->method('findAllActive')->willReturn([['code' => 'en']]);
             $this->service = new StoreService(
-                $this->stores,
                 $this->createStub(UserRepositoryInterface::class),
                 $languages,
                 new PlanLimitService(
-                    $this->stores,
                     $this->createStub(UserRepositoryInterface::class),
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
@@ -58,96 +54,79 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testUpdateStorePersistsFeaturesViaSaveFeaturesOnly(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $existingStore = ['id' => 1, 'code' => 'A', 'name' => 'Store A'];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($existingStore);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $existingStore : null);
         $decisions = ['shifts' => true, 'timeclock' => false, 'timeoff' => true];
         $data = ['_features' => $decisions];
 
-        $this->stores->expects($this->once())->method('saveFeatureDecisions')->with(1, $decisions);
-        $this->stores->expects($this->once())->method('save')->with(
-            $this->callback(fn (array $storeData) => !array_key_exists('features', $storeData)),
-        )->willReturn(['id' => 1]);
-
         $this->service()->updateStore(1, $data);
+
+        $saved = \App\Models\Store::getFeatureDecisions(1);
+        foreach ($decisions as $key => $enabled) {
+            $this->assertSame($enabled, $saved[$key] ?? null, $key);
+        }
+        $this->assertArrayNotHasKey('features', \App\Models\Store::findById(1));
     }
 
     public function testUpdateStoreWithoutFeaturesDoesNotCallSaveFeatures(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $existingStore = ['id' => 1, 'code' => 'A', 'name' => 'Store A'];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($existingStore);
-
-        $this->stores->expects($this->never())->method('saveFeatureDecisions');
-        $this->stores->expects($this->once())->method('save')->willReturn($existingStore);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $existingStore : null);
+        $before = \App\Models\Store::getFeatureDecisions(1);
         $this->service()->updateStore(1, ['name' => 'Store A renamed']);
+
+        $this->assertSame($before, \App\Models\Store::getFeatureDecisions(1));
+        $this->assertSame('Store A renamed', \App\Models\Store::findById(1)['name']);
     }
 
     public function testCreateStoreDefaultsCurrencySymbolStyleToKanji(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->once())->method('save')->with(
-            $this->callback(fn (array $data) => $data['currency_symbol_style'] === 'kanji'),
-        )->willReturn(['id' => 1]);
-
+        kintai_test_stores(countActive: fn() => 0);
         $this->service()->createStore(['code' => 'ST01', 'name' => 'Store A']);
+
+        $this->assertSame('kanji', \App\Models\Store::findByCode('ST01')['currency_symbol_style']);
     }
 
     public function testCreateStorePersistsInternationalCurrencySymbolStyle(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->once())->method('save')->with(
-            $this->callback(fn (array $data) => $data['currency_symbol_style'] === 'international'),
-        )->willReturn(['id' => 1]);
-
+        kintai_test_stores(countActive: fn() => 0);
         $this->service()->createStore(['code' => 'ST01', 'name' => 'Store A', 'currency_symbol_style' => 'international']);
+
+        $this->assertSame('international', \App\Models\Store::findByCode('ST01')['currency_symbol_style']);
     }
 
     public function testCreateStoreThrowsWhenFreePlanStoreLimitReached(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->method('countActive')->willReturn(1);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(countActive: fn() => 1);
         $this->expectException(PlanLimitExceededException::class);
         $this->service()->createStore(['code' => 'ST01', 'name' => 'Store A']);
     }
 
     public function testUpdateStoreKeepsExistingCurrencySymbolStyleWhenNotProvided(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $existingStore = ['id' => 1, 'code' => 'A', 'name' => 'Store A', 'currency_symbol_style' => 'international'];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($existingStore);
-
-        $this->stores->expects($this->once())->method('save')->with(
-            $this->callback(fn (array $data) => $data['currency_symbol_style'] === 'international'),
-        )->willReturn($existingStore);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $existingStore : null);
         $this->service()->updateStore(1, ['name' => 'Store A renamed']);
+
+        $this->assertSame('international', \App\Models\Store::findById(1)['currency_symbol_style']);
     }
 
     /** Audit du 01/10/2026 : la devise n'était pas contrôlée en modification et s'affichait telle quelle. */
     public function testUpdateStoreRejectsAForgedCurrency(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'code' => 'A', 'name' => 'Store A']);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'code' => 'A', 'name' => 'Store A'] : null);
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->service()->updateStore(1, ['name' => 'Store A', 'currency' => '<a href=//evil>SESSION</a>']);
     }
 
     public function testUpdateStoreStillAcceptsExistingFreeTypeAndLocale(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         // Données réelles : type libre (コンビニ) et langue hors liste (JA) ne doivent pas bloquer une modification.
         $existingStore = ['id' => 1, 'code' => '58182', 'name' => '航空公園東口店', 'type' => 'コンビニ', 'locale' => 'JA', 'currency' => 'JPY'];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($existingStore);
-        $this->stores->expects($this->once())->method('save')->willReturn($existingStore);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $existingStore : null);
         $this->service()->updateStore(1, ['name' => '航空公園東口店', 'type' => 'コンビニ', 'locale' => 'JA', 'currency' => 'JPY']);
+
+        $this->assertSame('JA', \App\Models\Store::findById(1)['locale']);
     }
 
     public function testUnknownCurrencyCodeCannotInjectMarkup(): void
@@ -160,10 +139,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Audit du 01/10/2026 (point 7) : un code déjà pris levait une erreur SQL (page 500) au lieu d'un message. */
     public function testCreateStoreRejectsACodeAlreadyUsedByAnotherStore(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findByCode')->with('ST01')->willReturn(['id' => 5, 'code' => 'ST01']);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(findByCode: fn() => ['id' => 5, 'code' => 'ST01', 'is_active' => 0], countActive: fn() => 0);
         try {
             $this->service()->createStore(['code' => 'ST01', 'name' => 'Store B']);
             $this->fail('Un code déjà pris doit être refusé.');
@@ -174,11 +150,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testUpdateStoreRejectsACodeAlreadyUsedByAnotherStore(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'code' => 'A1', 'name' => 'Store A']);
-        $this->stores->expects($this->atLeastOnce())->method('findByCode')->with('B2')->willReturn(['id' => 2, 'code' => 'B2']);
-        $this->stores->expects($this->never())->method('save');
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'code' => 'A1', 'name' => 'Store A'] : null, findByCode: fn() => ['id' => 2, 'code' => 'B2']);
         try {
             $this->service()->updateStore(1, ['code' => 'b2', 'name' => 'Store A']);
             $this->fail('Un code déjà pris doit être refusé.');
@@ -189,13 +161,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testUpdateStoreKeepingItsOwnCodeIsAccepted(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $store = ['id' => 1, 'code' => 'A1', 'name' => 'Store A'];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($store);
-        $this->stores->expects($this->atLeastOnce())->method('findByCode')->with('A1')->willReturn($store);
-        $this->stores->expects($this->once())->method('save')->willReturn($store);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $store : null, findByCode: fn() => $store);
         $this->service()->updateStore(1, ['code' => 'A1', 'name' => 'Store A renamed']);
+
+        $this->assertSame('Store A renamed', \App\Models\Store::findById(1)['name']);
     }
 
     // -------------------------------------------------------------------------
@@ -205,11 +175,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     private function serviceWithAssignments(): StoreService
     {
         return new StoreService(
-            $this->stores,
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new PlanLimitService(
-                $this->stores,
                 $this->createStub(UserRepositoryInterface::class),
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
@@ -219,24 +187,20 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDeleteStoreSoftDeletesAndRevokesRolesScopedToIt(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'deleted_at' => null]);
-        $this->stores->expects($this->once())->method('delete')->with(7)->willReturn(1);
+        kintai_test_stores(findById: fn(int $id) => $id === 7 ? ['id' => 7, 'deleted_at' => null] : null);
         kintai_test_assignments(findByScope: fn(string $type, ?int $id) => $type === 'store' && $id === 7 ? [
             ['id' => 21, 'user_id' => 4, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 7],
             ['id' => 22, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 7],
         ] : []);
         $this->serviceWithAssignments()->deleteStore(7);
 
+        $this->assertNotNull(\App\Models\Store::findById(7)['deleted_at'], 'magasin supprimé (suppression douce)');
         $this->assertSame(0, \App\Models\RoleAssignment::query()->where('scope_type', 'store')->where('scope_id', 7)->count(), 'rôles liés au magasin révoqués');
     }
 
     public function testDeletingAnAlreadyDeletedStoreIsNotFound(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 7, 'deleted_at' => '2026-10-16 09:00:00']);
-        $this->stores->expects($this->never())->method('delete');
-
+        kintai_test_stores(findById: fn() => ['id' => 7, 'deleted_at' => '2026-10-16 09:00:00']);
         $this->expectException(NotFoundException::class);
         $this->service()->deleteStore(7);
     }

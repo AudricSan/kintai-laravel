@@ -10,7 +10,7 @@ use App\Exceptions\ForbiddenException;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -25,7 +25,6 @@ use PHPUnit\Framework\TestCase;
 final class NotebookControllerTest extends TestCase
 {
     private NotebookEntryRepositoryInterface&Stub $notes;
-    private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private NotificationService&Stub $notifs;
     private ?NotebookController $controller = null;
@@ -34,11 +33,10 @@ final class NotebookControllerTest extends TestCase
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->notes       = $this->createStub(NotebookEntryRepositoryInterface::class);
-        $this->stores      = $this->createStub(StoreRepositoryInterface::class);
         $this->users       = $this->createStub(UserRepositoryInterface::class);
         $this->notifs      = $this->createStub(NotificationService::class);
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1'], ['id' => 2, 'name' => 'Store 2']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store 1'], ['id' => 2, 'name' => 'Store 2']]);
         // Pas de findAll() par défaut ici : plusieurs tests le reconfigurent avec une valeur
         // spécifique (ex. testStoreAllowsAnOrgWideNoteForAGloballyScopedUser), et empiler un
         // second stub inconditionnel sur le même mock est ambigu côté PHPUnit (le premier stub
@@ -53,7 +51,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->controller = new NotebookController(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->notes,
-                $this->stores,
                 $this->users,
                 new AuditLogger(),
                 $this->notifs,
@@ -400,7 +397,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $controller = new NotebookController(
             $view,
             $this->notes,
-            $this->stores,
             $this->users,
             new AuditLogger(),
             $this->notifs,
@@ -430,7 +426,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $controller = new NotebookController(
             $view,
             $this->notes,
-            $this->stores,
             $this->users,
             new AuditLogger(),
             $this->notifs,

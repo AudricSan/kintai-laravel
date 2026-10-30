@@ -9,7 +9,7 @@ use App\Auth\AuthService;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use Illuminate\Http\Request;
@@ -99,7 +99,7 @@ final class AuthMiddleware
             $storeUsers = $this->container->make(StoreUser::class);
             $memberships = $storeUsers->findByUser((int) ($user['id'] ?? 0));
             if (!empty($memberships)) {
-                $storeRepo = $this->container->make(StoreRepositoryInterface::class);
+                $storeRepo = $this->container->make(Store::class);
                 // Aucune ligne en base = jamais configuré → tout activé (null)
                 $features = $storeRepo->getFeatures((int) $memberships[0]['store_id']);
                 $storeFeatures = $features !== [] ? $features : null;

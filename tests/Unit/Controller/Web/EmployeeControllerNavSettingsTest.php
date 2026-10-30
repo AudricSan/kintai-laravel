@@ -10,7 +10,7 @@ use App\Models\DevicePushToken;
 use App\Models\IcalToken;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Models\UserNavPref;
@@ -42,7 +42,6 @@ final class EmployeeControllerNavSettingsTest extends TestCase
 
         $this->controller = new EmployeeController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             new AuditLogger(),
             new NotificationService(

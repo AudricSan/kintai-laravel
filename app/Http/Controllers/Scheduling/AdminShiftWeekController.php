@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Scheduling;
 use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
 use App\Models\ShiftWeekTemplate;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -28,7 +28,6 @@ final class AdminShiftWeekController
     use HasAdminAccess;
 
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly WeekPlanner $planner,
         private readonly NotificationService $notifs,
@@ -156,7 +155,7 @@ final class AdminShiftWeekController
                 $byUser[$uid][] = $shift;
             }
         }
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         foreach ($byUser as $uid => $shifts) {
             usort($shifts, fn(array $a, array $b): int => strcmp((string) $a['shift_date'], (string) $b['shift_date']));
             try {

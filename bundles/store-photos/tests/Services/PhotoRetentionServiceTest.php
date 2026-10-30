@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterfa
 use kintai\Bundles\Installed\StorePhoto\Services\PhotoRetentionService;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\AppSetting;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Services\NotificationService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
@@ -69,9 +69,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             return $d;
         });
         $photos->expects($this->once())->method('deleteSubmission')->with(20)->willReturn(1);
-
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturn(['id' => 5, 'name' => 'Shibuya']);
+        kintai_test_stores(findById: fn() => ['id' => 5, 'name' => 'Shibuya']);
         $permissions = $this->permissions([1, 2]);
         $notifications = $this->createMock(NotificationService::class);
         $notifications->expects($this->once())->method('notifyMany')->with(
@@ -79,7 +77,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['store' => 'Shibuya', 'date' => '2026-09-01', 'days' => '3'], 10, '/admin/photos/5/10'
         );
 
-        $result = (new PhotoRetentionService($photos, $stores, $permissions, $notifications, $this->dir))->run();
+        $result = (new PhotoRetentionService($photos, $permissions, $notifications, $this->dir))->run();
 
         $this->assertSame(2, $result['compressed']);
         $this->assertSame(1, $result['notified'], 'envoi déjà signalé : pas de nouvelle notification');
@@ -105,7 +103,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $notifications = $this->createMock(NotificationService::class);
         $notifications->expects($this->never())->method('notifyMany');
 
-        $result = (new PhotoRetentionService($photos, $this->createStub(StoreRepositoryInterface::class), $permissions, $notifications, $this->dir))->run();
+        $result = (new PhotoRetentionService($photos, $permissions, $notifications, $this->dir))->run();
 
         $this->assertSame(['compressed' => 1, 'notified' => 0], ['compressed' => $result['compressed'], 'notified' => $result['notified']]);
     }

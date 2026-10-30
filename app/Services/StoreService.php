@@ -8,7 +8,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Routing\RouteSlugService;
@@ -17,7 +17,6 @@ use App\Validation\StoreValidator;
 final class StoreService implements StoreServiceInterface
 {
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly LanguageRepositoryInterface $languages,
         private readonly PlanLimitService $planLimits,
@@ -27,7 +26,7 @@ final class StoreService implements StoreServiceInterface
 
     public function getStoresForAdmin(?array $managedIds, string $sort = 'name_asc'): array
     {
-        $all = $this->stores->findAll();
+        $all = Store::findAll();
         if ($managedIds !== null) {
             $all = array_values(array_filter($all, fn($s) => in_array((int) $s['id'], $managedIds, true)));
         }
@@ -85,7 +84,7 @@ final class StoreService implements StoreServiceInterface
         $this->assertCodeAvailable(strtoupper(trim((string) ($data['code'] ?? ''))), 0);
         $manualSlug = $this->validatedManualSlug($data, 0);
 
-        $saved = $this->stores->save([
+        $saved = Store::put([
             'code'            => strtoupper(trim($data['code'] ?? '')),
             'name'            => $data['name'] ?? '',
             'type'            => $data['type'] ?? 'retail',
@@ -118,7 +117,7 @@ final class StoreService implements StoreServiceInterface
         if ($code === '') {
             return;
         }
-        $existing = $this->stores->findByCode($code);
+        $existing = Store::findByCode($code);
         if ($existing !== null && (int) $existing['id'] !== $storeId) {
             $message = __('val_store_code_taken', ['code' => $code]);
             throw new ValidationException(['code' => $message], $message);
@@ -150,7 +149,7 @@ final class StoreService implements StoreServiceInterface
 
     public function updateStore(int $storeId, array $data): array
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -197,17 +196,17 @@ final class StoreService implements StoreServiceInterface
         $manualSlug = $this->validatedManualSlug($data, $storeId);
 
         if (isset($data['_excel_settings'])) {
-            $this->stores->saveImportSettings($storeId, $data['_excel_settings']);
+            Store::saveImportSettings($storeId, $data['_excel_settings']);
         }
         if (isset($data['_deduction_settings'])) {
-            $this->stores->saveDeductionSettings($storeId, $data['_deduction_settings']);
+            Store::saveDeductionSettings($storeId, $data['_deduction_settings']);
         }
         if (isset($data['_features'])) {
             // Décisions des seules fonctionnalités proposées par le formulaire (clé => active ?).
-            $this->stores->saveFeatureDecisions($storeId, $data['_features']);
+            Store::saveFeatureDecisions($storeId, $data['_features']);
         }
 
-        $saved = $this->stores->save($storeData);
+        $saved = Store::put($storeData);
         $this->routeSlugs?->syncStore($storeId, (string) $saved['name'], $manualSlug);
 
         return $saved;
@@ -215,11 +214,11 @@ final class StoreService implements StoreServiceInterface
 
     public function deleteStore(int $storeId): void
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null || !empty($store['deleted_at'])) {
             throw new NotFoundException(__('error_store_not_found'));
         }
-        $this->stores->delete($storeId);
+        Store::remove($storeId);
 
         // Un rôle limité à ce magasin ne donnerait plus de droits que sur un magasin invisible : retiré.
         foreach (RoleAssignment::findByScope('store', $storeId) as $assignment) {
@@ -259,7 +258,7 @@ final class StoreService implements StoreServiceInterface
 
     public function getDeductionSettings(int $storeId): array
     {
-        return $this->stores->getDeductionSettings($storeId);
+        return Store::getDeductionSettings($storeId);
     }
 
     public function getDeductionOverrides(int $membershipId): array

@@ -17,7 +17,7 @@ use App\Models\IcalToken;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -105,7 +105,6 @@ final class ApiStoreScopeTest extends TestCase
     private function userController(?CredentialRevoker $revoker = null): UserController
     {
         $planLimits = new PlanLimitService(
-            $this->createStub(StoreRepositoryInterface::class),
             $this->users,
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
@@ -220,10 +219,8 @@ final class ApiStoreScopeTest extends TestCase
 
     public function testManagerCannotUpdateAnotherStore(): void
     {
-        $stores = $this->createMock(StoreRepositoryInterface::class);
-        $stores->method('findById')->with(self::STORE_B)->willReturn(['id' => self::STORE_B]);
-        $stores->expects($this->never())->method('save');
-        $controller = new StoreController($stores, $this->createStub(StoreServiceInterface::class), new AuditLogger(), $this->permissions);
+        kintai_test_stores(findById: fn() => ['id' => self::STORE_B]);
+        $controller = new StoreController($this->createStub(StoreServiceInterface::class), new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->update($this->request(self::MANAGER, ['id' => (string) self::STORE_B], ['name' => 'piraté']));
@@ -424,7 +421,6 @@ final class ApiStoreScopeTest extends TestCase
         ))->willReturnArgument(0);
 
         $planLimits = new PlanLimitService(
-            $this->createStub(StoreRepositoryInterface::class),
             $this->users,
             new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );

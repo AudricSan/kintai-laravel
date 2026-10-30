@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftSwap\Controllers\Web\AdminSwapController;
 use App\Exceptions\ForbiddenException;
 use App\Models\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -24,7 +24,6 @@ final class AdminSwapControllerTest extends TestCase
 {
     private ShiftSwapRequestRepositoryInterface&Stub $swapRequests;
     private UserRepositoryInterface&Stub $users;
-    private StoreRepositoryInterface&Stub $stores;
     private NotificationService&Stub $notifs;
     private ?AdminSwapController $controller = null;
 
@@ -40,7 +39,6 @@ final class AdminSwapControllerTest extends TestCase
 
         $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -56,7 +54,6 @@ final class AdminSwapControllerTest extends TestCase
                 $this->swapRequests,
                 new AuditLogger(),
                 $this->notifs,
-                $this->stores,
                 $this->users,
             );
         }
@@ -429,7 +426,7 @@ final class AdminSwapControllerTest extends TestCase
         $this->writeViewContent($viewDir, 'swap-requests', "<?php echo json_encode(array_map(fn(\$s) => \$s['id'], \$swaps));");
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);

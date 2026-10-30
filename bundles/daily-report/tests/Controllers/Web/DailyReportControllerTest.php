@@ -14,7 +14,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -39,7 +39,6 @@ use PHPUnit\Framework\TestCase;
 final class DailyReportControllerTest extends TestCase
 {
     private UserRepositoryInterface&Stub $users;
-    private StoreRepositoryInterface&Stub $stores;
     private DailyReportRepositoryInterface&Stub $reports;
     private NotificationService&Stub $notifs;
     private ?DailyReportController $controller = null;
@@ -52,7 +51,6 @@ final class DailyReportControllerTest extends TestCase
         $this->notifs     = $this->createStub(NotificationService::class);
 
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -76,7 +74,6 @@ final class DailyReportControllerTest extends TestCase
             $this->controller = new DailyReportController(
                 kintai_test_views(sys_get_temp_dir()),
                 $this->reports,
-                $this->stores,
                 $this->users,
                 $permissions,
                 $pdfService,
@@ -123,8 +120,7 @@ final class DailyReportControllerTest extends TestCase
     {
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->reports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
             'id' => 10, 'store_id' => 1, 'status' => 'draft', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);
@@ -163,8 +159,7 @@ final class DailyReportControllerTest extends TestCase
     {
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->reports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);
@@ -191,8 +186,7 @@ final class DailyReportControllerTest extends TestCase
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
         $this->reports->method('findById')->willReturn([
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'validated_by' => null, 'deleted_at' => null, 'report_date' => '2026-08-05',
         ]);
@@ -220,8 +214,7 @@ final class DailyReportControllerTest extends TestCase
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
         $this->reports->method('findById')->willReturn([
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);
@@ -241,8 +234,7 @@ final class DailyReportControllerTest extends TestCase
     {
         $this->notifs = $this->createMock(NotificationService::class);
         $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->reports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
         ]);

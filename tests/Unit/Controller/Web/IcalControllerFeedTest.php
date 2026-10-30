@@ -14,7 +14,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -29,13 +29,11 @@ use PHPUnit\Framework\TestCase;
 /** Audit n°7 : le flux iCal d'un compte désactivé ou ayant quitté le magasin ne doit plus être servi. */
 final class IcalControllerFeedTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private IcalController $controller;
 
     protected function setUp(): void
     {
-        $this->stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->users      = $this->createStub(UserRepositoryInterface::class);
 
         kintai_test_database();
@@ -43,7 +41,7 @@ final class IcalControllerFeedTest extends TestCase
         kintai_test_user(9);
         \Illuminate\Support\Facades\DB::table('stores')->insert(['id' => 3, 'name' => 'Store', 'code' => 'ST']);
         IcalToken::put(['user_id' => 9, 'store_id' => 3, 'token' => 'tok', 'created_at' => date('Y-m-d H:i:s')]);
-        $this->stores->method('findById')->willReturnCallback(fn($a0) => $a0 === 3 ? ['id' => 3, 'code' => 'ST'] : null);
+        kintai_test_stores(findById: fn($a0) => $a0 === 3 ? ['id' => 3, 'code' => 'ST'] : null);
         kintai_test_shifts([]);
 
         // __() lit le TranslationService du Container (voir IcalServiceTest).
@@ -51,11 +49,9 @@ final class IcalControllerFeedTest extends TestCase
 
         $this->controller = new IcalController(
             new IcalService($translations),
-            $this->stores,
             $this->users,
             new AuthService(
                 $this->users,
-                $this->stores,
                 $this->createStub(UserRepositoryInterface::class),
             ),
             new AuditLogger(),

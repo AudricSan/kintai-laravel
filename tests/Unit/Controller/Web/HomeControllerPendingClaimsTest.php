@@ -11,7 +11,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
@@ -55,9 +55,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
     {
         $usersRepo = $this->createStub(UserRepositoryInterface::class);
         $usersRepo->method('findAll')->willReturn([]);
-
-        $storesRepo = $this->createStub(StoreRepositoryInterface::class);
-        $storesRepo->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store 1']]);
         kintai_test_shifts([]);
         $this->seedWidgets(99, 'admin', ['kpi_counters']);
         kintai_test_store_users(findByStore: fn() => []);
@@ -70,12 +68,10 @@ final class HomeControllerPendingClaimsTest extends TestCase
         // Le compteur lit les demandes à travers les fournisseurs (PendingRequests), qui prennent leurs dépôts dans le
         // conteneur.
         $container = Container::getInstance();
-        $container->instance(StoreRepositoryInterface::class, $storesRepo);
 
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
-            $storesRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

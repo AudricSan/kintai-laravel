@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\DailyReport\Providers;
 
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportDataNormalizer;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\DailySales;
 use kintai\Contract\Provider\SalesProvider;
 
@@ -19,7 +19,6 @@ final class DailyReportSales implements SalesProvider
 {
     public function __construct(
         private readonly DailyReportRepositoryInterface $reports,
-        private readonly StoreRepositoryInterface $stores,
     ) {}
 
     public function dailySales(int $storeId, string $from, string $to, ?array $statuses = null): array
@@ -30,7 +29,7 @@ final class DailyReportSales implements SalesProvider
         ));
         usort($reports, static fn(array $a, array $b): int => strcmp((string) $a['report_date'], (string) $b['report_date']));
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         $reports = DailyReportDataNormalizer::toDailyDeltas($reports, $store !== null ? DailyReportDataNormalizer::cumulativeModeOf($store) : 'per_day');
 
         return array_map(static fn(array $r): DailySales => new DailySales(

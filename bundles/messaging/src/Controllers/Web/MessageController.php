@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -28,7 +28,6 @@ final class MessageController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly MessageRepositoryInterface $msgRepo,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -400,7 +399,7 @@ final class MessageController
 
     private function availableStores(?array $managedIds): array
     {
-        $all = $this->stores->findAll();
+        $all = Store::findAll();
         if ($managedIds === null) {
             return $all;
         }
@@ -444,7 +443,7 @@ final class MessageController
         if (empty($memberships)) {
             return;
         }
-        $features = $this->stores->getFeatures((int) $memberships[0]['store_id']);
+        $features = Store::getFeatures((int) $memberships[0]['store_id']);
         if ($features === []) {
             return;
         }
@@ -465,7 +464,7 @@ final class MessageController
     private function buildStoresMap(): array
     {
         $map = [];
-        foreach ($this->stores->findAll() as $s) {
+        foreach (Store::findAll() as $s) {
             $map[(int) $s['id']] = $s['name'] ?? '';
         }
         return $map;

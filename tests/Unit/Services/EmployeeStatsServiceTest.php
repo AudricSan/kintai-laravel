@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserShiftTypeRate;
 use App\Services\EmployeeStatsService;
@@ -23,17 +23,14 @@ use PHPUnit\Framework\TestCase;
 final class EmployeeStatsServiceTest extends TestCase
 {
     use \Tests\Support\UserRateExpectations;
-    private StoreRepositoryInterface&Stub $stores;
     private EmployeeStatsService $service;
 
     protected function setUp(): void
     {
         kintai_test_database();
         kintai_test_migrate();
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
         $this->service = new EmployeeStatsService(
-            $this->stores,
         );
 
         kintai_test_shift_types([
@@ -84,7 +81,6 @@ final class EmployeeStatsServiceTest extends TestCase
     {
         $this->seedRate(1, 1, 1500.0);
         $this->service = new EmployeeStatsService(
-            $this->stores,
         );
         kintai_test_shifts([$this->shift()]);
 

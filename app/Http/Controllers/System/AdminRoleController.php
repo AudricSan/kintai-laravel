@@ -10,7 +10,7 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -55,7 +55,6 @@ final class AdminRoleController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly OwnerGuard $ownerGuard,
@@ -338,7 +337,7 @@ final class AdminRoleController
             }
             $storeNames = [];
             foreach ($memberships as $membership) {
-                $store = $this->stores->findById((int) $membership['store_id']);
+                $store = Store::findById((int) $membership['store_id']);
                 if ($store !== null) {
                     $storeNames[] = $store['name'] ?? ('#' . $membership['store_id']);
                 }
@@ -426,7 +425,7 @@ final class AdminRoleController
             $user = $this->users->findById((int) $assignment['user_id']);
             $scopeLabel = __('scope_global');
             if ($assignment['scope_type'] === 'store' && $assignment['scope_id'] !== null) {
-                $store = $this->stores->findById((int) $assignment['scope_id']);
+                $store = Store::findById((int) $assignment['scope_id']);
                 $scopeLabel = $store['name'] ?? ('#' . $assignment['scope_id']);
             }
             $holders[] = [

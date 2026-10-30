@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\ShiftSwap\Providers;
 
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Container;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\Swap;
 use kintai\Contract\Provider\SwapProvider;
 
@@ -21,7 +21,7 @@ final class SwapRequestsProvider implements SwapProvider
     public function swaps(?array $storeIds, ?string $from = null, ?string $to = null): array
     {
         $repo = $this->container->make(ShiftSwapRequestRepositoryInterface::class);
-        $storeIds ??= array_map(fn(array $s): int => (int) $s['id'], $this->container->make(StoreRepositoryInterface::class)->findAll());
+        $storeIds ??= array_map(fn(array $s): int => (int) $s['id'], $this->container->make(Store::class)->findAll());
 
         $swaps = [];
         foreach ($storeIds as $storeId) {

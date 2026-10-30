@@ -8,7 +8,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -45,7 +45,6 @@ final class StoreStatsServiceStoreStatsCacheTest extends TestCase
                 ['id' => 10, 'first_name' => 'Aiko', 'last_name' => 'Sato', 'email' => 'a@kintai.test', 'password_hash' => '$2y$12$secret'],
             ]);
             $this->service = new StoreStatsService(
-                $this->createStub(StoreRepositoryInterface::class),
                 $users,
                 new RoleAssignmentSyncService(
                 ),

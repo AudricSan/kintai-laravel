@@ -12,7 +12,7 @@ use App\Exceptions\ValidationException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
@@ -88,7 +88,7 @@ final class ApiClaimConsistencyTest extends TestCase
         $notifs->method('notify')->willReturnCallback(function (int $u, string $type) use (&$notified) {
             $notified[] = [$u, $type];
         });
-        $approval = new ShiftClaimApproval($claims, $this->createStub(StoreRepositoryInterface::class), $notifs);
+        $approval = new ShiftClaimApproval($claims, $notifs);
 
         $response = (new ShiftClaimController($claims, $this->permissions, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
@@ -105,7 +105,7 @@ final class ApiClaimConsistencyTest extends TestCase
         $claims->method('findById')->willReturn($claim);
         $claims->expects($this->never())->method('approveIfPending');
         kintai_test_shifts([['id' => 8, 'store_id' => 1, 'is_open' => 0, 'user_id' => 5]]);
-        $approval = new ShiftClaimApproval($claims, $this->createStub(StoreRepositoryInterface::class),
+        $approval = new ShiftClaimApproval($claims,
             $this->createStub(NotificationService::class));
 
         $response = (new ShiftClaimController($claims, $this->permissions, $approval))

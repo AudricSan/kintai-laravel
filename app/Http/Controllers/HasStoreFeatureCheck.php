@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Store;
+
 use App\Models\StoreUser;
 
 use Illuminate\Http\Request;
@@ -16,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Timeclock qui remplacent progressivement ses méthodes.
  *
  * Nécessite sur la classe utilisatrice : $this->stores
- * (StoreUserRepositoryInterface), $this->stores (StoreRepositoryInterface),
+ * le modèle StoreUser et le modèle Store,
  * et le trait HasBaseUrl (base()).
  */
 trait HasStoreFeatureCheck
@@ -34,7 +36,7 @@ trait HasStoreFeatureCheck
         if (empty($memberships)) {
             return null;
         }
-        $features = $this->stores->getFeatures((int) $memberships[0]['store_id']);
+        $features = Store::getFeatures((int) $memberships[0]['store_id']);
         if ($features === [] || in_array($feature, $features, true)) {
             return null;
         }

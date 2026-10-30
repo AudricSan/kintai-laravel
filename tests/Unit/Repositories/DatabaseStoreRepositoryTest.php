@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use App\Repositories\DatabaseStoreRepository;
+use App\Models\Store;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\Store as EloquentStore;
 use App\Models\StoreFeature;
@@ -14,7 +14,6 @@ use App\Models\StoreDeductionSetting;
 
 final class DatabaseStoreRepositoryTest extends TestCase
 {
-    private DatabaseStoreRepository $repo;
 
     protected function setUp(): void
     {
@@ -55,8 +54,6 @@ final class DatabaseStoreRepositoryTest extends TestCase
             $table->integer('store_id');
             $table->string('setting_name')->nullable();
         });
-
-        $this->repo = new DatabaseStoreRepository();
     }
 
     private function store(int $id, string $code = 'STORE01', int $active = 1, ?string $deletedAt = null): array
@@ -71,14 +68,14 @@ final class DatabaseStoreRepositoryTest extends TestCase
     public function testFindByIdReturnsStore(): void
     {
         $store = EloquentStore::create(['name' => 'Test', 'code' => 'T01']);
-        $found = $this->repo->findById($store->id);
+        $found = Store::findById($store->id);
         $this->assertNotNull($found);
         $this->assertEquals('T01', $found['code']);
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findById(999));
+        $this->assertNull(Store::findById(999));
     }
 
     // -------------------------------------------------------------------------
@@ -88,14 +85,14 @@ final class DatabaseStoreRepositoryTest extends TestCase
     public function testFindByCodeReturnsStore(): void
     {
         EloquentStore::create(['name' => 'Test', 'code' => 'T01']);
-        $found = $this->repo->findByCode('T01');
+        $found = Store::findByCode('T01');
         $this->assertNotNull($found);
         $this->assertEquals('T01', $found['code']);
     }
 
     public function testFindByCodeReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findByCode('UNKNOWN'));
+        $this->assertNull(Store::findByCode('UNKNOWN'));
     }
 
     // -------------------------------------------------------------------------
@@ -107,7 +104,7 @@ final class DatabaseStoreRepositoryTest extends TestCase
         EloquentStore::create(['name' => 'S1', 'code' => 'S1', 'is_active' => 1]);
         EloquentStore::create(['name' => 'S2', 'code' => 'S2', 'is_active' => 0]);
 
-        $this->assertCount(2, $this->repo->findAll());
+        $this->assertCount(2, Store::findAll());
     }
 
     // -------------------------------------------------------------------------
@@ -120,7 +117,7 @@ final class DatabaseStoreRepositoryTest extends TestCase
         EloquentStore::create(['name' => 'S2', 'code' => 'S2', 'is_active' => 0]);
         EloquentStore::create(['name' => 'S3', 'code' => 'S3', 'is_active' => 1, 'deleted_at' => date('Y-m-d H:i:s')]);
 
-        $result = $this->repo->findActive();
+        $result = Store::findActive();
         $this->assertCount(1, $result);
         $this->assertEquals('S1', $result[0]['code']);
     }
@@ -135,7 +132,7 @@ final class DatabaseStoreRepositoryTest extends TestCase
         EloquentStore::create(['name' => 'S2', 'code' => 'S2', 'is_active' => 0]);
         EloquentStore::create(['name' => 'S3', 'code' => 'S3', 'is_active' => 1, 'deleted_at' => date('Y-m-d H:i:s')]);
 
-        $this->assertSame(1, $this->repo->countActive());
+        $this->assertSame(1, Store::countActive());
     }
 
     // -------------------------------------------------------------------------
@@ -145,7 +142,7 @@ final class DatabaseStoreRepositoryTest extends TestCase
     public function testSaveCreatesStore(): void
     {
         $data = ['name' => 'New Store', 'code' => 'NEW01', 'is_active' => 1];
-        $result = $this->repo->save($data);
+        $result = Store::put($data);
         $this->assertArrayHasKey('id', $result);
         $this->assertEquals('NEW01', $result['code']);
     }
@@ -158,7 +155,7 @@ final class DatabaseStoreRepositoryTest extends TestCase
     public function testDeleteSoftDeletesTheStoreAndFreesItsCode(): void
     {
         $store = EloquentStore::create(['name' => 'T', 'code' => 'T']);
-        $count = $this->repo->delete($store->id);
+        $count = Store::remove($store->id);
         $this->assertEquals(1, $count);
 
         $row = EloquentStore::find($store->id);
@@ -168,20 +165,20 @@ final class DatabaseStoreRepositoryTest extends TestCase
         $this->assertSame('DEL-' . $store->id . '-T', $row->code);
 
         // Absent des listes et de la recherche par code, présent pour l'historique ; le code est réutilisable.
-        $this->assertSame([], $this->repo->findAll());
-        $this->assertNull($this->repo->findByCode('T'));
-        $this->assertCount(1, $this->repo->findAllWithDeleted());
-        $this->assertNotNull($this->repo->findById($store->id));
+        $this->assertSame([], Store::findAll());
+        $this->assertNull(Store::findByCode('T'));
+        $this->assertCount(1, Store::findAllWithDeleted());
+        $this->assertNotNull(Store::findById($store->id));
         EloquentStore::create(['name' => 'T2', 'code' => 'T']);
-        $this->assertCount(1, $this->repo->findAll());
+        $this->assertCount(1, Store::findAll());
 
         // Une seconde suppression ne fait rien.
-        $this->assertSame(0, $this->repo->delete($store->id));
+        $this->assertSame(0, Store::remove($store->id));
     }
 
     public function testDeleteReturnsZeroWhenNotFound(): void
     {
-        $this->assertSame(0, $this->repo->delete(999));
+        $this->assertSame(0, Store::remove(999));
     }
 
     // -------------------------------------------------------------------------
@@ -190,43 +187,43 @@ final class DatabaseStoreRepositoryTest extends TestCase
 
     public function testFeaturesPersistence(): void
     {
-        $this->repo->saveFeatures(1, ['f1', 'f2']);
-        $this->assertEquals(['f1', 'f2'], $this->repo->getFeatures(1));
+        Store::saveFeatures(1, ['f1', 'f2']);
+        $this->assertEquals(['f1', 'f2'], Store::getFeatures(1));
         
-        $this->repo->saveFeatures(1, ['f3']);
-        $this->assertEquals(['f3'], $this->repo->getFeatures(1));
+        Store::saveFeatures(1, ['f3']);
+        $this->assertEquals(['f3'], Store::getFeatures(1));
     }
 
     /** Décisions par case : une fonctionnalité jamais réglée est active, les autres décisions restent intactes. */
     public function testFeatureDecisionsOnlyTouchTheGivenKeys(): void
     {
-        $this->assertSame([], $this->repo->getFeatures(2), 'jamais configuré : tout actif');
+        $this->assertSame([], Store::getFeatures(2), 'jamais configuré : tout actif');
 
         // Fonctionnalité d'un bundle désactivé réglée « inactive », puis enregistrement du formulaire sans elle.
-        $this->repo->saveFeatureDecisions(2, ['photos' => false]);
-        $this->repo->saveFeatureDecisions(2, ['shifts' => true]);
-        $this->assertSame(['photos' => false, 'shifts' => true], $this->repo->getFeatureDecisions(2));
+        Store::saveFeatureDecisions(2, ['photos' => false]);
+        Store::saveFeatureDecisions(2, ['shifts' => true]);
+        $this->assertSame(['photos' => false, 'shifts' => true], Store::getFeatureDecisions(2));
 
         // Seule la décision « active » est enregistrée : tout reste actif.
-        $this->repo->saveFeatureDecisions(3, ['shifts' => true, 'timeoff' => true]);
-        $this->assertSame([], $this->repo->getFeatures(3));
+        Store::saveFeatureDecisions(3, ['shifts' => true, 'timeoff' => true]);
+        $this->assertSame([], Store::getFeatures(3));
 
         // « shifts » désactivé : les fonctionnalités proposées jamais réglées restent actives (ici aucune).
-        $this->repo->saveFeatureDecisions(3, ['shifts' => false]);
-        $this->assertSame(['timeoff'], $this->repo->getFeatures(3));
+        Store::saveFeatureDecisions(3, ['shifts' => false]);
+        $this->assertSame(['timeoff'], Store::getFeatures(3));
     }
 
     public function testImportSettingsPersistence(): void
     {
-        $this->repo->saveImportSettings(1, ['setting_name' => 'val1']);
-        $settings = $this->repo->getImportSettings(1);
+        Store::saveImportSettings(1, ['setting_name' => 'val1']);
+        $settings = Store::getImportSettings(1);
         $this->assertEquals('val1', $settings['setting_name']);
     }
 
     public function testDeductionSettingsPersistence(): void
     {
-        $this->repo->saveDeductionSettings(1, ['setting_name' => 'val1']);
-        $settings = $this->repo->getDeductionSettings(1);
+        Store::saveDeductionSettings(1, ['setting_name' => 'val1']);
+        $settings = Store::getDeductionSettings(1);
         $this->assertEquals('val1', $settings['setting_name']);
     }
 }

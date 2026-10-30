@@ -18,7 +18,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
@@ -28,8 +28,7 @@ final class AutoValidateCommandTest extends TestCase
 
     protected function setUp(): void
     {
-        $stores  = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findActive')->willReturn([]);
+        kintai_test_stores(findActive: fn() => []);
         $reports = $this->createStub(DailyReportRepositoryInterface::class);
         $users   = $this->createStub(UserRepositoryInterface::class);
 
@@ -51,7 +50,7 @@ final class AutoValidateCommandTest extends TestCase
             ),
         );
 
-        $autoValidate = new DailyReportAutoValidateService($stores, $reports, $users, $permissions, $pdfService, $mailService);
+        $autoValidate = new DailyReportAutoValidateService($reports, $users, $permissions, $pdfService, $mailService);
         $this->autoValidate = $autoValidate;
     }
 

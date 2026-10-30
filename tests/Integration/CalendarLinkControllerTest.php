@@ -11,7 +11,7 @@ use App\Auth\AuthService;
 use App\Console\Commands\CalendarSyncCommand;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Container\Container;
@@ -48,7 +48,6 @@ final class CalendarLinkControllerTest extends TestCase
         kintai_test_store_users(findMembership: fn() => $this->membership);
         $auth = new AuthService(
             $users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 

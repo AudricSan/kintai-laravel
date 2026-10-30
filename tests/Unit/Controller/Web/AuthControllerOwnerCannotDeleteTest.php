@@ -13,7 +13,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -63,7 +63,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         $auth = new AuthService(
             $this->users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 
@@ -72,7 +71,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             $auth,
             new AuditLogger(),
             $this->users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker($this->createStub(UserRepositoryInterface::class)),

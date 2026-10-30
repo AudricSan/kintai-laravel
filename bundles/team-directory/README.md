@@ -25,8 +25,8 @@ routes.php            # loaded by TeamDirectoryBundle::register() via loadRoutes
 ```
 
 A full extraction: this bundle doesn't bind any repository of its own (it
-only reads `UserRepositoryInterface`/`StoreRepositoryInterface`/
-`StoreUserRepositoryInterface`, all of which are always Core-bound
+only reads `UserRepositoryInterface` et les modèles `Store`/
+`StoreUser`, all of which are always Core-bound
 regardless), and no Core component depends on anything specific to this
 bundle — disabling "team-directory" removes the `/team` and `/team/{id}`
 pages entirely, with no side effects elsewhere.
@@ -62,7 +62,7 @@ Depuis une instance Kintai en cours d'exécution, en tant qu'Owner : `/admin/bun
 
 L'installation manuelle n'est pas prise en charge : Kintai ne fait jamais de `git clone`/`pull` pour ses bundles (de nombreux hébergements mutualisés n'exposent pas le CLI `git` à PHP) — il télécharge toujours le zipball d'une release GitHub taguée via `BundleInstallerService`.
 
-Extraction complète : ce bundle ne lie aucun repository qui lui soit propre (il ne fait que lire `UserRepositoryInterface`/`StoreRepositoryInterface`/`StoreUserRepositoryInterface`, tous déjà liés dans le Core de toute façon), et aucun composant Core ne dépend de quoi que ce soit propre à ce bundle — désactiver "team-directory" retire entièrement les pages `/team` et `/team/{id}`, sans effet de bord ailleurs.
+Extraction complète : ce bundle ne lie aucun repository qui lui soit propre (il ne fait que lire `UserRepositoryInterface` et les modèles `Store`/`StoreUser`, tous déjà liés dans le Core de toute façon), et aucun composant Core ne dépend de quoi que ce soit propre à ce bundle — désactiver "team-directory" retire entièrement les pages `/team` et `/team/{id}`, sans effet de bord ailleurs.
 
 ### Publier une nouvelle version
 

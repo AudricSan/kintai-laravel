@@ -11,7 +11,7 @@ use App\Http\Middleware\MaintenanceModeMiddleware;
 use App\Models\AppSetting;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -61,7 +61,6 @@ final class MaintenanceModeMiddlewareTest extends TestCase
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn($user);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
 
         // AuthService::isAdmin() lit désormais role_assignments : on simule une
         // affectation au rôle système (Owner) quand le user de test porte
@@ -71,7 +70,7 @@ final class MaintenanceModeMiddlewareTest extends TestCase
             kintai_test_assignments(findByUser: fn(int $id) => $id === (int) $user['id'] ? [['role_id' => 1, 'scope_type' => 'global', 'scope_id' => null]] : []);
         }
 
-        $this->container->instance(AuthService::class, new AuthService($users, $stores));
+        $this->container->instance(AuthService::class, new AuthService($users));
 
         if ($user !== null) {
             session()->put(auth()->getName(), $user['id']);

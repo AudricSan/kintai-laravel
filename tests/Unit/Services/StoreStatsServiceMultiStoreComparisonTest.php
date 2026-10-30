@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -25,16 +25,13 @@ use App\Services\StoreStatsService;
  */
 final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
 {
-    private StoreRepositoryInterface $stores;
     private StoreStatsService $service;
 
     protected function setUp(): void
     {
-        $this->stores     = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_shift_types([]);
 
         $this->service = new StoreStatsService(
-            $this->stores,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(
             ),
@@ -43,10 +40,10 @@ final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
 
     public function testReturnsFlatMetricsPerStoreWithNames(): void
     {
-        $this->stores->method('findById')->willReturnMap([
+        kintai_test_stores(findById: fn(int $id) => array_column([
             [1, ['id' => 1, 'name' => 'Store A', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']],
             [2, ['id' => 2, 'name' => 'Store B']],
-        ]);
+        ], 1, 0)[$id] ?? null);
         kintai_test_store_users(findByStore: fn(int $id) => array_column([
             [1, [['user_id' => 10], ['user_id' => 11]]],
             [2, []],

@@ -394,6 +394,68 @@ function kintai_test_store_users(mixed $findByStore = null, mixed $findByUser = 
     }
     $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));
 }
+// Aide des tests : magasins réels (lignes stores), alimentés comme les anciens doubles du dépôt : chaque réglage est une valeur ou
+// un callable (findById : identifiant ; findAll/findActive/findAllWithDeleted : liste ; countActive : nombre de magasins actifs).
+// Le nom, le code et le reste prennent des valeurs par défaut ; un magasin déjà présent est mis à jour.
+function kintai_test_stores(mixed $findById = null, mixed $findAll = null, mixed $findActive = null, mixed $findAllWithDeleted = null, mixed $countActive = null, mixed $findByCode = null, int $upTo = 60): void
+{
+    kintai_test_ready('stores');
+    $db = Illuminate\Support\Facades\DB::class;
+    $rows = [];
+    $collect = static function (mixed $list, array $implied = []) use (&$rows): void {
+        foreach (is_array($list) ? $list : [] as $row) {
+            if (is_array($row) && isset($row['id'])) {
+                $rows[$row['id']] = $row + $implied;
+            }
+        }
+    };
+    $call = static fn(mixed $spec, mixed ...$args): mixed => is_callable($spec) ? $spec(...$args) : $spec;
+    for ($id = 1; $id <= $upTo; $id++) {
+        if ($findById !== null) { $collect([$call($findById, $id)]); }
+    }
+    foreach ([$findAll, $findActive, $findAllWithDeleted] as $i => $spec) {
+        if ($spec !== null) { $collect($call($spec), $i === 1 ? ['is_active' => 1] : []); }
+    }
+    if ($findByCode !== null) { $collect([$call($findByCode, 'ST')]); }
+    if ($countActive !== null) {
+        for ($id = 1; $id <= (int) $call($countActive); $id++) { $rows[$id] ??= ['id' => $id, 'is_active' => 1]; }
+    }
+
+    $columns = array_flip(Illuminate\Support\Facades\Schema::getColumnListing('stores'));
+    $foreignKeys = (int) ($db::selectOne('PRAGMA foreign_keys')->foreign_keys ?? 1);
+    $db::statement('PRAGMA foreign_keys = OFF');
+    if ($countActive !== null) {
+        $db::table('stores')->whereNotIn('id', array_keys($rows) ?: [0])->delete(); // le décompte demandé est exact
+    }
+    foreach ($rows as $id => $row) {
+        $row = array_intersect_key($row, $columns) + ['name' => 'Magasin ' . $id, 'code' => 'M' . $id];
+        $db::table('stores')->updateOrInsert(['id' => $id], $row);
+    }
+    $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));
+}
+// Aide des tests : fonctionnalités d'un magasin (décisions store_features) telles que Store::getFeatures() les restitue.
+// Liste vide : aucune restriction (aucune décision). Sinon, seules les clés listées restent actives parmi celles proposées.
+// $storeId null : magasins 1 à 9.
+function kintai_test_store_features(?int $storeId, array $features): void
+{
+    kintai_test_ready('store_features');
+    $db = Illuminate\Support\Facades\DB::class;
+    $foreignKeys = (int) ($db::selectOne('PRAGMA foreign_keys')->foreign_keys ?? 1);
+    $db::statement('PRAGMA foreign_keys = OFF');
+    foreach ($storeId === null ? range(1, 9) : [$storeId] as $id) {
+        $db::table('store_features')->where('store_id', $id)->delete();
+        if ($features === []) {
+            continue;
+        }
+        // Clés connues des bundles, en plus de celles du registre (qui ne liste que les bundles chargés par le test).
+        $known = ['shifts', 'timeclock', 'timeoff', 'photos', 'messages', 'swaps', 'open_shifts'];
+        $keys = array_values(array_unique(array_merge($features, $known, App\Extension\StoreFeatures::current()->availableKeys())));
+        foreach ($keys as $key) {
+            $db::table('store_features')->insert(['store_id' => $id, 'feature_key' => $key, 'enabled' => in_array($key, $features, true) ? 1 : 0]);
+        }
+    }
+    $db::statement('PRAGMA foreign_keys = ' . ($foreignKeys ? 'ON' : 'OFF'));
+}
 // Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
 // « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
 function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator

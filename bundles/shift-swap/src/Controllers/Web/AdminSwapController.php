@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -26,7 +26,6 @@ final class AdminSwapController
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         // Requis par le trait HasAdminAccess (memberUserIds) : sans lui, un gérant limité à ses magasins
         // provoquait une erreur 500 sur /admin/swap-requests/create.
@@ -372,7 +371,7 @@ final class AdminSwapController
     /** Valeurs de remplacement (:req_date/:tgt_date/:store) pour les notifications d'échange appliqué par un admin. */
     private function swapDatesReplace(array $reqShift, array $tgtShift): array
     {
-        $store = $this->stores->findById((int) ($reqShift['store_id'] ?? $tgtShift['store_id'] ?? 0));
+        $store = Store::findById((int) ($reqShift['store_id'] ?? $tgtShift['store_id'] ?? 0));
         return [
             'req_date' => $reqShift['shift_date'] ?? '',
             'tgt_date' => $tgtShift['shift_date'] ?? '',

@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -58,17 +58,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ? ['id' => 10, 'is_system' => 1]
             : ['id' => 20, 'is_system' => 0], getPermissions: static fn() => ['employees.view', 'employees.update', 'employees.delete'], getGlobalPermissionKeys: static fn() => []);
         $this->users      = $this->createMock(UserRepositoryInterface::class);
-        $stores           = $this->createStub(StoreRepositoryInterface::class);
 
         $this->controller = new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $stores,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             new PermissionService(),
             new PlanLimitService(
-                $stores,
                 $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),

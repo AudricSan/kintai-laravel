@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\DatabaseStoreRepository;
+use App\Models\Store;
 use App\Repositories\DatabaseUserRepository;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -97,7 +97,6 @@ trait CalendarSyncFixture
             new GoogleCalendarClient($this->google, $this->http),
             $this->google,
             $this->secrets,
-            new DatabaseStoreRepository(),
             new DatabaseUserRepository(),
             new CalendarEventBuilder($translations),
             $this->appSettings,

@@ -9,7 +9,7 @@ use App\Http\Controllers\HasAdminAccess;
 use App\Models\ImportAlias;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -27,7 +27,6 @@ final class AdminShiftImportController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
     ) {}
@@ -99,7 +98,7 @@ final class AdminShiftImportController
         $this->pruneStoreUploads($uploadDir, 5);
 
         try {
-            $settings = $this->stores->getImportSettings($storeId);
+            $settings = Store::getImportSettings($storeId);
             $service  = new ExcelShiftImportService($settings);
             $entries  = $service->parse($filePath, $file['name']);
         } catch (\Throwable) {
@@ -178,7 +177,7 @@ final class AdminShiftImportController
             return redirect()->away($this->base() . '/admin/shifts?count=0')->with('success', 'imported');
         }
 
-        $cfg         = $this->stores->getImportSettings($storeId);
+        $cfg         = Store::getImportSettings($storeId);
         $pauseAfter  = (int) ($cfg['auto_pause_after_minutes'] ?? 0);
         $pauseDur    = (int) ($cfg['auto_pause_minutes']       ?? 30);
         $shiftTypes  = ShiftType::findActive($storeId);

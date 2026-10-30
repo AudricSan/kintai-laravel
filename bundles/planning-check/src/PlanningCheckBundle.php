@@ -18,7 +18,7 @@ use kintai\Contract\Bundle;
 use kintai\Contract\Container;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Extension\NavItem;
@@ -84,7 +84,6 @@ final class PlanningCheckBundle extends Bundle
         ));
         $container->singleton(PlanningCheckService::class, fn(Container $c) => new PlanningCheckService(
             $c->make(PlanningCheckRepositoryInterface::class),
-            $c->make(StoreRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(PermissionService::class),
             $c->make(NotificationService::class),
@@ -94,7 +93,6 @@ final class PlanningCheckBundle extends Bundle
         ));
         $container->singleton(PlanningCheckOverlayResolver::class, fn(Container $c) => new PlanningCheckOverlayResolver(
             $c->make(PlanningCheckRepositoryInterface::class),
-            $c->make(StoreRepositoryInterface::class),
             $c->make(PlanningCheckService::class),
             $c->make(PlanningShiftRows::class),
         ));

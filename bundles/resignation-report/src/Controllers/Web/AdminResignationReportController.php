@@ -10,7 +10,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -43,7 +43,6 @@ final class AdminResignationReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly ResignationReportRepositoryInterface $resignationReports,
         private readonly AuditLogger $auditLogger,

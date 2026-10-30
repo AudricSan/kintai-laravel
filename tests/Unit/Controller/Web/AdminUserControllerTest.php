@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -39,7 +39,6 @@ final class AdminUserControllerTest extends TestCase
 
     private ?AdminUserController $controller = null;
     private UserRepositoryInterface&Stub $users;
-    private StoreRepositoryInterface&Stub $stores;
     protected function setUp(): void
     {
         kintai_test_database();
@@ -51,7 +50,6 @@ final class AdminUserControllerTest extends TestCase
         $this->ensureViewFile('layout.app');
         
         $this->users = $this->createStub(UserRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
     }
     public function testUsersRenders(): void
     {
@@ -105,7 +103,7 @@ final class AdminUserControllerTest extends TestCase
              'mobile_phone' => '0601020304', 'postal_code' => '75001', 'address' => 'Rue X',
              'is_admin' => false, 'is_active' => 1, 'deleted_at' => null],
         ]);
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 5 ? [['store_id' => 1]] : []);
         $this->seedRate(5, 2, 1200.0);
         kintai_test_shift_types([['id' => 2, 'name' => 'Salle']]);
@@ -134,7 +132,7 @@ final class AdminUserControllerTest extends TestCase
             ['id' => 5, 'display_name' => 'In Store', 'email' => 'a@test.com', 'is_active' => 1],
             ['id' => 6, 'display_name' => 'Other Store', 'email' => 'b@test.com', 'is_active' => 1],
         ]);
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A'], ['id' => 2, 'name' => 'Store B']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A'], ['id' => 2, 'name' => 'Store B']]);
         kintai_test_store_users(findByUser: fn(int $id) => array_column([
             [5, [['store_id' => 1]]],
             [6, [['store_id' => 2]]],
@@ -157,7 +155,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('findAll')->willReturn([]);
-        $this->stores->method('findAll')->willReturn([]);
+        kintai_test_stores(findAll: fn() => []);
         kintai_test_shift_types([]);
 
         $response = $this->controller()->exportUsersPdf($req);
@@ -175,7 +173,7 @@ final class AdminUserControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->users->method('findAll')->willReturn([]);
-        $this->stores->method('findAll')->willReturn([]);
+        kintai_test_stores(findAll: fn() => []);
         kintai_test_shift_types([]);
 
         $response = $this->controller()->exportUsersPdfDownload($req);
@@ -192,7 +190,7 @@ final class AdminUserControllerTest extends TestCase
         $req->setRouteParams(['employee' => 1]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'email' => 'test@test.com']);
-        $this->stores->method('findAll')->willReturn([]);
+        kintai_test_stores(findAll: fn() => []);
         kintai_test_store_users(findByUser: fn() => []);
         $response = $this->controller()->editUser($req);
 
@@ -208,7 +206,7 @@ final class AdminUserControllerTest extends TestCase
         $req->setRouteParams(['employee' => 5]);
 
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'email' => 'employee@test.com']);
-        $this->stores->method('findAll')->willReturn([]);
+        kintai_test_stores(findAll: fn() => []);
         kintai_test_store_users(findByUser: fn() => []);
         $response = $this->controller()->editUser($req);
 
@@ -1225,12 +1223,10 @@ final class AdminUserControllerTest extends TestCase
             $this->controller = new AdminUserController(
                 $view,
                 $this->users,
-                $this->stores,
                 new AuditLogger(),
                 new RoleAssignmentSyncService(),
                 new PermissionService(),
                 new PlanLimitService(
-                    $this->stores,
                     $this->users,
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),

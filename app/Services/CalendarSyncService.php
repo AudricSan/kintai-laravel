@@ -10,7 +10,7 @@ use App\Models\CalendarSyncQueueItem;
 use App\Extension\Absences;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\Calendar\CalendarEventBuilder;
 use App\Services\Calendar\GoogleCalendarClient;
@@ -52,7 +52,6 @@ final class CalendarSyncService
         private readonly GoogleCalendarClient $client,
         private readonly GoogleCalendarSettings $settings,
         private readonly SecretBox $secrets,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly CalendarEventBuilder $builder,
         private readonly AppSettingsService $appSettings,
@@ -333,7 +332,7 @@ final class CalendarSyncService
     {
         $options = self::options($connection);
         if (($options['calendar_name_mode'] ?? 'instance') === 'store' && (int) ($options['store_id'] ?? 0) > 0) {
-            $store = $this->stores->findById((int) $options['store_id']);
+            $store = Store::findById((int) $options['store_id']);
             if ($store !== null && trim((string) $store['name']) !== '') {
                 return trim((string) $store['name']);
             }
@@ -345,7 +344,7 @@ final class CalendarSyncService
     private function defaultTimeZone(array $connection): string
     {
         foreach (Shift::findByUser((int) $connection['user_id']) as $shift) {
-            $store = $this->stores->findById((int) ($shift['store_id'] ?? 0));
+            $store = Store::findById((int) ($shift['store_id'] ?? 0));
             if ($store !== null && (string) ($store['timezone'] ?? '') !== '') {
                 return StoreTimezone::resolve((string) $store['timezone']);
             }
@@ -373,7 +372,7 @@ final class CalendarSyncService
                 // Brouillon (publication du planning) compris : l'événement part à la publication.
                 return null;
             }
-            $store = $this->stores->findById((int) $shift['store_id']) ?? [];
+            $store = Store::findById((int) $shift['store_id']) ?? [];
             $type  = (int) ($shift['shift_type_id'] ?? 0) > 0 ? ShiftType::findById((int) $shift['shift_type_id']) : null;
             return $this->builder->forShift($shift, $store, $type, $user, $this->publicUrl->resolve());
         }
@@ -381,7 +380,7 @@ final class CalendarSyncService
         if ($sourceType === 'timeoff') {
             foreach ($this->approvedAbsences($userId) as $absence) {
                 if ((int) $absence['id'] === $sourceId) {
-                    $store = $this->stores->findById((int) ($absence['store_id'] ?? 0)) ?? [];
+                    $store = Store::findById((int) ($absence['store_id'] ?? 0)) ?? [];
                     return $this->builder->forTimeoff($absence, $store, $user);
                 }
             }

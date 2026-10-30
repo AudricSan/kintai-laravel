@@ -15,7 +15,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -63,8 +63,6 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
             'password_hash'       => 'not-a-real-hash',
         ]);
 
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-
         // Demandeur : rôle système global (la garde d'accès à l'employé ciblé doit le laisser passer).
         kintai_test_assignments(findByUser: fn() => [['id' => 1, 'user_id' => 1, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null]]);
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
@@ -73,12 +71,10 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
         $this->controller = new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $stores,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             new PermissionService(),
             new PlanLimitService(
-                $stores,
                 $this->users,
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),

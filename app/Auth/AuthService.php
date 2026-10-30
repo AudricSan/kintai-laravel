@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Repositories\DatabaseUserRepository;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +40,6 @@ final class AuthService
 
     public function __construct(
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
     ) {}
 
     /**
@@ -75,7 +74,7 @@ final class AuthService
      */
     public function attemptByCode(string $employeeCode, string $storeCode, string $password, bool $remember = false): bool
     {
-        $store = $this->stores->findByCode(strtoupper(trim($storeCode)));
+        $store = Store::findByCode(strtoupper(trim($storeCode)));
         if ($store === null) {
             $this->burnPasswordCheck($password);
             return false;

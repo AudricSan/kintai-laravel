@@ -9,7 +9,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\ApiToken;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -41,10 +41,9 @@ final class AuthControllerTest extends TestCase
         foreach ([1, 3, 7, 99] as $userId) {
             kintai_test_user($userId);
         }
-        $stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
-        $this->auth       = new AuthService($this->users, $stores);
+        $this->auth       = new AuthService($this->users);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -208,15 +207,14 @@ final class AuthControllerTest extends TestCase
             'is_active' => true, 'deleted_at' => null,
         ];
         kintai_test_store_users(findMembership: fn() => ['id' => 1]);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findByCode')->willReturn(['id' => 3]);
+        kintai_test_stores(findByCode: fn() => ['id' => 3, 'code' => '21836']);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findByEmployeeCode')->willReturn($row);
         $users->method('findById')->willReturn($row);
         kintai_test_assignments(findByUser: fn() => []);
         $this->noTokenExpected = true;
 
-        $auth       = new AuthService($users, $stores);
+        $auth       = new AuthService($users);
         $controller = new AuthController($auth, $users, new AuditLogger());
 
         $response = $controller->login($this->makeRequest('POST', '/api/v1/auth/login', json: [

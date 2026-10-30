@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\HiringReport\Controllers\Web;
 
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -51,7 +51,6 @@ final class AdminHiringReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly HiringReportRepositoryInterface $hiringReports,
         private readonly AuditLogger $auditLogger,

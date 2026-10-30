@@ -7,7 +7,7 @@ namespace Tests\Unit\Core\Services;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\Models\AppSetting;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\BundleActivationService;
 use App\Services\LicenseClientService;
@@ -54,7 +54,6 @@ final class BundleActivationServiceTest extends TestCase
             new FeatureManager($enabled),
             new BundleDiscoveryService(self::$bundlesDir),
             new PlanLimitService(
-                $this->createStub(StoreRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),

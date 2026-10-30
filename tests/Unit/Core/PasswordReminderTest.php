@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Http\Middleware\PasswordReminderMiddleware;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -49,7 +49,6 @@ final class PasswordReminderTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $this->auth = new AuthService(
             $users,
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 

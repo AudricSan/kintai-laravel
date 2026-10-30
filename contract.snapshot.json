@@ -37,9 +37,9 @@
             "status": "stable",
             "target": "App\\Models\\ShiftType"
         },
-        "kintai\\Contract\\Data\\StoreRepositoryInterface": {
+        "kintai\\Contract\\Data\\Store": {
             "status": "stable",
-            "target": "App\\Repositories\\StoreRepositoryInterface"
+            "target": "App\\Models\\Store"
         },
         "kintai\\Contract\\Data\\StoreUser": {
             "status": "stable",

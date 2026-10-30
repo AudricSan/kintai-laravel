@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
@@ -45,10 +45,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
     {
         $usersRepo = $this->createStub(UserRepositoryInterface::class);
         $usersRepo->method('findAll')->willReturn([]);
-
-        $storesRepo = $this->createStub(StoreRepositoryInterface::class);
-        $storesRepo->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']]);
-        $storesRepo->method('findById')->willReturn(['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji'], findAll: fn() => [['id' => 1, 'name' => 'Store 1', 'currency' => 'JPY', 'currency_symbol_style' => 'kanji']]);
         kintai_test_shifts([]);
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
@@ -78,7 +75,6 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
-            $storesRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,

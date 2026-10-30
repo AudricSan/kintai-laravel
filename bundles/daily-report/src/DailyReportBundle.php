@@ -16,7 +16,7 @@ use kintai\Contract\Auth\AuthService;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreUser;
@@ -86,7 +86,6 @@ final class DailyReportBundle extends Bundle
             $c->make(UserSelection::class),
         ));
         $container->singleton(DailyReportAutoValidateService::class, fn(Container $c) => new DailyReportAutoValidateService(
-            $c->make(StoreRepositoryInterface::class),
             $c->make(DailyReportRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(DailyReportPermissionService::class),
@@ -154,7 +153,7 @@ final class DailyReportBundle extends Bundle
                 if (!empty($user['is_admin']) || $container->make(AuthService::class)->isManager()) {
                     return [];
                 }
-                $stores = $container->make(StoreRepositoryInterface::class);
+                $stores = $container->make(Store::class);
                 $permissions = $container->make(DailyReportPermissionService::class);
                 $accessible = [];
                 foreach (StoreUser::findByUser((int) $user['id']) as $membership) {

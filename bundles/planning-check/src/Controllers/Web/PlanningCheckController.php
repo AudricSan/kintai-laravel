@@ -12,7 +12,7 @@ use kintai\Bundles\Installed\PlanningCheck\Services\PlanningMailService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningPdfService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningShiftRows;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
@@ -36,7 +36,6 @@ final class PlanningCheckController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly Repo $repo,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly PlanningCheckService $service,
         private readonly PlanningShiftRows $rows,
@@ -56,7 +55,7 @@ final class PlanningCheckController
         $user = $request->attributes->get('auth_user');
         $managedIds = $request->attributes->get('managed_store_ids');
         $visible = [];
-        foreach ($this->stores->findAll() as $store) {
+        foreach (Store::findAll() as $store) {
             $id = (int) $store['id'];
             if (($managedIds === null || in_array($id, $managedIds, true)) && $this->permissions->can($user, 'planning_check.view', $id)) {
                 $visible[] = $store + ['planning_check_enabled' => $this->repo->settings($id)['enabled']];
@@ -386,7 +385,7 @@ final class PlanningCheckController
     private function requireStore(Request $request): array
     {
         $storeId = (int) $request->route('id');
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }

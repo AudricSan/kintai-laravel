@@ -15,7 +15,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -91,11 +91,10 @@ final class AuthControllerProfileFieldsTest extends TestCase
             'id' => $userId, 'language' => 'fr', 'show_in_directory' => 1,
         ]);
 
-        $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $stores, $rememberTokens);
+        $auth = new AuthService($this->users, $rememberTokens);
 
         $languages = $this->createStub(LanguageRepositoryInterface::class);
         $languages->method('findAllActive')->willReturn([['code' => 'fr']]);
@@ -106,7 +105,6 @@ final class AuthControllerProfileFieldsTest extends TestCase
             $auth,
             new AuditLogger(),
             $this->users,
-            $stores,
             $languages,
             new AvatarImageOptimizer(),
         );

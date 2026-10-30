@@ -14,7 +14,7 @@ use App\Exceptions\PlanLimitExceededException;
 use App\Exceptions\ValidationException;
 use App\Extension\Sales;
 use App\Extension\StoreFeatures;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -34,7 +34,6 @@ final class AdminStoreController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly StoreServiceInterface $storeService,
         private readonly StoreStatsServiceInterface $storeStatsService,
@@ -127,7 +126,7 @@ final class AdminStoreController
 
     public function editStore(Request $request): Response
     {
-        $store = $this->stores->findById((int) $request->route('store'));
+        $store = Store::findById((int) $request->route('store'));
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -164,8 +163,8 @@ final class AdminStoreController
             'default_role_id'   => (int) ($this->roleSync->defaultStoreRole()['id'] ?? 0),
             'deductionSettings' => $this->storeService->getDeductionSettings($storeId),
             // Aucune ligne en base = jamais configuré → toutes les fonctionnalités actives par défaut (null)
-            'enabledFeatures'   => ($_ef = $this->stores->getFeatures($storeId)) !== [] ? $_ef : null,
-            'importSettings'    => $this->stores->getImportSettings($storeId),
+            'enabledFeatures'   => ($_ef = Store::getFeatures($storeId)) !== [] ? $_ef : null,
+            'importSettings'    => Store::getImportSettings($storeId),
             'routeSlug'         => $this->routeSlugs?->currentStoreSlug($storeId),
             'featureCards'          => $this->storeFeatureCards(),
         ])->render());
@@ -173,7 +172,7 @@ final class AdminStoreController
 
     public function updateStore(Request $request): Response
     {
-        $store = $this->stores->findById((int) $request->route('store'));
+        $store = Store::findById((int) $request->route('store'));
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -182,7 +181,7 @@ final class AdminStoreController
 
         // Une décision par case proposée (Core et bundles actifs) ; une fonctionnalité jamais réglée est active. Celle
         // d'un bundle désactivé n'est pas proposée et garde sa décision (saveFeatureDecisions ne touche qu'à celles-ci).
-        $decisions = $this->stores->getFeatureDecisions($storeId);
+        $decisions = Store::getFeatureDecisions($storeId);
         $enabledFeatures = [];
         foreach ($this->storeFeatures->availableKeys() as $slug) {
             $enabledFeatures[$slug] = $request->postFlag('feature_' . $slug, ($decisions[$slug] ?? true) ? 1 : 0) === 1;
@@ -193,8 +192,8 @@ final class AdminStoreController
         // d'import et de retenues aux valeurs par défaut.
         $keep   = fn(string $field, mixed $current): mixed => $request->hasPost($field) ? $request->post($field) : $current;
         $text   = fn(string $field): ?string => $request->hasPost($field) ? (trim((string) $request->post($field, '')) ?: null) : ($store[$field] ?? null);
-        $import = $this->stores->getImportSettings($storeId);
-        $ded    = $this->stores->getDeductionSettings($storeId);
+        $import = Store::getImportSettings($storeId);
+        $ded    = Store::getDeductionSettings($storeId);
 
         $data = [
             'code'                  => strtoupper(trim((string) $keep('code', $store['code'] ?? ''))),
@@ -260,7 +259,7 @@ final class AdminStoreController
         }
 
         $id    = (int) $request->route('store');
-        $store = $this->stores->findById($id);
+        $store = Store::findById($id);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -309,7 +308,7 @@ final class AdminStoreController
     public function addMember(Request $request): Response
     {
         $storeId = (int) $request->route('store');
-        $store   = $this->stores->findById($storeId);
+        $store   = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -407,7 +406,7 @@ final class AdminStoreController
         $mid     = (int) $request->route('mid');
         $this->assertStoreAccess($request, $storeId);
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) throw new NotFoundException(__('error_store_not_found'));
 
         $membership = StoreUser::findById($mid);
@@ -463,7 +462,7 @@ final class AdminStoreController
         $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -488,7 +487,7 @@ final class AdminStoreController
         $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -578,7 +577,7 @@ final class AdminStoreController
             throw new NotFoundException(__('error_404_message'));
         }
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }
@@ -612,7 +611,7 @@ final class AdminStoreController
         $userId  = (int) $request->route('employee');
         $this->assertStoreAccess($request, $storeId);
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) throw new NotFoundException(__('error_store_not_found'));
 
         $user = $this->users->findById($userId);
@@ -647,7 +646,7 @@ final class AdminStoreController
         $storeId = (int) $request->route('store');
         $this->assertStoreAccess($request, $storeId);
 
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }

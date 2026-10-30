@@ -17,7 +17,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -91,7 +91,6 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             $this->savedUsers[] = $d;
             return ['id' => 10, 'password_hash' => 'hash'] + $d;
         });
-        $stores = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_roles(findById: fn() => ['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]);
         kintai_test_role_table([['id' => 2, 'name' => 'Staff', 'is_system' => 0, 'is_managing' => 0]]);
         $permissions = new PermissionService();
@@ -99,11 +98,10 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
         return new AdminUserController(
             kintai_test_views(sys_get_temp_dir()),
             $users,
-            $stores,
             new AuditLogger(),
             new RoleAssignmentSyncService(),
             $permissions,
-            new PlanLimitService($stores, $users, new LicenseClientService(['base_url' => '', 'api_key' => ''])),
+            new PlanLimitService($users, new LicenseClientService(['base_url' => '', 'api_key' => ''])),
             new OwnerGuard($permissions, $users),
             events: $events,
         );

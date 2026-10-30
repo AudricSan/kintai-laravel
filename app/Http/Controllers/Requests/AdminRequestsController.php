@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Requests;
 
 use App\Auth\PermissionService;
 use App\Extension\PendingRequests;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -27,7 +27,6 @@ final class AdminRequestsController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly PermissionService $permissions,
         private readonly ?PendingRequests $pendingRequests = null,
     ) {}

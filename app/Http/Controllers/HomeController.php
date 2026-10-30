@@ -11,7 +11,7 @@ use App\Extension\DashboardWidgets;
 use App\Extension\PendingRequests;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Extension\Attendances;
 use App\Models\UserDashboardPref;
@@ -64,7 +64,6 @@ final class HomeController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly StoreStatsServiceInterface $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
         private readonly PermissionService $permissions,
@@ -95,7 +94,7 @@ final class HomeController
             $allUsers = array_values(array_filter($allUsers, fn($u) => isset($scopedUserIds[(int) $u['id']])));
         }
 
-        $allStores   = array_values(array_filter($this->stores->findAll(), fn($s) => $inScope((int) $s['id'])));
+        $allStores   = array_values(array_filter(Store::findAll(), fn($s) => $inScope((int) $s['id'])));
         $shiftsToday = array_values(array_filter(Shift::findAllByDate($today), fn($s) => $inScope((int) ($s['store_id'] ?? 0))));
 
         $storesMap = [];
@@ -318,7 +317,7 @@ final class HomeController
         }
 
         $userId = (int) $user['id'];
-        foreach ($this->stores->findAllWithDeleted() as $s) {
+        foreach (Store::findAllWithDeleted() as $s) {
             $result['stores_map'][(int) $s['id']] = $s['name'] ?? ('#' . $s['id']);
         }
         if (isset($enabled['shifts_today']) || isset($enabled['upcoming'])) {
@@ -380,7 +379,7 @@ final class HomeController
         $currentCost     = $costByMonth[$currentMonthKey] ?? 0.0;
         $prevCost        = $costByMonth[$prevMonthKey] ?? 0.0;
 
-        $firstStore = $this->stores->findById((int) $storeIds[array_key_first($storeIds)]);
+        $firstStore = Store::findById((int) $storeIds[array_key_first($storeIds)]);
 
         return [
             'current_month'  => $currentCost,

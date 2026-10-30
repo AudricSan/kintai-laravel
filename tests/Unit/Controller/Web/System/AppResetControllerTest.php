@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Auth\AuthService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -59,7 +59,6 @@ final class AppResetControllerTest extends TestCase
 
         $this->auth = new AuthService(
             $this->createStub(UserRepositoryInterface::class),
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
         );
 

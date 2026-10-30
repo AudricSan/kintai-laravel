@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Core\Routing;
 
 use App\Models\RouteSlug;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\StoreRouteBinder;
 use PHPUnit\Framework\TestCase;
@@ -15,10 +15,8 @@ final class RouteBindersTest extends TestCase
 {
     private function storeBinder(array $existingIds = [1, 2, 3]): StoreRouteBinder
     {
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(fn(int $id) => in_array($id, $existingIds, true) ? ['id' => $id] : null);
-
-        return new StoreRouteBinder($stores);
+        kintai_test_stores(findById: fn(int $id) => in_array($id, $existingIds, true) ? ['id' => $id] : null);
+        return new StoreRouteBinder();
     }
 
     private function seedStoreSlugs(): void
@@ -151,12 +149,9 @@ final class RouteBindersTest extends TestCase
     /** Audit M8 : un magasin supprimé (suppression douce) n'est plus joignable, même par son identifiant. */
     public function testADeletedStoreNoLongerResolves(): void
     {
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(
-            fn(int $id) => $id === 4 ? ['id' => 4, 'deleted_at' => '2026-10-16 09:00:00'] : null
-        );
+        kintai_test_stores(findById: fn(int $id) => $id === 4 ? ['id' => 4, 'deleted_at' => '2026-10-16 09:00:00'] : null);
         kintai_test_route_slugs();
-        $binder = new StoreRouteBinder($stores);
+        $binder = new StoreRouteBinder();
 
         $this->assertNull($binder->resolve('4'));
     }

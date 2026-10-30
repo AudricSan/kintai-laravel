@@ -7,7 +7,7 @@ namespace Tests\Bundles\DailyReport;
 use kintai\Bundles\Installed\DailyReport\DailyReportBundle;
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
 use Tests\Support\TestContainer;
@@ -106,7 +106,6 @@ final class ContractDeclarationsTest extends TestCase
     {
         $container = \Illuminate\Container\Container::getInstance();
         $container->instance(DailyReportRepositoryInterface::class, $this->createStub(DailyReportRepositoryInterface::class));
-        $container->instance(StoreRepositoryInterface::class, $this->createStub(StoreRepositoryInterface::class));
 
         $providers = $this->bundle()->salesProviders();
 

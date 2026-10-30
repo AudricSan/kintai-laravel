@@ -8,7 +8,7 @@ use kintai\Contract\Extension\ExportDataset;
 use kintai\Contract\Provider\ExportQuery;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 
 /**
@@ -30,7 +30,6 @@ final class ExportAccess
 
     public function __construct(
         private readonly PermissionService $permissions,
-        private readonly StoreRepositoryInterface $stores,
     ) {}
 
     /**
@@ -42,7 +41,7 @@ final class ExportAccess
     public function permittedStoreIds(array $user, string $permission): array
     {
         $ids = [];
-        foreach ($this->stores->findActive() as $store) {
+        foreach (Store::findActive() as $store) {
             if ($this->permissions->can($user, $permission, (int) $store['id'])) {
                 $ids[] = (int) $store['id'];
             }

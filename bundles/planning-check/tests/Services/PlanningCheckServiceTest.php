@@ -19,7 +19,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -48,7 +48,7 @@ final class PlanningCheckServiceTest extends TestCase
     public bool $mailOk = true;
     private \DateTimeImmutable $now;
     private string $previousTimezone = 'UTC';
-    /** @var array{0: StoreRepositoryInterface, 1: PlanningShiftRows} */
+    /** @var array{0: PlanningShiftRows} */
     private array $resolverDeps;
 
     /** Shifts du magasin 3 pour le jour contrôlé (2026-10-22). */
@@ -75,10 +75,7 @@ final class PlanningCheckServiceTest extends TestCase
             ['id' => 1, 'user_id' => 5, 'shift_type_id' => 1, 'start_time' => '09:00:00', 'end_time' => '17:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60],
             ['id' => 2, 'user_id' => 6, 'shift_type_id' => 1, 'start_time' => '10:00:00', 'end_time' => '18:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60],
         ]);
-
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 3 ? ['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo', 'locale' => 'fr'] : null);
-        $stores->method('findAll')->willReturn([['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo']]);
+        kintai_test_stores(findById: fn(int $id): ?array => $id === 3 ? ['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo', 'locale' => 'fr'] : null, findAll: fn() => [['id' => 3, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo']]);
         kintai_test_store_users(findByStore: fn() => [['user_id' => 5], ['user_id' => 7]]);
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturnCallback(fn(int $id): ?array => ['id' => $id, 'is_active' => 1, 'first_name' => 'U' . $id, 'last_name' => 'N', 'email' => "u$id@example.com"]);
@@ -122,8 +119,8 @@ final class PlanningCheckServiceTest extends TestCase
             new \App\Services\UserSelection($users, $permissions),
         );
         $rows = new PlanningShiftRows($users);
-        $this->service = new PlanningCheckService($this->repo, $stores, $users, $permissions, $notifications, $rows, $pdf, $mail);
-        $this->resolverDeps = [$stores, $rows];
+        $this->service = new PlanningCheckService($this->repo, $users, $permissions, $notifications, $rows, $pdf, $mail);
+        $this->resolverDeps = [$rows];
         $_SESSION = [];
     }
 
@@ -136,7 +133,7 @@ final class PlanningCheckServiceTest extends TestCase
     /** Un résolveur neuf (il mémorise son résultat le temps d'une requête) pour l'utilisateur 5, qui peut soumettre. */
     private function resolve(\DateTimeImmutable $now): ?array
     {
-        $resolver = new PlanningCheckOverlayResolver($this->repo, $this->resolverDeps[0], $this->service, $this->resolverDeps[1]);
+        $resolver = new PlanningCheckOverlayResolver($this->repo, $this->service, $this->resolverDeps[0]);
 
         return $resolver->resolve([
             'user' => ['id' => 5], 'now' => $now, 'store_ids' => [3],

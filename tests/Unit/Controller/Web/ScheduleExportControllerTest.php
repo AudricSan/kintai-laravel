@@ -13,7 +13,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -39,8 +39,7 @@ final class ScheduleExportControllerTest extends TestCase
         $users->method('findById')->willReturnCallback(fn($id) => $id === 9 ? ['id' => 9, 'is_active' => 1, 'first_name' => 'Aki', 'last_name' => 'Sato', 'language' => 'fr', 'password_hash' => 'x'] : null);
         // Membre du magasin 3 uniquement.
         kintai_test_store_users(findMembership: fn($store, $user) => $store === 3 && $user === 9 ? ['id' => 1] : null);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturnCallback(fn($id) => in_array($id, [3, 4], true) ? ['id' => $id, 'code' => 'ST' . $id, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo'] : null);
+        kintai_test_stores(findById: fn($id) => in_array($id, [3, 4], true) ? ['id' => $id, 'code' => 'ST' . $id, 'name' => 'Shibuya', 'timezone' => 'Asia/Tokyo'] : null);
         kintai_test_shifts([
             ['id' => 1, 'user_id' => 9, 'store_id' => 3, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 60, 'shift_type_id' => 7],
             ['id' => 2, 'user_id' => 9, 'store_id' => 4, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
@@ -53,10 +52,8 @@ final class ScheduleExportControllerTest extends TestCase
         $this->controller = new ScheduleExportController(
             new AuthService(
                 $users,
-                $stores,
                 $this->createStub(UserRepositoryInterface::class),
             ),
-            $stores,
             new ScheduleExportService(),
             new IcalService($translations),
             new AuditLogger(),

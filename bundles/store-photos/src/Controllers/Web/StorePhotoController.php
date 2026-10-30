@@ -8,7 +8,7 @@ use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Services\ImageCompressionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -23,7 +23,6 @@ final class StorePhotoController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly StorePhotoRepositoryInterface $photos,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly ImageCompressionService $imageCompressor,
         private readonly NotificationService $notifs,
@@ -243,7 +242,7 @@ final class StorePhotoController
 
     private function isPhotosFeatureEnabled(int $storeId): bool
     {
-        $features = $this->stores->getFeatures($storeId);
+        $features = Store::getFeatures($storeId);
         return $features === [] || in_array('photos', $features, true);
     }
 
@@ -385,7 +384,7 @@ final class StorePhotoController
         }
 
         $images = $this->enrichWithVersion($this->photos->findImagesBySubmission($id));
-        $store  = $this->stores->findById((int) $submission['store_id']);
+        $store  = Store::findById((int) $submission['store_id']);
 
         return response($this->view->make('store-photos::store-photos-detail', [
             'title'        => __('store_photos_photo_submission') . ' #' . $id,

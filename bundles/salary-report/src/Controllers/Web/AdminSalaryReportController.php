@@ -9,7 +9,7 @@ use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Data\UserShiftTypeRate;
@@ -61,7 +61,6 @@ final class AdminSalaryReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly SalaryReportRepositoryInterface $salaryReports,
         private readonly Sales $sales,
@@ -551,7 +550,7 @@ final class AdminSalaryReportController
             'to'                 => $to,
             'employees'          => $employees,
             'type_breakdown'     => $typeBreakdown,
-            'deduction_settings' => $this->stores->getDeductionSettings($storeId),
+            'deduction_settings' => Store::getDeductionSettings($storeId),
         ];
     }
 
@@ -566,7 +565,7 @@ final class AdminSalaryReportController
      */
     private function calculateDeductionsPreset(int $storeId, float $totalShiftSalary, ?int $userId, array $employeeCost): array
     {
-        $deductionSettings = $this->stores->getDeductionSettings($storeId);
+        $deductionSettings = Store::getDeductionSettings($storeId);
         if (empty($deductionSettings['enabled'])) {
             return [];
         }

@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\Timeclock\Controllers\Web\EmployeeTimeclockControll
 use Tests\Support\TestContainer;
 use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
@@ -23,7 +23,6 @@ use PHPUnit\Framework\TestCase;
 final class EmployeeTimeclockControllerTest extends TestCase
 {
     private TimeclockRepositoryInterface&Stub $timeclocks;
-    private StoreRepositoryInterface&Stub $stores;
     private ?EmployeeTimeclockController $controller = null;
 
     protected function setUp(): void
@@ -35,7 +34,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->timeclocks = $this->createStub(TimeclockRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -48,7 +46,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->controller = new EmployeeTimeclockController(
                 $view,
                 $this->timeclocks,
-                $this->stores,
                 new AuditLogger(),
             );
         }
@@ -82,12 +79,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testTimeclockRedirectsWhenFeatureDisabled(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(5)->willReturn(['shifts']);
+        kintai_test_store_features(5, ['shifts']);
 
         $response = $this->controller()->timeclock($req);
 

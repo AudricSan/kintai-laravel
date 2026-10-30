@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web\System;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\Models\AppSetting;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -96,7 +96,6 @@ final class BundleSettingsControllerTest extends TestCase
             new AuditLogger(),
             new BundleDiscoveryService(self::$legacyBundlesDir),
             $planLimits ?? new PlanLimitService(
-                $this->createStub(StoreRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),

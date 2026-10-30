@@ -9,7 +9,7 @@ use Illuminate\Container\Container;
 use App\Services\Calendar\CurlHttpTransport;
 use App\Services\Calendar\HttpTransportInterface;
 use App\Mail\MailerService;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\Shift;
@@ -149,7 +149,6 @@ final class AppServiceProvider extends ServiceProvider
 
         // Partagé : les réglages de publication lus une fois servent à tous les filtres de la requête.
         $this->app->singleton(SchedulePublication::class, fn(Container $c) => new SchedulePublication(
-            $c->make(StoreRepositoryInterface::class),
             $c->make(NotificationService::class),
         ));
 
@@ -173,7 +172,6 @@ final class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(PlanLimitService::class, fn(Container $c) => new PlanLimitService(
-            $c->make(StoreRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(LicenseClientService::class),
         ));
@@ -186,7 +184,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Extension\Sales::class, fn() => \App\Extension\Sales::current());
 
         $this->app->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
-            $c->make(StoreRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(LanguageRepositoryInterface::class),
             $c->make(PlanLimitService::class),
@@ -194,7 +191,6 @@ final class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
-            $c->make(StoreRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(RoleAssignmentSyncService::class),
             $c->make(\App\Extension\Sales::class),

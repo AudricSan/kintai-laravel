@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\Timeclock\Controllers\Web;
 use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -25,7 +25,6 @@ final class EmployeeTimeclockController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly TimeclockRepositoryInterface $timeclocks,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -54,7 +53,7 @@ final class EmployeeTimeclockController
         $storeId  = $storeIds[0] ?? 0;
         $stores   = [];
         foreach ($storeIds as $sid) {
-            $store = $this->stores->findById($sid);
+            $store = Store::findById($sid);
             if ($store !== null) {
                 $stores[] = ['id' => $sid, 'name' => $store['name'] ?? ('#' . $sid)];
             }

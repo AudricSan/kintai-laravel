@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\ValidationException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Http\Controllers\HasAdminAccess;
@@ -17,43 +17,19 @@ use PHPUnit\Framework\TestCase;
 
 final class HasStaffReportCrudTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
-
     protected function setUp(): void
     {
-        $this->stores     = $this->createStub(StoreRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_fk_off();
     }
 
-    /** Contrôleur minimal utilisant le trait ; $withStoreUsers=false simule une ancienne version de bundle. */
-    private function harness(bool $withStoreUsers = true): object
+    /** Contrôleur minimal utilisant le trait. */
+    private function harness(): object
     {
-        $stores     = $this->stores;
-
-        if ($withStoreUsers) {
-            return new class($stores) {
-                use HasAdminAccess;
-                use HasStaffReportCrud;
-
-                public function __construct(
-                    private readonly StoreRepositoryInterface $stores,
-                ) {}
-
-                protected function reportRepo(): object { return new \stdClass(); }
-                protected function reportConfig(): array { return []; }
-                protected function reportShowTitle(array $report): string { return ''; }
-                protected function reportEditTitle(): string { return ''; }
-                protected function reportEditExtras(int $storeId, array $report): array { return []; }
-
-                public function filter(Request $r): array { return $this->storesAndFilter($r); }
-                public function checkUser(int $u, int $s): void { $this->assertReportUserInStore($u, $s); }
-            };
-        }
-
-        return new class($stores) {
+        return new class() {
             use HasAdminAccess;
             use HasStaffReportCrud;
-
-            public function __construct(private readonly StoreRepositoryInterface $stores) {}
 
             protected function reportRepo(): object { return new \stdClass(); }
             protected function reportConfig(): array { return []; }
@@ -61,6 +37,7 @@ final class HasStaffReportCrudTest extends TestCase
             protected function reportEditTitle(): string { return ''; }
             protected function reportEditExtras(int $storeId, array $report): array { return []; }
 
+            public function filter(Request $r): array { return $this->storesAndFilter($r); }
             public function checkUser(int $u, int $s): void { $this->assertReportUserInStore($u, $s); }
         };
     }
@@ -83,8 +60,7 @@ final class HasStaffReportCrudTest extends TestCase
     /** Audit du 13/10/2026 : un non-Owner à portée illimitée recevait une liste de magasins vide, puis un 403 au filtrage. */
     public function testUnrestrictedNonOwnerSeesAllStoresAndCanFilter(): void
     {
-        $this->stores->method('findAll')->willReturn([['id' => 1], ['id' => 2]]);
-
+        kintai_test_stores(findAll: fn() => [['id' => 1], ['id' => 2]]);
         [$all, $queryIds, $filter] = $this->harness()->filter($this->request(['id' => 5], null, 2));
 
         $this->assertCount(2, $all);
@@ -94,16 +70,14 @@ final class HasStaffReportCrudTest extends TestCase
 
     public function testScopedManagerCannotFilterOnForeignStore(): void
     {
-        $this->stores->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id]);
-
+        kintai_test_stores(findById: fn(int $id) => ['id' => $id]);
         $this->expectException(ForbiddenException::class);
         $this->harness()->filter($this->request(['id' => 5], [1], 2));
     }
 
     public function testScopedManagerOnlySeesManagedStores(): void
     {
-        $this->stores->method('findById')->willReturnCallback(fn(int $id) => ['id' => $id]);
-
+        kintai_test_stores(findById: fn(int $id) => ['id' => $id]);
         [$all, $queryIds] = $this->harness()->filter($this->request(['id' => 5], [1, 3]));
 
         $this->assertSame([1, 3], $queryIds);
@@ -127,10 +101,4 @@ final class HasStaffReportCrudTest extends TestCase
         $this->addToAssertionCount(2);
     }
 
-    /** Un bundle qui n'injecte pas encore storeUsers ne doit pas planter. */
-    public function testToleratesBundlesWithoutStoreUsers(): void
-    {
-        $this->harness(false)->checkUser(9, 1);
-        $this->addToAssertionCount(1);
-    }
 }

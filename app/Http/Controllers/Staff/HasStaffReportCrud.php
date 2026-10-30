@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Staff;
 
+use App\Models\Store;
+
 use App\Models\StoreUser;
 
 use App\Exceptions\NotFoundException;
@@ -21,7 +23,7 @@ use App\Services\PdfCjkFontResolver;
  * la logique jusqu'ici commune aux trois.
  *
  * Nécessite sur la classe utilisatrice : $this->view (ViewFactory),
- * $this->stores (StoreRepositoryInterface), $this->auditLogger (AuditLogger),
+ * $this->stores $this->auditLogger (AuditLogger),
  * $this->permissions (PermissionService, pour getManagersForReportForm()),
  * et le trait HasAdminAccess (base(), assertStoreAccess()).
  */
@@ -138,7 +140,7 @@ trait HasStaffReportCrud
 
         return response($this->view->make($this->reportConfig()['view'] . '-show', array_merge([
             'title'  => $this->reportShowTitle($report),
-            'store'  => $this->stores->findById($storeId),
+            'store'  => Store::findById($storeId),
             'report' => $report,
         ], $this->reportShowExtras($storeId, $report)))->render());
     }
@@ -155,7 +157,7 @@ trait HasStaffReportCrud
 
         return response($this->view->make($this->reportConfig()['view'] . '-form', array_merge([
             'title'  => $this->reportEditTitle(),
-            'store'  => $this->stores->findById($storeId),
+            'store'  => Store::findById($storeId),
             'mode'   => 'edit',
             'report' => $report,
         ], $this->reportEditExtras($storeId, $report)))->render());
@@ -225,7 +227,7 @@ trait HasStaffReportCrud
 
         $html = $this->view->make($cfg['view'] . '-pdf', array_merge([
             'report'      => $report,
-            'store'       => $this->stores->findById($storeId),
+            'store'       => Store::findById($storeId),
             'downloadUrl' => $this->base() . '/admin/stores/' . $storeId . '/reports/' . $cfg['slug'] . '/' . $reportId . '/pdf/download',
         ], $this->reportShowExtras($storeId, $report)))->render();
 
@@ -240,7 +242,7 @@ trait HasStaffReportCrud
 
         $html = $this->view->make($cfg['view'] . '-pdf', array_merge([
             'report' => $report,
-            'store'  => $this->stores->findById($storeId),
+            'store'  => Store::findById($storeId),
         ], $this->reportShowExtras($storeId, $report)))->render();
 
         return $this->renderPdf($html, $cfg['entity'] . '_' . $reportId . '.pdf');
@@ -265,11 +267,11 @@ trait HasStaffReportCrud
         // accordant la permission « Toutes les boutiques » (tester `is_admin` seul les excluait).
         $unrestricted = !empty($authUser['is_admin']) || $managedIds === null;
         if ($unrestricted) {
-            $allStores = $this->stores->findAll();
+            $allStores = Store::findAll();
             $storeIds = [];
         } else {
             $allStores = array_values(array_filter(
-                array_map(fn($id) => $this->stores->findById($id), $managedIds ?? []),
+                array_map(fn($id) => Store::findById($id), $managedIds ?? []),
             ));
             $storeIds = $managedIds ?? [];
         }
@@ -288,7 +290,7 @@ trait HasStaffReportCrud
 
     private function findStoreOrFail(int $storeId): array
     {
-        $store = $this->stores->findById($storeId);
+        $store = Store::findById($storeId);
         if ($store === null) {
             throw new NotFoundException(__('error_store_not_found'));
         }

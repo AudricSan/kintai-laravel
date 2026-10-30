@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\StorePhoto\Services;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\AppSetting;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Services\NotificationService;
 
 /**
@@ -21,7 +21,6 @@ final class PhotoRetentionService
 {
     public function __construct(
         private readonly StorePhotoRepositoryInterface $photos,
-        private readonly StoreRepositoryInterface $stores,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
         private readonly ?string $photoDir = null,
@@ -51,7 +50,7 @@ final class PhotoRetentionService
             if (empty($sub['mail_sent_at'])) {
                 $owners ??= $this->permissions->ownerUserIds();
                 if ($owners !== []) {
-                    $store = $this->stores->findById($storeId);
+                    $store = Store::findById($storeId);
                     $this->notifications->notifyMany($owners, 'photo_archived', 'notif_photo_archived_body', [
                         'store' => $store['name'] ?? '#' . $storeId,
                         'date'  => (string) ($sub['week_label'] ?? '?'),

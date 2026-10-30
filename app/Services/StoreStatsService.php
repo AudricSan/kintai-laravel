@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Extension\Absences;
 use App\Extension\Sales;
@@ -26,7 +26,6 @@ final class StoreStatsService implements StoreStatsServiceInterface
     private array $storeStatsCache = [];
 
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly RoleAssignmentSyncService $roleSync,
         // Ventes journalières (contrat 1.14) ; sans elles (tests), celles de la requête courante.
@@ -980,7 +979,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         $typeBreakdown = array_values($typeBreakdown);
         usort($typeBreakdown, fn($a, $b) => strcmp($a['name'], $b['name']));
 
-        $deductionSettings  = $this->stores->getDeductionSettings($storeId);
+        $deductionSettings  = Store::getDeductionSettings($storeId);
         $membership         = StoreUser::findMembership($storeId, $userId);
         $membershipId       = (int) ($membership['id'] ?? 0);
         $subjectToDeductions = $membershipId > 0
@@ -1049,7 +1048,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             } catch (\Throwable) {
                 continue;
             }
-            $store = $this->stores->findById($storeId);
+            $store = Store::findById($storeId);
             $rows[] = [
                 'store_id'              => $storeId,
                 'store_name'            => $store['name'] ?? ('#' . $storeId),

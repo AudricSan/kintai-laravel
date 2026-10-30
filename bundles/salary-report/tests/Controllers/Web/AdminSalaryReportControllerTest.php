@@ -19,7 +19,7 @@ use App\Models\Role;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -35,7 +35,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminSalaryReportControllerTest extends TestCase
 {
     private SalaryReportRepositoryInterface&Stub $salaryReports;
-    private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     /** @var list<array<string, mixed>> Jours renvoyés par le fournisseur de ventes factice (rapports journaliers) */
     private array $dailyReports = [];
@@ -55,7 +54,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->salaryReports = $this->createStub(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->dailyReports = [];
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
@@ -70,7 +68,6 @@ final class AdminSalaryReportControllerTest extends TestCase
             $view->addNamespace('salary-report', $viewDir);
             $this->controller = new AdminSalaryReportController(
                 $view,
-                $this->stores,
                 $this->users,
                 $this->salaryReports,
                 $this->sales(),
@@ -142,7 +139,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
@@ -163,7 +160,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         $this->salaryReports->method('findAll')->willReturn([
             ['id' => 10, 'store_id' => 1, 'target_month' => '2026-07'],
         ]);
@@ -183,7 +180,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         $this->salaryReports->method('findAll')->willReturn([]);
 
         $response = $this->controller()->exportSalaryReportsPdf($req);
@@ -199,7 +196,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         $this->salaryReports->method('findAll')->willReturn([]);
 
         $response = $this->controller()->exportSalaryReportsPdfDownload($req);
@@ -211,13 +208,12 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testSalaryReportsPassesStoreMembersForTheEmployeePicker(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->salaryReports->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([]);
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [
             ['user_id' => 10, 'store_id' => 1],
@@ -238,7 +234,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req->setRouteParams(['id' => '1', 'rid' => '30']);
 
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn(['id' => 30, 'store_id' => 1, 'target_month' => '2026-08']);
-        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
         $response = $this->controller()->showSalaryReport($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -266,14 +262,13 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testStoreSalaryReportRejectsDuplicateMonth(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         $this->salaryReports->expects($this->atLeastOnce())->method('findByStoreAndMonth')->with(1, '2026-08')
             ->willReturn(['id' => 99, 'store_id' => 1, 'target_month' => '2026-08']);
         $this->salaryReports->expects($this->never())->method('save');
@@ -286,7 +281,6 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testStoreSalaryReportSavesAndRedirects(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = [
             'target_month'          => '2026-08',
             'store_name'            => 'Store A',
@@ -314,7 +308,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         $this->salaryReports->expects($this->atLeastOnce())->method('findByStoreAndMonth')->with(1, '2026-08')->willReturn(null);
         $this->salaryReports->expects($this->once())->method('save')->with($this->callback(
             fn(array $data) =>
@@ -398,14 +392,13 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCreateSalaryReportPresetsFromDailyReportsAndShifts(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [] : []);
         $this->dailyReports = ([
             ['report_date' => date('Y-m') . '-01', 'status' => 'validated', 'sales_total' => '10000'],
@@ -428,7 +421,6 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryReportReturnsRecalculatedPresetForStoreWideRange(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-31'];
         $req = Request::capture();
@@ -436,7 +428,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->dailyReports = ([
             ['report_date' => '2026-08-01', 'status' => 'validated', 'sales_total' => 10000],
         ]);
@@ -467,7 +459,6 @@ final class AdminSalaryReportControllerTest extends TestCase
      */
     public function testCalculateSalaryReportSplitsMultiTypeShiftAcrossTranches(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-31'];
         $req = Request::capture();
@@ -475,7 +466,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->dailyReports = ([]);
         kintai_test_shifts([
             [
@@ -507,7 +498,6 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryReportUsesPayslipDataForEmployeeScopedRange(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->storeStatsService = $this->createMock(StoreStatsServiceInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-15', 'user_id' => '7'];
@@ -516,7 +506,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $this->dailyReports = ([]);
         kintai_test_shifts([
             ['shift_date' => '2026-08-05', 'duration_minutes' => 480, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 7],
@@ -543,14 +533,12 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryReportRejectsInvalidRange(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_GET = ['from' => '2026-08-31', 'to' => '2026-08-01'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $response = $this->controller()->calculateSalaryReport($req);
 
         $this->assertSame(422, $response->getStatusCode());
@@ -558,14 +546,12 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryReportRejectsMalformedDates(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_GET = ['from' => 'not-a-date', 'to' => '2026-08-01'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $response = $this->controller()->calculateSalaryReport($req);
 
         $this->assertSame(422, $response->getStatusCode());
@@ -618,7 +604,6 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCreateSalaryReportWithUserIdPresetsEmployeeAndScopesHours(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $_GET['user_id'] = '7';
         $req = Request::capture();
@@ -626,7 +611,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'display_name' => 'Manager X']);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [] : []);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
         $this->dailyReports = ([]);
@@ -665,7 +650,6 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryPresetPrefillsDeductionsForSingleEmployee(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $store = ['id' => 1, 'name' => 'Store A', 'daily_report_settings' => null];
         $authUser = ['id' => 1, 'display_name' => 'Manager X'];
@@ -676,7 +660,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         ]);
         kintai_test_shift_types([['id' => 1, 'hourly_rate' => 750.0]]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
-        $this->stores->expects($this->atLeastOnce())->method('getDeductionSettings')->with(1)->willReturn([
+        Store::saveDeductionSettings(1, [
             'enabled' => true,
             'health_insurance_rate' => 5,
             'pension_rate' => 9,
@@ -700,7 +684,6 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryPresetSumsDeductionsAcrossEmployeesForStoreWideReport(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $store = ['id' => 1, 'name' => 'Store A', 'daily_report_settings' => null];
         $authUser = ['id' => 1, 'display_name' => 'Manager X'];
 
@@ -714,7 +697,7 @@ final class AdminSalaryReportControllerTest extends TestCase
             [7, ['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']],
             [9, ['id' => 9, 'last_name' => 'Martin', 'first_name' => 'Léa']],
         ]);
-        $this->stores->expects($this->atLeastOnce())->method('getDeductionSettings')->with(1)->willReturn([
+        Store::saveDeductionSettings(1, [
             'enabled' => true,
             'health_insurance_rate' => 5,
             'pension_rate' => 9,
@@ -739,7 +722,6 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryPresetSkipsDeductionsWhenEmployeeNotSubject(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $store = ['id' => 1, 'name' => 'Store A', 'daily_report_settings' => null];
         $authUser = ['id' => 1, 'display_name' => 'Manager X'];
@@ -749,7 +731,7 @@ final class AdminSalaryReportControllerTest extends TestCase
             ['shift_date' => date('Y-m') . '-05', 'duration_minutes' => 480, 'estimated_salary' => 6000, 'user_id' => 7],
         ]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
-        $this->stores->expects($this->atLeastOnce())->method('getDeductionSettings')->with(1)->willReturn([
+        Store::saveDeductionSettings(1, [
             'enabled' => true,
             'health_insurance_rate' => 5,
             'pension_rate' => 9,
@@ -775,7 +757,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->salaryReports->expects($this->atLeastOnce())->method('findById')->with(30)->willReturn([
             'id' => 30, 'store_id' => 1, 'user_id' => 7, 'target_month' => '2026-08',
         ]);
-        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store A']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
         $this->storeStatsService->expects($this->once())->method('buildPayslipData')
             ->with(1, 7, '2026-08-01', '2026-08-31')
             ->willReturn(['shiftRows' => [], 'totalGrossMin' => 0, 'totalNetMin' => 0, 'totalCost' => 0.0, 'anyRate' => false, 'deductions' => [], 'totalDeductions' => 0.0, 'netPay' => 0.0, 'deductionsEnabled' => false]);
@@ -788,14 +770,13 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testStoreSalaryReportSavesUserIdWhenProvided(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08', 'user_id' => '7', 'employee_name' => 'Jean Dupont'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         kintai_test_store_users(findMembership: fn() => ['id' => 3]);
         $this->salaryReports->expects($this->atLeastOnce())->method('findByStoreAndMonth')->with(1, '2026-08', 7)->willReturn(null);
         $this->salaryReports->expects($this->once())->method('save')->with($this->callback(
@@ -810,14 +791,13 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testStoreSalaryReportAllowsEmployeeReportAlongsideStoreWideReport(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08', 'user_id' => '7'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         // Un rapport global existe déjà pour ce mois (user_id=null), mais celui de l'employé 7 n'existe pas encore.
         kintai_test_store_users(findMembership: fn() => ['id' => 3]);
         $this->salaryReports->expects($this->atLeastOnce())->method('findByStoreAndMonth')->with(1, '2026-08', 7)->willReturn(null);
@@ -832,14 +812,13 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testStoreSalaryReportRefusesUserOutsideTheStore(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['target_month' => '2026-08', 'user_id' => '77'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->setRouteParams(['id' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         kintai_test_store_users(findMembership: fn() => null);
         $this->salaryReports->expects($this->never())->method('save');
 

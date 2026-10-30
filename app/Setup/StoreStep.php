@@ -6,7 +6,7 @@ namespace App\Setup;
 
 use App\Exceptions\PlanLimitExceededException;
 use App\Exceptions\ValidationException;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use App\Services\InstanceLocale;
 use App\Services\StoreServiceInterface;
@@ -21,7 +21,6 @@ final class StoreStep implements SetupStepInterface
 {
     public function __construct(
         private readonly StoreServiceInterface $storeService,
-        private readonly StoreRepositoryInterface $stores,
         private readonly InstanceLocale $locale,
     ) {}
 
@@ -32,7 +31,7 @@ final class StoreStep implements SetupStepInterface
 
     public function data(Request $request): array
     {
-        $existing = array_values(array_filter($this->stores->findAll(), static fn(array $s): bool => !empty($s['is_active'])));
+        $existing = array_values(array_filter(Store::findAll(), static fn(array $s): bool => !empty($s['is_active'])));
         return [
             'existing'   => array_map(static fn(array $s): string => (string) ($s['name'] ?? ''), $existing),
             'timezones'  => \DateTimeZone::listIdentifiers(),
@@ -88,7 +87,7 @@ final class StoreStep implements SetupStepInterface
 
     public function summary(): ?string
     {
-        $names = array_map(static fn(array $s): string => (string) ($s['name'] ?? ''), array_filter($this->stores->findAll(), static fn(array $s): bool => !empty($s['is_active'])));
+        $names = array_map(static fn(array $s): string => (string) ($s['name'] ?? ''), array_filter(Store::findAll(), static fn(array $s): bool => !empty($s['is_active'])));
         return $names === [] ? null : implode(', ', $names);
     }
 }

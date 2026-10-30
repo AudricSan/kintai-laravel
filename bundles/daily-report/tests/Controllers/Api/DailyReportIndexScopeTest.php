@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -46,11 +46,9 @@ final class DailyReportIndexScopeTest extends TestCase
     private function controller(): DailyReportController
     {
         if ($this->controller === null) {
-            $stores            = $this->createStub(StoreRepositoryInterface::class);
-            $stores->method('findById')->willReturnCallback(fn(int $id) => in_array($id, [1, 2], true) ? ['id' => $id] : null);
+            kintai_test_stores(findById: fn(int $id) => in_array($id, [1, 2], true) ? ['id' => $id] : null);
             $this->controller = new DailyReportController(
                 $this->reports,
-                $stores,
                 new DailyReportPermissionService(new PermissionService()),
             );
         }

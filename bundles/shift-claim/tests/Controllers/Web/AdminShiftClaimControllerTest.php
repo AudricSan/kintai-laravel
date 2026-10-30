@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\AdminShiftClaimControlle
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -23,7 +23,6 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminShiftClaimControllerTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private ShiftClaimRepositoryInterface&Stub $shiftClaims;
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
@@ -46,7 +45,6 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'open-shifts');
         $this->ensureViewFile($viewDir, 'open-shifts-select');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->shiftClaims = $this->createStub(ShiftClaimRepositoryInterface::class);
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
@@ -62,7 +60,6 @@ final class AdminShiftClaimControllerTest extends TestCase
             $this->controller = new AdminShiftClaimController(
                 $view,
                 $this->createStub(UserRepositoryInterface::class),
-                $this->stores,
                 $this->shiftClaims,
                 $this->shiftService,
                 new AuditLogger(),
@@ -94,7 +91,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'is_open' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5],
         ]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->expects($this->atLeastOnce())->method('findByShift')->with(1)->willReturn([
             ['id' => 10, 'user_id' => 9, 'status' => 'pending'],
         ]);
@@ -116,7 +113,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 2, 'is_open' => 1, 'shift_date' => '2026-08-02', 'store_id' => 5],
         ]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->method('findByShift')->willReturn([]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(4, 'open_shift', [1, 2]);
 
@@ -141,8 +138,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         ]);
 
         $this->shiftService->method('getUsersMap')->willReturn([5 => 'Alice']);
-        $this->stores->method('findAll')->willReturn([]);
-
+        kintai_test_stores(findAll: fn() => []);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
@@ -407,7 +403,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 10, 'name' => 'Matin'],
             ['id' => 20, 'name' => 'Soir'],
         ]);
-        $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->method('findByShift')->willReturnMap([
             [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending']]],
             [2, [['id' => 200, 'user_id' => 9, 'status' => 'approved']]],
@@ -434,7 +430,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 2, 'is_open' => 1, 'shift_date' => '2026-08-02', 'store_id' => 5, 'shift_type_id' => 20],
         ]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->method('findByShift')->willReturnMap([
             [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending']]],
             [2, [['id' => 200, 'user_id' => 9, 'status' => 'approved']]],
@@ -460,7 +456,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 2, 'is_open' => 1, 'shift_date' => '2026-08-02', 'store_id' => 2],
         ]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);
@@ -491,7 +487,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 2, 'is_open' => 1, 'shift_date' => '2026-08-02', 'store_id' => 2],
         ]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);

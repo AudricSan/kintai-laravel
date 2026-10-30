@@ -9,7 +9,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\IcalToken;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Extension\Absences;
 use App\Repositories\UserRepositoryInterface;
@@ -25,7 +25,6 @@ final class IcalController
     use HasBaseUrl;
     public function __construct(
         private readonly IcalService                        $ical,
-        private readonly StoreRepositoryInterface           $stores,
         private readonly UserRepositoryInterface            $users,
         private readonly AuthService                        $auth,
         private readonly AuditLogger                        $auditLogger,
@@ -46,7 +45,7 @@ final class IcalController
         }
 
         $userId = (int) $tokenRow['user_id'];
-        $store  = $this->stores->findById($storeId);
+        $store  = Store::findById($storeId);
         $user   = $this->users->findById($userId);
 
         if (!$store || !$user) {

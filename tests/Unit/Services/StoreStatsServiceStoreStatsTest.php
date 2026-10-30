@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -38,7 +38,6 @@ final class StoreStatsServiceStoreStatsTest extends TestCase
         $users->method('findAll')->willReturn([]);
 
         $this->service = new StoreStatsService(
-            $this->createStub(StoreRepositoryInterface::class),
             $users,
             new RoleAssignmentSyncService(
             ),

@@ -10,7 +10,7 @@ use Tests\Support\FakeBundleManagerFactory;
 use App\Extension\StoreFeatures;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -28,19 +28,17 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminStoreControllerTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private UserRepositoryInterface&Stub $users;
     private StoreStatsServiceInterface&Stub $storeStatsService;
     private ?AdminStoreController $controller = null;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $this->ensureViewFile('staff.stores');
         $this->ensureViewFile('staff.stores-form');
         $this->ensureViewFile('staff.employee-stats');
         $this->ensureViewFile('layout.app');
-        
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
     }
@@ -52,7 +50,6 @@ final class AdminStoreControllerTest extends TestCase
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $this->stores,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -79,8 +76,7 @@ final class AdminStoreControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->stores->method('findAll')->willReturn([]);
-
+        kintai_test_stores(findAll: fn() => []);
         $response = $this->controller()->stores($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -98,7 +94,6 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testEditStoreRendersForm(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['store' => 1]);
@@ -107,10 +102,8 @@ final class AdminStoreControllerTest extends TestCase
             'id' => 1, 'name' => 'Test Store', 'currency' => 'JPY',
             'week_start_day' => 1, 'timezone' => 'Asia/Tokyo',
         ];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($store);
-        $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock']);
-        $this->stores->expects($this->atLeastOnce())->method('getImportSettings')->with(1)->willReturn([]);
-        $this->stores->method('getDeductionSettings')->willReturn([]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $store : null);
+        kintai_test_store_features(1, ['shifts', 'timeclock']);
         kintai_test_store_users(findByStore: fn() => []);
         $this->users->method('findAll')->willReturn([]);
 
@@ -121,11 +114,9 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testEditStoreRendersFormWhenABundleIsDisabledInstanceWide(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $this->stores,
             new AuditLogger(),
             $this->createStub(StoreServiceInterface::class),
             $this->storeStatsService,
@@ -139,10 +130,8 @@ final class AdminStoreControllerTest extends TestCase
         $req->setRouteParams(['store' => 1]);
 
         $store = ['id' => 1, 'name' => 'Test Store', 'currency' => 'JPY', 'week_start_day' => 1, 'timezone' => 'Asia/Tokyo'];
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn($store);
-        $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock', 'messages']);
-        $this->stores->expects($this->atLeastOnce())->method('getImportSettings')->with(1)->willReturn([]);
-        $this->stores->method('getDeductionSettings')->willReturn([]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? $store : null);
+        kintai_test_store_features(1, ['shifts', 'timeclock', 'messages']);
         kintai_test_store_users(findByStore: fn() => []);
         $this->users->method('findAll')->willReturn([]);
 
@@ -153,7 +142,6 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testUpdateStorePersistsPhotosFeatureSlug(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         // Cases décochées : le champ caché envoie « 0 » (audit M12 : absent = inchangé).
         $_POST = ['name' => 'Test Store', 'feature_photos' => '1'] + array_fill_keys(
             ['feature_shifts', 'feature_timeclock', 'feature_timeoff', 'feature_swaps', 'feature_open_shifts', 'feature_messages', 'feature_daily_reports', 'feature_notes'],
@@ -163,9 +151,9 @@ final class AdminStoreControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Test Store'] : null);
         // Magasin déjà configuré : décisions enregistrées pour plusieurs fonctionnalités.
-        $this->stores->expects($this->atLeastOnce())->method('getFeatureDecisions')->with(1)->willReturn([
+        Store::saveFeatureDecisions(1, [
             'shifts' => true, 'timeclock' => true, 'photos' => true, 'messages' => false,
         ]);
 
@@ -179,7 +167,6 @@ final class AdminStoreControllerTest extends TestCase
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $this->stores,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -202,7 +189,6 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testUpdateStorePreservesFeatureHiddenByDisabledBundle(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         // "messages" et "photos" dépendent de bundles désactivés au niveau instance : leurs
         // cases ne sont pas rendues dans le formulaire, donc jamais soumises. Elles doivent
         // survivre à la sauvegarde au lieu d'être silencieusement décochées (régression
@@ -212,9 +198,7 @@ final class AdminStoreControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
-        $this->stores->expects($this->atLeastOnce())->method('getFeatureDecisions')->with(1)->willReturn([]);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Test Store'] : null);
         $captured = null;
         $storeService = $this->createStub(StoreServiceInterface::class);
         $storeService->method('updateStore')->willReturnCallback(function (int $id, array $data) use (&$captured) {
@@ -225,7 +209,6 @@ final class AdminStoreControllerTest extends TestCase
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $this->stores,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -245,14 +228,13 @@ final class AdminStoreControllerTest extends TestCase
 
     public function testEmployeeStatsLogsConsultation(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1', 'employee' => '5']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A', 'currency' => 'JPY']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A', 'currency' => 'JPY'] : null);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
         kintai_test_store_users(findMembership: fn() => ['id' => 1, 'store_id' => 1, 'user_id' => 5]);
         $this->storeStatsService->method('employeeStats')->willReturn([]);
@@ -281,14 +263,12 @@ final class AdminStoreControllerTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('memberRedirects')]
     public function testAddMemberOnlyRedirectsToInternalPaths(string $redirectTo, bool $kept): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_SERVER = ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/admin/stores/1/members', 'SCRIPT_NAME' => '/index.php'];
         $_POST   = ['user_id' => '0', 'redirect_to' => $redirectTo];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['store' => 1]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Test Store'] : null);
         $response = $this->controller()->addMember($req);
 
         $location = (string) ($response->headers->get('Location', ''));
@@ -316,8 +296,7 @@ final class AdminStoreControllerTest extends TestCase
             30      => ['shifts.view', 'shifts.update'],
             default => [],
         }, getGlobalPermissionKeys: static fn() => []);
-        $this->stores->method('findById')->willReturn(['id' => 1]);
-
+        kintai_test_stores(findById: fn() => ['id' => 1]);
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 2]);
         $req->attributes->set('managed_store_ids', [1]);
@@ -377,19 +356,18 @@ final class AdminStoreControllerTest extends TestCase
      */
     public function testUpdateStoreKeepsFieldsAbsentFromTheRequest(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['name' => 'Tokyo Est'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn([
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? [
             'id' => 1, 'name' => 'Tokyo', 'code' => 'TKY', 'is_active' => 1, 'phone' => '03-0000-0000',
             'week_start_day' => 7, 'min_shift_minutes' => 60,
-        ]);
-        $this->stores->method('getFeatureDecisions')->willReturn(['shifts' => false, 'photos' => true]);
-        $this->stores->method('getImportSettings')->willReturn(['col_start' => 2, 'base_hour' => 8]);
-        $this->stores->method('getDeductionSettings')->willReturn(['enabled' => 1, 'pension_rate' => 9.15]);
+        ] : null);
+        Store::saveFeatureDecisions(1, ['shifts' => false, 'photos' => true]);
+        Store::saveImportSettings(1, ['col_start' => 2, 'base_hour' => 8]);
+        Store::saveDeductionSettings(1, ['enabled' => 1, 'pension_rate' => 9.15]);
 
         $captured = null;
         $storeService = $this->createStub(StoreServiceInterface::class);
@@ -401,7 +379,6 @@ final class AdminStoreControllerTest extends TestCase
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $this->stores,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -453,14 +430,13 @@ final class AdminStoreControllerTest extends TestCase
      */
     public function testUpdateStoreSavesBundleDeclaredFeatureAndKeepsUnknownOnes(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['name' => 'Test Store', 'feature_shifts' => '1', 'feature_acme_board' => '1'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['store' => '1']);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Test Store']);
-        $this->stores->expects($this->atLeastOnce())->method('getFeatureDecisions')->with(1)->willReturn(['shifts' => true, 'gone_bundle_feature' => true]);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Test Store'] : null);
+        Store::saveFeatureDecisions(1, ['shifts' => true, 'gone_bundle_feature' => true]);
 
         $captured = null;
         $storeService = $this->createStub(StoreServiceInterface::class);
@@ -490,7 +466,6 @@ final class AdminStoreControllerTest extends TestCase
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             $this->users,
-            $this->stores,
             new AuditLogger(),
             $storeService,
             $this->storeStatsService,
@@ -510,7 +485,6 @@ final class AdminStoreControllerTest extends TestCase
             $this->controller = new AdminStoreController(
                 $view,
                 $this->users,
-                $this->stores,
                 new AuditLogger(),
                 $this->createStub(StoreServiceInterface::class),
                 $this->storeStatsService,

@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\Notebook\Controllers\Web;
 
 use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -23,7 +23,6 @@ final class NotebookController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly NotebookEntryRepositoryInterface $notes,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -38,7 +37,7 @@ final class NotebookController
     public function index(Request $request): Response
     {
         $managedIds = $this->managedIds($request);
-        $storeIds   = $managedIds ?? array_map(fn($s) => (int) $s['id'], $this->stores->findAll());
+        $storeIds   = $managedIds ?? array_map(fn($s) => (int) $s['id'], Store::findAll());
 
         $entries = $this->notes->findVisibleForStores($storeIds);
 

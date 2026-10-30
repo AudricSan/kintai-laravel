@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Data\Shift;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\ShiftType;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Http\Request;
@@ -27,7 +27,6 @@ final class EmployeeSwapController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
-        private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -276,7 +275,7 @@ final class EmployeeSwapController
     {
         $colleague     = $this->users->findById($colleagueId);
         $colleagueName = $colleague['display_name'] ?? $colleague['email'] ?? ('#' . $colleagueId);
-        $store         = $this->stores->findById((int) ($myShift['store_id'] ?? $targetShift['store_id'] ?? 0));
+        $store         = Store::findById((int) ($myShift['store_id'] ?? $targetShift['store_id'] ?? 0));
         return [
             'colleague'   => $colleagueName,
             'my_date'     => $myShift['shift_date'] ?? '',

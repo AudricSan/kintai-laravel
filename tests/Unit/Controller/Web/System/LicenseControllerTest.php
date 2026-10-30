@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web\System;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\Models\AppSetting;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -43,7 +43,6 @@ final class LicenseControllerTest extends TestCase
         $license = new LicenseClientService($config, transport: $transport);
 
         $planLimits = new PlanLimitService(
-            $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             $license,
         );

@@ -6,7 +6,7 @@ namespace Tests\Integration;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Models\Shift;
-use App\Repositories\DatabaseStoreRepository;
+use App\Models\Store;
 use App\Services\NotificationService;
 use App\Services\SchedulePublication;
 use App\Services\ShiftChangeNotifier;
@@ -23,7 +23,6 @@ if (!defined('BASE_PATH')) {
 final class SchedulePublicationTest extends TestCase
 {
     private Capsule $capsule;
-    private DatabaseStoreRepository $stores;
     /** @var NotificationService&object{sent: list<array<string, mixed>>} */
     private NotificationService $notifs;
     private SchedulePublication $publication;
@@ -51,7 +50,6 @@ final class SchedulePublicationTest extends TestCase
         $this->bob   = (int) $this->capsule->table('users')->where('email', 'bob@kintai.test')->value('id');
         $this->capsule->table('stores')->insert(['name' => 'Shibuya', 'code' => 'SHB', 'timezone' => 'Asia/Tokyo', 'created_at' => $now, 'updated_at' => $now]);
         $this->store = (int) $this->capsule->table('stores')->where('code', 'SHB')->value('id');
-        $this->stores = new DatabaseStoreRepository();
         $this->notifs = new class extends NotificationService {
             /** @var list<array<string, mixed>> */
             public array $sent = [];
@@ -63,7 +61,7 @@ final class SchedulePublicationTest extends TestCase
                 $this->sent[] = ['user' => $userId, 'type' => $type, 'body' => $bodyKey, 'replace' => $replace, 'link' => $link];
             }
         };
-        $this->publication = new SchedulePublication($this->stores, $this->notifs);
+        $this->publication = new SchedulePublication($this->notifs);
     }
 
     protected function tearDown(): void
@@ -153,7 +151,7 @@ final class SchedulePublicationTest extends TestCase
         $this->publication->configure($this->store, true);
         $this->publication->publish($this->store, $this->day(7));
 
-        $fresh = new SchedulePublication($this->stores, $this->notifs);
+        $fresh = new SchedulePublication($this->notifs);
 
         $this->assertSame($this->day(7), $fresh->publishedUntil($this->store));
     }

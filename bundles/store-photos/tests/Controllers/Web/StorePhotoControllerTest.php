@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\StorePhoto\Controllers\Web\StorePhotoController;
 use App\Exceptions\ForbiddenException;
 use App\Models\AppSetting;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -23,12 +23,12 @@ use PHPUnit\Framework\TestCase;
 final class StorePhotoControllerTest extends TestCase
 {
     private StorePhotoRepositoryInterface&Stub $photos;
-    private StoreRepositoryInterface&Stub $stores;
     private NotificationService $notifs;
     private ?StorePhotoController $controller = null;
 
     protected function setUp(): void
     {
+kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
         $viewDir = sys_get_temp_dir() . '/kintai-store-photos-views';
         $this->ensureViewFile($viewDir, 'store-photos');
         $this->ensureViewFile($viewDir, 'store-photos-settings');
@@ -37,7 +37,6 @@ final class StorePhotoControllerTest extends TestCase
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->photos = $this->createStub(StorePhotoRepositoryInterface::class);
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -51,7 +50,6 @@ final class StorePhotoControllerTest extends TestCase
             $this->controller = new StorePhotoController(
                 $view,
                 $this->photos,
-                $this->stores,
                 new AuditLogger(),
                 new ImageCompressionService(),
                 $this->notifs,
@@ -70,7 +68,7 @@ final class StorePhotoControllerTest extends TestCase
 
     public function testIndexRendersSubmissionsFilteredByStore(): void
     {
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
@@ -97,7 +95,7 @@ final class StorePhotoControllerTest extends TestCase
     public function testIndexScopesSubmissionsToManagedStoresOnly(): void
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
@@ -118,7 +116,7 @@ final class StorePhotoControllerTest extends TestCase
     public function testIndexIgnoresStoreIdFilterOutsideManagedScope(): void
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         $this->photos->expects($this->atLeastOnce())->method('findAllSubmissions')->with([1], 100)->willReturn([
             ['id' => 10, 'store_id' => 1],
         ]);
@@ -155,13 +153,12 @@ final class StorePhotoControllerTest extends TestCase
         $controller = new StorePhotoController(
             $view,
             $this->photos,
-            $this->stores,
             new AuditLogger(),
             new ImageCompressionService(),
             $this->notifs,
         );
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         $this->photos->method('findAllSubmissions')->willReturn([
             ['id' => 10, 'store_id' => 1, 'created_at' => '2026-09-08 10:00:00'],
             ['id' => 11, 'store_id' => 1, 'created_at' => '2026-09-07 09:00:00'],
@@ -196,13 +193,12 @@ final class StorePhotoControllerTest extends TestCase
         $controller = new StorePhotoController(
             $view,
             $this->photos,
-            $this->stores,
             new AuditLogger(),
             new ImageCompressionService(),
             $this->notifs,
         );
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
+        kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
         $this->photos->method('findAllSubmissions')->willReturn([
             ['id' => 10, 'store_id' => 1, 'created_at' => '2026-09-08 10:00:00'],
         ]);
@@ -243,11 +239,9 @@ final class StorePhotoControllerTest extends TestCase
     public function testShowSucceedsForSubmissionWithinManagedScope(): void
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
         $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
         $req->attributes->set('managed_store_ids', [1]);
@@ -298,7 +292,6 @@ final class StorePhotoControllerTest extends TestCase
     public function testShowPassesOriginStoreIdAsBackStoreId(): void
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $viewDir = sys_get_temp_dir() . '/kintai-store-photos-views';
         file_put_contents($viewDir . DIRECTORY_SEPARATOR . 'store-photos-detail.php', '<?php echo $backStoreId;');
         file_put_contents(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'layout' . DIRECTORY_SEPARATOR . 'app.php', '<?php echo $content;');
@@ -306,8 +299,7 @@ final class StorePhotoControllerTest extends TestCase
         $_GET = ['origin_store_id' => '0'];
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
         $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
         $req->attributes->set('managed_store_ids', [1]);
@@ -321,15 +313,13 @@ final class StorePhotoControllerTest extends TestCase
     public function testShowFallsBackToSubmissionsStoreWithoutOrigin(): void
     {
         $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $viewDir = sys_get_temp_dir() . '/kintai-store-photos-views';
         file_put_contents($viewDir . DIRECTORY_SEPARATOR . 'store-photos-detail.php', '<?php echo $backStoreId;');
         file_put_contents(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'layout' . DIRECTORY_SEPARATOR . 'app.php', '<?php echo $content;');
 
         $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
         $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store A']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
         $req->attributes->set('managed_store_ids', [1]);
@@ -341,13 +331,12 @@ final class StorePhotoControllerTest extends TestCase
 
     public function testStoreForbiddenWhenPhotosDisabledForStore(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_POST = ['store_id' => '1'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
         // Une ligne existe en base mais 'photos' n'y figure pas => désactivé pour ce store.
-        $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts', 'timeclock']);
+        kintai_test_store_features(1, ['shifts', 'timeclock']);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->store($req);
@@ -355,13 +344,12 @@ final class StorePhotoControllerTest extends TestCase
 
     public function testCreateForbiddenWhenPhotosDisabledForRequestedStore(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $_GET['store_id'] = '1';
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
-        $this->stores->method('findAll')->willReturn([]);
-        $this->stores->expects($this->atLeastOnce())->method('getFeatures')->with(1)->willReturn(['shifts']);
+        kintai_test_stores(findAll: fn() => []);
+        kintai_test_store_features(1, ['shifts']);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->create($req);
@@ -378,14 +366,12 @@ final class StorePhotoControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
-        $this->stores->method('findAll')->willReturn([
+        kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
-        $this->stores->method('getFeatures')->willReturnMap([
-            [1, ['photos']],
-            [2, ['shifts']],
-        ]);
+        kintai_test_store_features(1, ['photos']);
+        kintai_test_store_features(2, ['shifts']);
 
         $response = $this->controller()->create($req);
 

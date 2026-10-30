@@ -10,7 +10,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -57,8 +57,7 @@ final class DailyReportMassAssignmentTest extends TestCase
     public function testCreationForcesAuthorAndDraftAndIgnoresId(): void
     {
         $repo   = $this->createMock(DailyReportRepositoryInterface::class);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturn(['id' => self::MY_STORE, 'name' => 'A']);
+        kintai_test_stores(findById: fn() => ['id' => self::MY_STORE, 'name' => 'A']);
         $repo->expects($this->once())->method('save')->with($this->callback(
             fn(array $d): bool => !array_key_exists('id', $d)
                 && $d['author_id'] === self::ME
@@ -68,7 +67,7 @@ final class DailyReportMassAssignmentTest extends TestCase
                 && !array_key_exists('is_finalized', $d)
                 && $d['notes'] === 'RAS'
         ))->willReturn(['id' => 6]);
-        $controller = new DailyReportController($repo, $stores, new DailyReportPermissionService($this->permissions));
+        $controller = new DailyReportController($repo, new DailyReportPermissionService($this->permissions));
 
         $controller->store($this->request([
             'id' => 1, 'author_id' => 99, 'store_id' => self::MY_STORE, 'notes' => 'RAS',

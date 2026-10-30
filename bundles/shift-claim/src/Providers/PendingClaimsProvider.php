@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\ShiftClaim\Providers;
 
 use kintai\Contract\Container;
 use kintai\Contract\Data\Shift;
-use kintai\Contract\Data\StoreRepositoryInterface;
+use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
@@ -34,7 +34,7 @@ final class PendingClaimsProvider implements PendingRequestsProvider
         }
         $claims = $this->container->make(ShiftClaimRepositoryInterface::class);
         $shifts = $this->container->make(Shift::class);
-        $storeIds ??= array_map(fn($s) => (int) $s['id'], $this->container->make(StoreRepositoryInterface::class)->findAll());
+        $storeIds ??= array_map(fn($s) => (int) $s['id'], $this->container->make(Store::class)->findAll());
 
         $found = [];
         foreach ($storeIds as $storeId) {

@@ -16,7 +16,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -37,7 +37,6 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminShiftControllerTest extends TestCase
 {
-    private StoreRepositoryInterface&Stub $stores;
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
     private UserRepositoryInterface&Stub $users;
@@ -59,7 +58,6 @@ final class AdminShiftControllerTest extends TestCase
         \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
         $this->ensureViewFile('scheduling.shifts');
         $this->ensureViewFile('layout.app');
-        $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
         $this->users = $this->createStub(UserRepositoryInterface::class);
@@ -75,7 +73,6 @@ final class AdminShiftControllerTest extends TestCase
             $this->controller = new AdminShiftController(
                 $view,
                 $this->users,
-                $this->stores,
                 $auditLogger,
                 $this->notifs,
                 $this->shiftService,
@@ -95,8 +92,7 @@ final class AdminShiftControllerTest extends TestCase
 
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([]);
-
+        kintai_test_stores(findAll: fn() => []);
         $response = $this->controller()->shifts($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -120,8 +116,7 @@ final class AdminShiftControllerTest extends TestCase
 
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
-        $this->stores->method('findAll')->willReturn([]);
-
+        kintai_test_stores(findAll: fn() => []);
         $response = $this->controller()->shifts($req);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -605,7 +600,6 @@ final class AdminShiftControllerTest extends TestCase
      */
     public function testUpdateShiftNotifiesSameEmployeeWhenRescheduled(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $existing = [
             'id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-02',
@@ -624,7 +618,7 @@ final class AdminShiftControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 10]);
 
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Boutique Test']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Boutique Test'] : null);
         $this->notifs->expects($this->once())->method('notify')->with(
             5,
             'shift_updated',
@@ -650,15 +644,13 @@ final class AdminShiftControllerTest extends TestCase
      */
     public function testDeleteShiftNotifiesAssignedUser(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->notifs = $this->createMock(NotificationService::class);
         $existing = [
             'id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-02',
             'start_time' => '09:00', 'end_time' => '17:00',
         ];
         kintai_test_shifts([$existing]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Boutique Test']);
-
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Boutique Test'] : null);
         $this->notifs->expects($this->once())->method('notify')->with(
             5,
             'shift_deleted',
@@ -828,12 +820,10 @@ final class AdminShiftControllerTest extends TestCase
      */
     public function testShiftsTimelineHidesDeletedDeactivatedAndMissingStaff(): void
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->writeViewFile('scheduling.shifts-timeline', "<?php echo json_encode(\$all_user_ids);");
         $this->writeViewFile('layout.app', "<?php echo \$content ?? '';");
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
-        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store 1']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store 1'], findAll: fn() => [['id' => 1, 'name' => 'Store 1']]);
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
         kintai_test_shift_types([]);
@@ -862,12 +852,10 @@ final class AdminShiftControllerTest extends TestCase
 
     private function renderTimelineAndCaptureCanManage(array $authUser, ?array $managedStoreIds = null): bool
     {
-        $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->writeViewFile('scheduling.shifts-timeline', "<?php echo json_encode(['can_manage' => \$can_manage ?? null]);");
         $this->writeViewFile('layout.app', "<?php echo \$content ?? '';");
 
-        $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
-        $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store 1']);
+        kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store 1'] : null, findAll: fn() => [['id' => 1, 'name' => 'Store 1']]);
         kintai_test_shifts([]);
         kintai_test_shift_types([]);
         kintai_test_shift_types([]);
@@ -952,9 +940,8 @@ final class AdminShiftControllerTest extends TestCase
     /** Magasin 1 à publication du planning, publié jusqu'au 2026-08-05 : les jours suivants sont un brouillon. */
     private function withPublicationUntil(string $until): void
     {
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findById')->willReturn(['id' => 1, 'name' => 'Boutique Test', 'schedule_publication' => 1, 'schedule_published_until' => $until]);
-        $this->publication = new SchedulePublication($stores);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Boutique Test', 'schedule_publication' => 1, 'schedule_published_until' => $until]);
+        $this->publication = new SchedulePublication();
     }
 
     public function testDeletingADraftShiftNotifiesNobody(): void
@@ -979,7 +966,7 @@ final class AdminShiftControllerTest extends TestCase
         $this->notifs = $this->createMock(NotificationService::class);
         $published = ['id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-05', 'start_time' => '09:00', 'end_time' => '17:00'];
         kintai_test_shifts([$published]);
-        $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Boutique Test']);
+        kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Boutique Test']);
         $this->notifs->expects($this->once())->method('notify')->with(5, 'shift_deleted');
 
         $req = Request::capture();

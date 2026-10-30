@@ -10,7 +10,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -40,16 +40,14 @@ final class AuthControllerLogoutPushTest extends TestCase
     {
         $users = $this->createStub(UserRepositoryInterface::class);
         $users->method('findById')->willReturn(['id' => 9, 'is_active' => 1, 'deleted_at' => null]);
-        $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
-        $auth = new AuthService($users, $stores);
+        $auth = new AuthService($users);
 
         return new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $users,
-            $stores,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             null,

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 use Illuminate\Container\Container;
 use App\Models\Shift;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 
 /**
  * Publication du planning par magasin. Quand un magasin l'active (stores.schedule_publication), seuls les shifts datés
@@ -28,7 +28,6 @@ final class SchedulePublication
     private array $settings = [];
 
     public function __construct(
-        private readonly StoreRepositoryInterface $stores,
         private readonly ?NotificationService $notifs = null,
     ) {}
 
@@ -111,7 +110,7 @@ final class SchedulePublication
             }
             $data['schedule_published_until'] = max($last, $settings['until'] ?? '', date('Y-m-d'));
         }
-        $this->stores->save($data);
+        Store::put($data);
         unset($this->settings[$storeId]);
     }
 
@@ -145,7 +144,7 @@ final class SchedulePublication
             $newlyVisible[] = $s;
         }
 
-        $this->stores->save(['id' => $storeId, 'schedule_published_until' => $until]);
+        Store::put(['id' => $storeId, 'schedule_published_until' => $until]);
         $this->settings[$storeId] = ['enabled' => true, 'until' => $until, 'read_at' => time()];
 
         // Agendas externes : les shifts sortis du brouillon partent maintenant (ils étaient écartés jusqu'ici).
@@ -167,7 +166,7 @@ final class SchedulePublication
 
         $notified = 0;
         if ($this->notifs !== null) {
-            $store = $this->stores->findById($storeId);
+            $store = Store::findById($storeId);
             foreach ($byUser as $uid => $own) {
                 usort($own, fn(array $a, array $b): int => strcmp((string) $a['shift_date'], (string) $b['shift_date']));
                 try {
@@ -199,7 +198,7 @@ final class SchedulePublication
     private function settingsOf(int $storeId): array
     {
         if (!isset($this->settings[$storeId]) || time() - $this->settings[$storeId]['read_at'] > self::SETTINGS_TTL) {
-            $store = $storeId > 0 ? $this->stores->findById($storeId) : null;
+            $store = $storeId > 0 ? Store::findById($storeId) : null;
             $until = (string) ($store['schedule_published_until'] ?? '');
             $this->settings[$storeId] = [
                 'enabled' => !empty($store['schedule_publication']),

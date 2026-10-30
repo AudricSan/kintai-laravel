@@ -12,7 +12,7 @@ use App\Exceptions\ForbiddenException;
 use App\Export\ExportAccess;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use PHPUnit\Framework\TestCase;
 
@@ -32,9 +32,7 @@ final class ExportAccessTest extends TestCase
         // Le gérant (9) a un rôle shifts.view + employees.view sur le magasin 3 seulement ; l'employé (5) n'a aucun rôle.
         kintai_test_assignments(findByUser: fn(int $id): array => $id === 9 ? [['role_id' => 1, 'scope_type' => 'store', 'scope_id' => 3]] : []);
         kintai_test_roles(findById: fn() => ['id' => 1, 'is_system' => 0], getPermissions: fn() => ['shifts.view', 'employees.view'], getGlobalPermissionKeys: fn() => []);
-        $stores = $this->createStub(StoreRepositoryInterface::class);
-        $stores->method('findActive')->willReturn([['id' => 3], ['id' => 4]]);
-
+        kintai_test_stores(findActive: fn() => [['id' => 3], ['id' => 4]]);
         // Magasin 3 : employés 5 et 6 ; magasin 4 : employé 7. Le gérant est membre du 3.
         kintai_test_store_users(findByStore: fn(int $store): array => match ($store) {
             3 => [['user_id' => 5], ['user_id' => 6], ['user_id' => 9]],
@@ -45,7 +43,7 @@ final class ExportAccessTest extends TestCase
             9 => [['store_id' => 3]],
             default => [],
         });
-        $this->access = new ExportAccess(new PermissionService(), $stores);
+        $this->access = new ExportAccess(new PermissionService());
     }
 
     private function dataset(string $permission, bool $self = false, bool $perPerson = true): ExportDataset

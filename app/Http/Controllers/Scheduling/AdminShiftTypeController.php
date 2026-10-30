@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Scheduling;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use App\Validation\ColorRule;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +20,6 @@ final class AdminShiftTypeController
     use HasAdminAccess;
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
     ) {}
 

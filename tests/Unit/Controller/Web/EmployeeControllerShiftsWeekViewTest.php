@@ -14,7 +14,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserDashboardPref;
@@ -49,17 +49,14 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
         $this->writeViewFile($viewDir, 'scheduling.shifts', '<?= ($can_manage ?? false) ? "CAN_MANAGE_TRUE" : "CAN_MANAGE_FALSE" ?>');
         $this->writeViewFile($viewDir, 'layout.app', '<?= $content ?>');
         $users             = $this->createStub(UserRepositoryInterface::class);
-        $stores            = $this->createStub(StoreRepositoryInterface::class);
 
         kintai_test_store_users(findByUser: fn() => []);
         kintai_test_shifts([]);
         $users->method('findAll')->willReturn([]);
         kintai_test_shift_types([]);
-        $stores->method('findAll')->willReturn([]);
-
+        kintai_test_stores(findAll: fn() => []);
         $this->controller = new EmployeeController(
             kintai_test_views($viewDir),
-            $stores,
             $users,
             new AuditLogger(),
             new NotificationService(

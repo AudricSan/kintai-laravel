@@ -15,7 +15,7 @@ use App\Exceptions\PlanLimitExceededException;
 use App\Extension\Events;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Repositories\UserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -38,7 +38,6 @@ final class AdminUserController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly UserRepositoryInterface $users,
-        private readonly StoreRepositoryInterface $stores,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly PermissionService $permissions,
@@ -119,7 +118,6 @@ final class AdminUserController
         // rapport de salaire (ShiftWageCalculator::costOf() via EmployeeStatsService),
         // pour que ce montant "Salaire est." ne diverge plus des autres pages.
         $employeeStatsService = new EmployeeStatsService(
-            $this->stores,
         );
 
         $userStats = [];
@@ -692,7 +690,7 @@ final class AdminUserController
 
         // Map store_id → store name pour l'affichage
         $storesMap = [];
-        foreach ($this->stores->findAllWithDeleted() as $s) {
+        foreach (Store::findAllWithDeleted() as $s) {
             $storesMap[(int) $s['id']] = $s['name'] ?? '#' . $s['id'];
         }
 
@@ -731,7 +729,7 @@ final class AdminUserController
                 'role_name'          => $roleMap[$sid]['name'] ?? '—',
                 'role_id'            => $roleMap[$sid]['role_id'] ?? null,
                 'role_is_managing'   => !empty($roleMap[$sid]['is_managing']),
-                'store_ded_settings' => $this->stores->getDeductionSettings($sid),
+                'store_ded_settings' => Store::getDeductionSettings($sid),
                 'ded_overrides'      => ['subject_to_deductions' => $mid > 0 ? StoreUser::getSubjectToDeductions($mid) : false],
             ]);
         }

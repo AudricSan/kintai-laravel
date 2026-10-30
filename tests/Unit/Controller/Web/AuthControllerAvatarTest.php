@@ -11,7 +11,7 @@ use App\Models\IcalToken;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use App\Repositories\UserRepositoryInterface;
@@ -33,18 +33,16 @@ final class AuthControllerAvatarTest extends TestCase
 
         $this->users = $this->createMock(UserRepositoryInterface::class);
 
-        $stores          = $this->createStub(StoreRepositoryInterface::class);
         kintai_test_assignments(findByUser: fn() => []);
         $rememberTokens = $this->createStub(UserRepositoryInterface::class);
 
-        $auth = new AuthService($this->users, $stores, $rememberTokens);
+        $auth = new AuthService($this->users, $rememberTokens);
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
             $this->users,
-            $stores,
             $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
         );

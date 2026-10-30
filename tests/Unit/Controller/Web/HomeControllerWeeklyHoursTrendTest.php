@@ -9,7 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\StoreRepositoryInterface;
+use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserDashboardPref;
 use App\Repositories\UserRepositoryInterface;
@@ -45,9 +45,7 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
     {
         $usersRepo = $this->createStub(UserRepositoryInterface::class);
         $usersRepo->method('findAll')->willReturn([]);
-
-        $storesRepo = $this->createStub(StoreRepositoryInterface::class);
-        $storesRepo->method('findAll')->willReturn($stores);
+        kintai_test_stores(findAll: fn() => $stores);
         kintai_test_shifts([]);
         // Widget "store_stats_summary" uniquement : ce test porte sur la tendance
         // hebdomadaire de ce widget précis, pas sur financial_overview/hr_absenteeism
@@ -65,7 +63,6 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
         return new HomeController(
             kintai_test_views(sys_get_temp_dir()),
             $usersRepo,
-            $storesRepo,
             $storeStats,
             $dashboardAlerts,
             $permissions,
