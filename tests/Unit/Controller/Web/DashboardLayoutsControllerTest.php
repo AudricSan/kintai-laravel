@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller\Web;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleDashboardLayoutRepositoryInterface;
+use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\UserDashboardLayoutRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
@@ -22,27 +22,26 @@ final class DashboardLayoutsControllerTest extends TestCase
 {
     private UserDashboardLayoutRepositoryInterface&MockObject $layouts;
     private UserDashboardPrefsRepositoryInterface&MockObject $prefs;
-    private RoleDashboardLayoutRepositoryInterface&MockObject $roleLayouts;
     private RoleRepositoryInterface $roles;
     private DashboardLayoutsController $controller;
 
     protected function setUp(): void
     {
         session()->flush();
+        kintai_test_database();
+        kintai_test_migrate();
         $this->layouts     = $this->createMock(UserDashboardLayoutRepositoryInterface::class);
         $this->prefs       = $this->createMock(UserDashboardPrefsRepositoryInterface::class);
-        $this->roleLayouts = $this->createMock(RoleDashboardLayoutRepositoryInterface::class);
         $this->roles       = $this->createStub(RoleRepositoryInterface::class);
         $this->roles->method('findById')->willReturnCallback(fn(int $id): ?array => $id === 2 ? ['id' => 2, 'name' => 'Manager'] : null);
 
         $resolver = new DashboardLayoutResolver(
             $this->prefs,
-            $this->roleLayouts,
             $this->createStub(RoleAssignmentRepositoryInterface::class),
             $this->roles,
             $this->layouts,
         );
-        $this->controller = new DashboardLayoutsController($this->layouts, $this->prefs, $this->roleLayouts, $this->roles, $resolver, new AuditLogger());
+        $this->controller = new DashboardLayoutsController($this->layouts, $this->prefs, $this->roles, $resolver, new AuditLogger());
     }
 
     protected function tearDown(): void
@@ -151,7 +150,6 @@ final class DashboardLayoutsControllerTest extends TestCase
     {
         $current = ['order' => ['kpi_counters'], 'widths' => []];
         $this->prefs->method('getLayout')->with(1, 'admin')->willReturn($current);
-        $this->roleLayouts->expects($this->once())->method('save')->with(2, 'admin', $current);
 
         // Un gestionnaire non Owner est refusé.
         $this->controller->manageManager($this->request(['action' => 'role_default', 'role_id' => '2'], ['id' => 7, 'is_admin' => 0]));
@@ -160,6 +158,7 @@ final class DashboardLayoutsControllerTest extends TestCase
         // L'Owner l'obtient ; un rôle inconnu est refusé.
         $this->controller->manageManager($this->request(['action' => 'role_default', 'role_id' => '2'], ['id' => 1, 'is_admin' => 1]));
         $this->assertSame(__('dashboard_layouts_saved'), $this->flash());
+        $this->assertSame($current, RoleDashboardLayout::layoutFor(2, 'admin'), 'disposition enregistrée pour le rôle');
         $this->controller->manageManager($this->request(['action' => 'role_default', 'role_id' => '99'], ['id' => 1, 'is_admin' => 1]));
         $this->assertSame(__('dashboard_layouts_role_unknown'), $this->flash());
     }
@@ -167,14 +166,15 @@ final class DashboardLayoutsControllerTest extends TestCase
     public function testRoleDefaultNeedsACustomizedLayoutAndCanBeCleared(): void
     {
         $this->prefs->method('getLayout')->willReturn(null);
-        $this->roleLayouts->expects($this->never())->method('save');
-        $this->roleLayouts->expects($this->once())->method('delete')->with(2, 'admin');
+        RoleDashboardLayout::put(2, 'admin', ['order' => ['kpi_counters'], 'widths' => []]);
 
         $this->controller->manageManager($this->request(['action' => 'role_default', 'role_id' => '2'], ['id' => 1, 'is_admin' => 1]));
         $this->assertSame(__('dashboard_layouts_customize_first'), $this->flash());
+        $this->assertNotNull(RoleDashboardLayout::layoutFor(2, 'admin'), 'rien n\'est effacé par role_default');
 
         $this->controller->manageManager($this->request(['action' => 'role_clear', 'role_id' => '2'], ['id' => 1, 'is_admin' => 1]));
         $this->assertSame(__('dashboard_layouts_saved'), $this->flash());
+        $this->assertNull(RoleDashboardLayout::layoutFor(2, 'admin'));
     }
 
     public function testUnknownActionIsRejected(): void

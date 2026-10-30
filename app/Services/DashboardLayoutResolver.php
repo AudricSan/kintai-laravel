@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleDashboardLayoutRepositoryInterface;
+use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\UserDashboardLayoutRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
@@ -22,7 +22,6 @@ final class DashboardLayoutResolver
 {
     public function __construct(
         private readonly UserDashboardPrefsRepositoryInterface $prefs,
-        private readonly RoleDashboardLayoutRepositoryInterface $roleLayouts,
         private readonly RoleAssignmentRepositoryInterface $assignments,
         private readonly RoleRepositoryInterface $roles,
         private readonly UserDashboardLayoutRepositoryInterface $named,
@@ -45,7 +44,7 @@ final class DashboardLayoutResolver
         foreach ($this->roles->findAll() as $role) {
             $options[(int) $role['id']] = [
                 'name'        => (string) ($role['name'] ?? $role['slug'] ?? ('#' . $role['id'])),
-                'has_default' => $this->roleLayouts->get((int) $role['id'], $dashboardType) !== null,
+                'has_default' => RoleDashboardLayout::layoutFor((int) $role['id'], $dashboardType) !== null,
             ];
         }
         return $options;
@@ -61,7 +60,7 @@ final class DashboardLayoutResolver
     public function roleDefault(int $userId, string $dashboardType): ?array
     {
         foreach ($this->roleIds($userId) as $roleId) {
-            $layout = $this->roleLayouts->get($roleId, $dashboardType);
+            $layout = RoleDashboardLayout::layoutFor($roleId, $dashboardType);
             if ($layout !== null) {
                 return $layout;
             }

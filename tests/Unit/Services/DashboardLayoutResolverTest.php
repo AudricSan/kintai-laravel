@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Repositories\RoleAssignmentRepositoryInterface;
-use App\Repositories\RoleDashboardLayoutRepositoryInterface;
+use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\UserDashboardLayoutRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
@@ -25,8 +25,11 @@ final class DashboardLayoutResolverTest extends TestCase
         $prefs = $this->createStub(UserDashboardPrefsRepositoryInterface::class);
         $prefs->method('getLayout')->willReturn($userLayout);
 
-        $roleLayouts = $this->createStub(RoleDashboardLayoutRepositoryInterface::class);
-        $roleLayouts->method('get')->willReturnCallback(fn(int $roleId, string $type): ?array => $type === 'admin' ? ($roleDefaults[$roleId] ?? null) : null);
+        kintai_test_database();
+        kintai_test_migrate();
+        foreach ($roleDefaults as $roleId => $layout) {
+            RoleDashboardLayout::put($roleId, 'admin', $layout);
+        }
 
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
         $assignments->method('findByUser')->willReturn(array_map(fn(int $id): array => ['role_id' => $id, 'scope_type' => 'global'], $userRoles));
@@ -35,7 +38,7 @@ final class DashboardLayoutResolverTest extends TestCase
         $roles->method('findById')->willReturnCallback(fn(int $id): array => ['id' => $id, 'name' => 'Role ' . $id, 'is_system' => in_array($id, $systemRoles, true) ? 1 : 0]);
         $roles->method('findAll')->willReturn([['id' => 1, 'name' => 'Owner'], ['id' => 2, 'name' => 'Manager']]);
 
-        return new DashboardLayoutResolver($prefs, $roleLayouts, $assignments, $roles, $this->createStub(UserDashboardLayoutRepositoryInterface::class));
+        return new DashboardLayoutResolver($prefs, $assignments, $roles, $this->createStub(UserDashboardLayoutRepositoryInterface::class));
     }
 
     public function testTheUsersOwnLayoutAlwaysWins(): void

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Extension\DashboardLayout;
-use App\Repositories\RoleDashboardLayoutRepositoryInterface;
+use App\Models\RoleDashboardLayout;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\UserDashboardLayoutRepositoryInterface;
 use App\Repositories\UserDashboardPrefsRepositoryInterface;
@@ -37,7 +37,6 @@ final class DashboardLayoutsController
     public function __construct(
         private readonly UserDashboardLayoutRepositoryInterface $layouts,
         private readonly UserDashboardPrefsRepositoryInterface $prefs,
-        private readonly RoleDashboardLayoutRepositoryInterface $roleLayouts,
         private readonly RoleRepositoryInterface $roles,
         private readonly DashboardLayoutResolver $resolver,
         private readonly AuditLogger $auditLogger,
@@ -144,14 +143,14 @@ final class DashboardLayoutsController
             return 'dashboard_layouts_role_unknown';
         }
         if ($clear) {
-            $this->roleLayouts->delete($roleId, $dashboardType);
+            RoleDashboardLayout::where('role_id', $roleId)->where('dashboard_type', $dashboardType)->delete();
             return null;
         }
         $current = $this->prefs->getLayout((int) $user['id'], $dashboardType);
         if ($current === null) {
             return 'dashboard_layouts_customize_first';
         }
-        $this->roleLayouts->save($roleId, $dashboardType, $current);
+        RoleDashboardLayout::put($roleId, $dashboardType, $current);
         return null;
     }
 }

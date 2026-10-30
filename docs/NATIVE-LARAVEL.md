@@ -41,9 +41,10 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 - **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle,
   tests sur base SQLite en mémoire avec `kintai_test_database()` / `kintai_test_migrate()` / `kintai_test_user()`).
-  Faits : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`. Restent 28
-  interfaces (`app/Repositories`), de la plus petite à la plus utilisée : `PasswordReset`, `RouteSlug`, `BundleRegistry`,
-  `RoleDashboardLayout`, `CalendarSync`, `UserDashboardLayout`, `InstalledBundle`, `WebPushSubscription`,
+  Faits : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
+  `RoleDashboardLayout`. Restent 26
+  interfaces (`app/Repositories`), de la plus petite à la plus utilisée : `RouteSlug`, `BundleRegistry`,
+  `CalendarSync`, `UserDashboardLayout`, `InstalledBundle`, `WebPushSubscription`,
   `DevicePushToken`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`, `Log`, `Availability`,
   `UserShiftTypeRate`, `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `User`
   (227 fichiers). Chaque conversion remplace aussi les doubles de test par des tests sur base réelle.

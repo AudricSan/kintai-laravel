@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\DatabaseRoleDashboardLayoutRepository;
+use App\Models\RoleDashboardLayout;
 use App\Repositories\DatabaseUserDashboardLayoutRepository;
 use PHPUnit\Framework\TestCase;
 
@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 final class DashboardLayoutRepositoriesTest extends TestCase
 {
     private DatabaseUserDashboardLayoutRepository $named;
-    private DatabaseRoleDashboardLayoutRepository $roles;
 
     protected function setUp(): void
     {
@@ -21,7 +20,6 @@ final class DashboardLayoutRepositoriesTest extends TestCase
         (require dirname(__DIR__, 3) . '/database/migrations/2026_11_01_000003_create_application_tables.php')->up();
 
         $this->named = new DatabaseUserDashboardLayoutRepository();
-        $this->roles = new DatabaseRoleDashboardLayoutRepository();
     }
 
     private function layout(string ...$order): array
@@ -103,23 +101,23 @@ final class DashboardLayoutRepositoriesTest extends TestCase
 
     public function testRoleDefaultsAreStoredPerRoleAndDashboard(): void
     {
-        $this->assertNull($this->roles->get(3, 'admin'));
+        $this->assertNull(RoleDashboardLayout::layoutFor(3, 'admin'));
 
-        $this->roles->save(3, 'admin', $this->layout('kpi_counters'));
-        $this->roles->save(3, 'admin', $this->layout('shifts_today'));
-        $this->roles->save(3, 'employee', $this->layout('upcoming'));
-        $this->roles->save(4, 'admin', $this->layout('dashboard_alerts'));
+        RoleDashboardLayout::put(3, 'admin', $this->layout('kpi_counters'));
+        RoleDashboardLayout::put(3, 'admin', $this->layout('shifts_today'));
+        RoleDashboardLayout::put(3, 'employee', $this->layout('upcoming'));
+        RoleDashboardLayout::put(4, 'admin', $this->layout('dashboard_alerts'));
 
-        $this->assertSame(['shifts_today'], $this->roles->get(3, 'admin')['order'], 'enregistrer remplace');
-        $this->assertSame(['upcoming'], $this->roles->get(3, 'employee')['order']);
-        $this->assertSame(['dashboard_alerts'], $this->roles->get(4, 'admin')['order']);
+        $this->assertSame(['shifts_today'], RoleDashboardLayout::layoutFor(3, 'admin')['order'], 'enregistrer remplace');
+        $this->assertSame(['upcoming'], RoleDashboardLayout::layoutFor(3, 'employee')['order']);
+        $this->assertSame(['dashboard_alerts'], RoleDashboardLayout::layoutFor(4, 'admin')['order']);
 
-        $this->roles->delete(3, 'admin');
-        $this->assertNull($this->roles->get(3, 'admin'));
-        $this->assertNotNull($this->roles->get(3, 'employee'));
+        RoleDashboardLayout::where('role_id', 3)->where('dashboard_type', 'admin')->delete();
+        $this->assertNull(RoleDashboardLayout::layoutFor(3, 'admin'));
+        $this->assertNotNull(RoleDashboardLayout::layoutFor(3, 'employee'));
 
-        $this->roles->deleteForRole(3);
-        $this->assertNull($this->roles->get(3, 'employee'));
-        $this->assertNotNull($this->roles->get(4, 'admin'));
+        RoleDashboardLayout::where('role_id', 3)->delete();
+        $this->assertNull(RoleDashboardLayout::layoutFor(3, 'employee'));
+        $this->assertNotNull(RoleDashboardLayout::layoutFor(4, 'admin'));
     }
 }
