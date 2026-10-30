@@ -5,24 +5,17 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * Écrit une variable dans le fichier d'environnement de l'instance, celui que kintai_load_env_file() charge
- * (.env.local, sinon .env.ovh, sinon .env ; .env est créé s'il n'y en a aucun). La ligne existante est remplacée,
+ * Écrit une variable dans le fichier d'environnement de l'instance, le .env que Laravel charge (créé s'il n'existe
+ * pas). La ligne existante est remplacée,
  * les autres lignes (commentaires compris) restent telles quelles, et la valeur prend effet dans la requête en cours.
  */
 final class EnvFileWriter
 {
-    private const FILES = ['.env.local', '.env.ovh', '.env'];
-
     public function __construct(private readonly string $basePath = BASE_PATH) {}
 
-    /** Fichier qui reçoit l'écriture : le premier existant de l'ordre de chargement, sinon .env. */
+    /** Fichier qui reçoit l'écriture. */
     public function path(): string
     {
-        foreach (self::FILES as $name) {
-            if (file_exists($this->basePath . '/' . $name)) {
-                return $this->basePath . '/' . $name;
-            }
-        }
         return $this->basePath . '/.env';
     }
 

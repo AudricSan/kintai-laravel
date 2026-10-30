@@ -43,9 +43,8 @@ use App\Cron\CronRunner;
 use App\InstalledBundleAutoloader;
 use Illuminate\Http\Request;
 
-// Même démarrage que le front controller (public/index.php) : fichier .env, puis classes des bundles installés,
-// sans lesquelles les tâches des bundles ne seraient pas disponibles.
-kintai_load_env_file(BASE_PATH);
+// Même démarrage que le front controller (public/index.php) : classes des bundles installés, sans lesquelles
+// les tâches des bundles ne seraient pas disponibles.
 (new InstalledBundleAutoloader())->register();
 
 if (!file_exists(storage_path('installed.lock'))) {

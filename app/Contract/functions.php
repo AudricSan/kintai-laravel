@@ -47,7 +47,7 @@ return [
         'storage_path'        => ['since' => '1.0.0', 'status' => 'provisoire', 'params' => ['path'], 'returns' => 'string', 'role' => 'Chemin du dossier de stockage de l\'instance ; sera remplacé par un service de fichiers du bundle.'],
     ],
     'internal' => [
-        'env', 'kintai_installed_via_database', 'kintai_load_env_file', 'kintai_normalize_script_name',
+        'env', 'kintai_installed_via_database', 'kintai_normalize_script_name',
         'bundle_enabled', 'feat_bundle', 'hash_token', 'render_markdown', 'asset_version', 'mascot_path', 'mascot_active',
         'notification_type_catalog', 'notification_type_label', 'notification_type_icon', 'notification_body', 'notification_badge_label',
         'instance_locale', 'audit_action_label', 'safe_color', 'wcag_contrast_color', 'shift_day_reference',

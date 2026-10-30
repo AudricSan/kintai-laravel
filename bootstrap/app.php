@@ -60,12 +60,5 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })
     ->create();
 
-// Même fichier d'environnement que Kintai (.env.local, puis .env.ovh, puis .env : voir kintai_load_env_file()).
-foreach (['.env.local', '.env.ovh', '.env'] as $envFile) {
-    if (is_file($app->basePath($envFile))) {
-        $app->loadEnvironmentFrom($envFile);
-        break;
-    }
-}
 
 return $app;

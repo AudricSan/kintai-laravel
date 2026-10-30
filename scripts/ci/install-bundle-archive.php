@@ -27,7 +27,6 @@ use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\BundleInstaller\BundlePermissionGranter;
 use App\Services\UpdateService;
 
-kintai_load_env_file(BASE_PATH);
 (new InstalledBundleAutoloader())->register();
 $app = require BASE_PATH . '/bootstrap/boot.php';
 $c = $app;

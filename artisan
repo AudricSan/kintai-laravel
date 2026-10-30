@@ -9,7 +9,6 @@ define('BASE_PATH', __DIR__);
 define('LARAVEL_START', microtime(true));
 
 require __DIR__ . '/vendor/autoload.php';
-kintai_load_env_file(BASE_PATH);
 
 /** @var Illuminate\Foundation\Application $app */
 $app = require_once __DIR__ . '/bootstrap/app.php';

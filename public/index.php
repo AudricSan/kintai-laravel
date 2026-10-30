@@ -8,8 +8,6 @@ define('BASE_PATH', dirname(__DIR__));
 define('LARAVEL_START', microtime(true));
 
 require BASE_PATH . '/vendor/autoload.php';
-// Fichier .env (.env.local → .env.ovh → .env), voir kintai_load_env_file().
-kintai_load_env_file(BASE_PATH);
 kintai_normalize_script_name();
 
 /** @var Illuminate\Foundation\Application $app */

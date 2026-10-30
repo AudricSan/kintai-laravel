@@ -49,16 +49,13 @@ final class EnvFileWriterTest extends TestCase
         $this->assertSame("APP_NAME=Kintai\nKINTAI_TEST_VAR=fr\n", file_get_contents($this->dir . '/.env'));
     }
 
-    public function testWritesTheFileThatIsActuallyLoaded(): void
+    public function testWritesTheDotEnvFileThatLaravelLoads(): void
     {
-        // kintai_load_env_file() ne charge que le premier fichier présent : .env.local avant .env.
-        file_put_contents($this->dir . '/.env.local', "KINTAI_TEST_VAR=fr\n");
         file_put_contents($this->dir . '/.env', "KINTAI_TEST_VAR=fr\n");
 
         (new EnvFileWriter($this->dir))->set('KINTAI_TEST_VAR', 'ja');
 
-        $this->assertSame("KINTAI_TEST_VAR=ja\n", file_get_contents($this->dir . '/.env.local'));
-        $this->assertSame("KINTAI_TEST_VAR=fr\n", file_get_contents($this->dir . '/.env'));
+        $this->assertSame("KINTAI_TEST_VAR=ja\n", file_get_contents($this->dir . '/.env'));
     }
 
     public function testRefusesAValueThatWouldBreakTheFile(): void
