@@ -10,7 +10,7 @@ use App\Exceptions\NotFoundException;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
-use App\Repositories\TimesheetApprovalRepositoryInterface;
+use App\Models\TimesheetApproval;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,7 +33,6 @@ final class AdminTimesheetController
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly TimesheetService $timesheets,
-        private readonly TimesheetApprovalRepositoryInterface $approvals,
         private readonly PermissionService $permissions,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -59,7 +58,7 @@ final class AdminTimesheetController
             $store = $this->stores->findById($storeId);
             $weekStart = $this->weekStart($store, (string) ($request->query('week') ?? ''));
             $data = $this->timesheets->week($storeId, $weekStart);
-            $approval = $this->approvals->find($storeId, $weekStart);
+            $approval = TimesheetApproval::where('store_id', $storeId)->where('week_start', $weekStart)->first();
             $canApprove = $this->permissions->can($user, 'shifts.update', $storeId);
         }
 
@@ -119,7 +118,12 @@ final class AdminTimesheetController
         $data = $this->timesheets->week($storeId, $weekStart);
         $userId = (int) (($request->attributes->get('auth_user') ?? [])['id'] ?? 0);
         $totals = array_map(static fn(array $t): array => ['planned_minutes' => $t['planned_minutes'], 'worked_minutes' => $t['worked_minutes']], $data['totals']);
-        $saved = $this->approvals->approve($storeId, $weekStart, $userId > 0 ? $userId : null, $data['fingerprint'], $totals);
+        TimesheetApproval::updateOrCreate(['store_id' => $storeId, 'week_start' => $weekStart], [
+            'approved_by' => $userId > 0 ? $userId : null,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'fingerprint' => $data['fingerprint'],
+            'totals'      => $totals,
+        ]);
         $this->auditLogger->log($request, 'timesheet.approved', 'store', $storeId, [
             'week'      => $weekStart,
             'anomalies' => array_sum(array_column($data['totals'], 'anomalies')),
@@ -127,14 +131,14 @@ final class AdminTimesheetController
             'worked'    => array_sum(array_column($totals, 'worked_minutes')),
         ], $storeId);
 
-        return $this->back($storeId, $saved['week_start'], 'approved');
+        return $this->back($storeId, $weekStart, 'approved');
     }
 
     /** POST /admin/timesheets/reopen — annule la validation de la semaine. */
     public function reopen(Request $request): Response
     {
         [$storeId, , $weekStart] = $this->target($request, 'shifts.update', fn(string $k) => $request->post($k));
-        if ($this->approvals->reopen($storeId, $weekStart) > 0) {
+        if (TimesheetApproval::where('store_id', $storeId)->where('week_start', $weekStart)->delete() > 0) {
             $this->auditLogger->log($request, 'timesheet.reopened', 'store', $storeId, ['week' => $weekStart], $storeId);
         }
         return $this->back($storeId, $weekStart, 'reopened');

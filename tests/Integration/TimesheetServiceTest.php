@@ -10,7 +10,7 @@ use Illuminate\Container\Container;
 use App\Extension\Attendances;
 use App\Extension\ExtensionRegistry;
 use App\Repositories\DatabaseShiftRepository;
-use App\Repositories\DatabaseTimesheetApprovalRepository;
+use App\Models\TimesheetApproval;
 use App\Services\TimesheetService;
 use Tests\Support\FakeAttendanceProvider;
 use Tests\Support\FakeBundleManagerFactory;
@@ -186,18 +186,18 @@ final class TimesheetServiceTest extends TestCase
         $shift = $this->shift($this->alice, '2026-11-02');
         $service = $this->service([]);
         $week = $service->week($this->store, '2026-11-02', $this->sunday);
-        $approvals = new DatabaseTimesheetApprovalRepository();
+        $key = ['store_id' => $this->store, 'week_start' => '2026-11-02'];
 
-        $saved = $approvals->approve($this->store, '2026-11-02', $this->alice, $week['fingerprint'], [$this->alice => ['planned_minutes' => 420, 'worked_minutes' => 0]]);
-        $this->assertSame($saved['id'], $approvals->approve($this->store, '2026-11-02', $this->bob, $week['fingerprint'], [])['id'], 'une seule validation par semaine');
-        $found = $approvals->find($this->store, '2026-11-02');
+        $saved = TimesheetApproval::updateOrCreate($key, ['approved_by' => $this->alice, 'approved_at' => date('Y-m-d H:i:s'), 'fingerprint' => $week['fingerprint'], 'totals' => [$this->alice => ['planned_minutes' => 420, 'worked_minutes' => 0]]]);
+        $this->assertSame($saved->id, TimesheetApproval::updateOrCreate($key, ['approved_by' => $this->bob, 'approved_at' => date('Y-m-d H:i:s'), 'fingerprint' => $week['fingerprint'], 'totals' => []])->id, 'une seule validation par semaine');
+        $found = TimesheetApproval::where($key)->first();
         $this->assertSame($this->bob, $found['approved_by']);
         $this->assertSame($week['fingerprint'], $found['fingerprint']);
 
         $this->shifts->save(['id' => $shift['id'], 'end_time' => '18:00', 'ends_at' => '2026-11-02 18:00:00']);
         $this->assertNotSame($found['fingerprint'], $service->week($this->store, '2026-11-02', $this->sunday)['fingerprint']);
 
-        $this->assertSame(1, $approvals->reopen($this->store, '2026-11-02'));
-        $this->assertNull($approvals->find($this->store, '2026-11-02'));
+        $this->assertSame(1, TimesheetApproval::where($key)->delete());
+        $this->assertNull(TimesheetApproval::where($key)->first());
     }
 }
