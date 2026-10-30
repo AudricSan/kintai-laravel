@@ -196,7 +196,7 @@ Route::post('/admin/dashboard/layouts', [DashboardLayoutsController::class, 'man
 // Routes administration (web)
 // =============================================================================
 
-Route::prefix('admin')->middleware([AuthMiddleware::class, SubstituteBindings::class, PermissionMiddleware::class])->group(function () {
+Route::prefix('admin')->middleware([AuthMiddleware::class, PermissionMiddleware::class, SubstituteBindings::class])->group(function () {
 
     // Configuration organisation
     Route::get('/owner-settings', [OwnerSettingsController::class, 'show'])->middleware([OwnerOnlyMiddleware::class])->name('admin.owner_settings')->permission('public');
