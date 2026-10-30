@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Models\IcalToken;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Extension\Absences;
@@ -26,7 +26,6 @@ final class IcalController
     public function __construct(
         private readonly IcalService                        $ical,
         private readonly ShiftRepositoryInterface           $shifts,
-        private readonly ShiftTypeRepositoryInterface       $shiftTypes,
         private readonly StoreRepositoryInterface           $stores,
         private readonly UserRepositoryInterface            $users,
         private readonly AuthService                        $auth,
@@ -80,7 +79,7 @@ final class IcalController
         ));
 
         $typesMap = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
 

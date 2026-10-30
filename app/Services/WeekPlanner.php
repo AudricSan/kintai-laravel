@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Extension\Absences;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 
@@ -27,7 +27,6 @@ final class WeekPlanner
 
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly AvailabilityGuard $availability,
@@ -73,7 +72,7 @@ final class WeekPlanner
     {
         $start   = new \DateTimeImmutable($targetStart);
         $members = $this->activeMemberIds($storeId);
-        $types   = $this->shiftTypes->findActive($storeId);
+        $types   = ShiftType::findActive($storeId);
         $created = [];
         $skipped = [];
 

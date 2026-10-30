@@ -10,7 +10,7 @@ use App\Extension\DashboardLayout;
 use App\Extension\DashboardWidgets;
 use App\Extension\PendingRequests;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Extension\Attendances;
@@ -66,7 +66,6 @@ final class HomeController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreStatsServiceInterface $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
@@ -457,7 +456,7 @@ final class HomeController
                 }
             }
 
-            $storeTypesMap = array_column($this->shiftTypes->findByStore($sid), null, 'id');
+            $storeTypesMap = array_column(ShiftType::findByStore($sid), null, 'id');
             $hoursByUserWeek = [];
             foreach ($periodShifts as $s) {
                 $wage = $wageCalc->costOf($s, $storeTypesMap);

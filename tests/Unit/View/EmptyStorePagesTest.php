@@ -6,7 +6,7 @@ namespace Tests\Unit\View;
 
 use Illuminate\Container\Container;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -30,6 +30,7 @@ final class EmptyStorePagesTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_shift_types([]);
         $this->view = kintai_test_views(self::VIEWS);
         session()->put('_token', 'test-token');
         $router = kintai_test_registrar();
@@ -47,7 +48,6 @@ final class EmptyStorePagesTest extends TestCase
         $service = new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(ShiftRepositoryInterface::class),
-            $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             $roleSync,

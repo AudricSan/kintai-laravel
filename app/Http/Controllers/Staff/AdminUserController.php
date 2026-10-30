@@ -14,7 +14,7 @@ use App\Exceptions\NotFoundException;
 use App\Exceptions\PlanLimitExceededException;
 use App\Extension\Events;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -40,7 +40,6 @@ final class AdminUserController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
@@ -123,7 +122,6 @@ final class AdminUserController
         // pour que ce montant "Salaire est." ne diverge plus des autres pages.
         $employeeStatsService = new EmployeeStatsService(
             $this->shifts,
-            $this->shiftTypes,
             $this->storeUsers,
             $this->stores,
         );
@@ -364,7 +362,7 @@ final class AdminUserController
         ));
 
         $shiftTypeNames = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $shiftTypeNames[(int) $t['id']] = $t['name'] ?? ('#' . $t['id']);
         }
 
@@ -688,7 +686,7 @@ final class AdminUserController
 
         $userShiftTypes = empty($userStoreIds)
             ? []
-            : $this->shiftTypes->findByStores($userStoreIds);
+            : ShiftType::findByStores($userStoreIds);
 
         // Taux actuels indexés par shift_type_id
         $userRates = [];
@@ -710,7 +708,7 @@ final class AdminUserController
             $tid = (int) $t['id'];
             $names = array_values(array_filter(array_map(
                 fn ($sid) => $storesMap[$sid] ?? null,
-                array_intersect($this->shiftTypes->getStoreIds($tid), $userStoreIds),
+                array_intersect(ShiftType::getStoreIds($tid), $userStoreIds),
             )));
             sort($names);
             $typeStoreNames[$tid] = $names;
@@ -721,7 +719,7 @@ final class AdminUserController
         $shiftTypesByStore = [];
         foreach ($userShiftTypes as $t) {
             $tid = (int) $t['id'];
-            foreach (array_intersect($this->shiftTypes->getStoreIds($tid), $userStoreIds) as $sid) {
+            foreach (array_intersect(ShiftType::getStoreIds($tid), $userStoreIds) as $sid) {
                 $shiftTypesByStore[$sid][] = $t;
             }
         }
@@ -933,9 +931,9 @@ final class AdminUserController
         $rateRaw     = $request->post('hourly_rate', '');
 
         // Vérifier que le type de shift est activé sur au moins un store accessible
-        $type = $this->shiftTypes->findById($shiftTypeId);
+        $type = ShiftType::findById($shiftTypeId);
         if ($type !== null) {
-            $this->assertAnyStoreAccess($request, $this->shiftTypes->getStoreIds($shiftTypeId));
+            $this->assertAnyStoreAccess($request, ShiftType::getStoreIds($shiftTypeId));
         }
 
         $existing = UserShiftTypeRate::findRate($userId, $shiftTypeId);
@@ -983,9 +981,9 @@ final class AdminUserController
 
         $rate = UserShiftTypeRate::findById($rid);
         if ($rate !== null && (int) $rate['user_id'] === $userId) {
-            $type = $this->shiftTypes->findById((int) $rate['shift_type_id']);
+            $type = ShiftType::findById((int) $rate['shift_type_id']);
             if ($type !== null) {
-                $this->assertAnyStoreAccess($request, $this->shiftTypes->getStoreIds((int) $type['id']));
+                $this->assertAnyStoreAccess($request, ShiftType::getStoreIds((int) $type['id']));
             }
             UserShiftTypeRate::remove($rid);
             $this->auditLogger->log($request, 'user_rate.deleted', 'user_rate', $rid, [

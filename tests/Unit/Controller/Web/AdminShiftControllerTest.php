@@ -15,7 +15,7 @@ use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -38,7 +38,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminShiftControllerTest extends TestCase
 {
     private ShiftRepositoryInterface&Stub $shifts;
-    private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     private StoreRepositoryInterface&Stub $stores;
     private ShiftServiceInterface&Stub $shiftService;
     private NotificationService&Stub $notifs;
@@ -57,7 +56,6 @@ final class AdminShiftControllerTest extends TestCase
         $this->ensureViewFile('layout.app');
         
         $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->shiftService = $this->createStub(ShiftServiceInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
@@ -79,7 +77,6 @@ final class AdminShiftControllerTest extends TestCase
                 $this->users,
                 $this->stores,
                 $this->shifts,
-                $this->shiftTypes,
                 $this->storeUsers,
                 $auditLogger,
                 $this->notifs,
@@ -99,7 +96,7 @@ final class AdminShiftControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->shifts->method('findBetween')->willReturn([]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([]);
 
         $response = $this->controller()->shifts($req);
@@ -124,7 +121,7 @@ final class AdminShiftControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         $this->shifts->method('findBetween')->willReturn([]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([]);
 
         $response = $this->controller()->shifts($req);
@@ -235,7 +232,6 @@ final class AdminShiftControllerTest extends TestCase
      */
     public function testQuickShiftAutoComputesDominantShiftType(): void
     {
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $req = $this->makeJsonRequest([
             'store_id'   => 1,
             'user_id'    => 5,
@@ -245,7 +241,7 @@ final class AdminShiftControllerTest extends TestCase
         ]);
         $req->attributes->set('managed_store_ids', null);
 
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findActive')->with(1)->willReturn([
+        kintai_test_shift_types([
             ['id' => 3, 'name' => 'Matin', 'start_time' => '08:00', 'end_time' => '12:00', 'hourly_rate' => 1000.0],
             ['id' => 4, 'name' => 'Aprem', 'start_time' => '12:00', 'end_time' => '20:00', 'hourly_rate' => 1200.0],
         ]);
@@ -339,7 +335,6 @@ final class AdminShiftControllerTest extends TestCase
     public function testStoreShiftAutoComputesDominantShiftType(): void
     {
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_POST = [
             'store_id'   => '1',
             'user_id'    => '5',
@@ -350,7 +345,7 @@ final class AdminShiftControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findActive')->with(1)->willReturn([
+        kintai_test_shift_types([
             ['id' => 3, 'name' => 'Matin', 'start_time' => '08:00', 'end_time' => '12:00', 'hourly_rate' => 1000.0],
             ['id' => 4, 'name' => 'Aprem', 'start_time' => '12:00', 'end_time' => '20:00', 'hourly_rate' => 1200.0],
         ]);
@@ -399,7 +394,6 @@ final class AdminShiftControllerTest extends TestCase
     public function testStoreShiftRejectsShiftTypeNotEnabledForStore(): void
     {
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_POST = [
             'store_id'   => '1',
             'user_id'    => '5',
@@ -410,7 +404,7 @@ final class AdminShiftControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
 
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findActive')->with(1)->willReturn([
+        kintai_test_shift_types([
             ['id' => 3, 'name' => 'Matin', 'start_time' => '08:00', 'end_time' => '12:00', 'hourly_rate' => 1000.0],
             ['id' => 4, 'name' => 'Aprem', 'start_time' => '12:00', 'end_time' => '20:00', 'hourly_rate' => 1200.0],
         ]);
@@ -595,7 +589,6 @@ final class AdminShiftControllerTest extends TestCase
     public function testUpdateShiftAutoComputesDominantShiftType(): void
     {
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $existing = [
             'id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-02',
             'start_time' => '09:00', 'end_time' => '17:00', 'is_open' => 0,
@@ -612,7 +605,7 @@ final class AdminShiftControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 10]);
 
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findActive')->with(1)->willReturn([
+        kintai_test_shift_types([
             ['id' => 3, 'name' => 'Matin', 'start_time' => '08:00', 'end_time' => '12:00', 'hourly_rate' => 1000.0],
             ['id' => 4, 'name' => 'Aprem', 'start_time' => '12:00', 'end_time' => '20:00', 'hourly_rate' => 1200.0],
         ]);
@@ -825,7 +818,6 @@ final class AdminShiftControllerTest extends TestCase
     public function testUpdateShiftRejectsShiftTypeNotEnabledForStore(): void
     {
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $existing = [
             'id' => 10, 'store_id' => 1, 'user_id' => 5, 'shift_date' => '2026-08-02',
             'start_time' => '09:00', 'end_time' => '17:00', 'is_open' => 0,
@@ -842,7 +834,7 @@ final class AdminShiftControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => 10]);
 
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findActive')->with(1)->willReturn([
+        kintai_test_shift_types([
             ['id' => 3, 'name' => 'Matin', 'start_time' => '08:00', 'end_time' => '12:00', 'hourly_rate' => 1000.0],
             ['id' => 4, 'name' => 'Aprem', 'start_time' => '12:00', 'end_time' => '20:00', 'hourly_rate' => 1200.0],
         ]);
@@ -927,8 +919,8 @@ final class AdminShiftControllerTest extends TestCase
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
         $this->stores->method('findById')->willReturn(['id' => 1, 'name' => 'Store 1']);
         $this->shifts->method('findByStore')->willReturn([]);
-        $this->shiftTypes->method('findByStores')->willReturn([]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
+        kintai_test_shift_types([]);
         $this->storeUsers->method('findByStore')->willReturn([
             ['store_id' => 1, 'user_id' => 10],
             ['store_id' => 1, 'user_id' => 11],
@@ -961,8 +953,8 @@ final class AdminShiftControllerTest extends TestCase
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store 1']]);
         $this->stores->expects($this->atLeastOnce())->method('findById')->with(1)->willReturn(['id' => 1, 'name' => 'Store 1']);
         $this->shifts->method('findByStore')->willReturn([]);
-        $this->shiftTypes->method('findByStores')->willReturn([]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
+        kintai_test_shift_types([]);
         $this->storeUsers->method('findByStore')->willReturn([]);
         $this->users->method('findAll')->willReturn([]);
 

@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\ShiftSwap\Controllers\Web;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Data\ShiftRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -28,7 +28,6 @@ final class EmployeeSwapController
         private readonly ViewFactory $view,
         private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -106,7 +105,7 @@ final class EmployeeSwapController
         }
 
         $typesMap = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
 

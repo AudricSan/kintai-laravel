@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserDashboardPref;
@@ -51,9 +51,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
         $shiftsRepo->method('findAllByDate')->willReturn([]);
         $shiftsRepo->method('findByStore')->willReturn([]);
-
-        $shiftTypesRepo = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $shiftTypesRepo->method('findByStore')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->seedWidgets(1, 'admin', $enabledWidgets);
 
         $storeUsersRepo = $this->createStub(StoreUserRepositoryInterface::class);
@@ -89,7 +87,6 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
             $usersRepo,
             $storesRepo,
             $shiftsRepo,
-            $shiftTypesRepo,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

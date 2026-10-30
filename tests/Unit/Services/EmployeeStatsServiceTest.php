@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -25,7 +25,6 @@ final class EmployeeStatsServiceTest extends TestCase
     use \Tests\Support\UserRateExpectations;
 
     private ShiftRepositoryInterface&Stub $shifts;
-    private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
     private EmployeeStatsService $service;
@@ -33,18 +32,16 @@ final class EmployeeStatsServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
 
         $this->service = new EmployeeStatsService(
             $this->shifts,
-            $this->shiftTypes,
             $this->storeUsers,
             $this->stores,
         );
 
-        $this->shiftTypes->method('findAll')->willReturn([
+        kintai_test_shift_types([
             ['id' => 1, 'name' => 'Matin', 'hourly_rate' => 1000.0],
         ]);
         $this->storeUsers->method('findByUser')->willReturn([]);
@@ -92,7 +89,6 @@ final class EmployeeStatsServiceTest extends TestCase
         $this->seedRate(1, 1, 1500.0);
         $this->service = new EmployeeStatsService(
             $this->shifts,
-            $this->shiftTypes,
             $this->storeUsers,
             $this->stores,
         );

@@ -18,7 +18,7 @@ use kintai\Contract\Bundle;
 use kintai\Contract\Container;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Extension\NavItem;
@@ -78,7 +78,6 @@ final class DailyReportBundle extends Bundle
             $c->make(ViewFactory::class),
             $c->make(TranslationService::class),
             $c->make(ShiftRepositoryInterface::class),
-            $c->make(ShiftTypeRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
         ));
         $container->singleton(DailyReportMailService::class, fn(Container $c) => new DailyReportMailService(

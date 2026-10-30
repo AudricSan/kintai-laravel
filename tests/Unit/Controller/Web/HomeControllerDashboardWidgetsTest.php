@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserDashboardPref;
@@ -48,7 +48,6 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
         $shifts->method('findAllByDate')->willReturn([]);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findByStore')->willReturn([]);
-        $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
         $permissions = new PermissionService(
             $this->createStub(RoleAssignmentRepositoryInterface::class),
@@ -61,7 +60,6 @@ final class HomeControllerDashboardWidgetsTest extends TestCase
             $users,
             $stores,
             $shifts,
-            $shiftTypes,
             $storeUsers,
             $storeStats,
             $dashboardAlerts,

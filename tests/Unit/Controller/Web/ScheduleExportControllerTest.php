@@ -12,7 +12,7 @@ use App\Repositories\JsonTranslationRepository;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -50,8 +50,7 @@ final class ScheduleExportControllerTest extends TestCase
             ['id' => 2, 'store_id' => 4, 'shift_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
             ['id' => 3, 'store_id' => 3, 'shift_date' => '2027-06-01', 'start_time' => '09:00', 'end_time' => '17:00', 'pause_minutes' => 0, 'shift_type_id' => 7],
         ]);
-        $types = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $types->method('findAll')->willReturn([['id' => 7, 'name' => 'Matin']]);
+        kintai_test_shift_types([['id' => 7, 'name' => 'Matin']]);
 
         $translations = kintai_test_real_translator();
 
@@ -65,7 +64,6 @@ final class ScheduleExportControllerTest extends TestCase
                 $this->createStub(UserRepositoryInterface::class),
             ),
             $this->shifts,
-            $types,
             $stores,
             $this->storeUsers,
             new ScheduleExportService(),

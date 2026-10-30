@@ -18,7 +18,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
@@ -93,8 +93,7 @@ final class PlanningCheckServiceTest extends TestCase
 
         $shiftsRepo = $this->createStub(ShiftRepositoryInterface::class);
         $shiftsRepo->method('findByDate')->willReturnCallback(fn(int $storeId, string $date): array => $this->shifts);
-        $types = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $types->method('findByStore')->willReturn([['id' => 1, 'name' => 'Journée', 'color' => '#fff']]);
+        kintai_test_shift_types([['id' => 1, 'name' => 'Journée', 'color' => '#fff']]);
 
         // 7 est approbateur, 5 ne l'est pas ; 99 est Owner (rôle système global).
         $assignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
@@ -138,7 +137,7 @@ final class PlanningCheckServiceTest extends TestCase
             $pdf,
             new \App\Services\UserSelection($members, $users, $permissions),
         );
-        $rows = new PlanningShiftRows($shiftsRepo, $types, $users);
+        $rows = new PlanningShiftRows($shiftsRepo, $users);
         $this->service = new PlanningCheckService($this->repo, $stores, $members, $users, $permissions, $notifications, $rows, $pdf, $mail);
         $this->resolverDeps = [$stores, $rows];
         $_SESSION = [];

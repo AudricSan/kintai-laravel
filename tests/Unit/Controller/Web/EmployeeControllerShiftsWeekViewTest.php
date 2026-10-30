@@ -13,7 +13,7 @@ use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
@@ -52,19 +52,17 @@ final class EmployeeControllerShiftsWeekViewTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->shifts      = $this->createStub(ShiftRepositoryInterface::class);
         $users             = $this->createStub(UserRepositoryInterface::class);
-        $shiftTypes        = $this->createStub(ShiftTypeRepositoryInterface::class);
         $stores            = $this->createStub(StoreRepositoryInterface::class);
 
         $this->storeUsers->method('findByUser')->willReturn([]);
         $this->shifts->method('findByUser')->willReturn([]);
         $users->method('findAll')->willReturn([]);
-        $shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $stores->method('findAll')->willReturn([]);
 
         $this->controller = new EmployeeController(
             kintai_test_views($viewDir),
             $this->shifts,
-            $shiftTypes,
             $stores,
             $this->storeUsers,
             $users,

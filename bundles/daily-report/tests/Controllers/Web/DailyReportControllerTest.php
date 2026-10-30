@@ -13,7 +13,7 @@ use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
@@ -39,7 +39,6 @@ use PHPUnit\Framework\TestCase;
 final class DailyReportControllerTest extends TestCase
 {
     private ShiftRepositoryInterface&Stub $shifts;
-    private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     private UserRepositoryInterface&Stub $users;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private StoreRepositoryInterface&Stub $stores;
@@ -52,7 +51,6 @@ final class DailyReportControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->users      = $this->createStub(UserRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->notifs     = $this->createStub(NotificationService::class);
@@ -75,7 +73,6 @@ final class DailyReportControllerTest extends TestCase
                 kintai_test_views(sys_get_temp_dir()),
                 $translations,
                 $this->shifts,
-                $this->shiftTypes,
                 $this->users,
             );
             $mailService = new DailyReportMailService(
@@ -96,7 +93,6 @@ final class DailyReportControllerTest extends TestCase
                 new AuditLogger(),
                 $translations,
                 $this->shifts,
-                $this->shiftTypes,
                 $this->notifs,
                 $permissionService,
                 new \App\Services\UserSelection($this->storeUsers, $this->users, $permissionService),
@@ -109,7 +105,6 @@ final class DailyReportControllerTest extends TestCase
     public function testGetFormShiftRowsExcludesShiftsFromUsersNotMemberOfStore(): void
     {
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $storeId = 1;
         $date    = '2026-08-01';
 
@@ -119,7 +114,7 @@ final class DailyReportControllerTest extends TestCase
             ['user_id' => 10, 'shift_type_id' => 0, 'start_time' => '09:00:00', 'end_time' => '17:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60, 'deleted_at' => null],
             ['user_id' => 20, 'shift_type_id' => 0, 'start_time' => '10:00:00', 'end_time' => '18:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60, 'deleted_at' => null],
         ]);
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findByStore')->with($storeId)->willReturn([]);
+        kintai_test_shift_types([]);
 
         $this->storeUsers->method('findMembership')->willReturnCallback(
             fn(int $sid, int $uid) => ($sid === $storeId && $uid === 10) ? ['id' => 1, 'store_id' => $sid, 'user_id' => $uid] : null

@@ -8,7 +8,7 @@ namespace Tests\Bundles\ShiftClaim\Controllers\Web;
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\AdminShiftClaimController;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -24,7 +24,6 @@ use PHPUnit\Framework\TestCase;
 final class AdminShiftClaimControllerTest extends TestCase
 {
     private ShiftRepositoryInterface&Stub $shifts;
-    private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     private StoreRepositoryInterface&Stub $stores;
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private ShiftClaimRepositoryInterface&Stub $shiftClaims;
@@ -40,7 +39,6 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
         $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->shiftClaims = $this->createStub(ShiftClaimRepositoryInterface::class);
@@ -61,7 +59,6 @@ final class AdminShiftClaimControllerTest extends TestCase
                 $this->stores,
                 $this->storeUsers,
                 $this->shifts,
-                $this->shiftTypes,
                 $this->shiftClaims,
                 $this->shiftService,
                 new AuditLogger(),
@@ -92,7 +89,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->shifts->method('findOpen')->willReturn([
             ['id' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->expects($this->atLeastOnce())->method('findByShift')->with(1)->willReturn([
             ['id' => 10, 'user_id' => 9, 'status' => 'pending'],
@@ -114,7 +111,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5],
             ['id' => 2, 'shift_date' => '2026-08-02', 'store_id' => 5],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->method('findByShift')->willReturn([]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(4, 'open_shift', [1, 2]);
@@ -421,7 +418,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5, 'shift_type_id' => 10],
             ['id' => 2, 'shift_date' => '2026-08-02', 'store_id' => 5, 'shift_type_id' => 20],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([
+        kintai_test_shift_types([
             ['id' => 10, 'name' => 'Matin'],
             ['id' => 20, 'name' => 'Soir'],
         ]);
@@ -451,7 +448,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5, 'shift_type_id' => 10],
             ['id' => 2, 'shift_date' => '2026-08-02', 'store_id' => 5, 'shift_type_id' => 20],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([['id' => 5, 'name' => 'Store A']]);
         $this->shiftClaims->method('findByShift')->willReturnMap([
             [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending']]],
@@ -477,7 +474,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'shift_date' => '2026-08-01', 'store_id' => 1],
             ['id' => 2, 'shift_date' => '2026-08-02', 'store_id' => 2],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
@@ -508,7 +505,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'shift_date' => '2026-08-01', 'store_id' => 1],
             ['id' => 2, 'shift_date' => '2026-08-02', 'store_id' => 2],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
         $this->stores->method('findAll')->willReturn([
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],

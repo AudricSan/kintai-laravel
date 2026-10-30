@@ -14,7 +14,7 @@ use App\Export\ExportWriter;
 use App\Extension\Absences;
 use App\Extension\ExportDatasets;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,7 +47,6 @@ final class ExportController
         private readonly UserSelection                $selection,
         private readonly StoreRepositoryInterface     $stores,
         private readonly ShiftRepositoryInterface     $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly ScheduleExportService        $schedule,
         private readonly IcalService                  $ical,
         private readonly AuditLogger                  $auditLogger,
@@ -208,7 +207,7 @@ final class ExportController
         $shifts = $this->schedule->select($mine, $query->from, $query->to);
 
         $types = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $types[(int) $t['id']] = $t;
         }
         $timeoffs = array_values(array_filter(

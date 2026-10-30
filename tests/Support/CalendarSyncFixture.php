@@ -7,7 +7,7 @@ namespace Tests\Support;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
 use App\Repositories\DatabaseShiftRepository;
-use App\Repositories\DatabaseShiftTypeRepository;
+use App\Models\ShiftType;
 use App\Repositories\DatabaseStoreRepository;
 use App\Repositories\DatabaseUserRepository;
 use App\Repositories\JsonLanguageRepository;
@@ -100,7 +100,6 @@ trait CalendarSyncFixture
             $this->google,
             $this->secrets,
             $this->shifts,
-            new DatabaseShiftTypeRepository(),
             new DatabaseStoreRepository(),
             new DatabaseUserRepository(),
             new CalendarEventBuilder($translations),

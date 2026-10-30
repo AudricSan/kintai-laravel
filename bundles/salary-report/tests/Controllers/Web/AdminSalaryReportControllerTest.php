@@ -18,7 +18,7 @@ use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -41,12 +41,14 @@ final class AdminSalaryReportControllerTest extends TestCase
     /** @var list<array<string, mixed>> Jours renvoyés par le fournisseur de ventes factice (rapports journaliers) */
     private array $dailyReports = [];
     private ShiftRepositoryInterface&Stub $shifts;
-    private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     private StoreStatsServiceInterface&Stub $storeStatsService;
     private ?AdminSalaryReportController $controller = null;
 
     protected function setUp(): void
     {
+        // Base neuve à chaque test : les types de shift semés par un test ne doivent pas servir au suivant.
+        kintai_test_database();
+        kintai_test_migrate();
         $viewDir = sys_get_temp_dir() . '/kintai-salary-report-views';
         $this->ensureViewFile($viewDir, 'reports-salary');
         $this->ensureViewFile($viewDir, 'reports-salary-show');
@@ -60,7 +62,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->dailyReports = [];
         $this->shifts = $this->createStub(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
         $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
     }
 
@@ -79,7 +80,6 @@ final class AdminSalaryReportControllerTest extends TestCase
                 $this->storeUsers,
                 $this->sales(),
                 $this->shifts,
-                $this->shiftTypes,
                 new AuditLogger(),
                 $this->storeStatsService,
                 new PermissionService(
@@ -483,7 +483,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-31'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
@@ -498,7 +497,7 @@ final class AdminSalaryReportControllerTest extends TestCase
                 'duration_minutes' => 660, 'pause_minutes' => 0, 'user_id' => 7,
             ],
         ]);
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([
+        kintai_test_shift_types([
             ['id' => 1, 'name' => 'Tôt',  'start_time' => '05:00', 'end_time' => '08:00', 'hourly_rate' => 1200.0],
             ['id' => 2, 'name' => 'Jour', 'start_time' => '08:00', 'end_time' => '22:00', 'hourly_rate' => 1000.0],
         ]);
@@ -525,7 +524,6 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->stores = $this->createMock(StoreRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
         $this->shifts = $this->createMock(ShiftRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $this->storeStatsService = $this->createMock(StoreStatsServiceInterface::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-15', 'user_id' => '7'];
         $req = Request::capture();
@@ -538,7 +536,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->shifts->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([
             ['shift_date' => '2026-08-05', 'duration_minutes' => 480, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 7],
         ]);
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findByStore')->with(1)->willReturn([['id' => 1, 'hourly_rate' => 750.0]]);
+        kintai_test_shift_types([['id' => 1, 'hourly_rate' => 750.0]]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
 
         $this->storeStatsService->expects($this->once())->method('buildPayslipData')
@@ -669,7 +667,7 @@ final class AdminSalaryReportControllerTest extends TestCase
             ['shift_date' => date('Y-m') . '-05', 'duration_minutes' => 480, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 7],
             ['shift_date' => date('Y-m') . '-06', 'duration_minutes' => 240, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 9],
         ]);
-        $this->shiftTypes->method('findByStore')->willReturn([['id' => 1, 'hourly_rate' => 750.0]]);
+        kintai_test_shift_types([['id' => 1, 'hourly_rate' => 750.0]]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
 
         $preset = $this->invokeCalculateSalaryPreset($store, date('Y-m'), $authUser, 7);
@@ -694,7 +692,7 @@ final class AdminSalaryReportControllerTest extends TestCase
         $this->shifts->method('findByStore')->willReturn([
             ['shift_date' => date('Y-m') . '-05', 'duration_minutes' => 480, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 7],
         ]);
-        $this->shiftTypes->method('findByStore')->willReturn([['id' => 1, 'hourly_rate' => 750.0]]);
+        kintai_test_shift_types([['id' => 1, 'hourly_rate' => 750.0]]);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']);
         $this->stores->expects($this->atLeastOnce())->method('getDeductionSettings')->with(1)->willReturn([
             'enabled' => true,
@@ -730,7 +728,7 @@ final class AdminSalaryReportControllerTest extends TestCase
             ['shift_date' => date('Y-m') . '-05', 'duration_minutes' => 480, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 7],
             ['shift_date' => date('Y-m') . '-06', 'duration_minutes' => 240, 'pause_minutes' => 0, 'shift_type_id' => 1, 'user_id' => 9],
         ]);
-        $this->shiftTypes->method('findByStore')->willReturn([['id' => 1, 'hourly_rate' => 750.0]]);
+        kintai_test_shift_types([['id' => 1, 'hourly_rate' => 750.0]]);
         $this->users->method('findById')->willReturnMap([
             [7, ['id' => 7, 'last_name' => 'Dupont', 'first_name' => 'Jean']],
             [9, ['id' => 9, 'last_name' => 'Martin', 'first_name' => 'Léa']],

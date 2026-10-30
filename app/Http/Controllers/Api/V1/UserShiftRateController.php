@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Auth\UserTargetGuard;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,8 +20,6 @@ final class UserShiftRateController
     public function __construct(
         private readonly UserTargetGuard $guard,
         private readonly AuditLogger $auditLogger,
-        // Vérifie que le type de shift existe ; facultatif pour les tests qui construisent le contrôleur à la main.
-        private readonly ?ShiftTypeRepositoryInterface $shiftTypes = null,
     ) {}
 
     /** GET /api/v1/users/{user_id}/rates */
@@ -102,7 +100,7 @@ final class UserShiftRateController
     /** Un taux vise un type de shift existant : un identifiant inconnu créait un taux orphelin. */
     private function assertShiftTypeExists(int $shiftTypeId): void
     {
-        if ($this->shiftTypes !== null && $this->shiftTypes->findById($shiftTypeId) === null) {
+        if (ShiftType::findById($shiftTypeId) === null) {
             throw new ValidationException(['shift_type_id' => __('error_shift_type_not_found')], __('error_shift_type_not_found'));
         }
     }

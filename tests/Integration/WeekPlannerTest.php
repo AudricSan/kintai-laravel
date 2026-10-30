@@ -11,7 +11,7 @@ use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
 use App\Models\Availability;
 use App\Repositories\DatabaseShiftRepository;
-use App\Repositories\DatabaseShiftTypeRepository;
+use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
 use App\Repositories\DatabaseStoreUserRepository;
 use App\Repositories\DatabaseUserRepository;
@@ -69,7 +69,6 @@ final class WeekPlannerTest extends TestCase
         $this->shifts  = new DatabaseShiftRepository();
         $this->planner = new WeekPlanner(
             $this->shifts,
-            new DatabaseShiftTypeRepository(),
             new DatabaseStoreUserRepository(),
             new DatabaseUserRepository(),
             new AvailabilityGuard(),

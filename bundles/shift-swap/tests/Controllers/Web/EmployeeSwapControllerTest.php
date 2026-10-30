@@ -9,7 +9,7 @@ use kintai\Bundles\Installed\ShiftSwap\Controllers\Web\EmployeeSwapController;
 use App\Exceptions\ForbiddenException;
 use App\Repositories\ShiftRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -61,7 +61,6 @@ final class EmployeeSwapControllerTest extends TestCase
                 $view,
                 $this->swapRequests,
                 $this->shifts,
-                $this->createStub(ShiftTypeRepositoryInterface::class),
                 $this->stores,
                 $this->storeUsers,
                 $this->createStub(UserRepositoryInterface::class),

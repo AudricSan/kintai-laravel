@@ -8,7 +8,7 @@ use App\Http\Controllers\HasAdminAccess;
 
 use App\Models\ImportAlias;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -29,7 +29,6 @@ final class AdminShiftImportController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly RoleAssignmentSyncService $roleSync,
@@ -184,7 +183,7 @@ final class AdminShiftImportController
         $cfg         = $this->stores->getImportSettings($storeId);
         $pauseAfter  = (int) ($cfg['auto_pause_after_minutes'] ?? 0);
         $pauseDur    = (int) ($cfg['auto_pause_minutes']       ?? 30);
-        $shiftTypes  = $this->shiftTypes->findActive($storeId);
+        $shiftTypes  = ShiftType::findActive($storeId);
         $wageCalc    = new ShiftWageCalculator();
 
         $coveredDates = [];

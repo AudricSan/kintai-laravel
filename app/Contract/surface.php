@@ -42,7 +42,7 @@ return [
     'kintai\\Contract\\Data\\StoreUserRepositoryInterface' => ['target' => 'App\\Repositories\\StoreUserRepositoryInterface', 'status' => 'stable', 'role' => 'Adhésions aux magasins.'],
     'kintai\\Contract\\Data\\ShiftRepositoryInterface' => ['target' => 'App\\Repositories\\ShiftRepositoryInterface', 'status' => 'stable', 'role' => 'Shifts.'],
     'kintai\\Contract\\Data\\UserShiftTypeRate' => ['target' => 'App\\Models\\UserShiftTypeRate', 'status' => 'stable', 'role' => 'Taux horaires individuels (modèle Eloquent).'],
-    'kintai\\Contract\\Data\\ShiftTypeRepositoryInterface' => ['target' => 'App\\Repositories\\ShiftTypeRepositoryInterface', 'status' => 'stable', 'role' => 'Types de shift.'],
+    'kintai\Contract\Data\ShiftType' => ['target' => 'App\Models\ShiftType', 'status' => 'stable', 'role' => 'Types de shift (modèle Eloquent).'],
     'kintai\\Contract\\Data\\AppSetting' => ['target' => 'App\\Models\\AppSetting', 'status' => 'stable', 'role' => 'Réglages de l\'instance (modèle Eloquent).'],
     'kintai\\Contract\\Services\\AuditLogger' => ['target' => 'App\\Services\\AuditLogger', 'status' => 'stable', 'role' => 'Journal d\'activité.'],
     'kintai\\Contract\\Services\\NotificationService' => ['target' => 'App\\Services\\NotificationService', 'status' => 'stable', 'role' => 'Notifications (et push).'],

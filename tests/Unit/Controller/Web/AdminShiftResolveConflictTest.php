@@ -10,7 +10,7 @@ use App\Models\Availability;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -57,7 +57,6 @@ final class AdminShiftResolveConflictTest extends TestCase
             $this->createStub(UserRepositoryInterface::class),
             $this->createStub(StoreRepositoryInterface::class),
             $this->shifts,
-            $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->createStub(StoreUserRepositoryInterface::class),
             new AuditLogger(),
             $this->notifs,

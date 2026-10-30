@@ -9,7 +9,7 @@ use App\Models\CalendarEventLink;
 use App\Models\CalendarSyncQueueItem;
 use App\Extension\Absences;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\Calendar\CalendarEventBuilder;
@@ -53,7 +53,6 @@ final class CalendarSyncService
         private readonly GoogleCalendarSettings $settings,
         private readonly SecretBox $secrets,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $types,
         private readonly StoreRepositoryInterface $stores,
         private readonly UserRepositoryInterface $users,
         private readonly CalendarEventBuilder $builder,
@@ -376,7 +375,7 @@ final class CalendarSyncService
                 return null;
             }
             $store = $this->stores->findById((int) $shift['store_id']) ?? [];
-            $type  = (int) ($shift['shift_type_id'] ?? 0) > 0 ? $this->types->findById((int) $shift['shift_type_id']) : null;
+            $type  = (int) ($shift['shift_type_id'] ?? 0) > 0 ? ShiftType::findById((int) $shift['shift_type_id']) : null;
             return $this->builder->forShift($shift, $store, $type, $user, $this->publicUrl->resolve());
         }
 

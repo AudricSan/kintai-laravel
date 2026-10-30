@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use App\Exceptions\NotFoundException;
 use App\Extension\Absences;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -30,7 +30,6 @@ final class ScheduleExportController
     public function __construct(
         private readonly AuthService                  $auth,
         private readonly ShiftRepositoryInterface     $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface     $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly ScheduleExportService        $export,
@@ -73,7 +72,7 @@ final class ScheduleExportController
         $shifts = $this->export->select($mine, $period['from'], $period['to']);
 
         $types = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $types[(int) $t['id']] = $t;
         }
 

@@ -12,7 +12,7 @@ use App\Repositories\DailyReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -43,7 +43,6 @@ final class AdminUserControllerTest extends TestCase
     private StoreUserRepositoryInterface&Stub $storeUsers;
     private RoleRepositoryInterface&Stub $roles;
     private RoleAssignmentRepositoryInterface&Stub $roleAssignments;
-    private ShiftTypeRepositoryInterface&Stub $shiftTypes;
     protected function setUp(): void
     {
         $this->ensureViewFile('staff.users');
@@ -56,7 +55,6 @@ final class AdminUserControllerTest extends TestCase
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $this->roles = $this->createStub(RoleRepositoryInterface::class);
         $this->roleAssignments = $this->createStub(RoleAssignmentRepositoryInterface::class);
-        $this->shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
     }
     public function testUsersRenders(): void
     {
@@ -114,7 +112,7 @@ final class AdminUserControllerTest extends TestCase
         $this->stores->method('findAll')->willReturn([['id' => 1, 'name' => 'Store A']]);
         $this->storeUsers->expects($this->atLeastOnce())->method('findByUser')->with(5)->willReturn([['store_id' => 1]]);
         $this->seedRate(5, 2, 1200.0);
-        $this->shiftTypes->method('findAll')->willReturn([['id' => 2, 'name' => 'Salle']]);
+        kintai_test_shift_types([['id' => 2, 'name' => 'Salle']]);
 
         $response = $this->controller()->exportUsersJson($req);
         $this->assertSame(200, $response->getStatusCode());
@@ -145,7 +143,7 @@ final class AdminUserControllerTest extends TestCase
             [5, [['store_id' => 1]]],
             [6, [['store_id' => 2]]],
         ]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
 
         $response = $this->controller()->exportUsersJson($req);
         $data = json_decode($response->getContent(), true)['data'];
@@ -164,7 +162,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
 
         $response = $this->controller()->exportUsersPdf($req);
 
@@ -182,7 +180,7 @@ final class AdminUserControllerTest extends TestCase
 
         $this->users->method('findAll')->willReturn([]);
         $this->stores->method('findAll')->willReturn([]);
-        $this->shiftTypes->method('findAll')->willReturn([]);
+        kintai_test_shift_types([]);
 
         $response = $this->controller()->exportUsersPdfDownload($req);
 
@@ -1105,8 +1103,8 @@ final class AdminUserControllerTest extends TestCase
     public function testSetUserRateForbiddenWhenManagingNoneOfTypeStores(): void
     {
         $this->users->method('findById')->willReturn(['id' => 10]);
-        $this->shiftTypes->method('findById')->willReturn(['id' => 7, 'code' => 'MORNING']);
-        $this->shiftTypes->method('getStoreIds')->willReturn([2]);
+        kintai_test_shift_types([['id' => 7, 'code' => 'MORNING']]);
+        kintai_test_shift_type_stores(null, [2]);
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
         $req->attributes->set('managed_store_ids', [1]);
@@ -1121,11 +1119,10 @@ final class AdminUserControllerTest extends TestCase
     public function testSetUserRateAllowedWhenManagingOneOfTypeStores(): void
     {
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
         $this->grantRequesterGlobalRole($this->roleAssignments, $this->roles);
         $this->users->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10]);
-        $this->shiftTypes->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'code' => 'MORNING']);
-        $this->shiftTypes->expects($this->atLeastOnce())->method('getStoreIds')->with(7)->willReturn([1, 2]);
+        kintai_test_shift_types([['id' => 7, 'code' => 'MORNING']]);
+        kintai_test_shift_type_stores(7, [1, 2]);
         $this->prepareRateTarget(10, 7);
 
         $req = $this->makePostRequest(['shift_type_id' => '7', 'hourly_rate' => '1500']);
@@ -1142,8 +1139,8 @@ final class AdminUserControllerTest extends TestCase
     public function testDeleteUserRateForbiddenWhenManagingNoneOfTypeStores(): void
     {
         $this->seedRate(10, 7, 1000.0, 3);
-        $this->shiftTypes->method('findById')->willReturn(['id' => 7, 'code' => 'MORNING']);
-        $this->shiftTypes->method('getStoreIds')->willReturn([2]);
+        kintai_test_shift_types([['id' => 7, 'code' => 'MORNING']]);
+        kintai_test_shift_type_stores(null, [2]);
 
         $req = $this->makePostRequest([]);
         $req->attributes->set('managed_store_ids', [1]);
@@ -1282,7 +1279,6 @@ final class AdminUserControllerTest extends TestCase
                 $this->users,
                 $this->stores,
                 $this->createStub(ShiftRepositoryInterface::class),
-                $this->shiftTypes,
                 $this->storeUsers,
                 new AuditLogger(),
                 new RoleAssignmentSyncService($this->roles, $this->roleAssignments),

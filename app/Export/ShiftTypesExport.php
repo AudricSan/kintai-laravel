@@ -6,7 +6,7 @@ namespace App\Export;
 
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 
 /**
  * Jeu de données « Types de shift » : un type par ligne et par magasin où il est activé. Les taux horaires n'y figurent pas
@@ -15,7 +15,6 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 final class ShiftTypesExport implements ExportRowsProvider
 {
     public function __construct(
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly ExportDirectory $directory,
     ) {}
 
@@ -23,7 +22,7 @@ final class ShiftTypesExport implements ExportRowsProvider
     {
         $rows = [];
         foreach ($query->storeIds as $storeId) {
-            foreach ($this->shiftTypes->findByStore($storeId) as $type) {
+            foreach (ShiftType::findByStore($storeId) as $type) {
                 $rows[] = [
                     'store'      => $this->directory->storeName($storeId),
                     'type_id'    => (int) ($type['id'] ?? 0),

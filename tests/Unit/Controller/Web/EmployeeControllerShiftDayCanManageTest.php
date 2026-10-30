@@ -13,7 +13,7 @@ use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
@@ -74,7 +74,6 @@ final class EmployeeControllerShiftDayCanManageTest extends TestCase
         return new EmployeeController(
             kintai_test_views($this->viewDir),
             $shifts,
-            $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->stores,
             $this->storeUsers,
             $this->createStub(UserRepositoryInterface::class),

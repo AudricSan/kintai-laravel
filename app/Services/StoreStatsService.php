@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Extension\Absences;
@@ -28,7 +28,6 @@ final class StoreStatsService implements StoreStatsServiceInterface
     public function __construct(
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
         private readonly RoleAssignmentSyncService $roleSync,
@@ -63,7 +62,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
 
         $memberIds     = array_map(fn($m) => (int) $m['user_id'], $this->storeUsers->findByStore($storeId));
         $rateCache     = $this->rateCacheFor($memberIds);
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $wageCalc      = new ShiftWageCalculator();
 
         $costByMonth = [];
@@ -122,7 +121,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             fn($t) => ($t['start_date'] ?? '') >= $since
         );
 
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
 
         $rateCache = $this->rateCacheFor($memberIds);
         $wageCalc = new ShiftWageCalculator();
@@ -449,7 +448,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             $usersMap[(int) $u['id']] = self::withoutSecrets($u);
         }
 
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $rateCache     = [];
         foreach ($memberIds as $uid) {
             foreach (UserShiftTypeRate::findByUser($uid) as $r) {
@@ -540,7 +539,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             $this->shifts->findByStore($storeId),
             fn($s) => empty($s['deleted_at']) && $s['shift_date'] >= $from && $s['shift_date'] <= $to
         ));
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $members       = $this->storeUsers->findByStore($storeId);
         $memberIds     = array_map(fn($m) => (int) $m['user_id'], $members);
         $rateCache     = [];
@@ -663,7 +662,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             fn($s) => $s['shift_date'] >= $since12m && $s['shift_date'] <= $today
         ));
 
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $personalRates = [];
         foreach (UserShiftTypeRate::findByUser($userId) as $r) {
             $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];
@@ -808,7 +807,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
             fn($sw) => ($sw['created_at'] ?? '') >= $since
         );
 
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
 
         $rateCache = [];
         foreach ($memberIds as $uid) {
@@ -935,7 +934,7 @@ final class StoreStatsService implements StoreStatsServiceInterface
         ));
         usort($shifts, fn($a, $b) => strcmp($a['shift_date'] . $a['start_time'], $b['shift_date'] . $b['start_time']));
 
-        $storeTypesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $storeTypesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $personalRates = [];
         foreach (UserShiftTypeRate::findByUser($userId) as $r) {
             $personalRates[(int) $r['shift_type_id']] = (float) $r['hourly_rate'];

@@ -8,7 +8,7 @@ use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -30,7 +30,6 @@ final class AdminShiftClaimController
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly ShiftServiceInterface $shiftService,
         private readonly AuditLogger $auditLogger,
@@ -47,7 +46,7 @@ final class AdminShiftClaimController
 
         $usersMap  = $this->buildUsersMap();
         $typesMap  = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];

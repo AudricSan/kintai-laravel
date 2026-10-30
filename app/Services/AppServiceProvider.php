@@ -13,7 +13,7 @@ use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
 use App\Models\UserShiftTypeRate;
@@ -145,7 +145,6 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(ShiftServiceInterface::class, fn(Container $c) => new ShiftService(
             $c->make(ShiftRepositoryInterface::class),
-            $c->make(ShiftTypeRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
         ));
 
@@ -202,7 +201,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
             $c->make(StoreRepositoryInterface::class),
             $c->make(ShiftRepositoryInterface::class),
-            $c->make(ShiftTypeRepositoryInterface::class),
             $c->make(StoreUserRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(RoleAssignmentSyncService::class),

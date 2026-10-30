@@ -14,7 +14,7 @@ use App\Extension\Sales;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -33,15 +33,13 @@ final class StoreStatsServiceProfitabilityTest extends TestCase
     {
         $shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $shifts->method('findByStore')->willReturn([]);
-        $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $shiftTypes->method('findByStore')->willReturn([]);
+        kintai_test_shift_types([]);
         $storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
         $storeUsers->method('findByStore')->willReturn([]);
 
         return new StoreStatsService(
             $this->createStub(StoreRepositoryInterface::class),
             $shifts,
-            $shiftTypes,
             $storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(

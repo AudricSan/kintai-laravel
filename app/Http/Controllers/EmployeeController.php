@@ -11,7 +11,7 @@ use App\Extension\DashboardWidgets;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -42,7 +42,6 @@ final class EmployeeController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -208,7 +207,7 @@ final class EmployeeController
         }
 
         $typesMap = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];
@@ -309,7 +308,7 @@ final class EmployeeController
         }
 
         $typesMap  = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];
@@ -420,10 +419,10 @@ final class EmployeeController
 
         $typesMap     = [];
         $typeStoreIds = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $tid = (int) $t['id'];
             $typesMap[$tid]     = $t;
-            $typeStoreIds[$tid] = $this->shiftTypes->getStoreIds($tid);
+            $typeStoreIds[$tid] = ShiftType::getStoreIds($tid);
         }
 
         // Shifts de la plage (store affiché uniquement), groupés par date puis user

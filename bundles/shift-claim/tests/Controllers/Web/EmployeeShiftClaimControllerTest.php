@@ -11,7 +11,7 @@ use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -55,7 +55,6 @@ final class EmployeeShiftClaimControllerTest extends TestCase
             $this->controller = new EmployeeShiftClaimController(
                 $view,
                 $this->shifts,
-                $this->createStub(ShiftTypeRepositoryInterface::class),
                 $this->stores,
                 $this->storeUsers,
                 $this->createStub(UserRepositoryInterface::class),
@@ -207,7 +206,6 @@ final class EmployeeShiftClaimControllerTest extends TestCase
         $controller = new EmployeeShiftClaimController(
             $view,
             $this->shifts,
-            $this->createStub(ShiftTypeRepositoryInterface::class),
             $this->stores,
             $this->storeUsers,
             $usersRepo,

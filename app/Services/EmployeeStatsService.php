@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserShiftTypeRate;
@@ -21,7 +21,6 @@ final class EmployeeStatsService
 
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly StoreRepositoryInterface $stores,
     ) {}
@@ -46,7 +45,7 @@ final class EmployeeStatsService
         $numWeeks = max(1, count($weekSet));
 
         $typesMap = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
         $personalRates = [];

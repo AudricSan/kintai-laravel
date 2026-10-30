@@ -7,7 +7,7 @@ namespace kintai\Bundles\Installed\ShiftClaim\Controllers\Web;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -27,7 +27,6 @@ final class EmployeeShiftClaimController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreRepositoryInterface $stores,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly UserRepositoryInterface $users,
@@ -61,7 +60,7 @@ final class EmployeeShiftClaimController
         usort($openShifts, fn($a, $b) => strcmp($a['shift_date'] ?? '', $b['shift_date'] ?? ''));
 
         $typesMap  = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
         $storesMap = [];

@@ -9,7 +9,7 @@ use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -38,7 +38,6 @@ final class DailyReportController
         private readonly AuditLogger $auditLogger,
         private readonly TranslationService $translations,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissionService,
         private readonly UserSelection $userSelection,
@@ -879,7 +878,7 @@ final class DailyReportController
                 && $this->storeUsers->findMembership($storeId, (int) $s['user_id']) !== null
         );
 
-        $typesMap  = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $typesMap  = array_column(ShiftType::findByStore($storeId), null, 'id');
         $userCache = [];
         $rows      = [];
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\DailyReport\Services;
 
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\UserRepositoryInterface;
 use kintai\Contract\Services\PdfCjkFontResolver;
 use kintai\Contract\Services\TranslationService;
@@ -17,7 +17,6 @@ final class DailyReportPdfService
         private readonly ViewFactory $view,
         private readonly TranslationService $translations,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly UserRepositoryInterface $users,
     ) {}
 
@@ -120,7 +119,7 @@ final class DailyReportPdfService
             fn($s) => empty($s['deleted_at']) && !empty($s['user_id'])
         );
 
-        $typesMap  = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $typesMap  = array_column(ShiftType::findByStore($storeId), null, 'id');
         $userCache = [];
 
         $rows = [];

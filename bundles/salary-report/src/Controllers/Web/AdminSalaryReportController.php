@@ -8,7 +8,7 @@ use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Data\StoreUserRepositoryInterface;
 use kintai\Contract\Data\UserRepositoryInterface;
@@ -67,7 +67,6 @@ final class AdminSalaryReportController
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly Sales $sales,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly AuditLogger $auditLogger,
         private readonly StoreStatsServiceInterface $storeStatsService,
         private readonly PermissionService $permissions,
@@ -482,7 +481,7 @@ final class AdminSalaryReportController
             && ($userId === null || (int) ($s['user_id'] ?? 0) === $userId)
         );
 
-        $typesMap = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $typesMap = array_column(ShiftType::findByStore($storeId), null, 'id');
         $wageCalc = new ShiftWageCalculator();
         $rateCache = [];
 

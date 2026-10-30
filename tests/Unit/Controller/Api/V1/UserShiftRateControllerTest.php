@@ -16,7 +16,7 @@ use App\Http\Controllers\Api\V1\UserShiftRateController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Exceptions\ValidationException;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use PHPUnit\Framework\TestCase;
 
 final class UserShiftRateControllerTest extends TestCase
@@ -182,9 +182,8 @@ final class UserShiftRateControllerTest extends TestCase
 
     public function testStoreRefusesAnUnknownShiftType(): void
     {
-        $shiftTypes = $this->createMock(ShiftTypeRepositoryInterface::class);
-        $shiftTypes->expects($this->atLeastOnce())->method('findById')->with(404)->willReturn(null);
-        $controller = new UserShiftRateController($this->guard(), new AuditLogger(), $shiftTypes);
+        kintai_test_shift_types([]);
+        $controller = new UserShiftRateController($this->guard(), new AuditLogger());
         $this->expectNoRateWrite();
 
         $this->expectException(ValidationException::class);

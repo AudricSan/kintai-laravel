@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -35,14 +35,11 @@ final class StoreStatsServiceMultiStoreComparisonTest extends TestCase
         $this->stores     = $this->createStub(StoreRepositoryInterface::class);
         $this->shifts     = $this->createStub(ShiftRepositoryInterface::class);
         $this->storeUsers = $this->createStub(StoreUserRepositoryInterface::class);
-
-        $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $shiftTypes->method('findByStore')->willReturn([]);
+        kintai_test_shift_types([]);
 
         $this->service = new StoreStatsService(
             $this->stores,
             $this->shifts,
-            $shiftTypes,
             $this->storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(

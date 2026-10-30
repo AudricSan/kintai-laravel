@@ -9,7 +9,7 @@ use App\Exceptions\NotFoundException;
 use App\Services\NotificationService;
 use App\Services\SchedulePublication;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Models\ShiftWeekTemplate;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -39,7 +39,6 @@ final class AdminShiftController
         private readonly UserRepositoryInterface $users,
         private readonly StoreRepositoryInterface $stores,
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly StoreUserRepositoryInterface $storeUsers,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -87,8 +86,8 @@ final class AdminShiftController
     private function shiftTypesForManaged(?array $managedIds): array
     {
         return $managedIds === null
-            ? $this->shiftTypes->findAll()
-            : $this->shiftTypes->findByStores($managedIds);
+            ? ShiftType::findAll()
+            : ShiftType::findByStores($managedIds);
     }
 
     /**
@@ -236,7 +235,7 @@ final class AdminShiftController
         $result = (new ShiftWageCalculator())->calculate(
             $startTime,
             $endTime,
-            $this->shiftTypes->findActive($storeId),
+            ShiftType::findActive($storeId),
             $netMinutes
         );
         return $result['dominant_type_id'];
@@ -492,7 +491,7 @@ final class AdminShiftController
         foreach ($this->shiftTypesForManaged($managedIds) as $t) {
             $tid = (int) $t['id'];
             $typesMap[$tid]     = $t;
-            $typeStoreIds[$tid] = $this->shiftTypes->getStoreIds($tid);
+            $typeStoreIds[$tid] = ShiftType::getStoreIds($tid);
         }
 
         // Shifts par date et utilisateur
@@ -767,7 +766,7 @@ final class AdminShiftController
 
         $wageCalc = new ShiftWageCalculator();
         $types    = $wageCalc->withPersonalRates(
-            array_column($this->shiftTypes->findActive($storeId), null, 'id'),
+            array_column(ShiftType::findActive($storeId), null, 'id'),
             $personalRates
         );
         $result = $wageCalc->calculate($startTime, $endTime, $types, $netMinutes);
@@ -1315,7 +1314,7 @@ final class AdminShiftController
         }
 
         $typesMap = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $typesMap[(int) $t['id']] = $t;
         }
 

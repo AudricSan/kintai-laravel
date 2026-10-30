@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Models\UserDashboardPref;
@@ -61,8 +61,6 @@ final class HomeControllerScopingTest extends TestCase
             fn(int $storeId) => $storeMembers[$storeId] ?? []
         );
 
-        $shiftTypesRepo = $this->createStub(ShiftTypeRepositoryInterface::class);
-
         $storeStats = $this->createStub(StoreStatsServiceInterface::class);
         $storeStats->method('multiStoreComparison')->willReturn([]);
 
@@ -84,7 +82,6 @@ final class HomeControllerScopingTest extends TestCase
             $usersRepo,
             $storesRepo,
             $shiftsRepo,
-            $shiftTypesRepo,
             $storeUsersRepo,
             $storeStats,
             $dashboardAlerts,

@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -38,9 +38,7 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
                 'duration_minutes' => 660, 'pause_minutes' => 0, 'user_id' => 7, 'shift_type_id' => null,
             ],
         ]);
-
-        $shiftTypes = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $shiftTypes->method('findByStore')->willReturn([
+        kintai_test_shift_types([
             ['id' => 1, 'name' => 'Tôt',  'start_time' => '05:00', 'end_time' => '08:00', 'hourly_rate' => 1200.0],
             ['id' => 2, 'name' => 'Jour', 'start_time' => '08:00', 'end_time' => '22:00', 'hourly_rate' => 1000.0],
         ]);
@@ -51,7 +49,6 @@ final class StoreStatsServiceBuildPayslipDataTest extends TestCase
         $service = new StoreStatsService(
             $stores,
             $shifts,
-            $shiftTypes,
             $storeUsers,
             $this->createStub(UserRepositoryInterface::class),
             new RoleAssignmentSyncService(

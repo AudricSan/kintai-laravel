@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
 use kintai\Contract\Data\ShiftRepositoryInterface;
-use kintai\Contract\Data\ShiftTypeRepositoryInterface;
+use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\UserRepositoryInterface;
 
 /**
@@ -17,7 +17,6 @@ final class PlanningShiftRows
 {
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly UserRepositoryInterface $users,
     ) {}
 
@@ -37,7 +36,7 @@ final class PlanningShiftRows
     public function forDay(int $storeId, string $date, array $settings): array
     {
         $includeOpen = !empty($settings['include_open_shifts']);
-        $types = array_column($this->shiftTypes->findByStore($storeId), null, 'id');
+        $types = array_column(ShiftType::findByStore($storeId), null, 'id');
         $names = [];
         $rows = [];
         $assigned = 0;

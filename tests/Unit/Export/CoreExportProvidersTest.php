@@ -14,7 +14,7 @@ use App\Export\ShiftTypesExport;
 use App\Export\StoresExport;
 use App\Models\Availability;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -30,7 +30,6 @@ final class CoreExportProvidersTest extends TestCase
 
     private ExportDirectory $directory;
     private ShiftRepositoryInterface $shifts;
-    private ShiftTypeRepositoryInterface $types;
 
     protected function setUp(): void
     {
@@ -50,9 +49,7 @@ final class CoreExportProvidersTest extends TestCase
             ['id' => 2, 'user_id' => 6, 'store_id' => 3, 'shift_date' => '2026-11-01', 'start_time' => '10:00', 'end_time' => '14:00', 'pause_minutes' => 0, 'duration_minutes' => 240, 'shift_type_id' => 7],
             ['id' => 3, 'user_id' => 5, 'store_id' => 3, 'shift_date' => '2026-11-03', 'start_time' => '09:00', 'end_time' => '17:00', 'deleted_at' => '2026-10-30 10:00:00'],
         ]);
-        $this->types = $this->createStub(ShiftTypeRepositoryInterface::class);
-        $this->types->method('findAll')->willReturn([['id' => 7, 'name' => 'Matin', 'start_time' => '06:00', 'end_time' => '22:00', 'hourly_rate' => 1200]]);
-        $this->types->method('findByStore')->willReturn([['id' => 7, 'name' => 'Matin', 'start_time' => '06:00:00', 'end_time' => '14:00:00', 'hourly_rate' => 1200]]);
+        kintai_test_shift_types([['id' => 7, 'name' => 'Matin', 'start_time' => '06:00:00', 'end_time' => '14:00:00', 'hourly_rate' => 1200, 'store_ids' => [3]]]);
     }
 
     private function query(?array $userIds = null): ExportQuery
@@ -62,7 +59,7 @@ final class CoreExportProvidersTest extends TestCase
 
     public function testShiftsAreFlatChronologicalAndLimitedToTheChosenPeople(): void
     {
-        $export = new ShiftsExport($this->shifts, $this->types, new ScheduleExportService(), $this->directory);
+        $export = new ShiftsExport($this->shifts, new ScheduleExportService(), $this->directory);
 
         $all = [...$export->rows($this->query())];
         $this->assertSame(['2026-11-01', '2026-11-02'], array_column($all, 'date'), 'trié, shift supprimé exclu');
@@ -96,7 +93,7 @@ final class CoreExportProvidersTest extends TestCase
     public function testStoresAndShiftTypesDoNotLeakSettingsOrRates(): void
     {
         $stores = [...(new StoresExport($this->directory))->rows($this->query())];
-        $types  = [...(new ShiftTypesExport($this->types, $this->directory))->rows($this->query())];
+        $types  = [...(new ShiftTypesExport($this->directory))->rows($this->query())];
 
         $this->assertSame('Asia/Tokyo', $stores[0]['timezone']);
         $this->assertStringNotContainsString('SECRET', (string) json_encode($stores));
@@ -127,7 +124,7 @@ final class CoreExportProvidersTest extends TestCase
     public function testPayrollUsesThePersonalRateBeforeTheTypeRate(): void
     {
         $this->seedRate(5, 7, 2000.0);
-        $export = new PayrollExport($this->shifts, $this->types, new ShiftWageCalculator(), $this->directory);
+        $export = new PayrollExport($this->shifts, new ShiftWageCalculator(), $this->directory);
 
         $rows = [...$export->rows($this->query())];
 

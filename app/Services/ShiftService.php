@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Extension\Absences;
 use App\Repositories\UserRepositoryInterface;
 
@@ -13,7 +13,6 @@ final class ShiftService implements ShiftServiceInterface
 {
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly UserRepositoryInterface $users,
     ) {}
 
@@ -51,7 +50,7 @@ final class ShiftService implements ShiftServiceInterface
     public function getShiftTypesMap(): array
     {
         $map = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $map[(int) $t['id']] = $t;
         }
         return $map;

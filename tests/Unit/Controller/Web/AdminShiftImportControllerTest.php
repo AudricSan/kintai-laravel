@@ -8,7 +8,7 @@ use App\Auth\PermissionService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -51,7 +51,6 @@ final class AdminShiftImportControllerTest extends TestCase
                 $this->createStub(UserRepositoryInterface::class),
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->createStub(ShiftRepositoryInterface::class),
-                $this->createStub(ShiftTypeRepositoryInterface::class),
                 $this->storeUsers,
                 new AuditLogger(),
                 $roleSync,

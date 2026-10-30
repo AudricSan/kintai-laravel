@@ -181,6 +181,47 @@ function kintai_test_settings(array $values = []): void
     App\Models\AppSetting::query()->delete();
     App\Models\AppSetting::putMany($values);
 }
+// Aide des tests : base de test prête (neuve et migrée si le test n'en a pas encore préparé une).
+function kintai_test_ready(string $table): void
+{
+    if (config('database.default') !== 'testing' || !Illuminate\Support\Facades\Schema::hasTable($table)) {
+        kintai_test_database();
+        kintai_test_migrate();
+    }
+    Illuminate\Database\Eloquent\Model::setConnectionResolver($GLOBALS['kintai_test_app']['db']);
+}
+
+// Aide des tests : types de shift réels (lignes shift_types) ; `store_ids` (défaut 1 à 5) lie le type aux magasins, créés au besoin.
+function kintai_test_shift_types(array $rows): void
+{
+    kintai_test_ready('shift_types');
+    foreach ($rows as $row) {
+        $storeIds = $row['store_ids'] ?? [1, 2, 3, 4, 5];
+        unset($row['store_ids']);
+        $id = $row['id'] ?? null;
+        $row += ['name' => 'Type', 'code' => 'T' . ($id ?? uniqid()), 'start_time' => '08:00', 'end_time' => '16:00', 'is_active' => 1];
+        $id = $id ?? (int) Illuminate\Support\Facades\DB::table('shift_types')->max('id') + 1;
+        $row['id'] = $id;
+        Illuminate\Support\Facades\DB::table('shift_types')->updateOrInsert(['id' => $id], $row);
+        kintai_test_shift_type_stores($id, $storeIds);
+    }
+}
+
+// Aide des tests : magasins liés à un type de shift (tous les types existants si l'identifiant est null).
+function kintai_test_shift_type_stores(?int $shiftTypeId, array $storeIds): void
+{
+    kintai_test_ready('shift_types');
+    foreach ($storeIds as $storeId) {
+        Illuminate\Support\Facades\DB::table('stores')->insertOrIgnore(['id' => $storeId, 'name' => 'Magasin ' . $storeId, 'code' => 'M' . $storeId]);
+    }
+    $ids = $shiftTypeId === null ? Illuminate\Support\Facades\DB::table('shift_types')->pluck('id')->all() : [$shiftTypeId];
+    foreach ($ids as $id) {
+        Illuminate\Support\Facades\DB::table('shift_type_stores')->where('shift_type_id', $id)->delete();
+        foreach ($storeIds as $storeId) {
+            Illuminate\Support\Facades\DB::table('shift_type_stores')->insert(['shift_type_id' => $id, 'store_id' => $storeId]);
+        }
+    }
+}
 // Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
 // « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
 function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator

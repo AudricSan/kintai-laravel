@@ -7,7 +7,7 @@ namespace App\Export;
 use kintai\Contract\Provider\ExportQuery;
 use kintai\Contract\Provider\ExportRowsProvider;
 use App\Repositories\ShiftRepositoryInterface;
-use App\Repositories\ShiftTypeRepositoryInterface;
+use App\Models\ShiftType;
 use App\Services\ScheduleExportService;
 
 /** Jeu de données « Horaires » : un shift par ligne, dans l'ordre chronologique (shifts supprimés exclus). */
@@ -15,7 +15,6 @@ final class ShiftsExport implements ExportRowsProvider
 {
     public function __construct(
         private readonly ShiftRepositoryInterface $shifts,
-        private readonly ShiftTypeRepositoryInterface $shiftTypes,
         private readonly ScheduleExportService $schedule,
         private readonly ExportDirectory $directory,
     ) {}
@@ -23,7 +22,7 @@ final class ShiftsExport implements ExportRowsProvider
     public function rows(ExportQuery $query): iterable
     {
         $types = [];
-        foreach ($this->shiftTypes->findAll() as $t) {
+        foreach (ShiftType::findAll() as $t) {
             $types[(int) $t['id']] = $t;
         }
 
