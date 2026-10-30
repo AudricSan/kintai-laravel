@@ -9,7 +9,7 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 ## Référence
 
-- 2765 tests, 1 échec d'environnement : `KintaiScriptCommandTest` (avertissement `openssl` de la ligne de commande sous
+- 3588 tests (cœur + bundles), 1 échec d'environnement : `KintaiScriptCommandTest` (avertissement `openssl` de la ligne de commande sous
   cette installation XAMPP).
 
 ## Ce qui est natif
@@ -37,13 +37,14 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 ## Choix assumés (conservés)
 
-- **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle, tests
-  sur base SQLite en mémoire). Faits : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`.
-  Restent 29 interfaces (`app/Repositories`), de la plus petite à la plus utilisée : `CronToken`, `PasswordReset`,
-  `RouteSlug`, `BundleRegistry`, `RoleDashboardLayout`, `CalendarSync`, `UserDashboardLayout`, `InstalledBundle`,
-  `WebPushSubscription`, `DevicePushToken`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`,
-  `Log`, `Availability`, `UserShiftTypeRate`, `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`,
-  `StoreUser`, `User` (227 fichiers). Chaque conversion remplace aussi les doubles de test par des tests sur base réelle.
+- **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle,
+  tests sur base SQLite en mémoire avec `kintai_test_database()` / `kintai_test_migrate()` / `kintai_test_user()`).
+  Faits : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`. Restent 28
+  interfaces (`app/Repositories`), de la plus petite à la plus utilisée : `PasswordReset`, `RouteSlug`, `BundleRegistry`,
+  `RoleDashboardLayout`, `CalendarSync`, `UserDashboardLayout`, `InstalledBundle`, `WebPushSubscription`,
+  `DevicePushToken`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`, `Log`, `Availability`,
+  `UserShiftTypeRate`, `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `User`
+  (227 fichiers). Chaque conversion remplace aussi les doubles de test par des tests sur base réelle.
 - **`App\Services\Log`** : journal d'activité métier (table `activity_log`, canaux audit/access/business, ressource, IP,
   utilisateur), pas la journalisation technique de Laravel (`storage/logs`), qui sert aux erreurs.
 - **`CronRunner`** : registre des tâches (Core et bundles) appelées par le planificateur de Laravel (`routes/console.php`,
@@ -55,8 +56,10 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 ## Reste à faire
 
-1. **Bundles** : publier les releases, mettre à jour leurs tests et leur `composer.json`, puis le registre
-   `KintaiBundle/registry.json`.
+1. **Bundles** : les 13 bundles vivent dans `bundles/<slug>/` (monorepo, historique git conservé). Releases :
+   `.github/workflows/bundles-release.yml` publie `<slug>-vX.Y.Z` ; le registre `registry.json` (dépôt KintaiBundle)
+   doit pointer vers `https://github.com/AudricSan/kintai-laravel/tree/main/bundles/<slug>`. Les anciens dépôts
+   `kintai-bundle-*` peuvent être archivés. Tests : `vendor/bin/phpunit --testsuite Bundles`.
 2. **Anciennes bases** : une base d'avant ces migrations a un journal `migrations` sans colonne `batch` ; l'importation
    (`WebInstaller::import()`) le remplace. Une base de développement existante doit être importée ou réinstallée, et
    son `.env` doit recevoir `APP_KEY=` puis `php artisan key:generate`.
