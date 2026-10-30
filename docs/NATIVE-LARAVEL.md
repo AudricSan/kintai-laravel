@@ -27,7 +27,7 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 | Bundles = service providers Laravel, contrat `kintai\Contract` 1.0.0 (alias de classes vers Laravel) | Natif |
 | Base de données : `config/database.php` standard, variables `DB_*` du `.env` (écrites par l'installateur) | Natif |
 | Conteneur : `Illuminate\Foundation\Application`, alias du contrat par `Container::alias()`, liaisons explicites | Natif |
-| Commandes Artisan natives (`kintai:cron`, `cron-token`, `contract`, `check-wiki`, `check-translations`, `new-bundle`) ; `public/install.php` et `scripts/provision.php` restent les installateurs, `seed-demo-data`, `clean-orphaned-data` et `generate-favicons` des scripts d'entretien | Natif / scripts |
+| Commandes Artisan natives (`kintai:cron`, `cron-token`, `contract`, `check-wiki`, `check-translations`, `new-bundle`, `clean-orphans`) ; `public/install.php` et `scripts/provision.php` restent les installateurs, `seed-demo-data` et `generate-favicons` des scripts d'entretien | Natif / scripts |
 | Journal d'activité : canaux Monolog `business` (défaut), `audit`, `access` (`config/logging.php`), écrits dans `activity_log` par `App\Logging\ActivityLogHandler` ; `Log::info()` de Laravel partout | Natif |
 | CI : `tests.yml` (PHPUnit cœur + bundles, phpstan, parcours HTTP), `bundles-release.yml`, manifestes des bundles testés (`MonorepoManifestsTest`) | Natif |
 | Flash, anciennes valeurs, erreurs de validation : `session()->flash()`, `withErrors()` / `withInput()`, `$errors` (layouts) | Natif |
@@ -41,11 +41,12 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 
 - **Repositories** : conversion en cours vers les modèles Eloquent utilisés directement (casts, méthodes de modèle,
   tests sur base SQLite en mémoire avec `kintai_test_database()` / `kintai_test_migrate()` / `kintai_test_user()`).
-  Faits (13) : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
+  Faits (25) : `TimesheetApproval`, `ImportAlias`, `NotificationPreference`, `ShiftWeekTemplate`, `CronToken`, `PasswordReset`,
   `RoleDashboardLayout`, `BundleRegistry`, `InstalledBundle`, `UserDashboardLayout`, `CalendarSync` (3 modèles),
-  `WebPushSubscription`, `DevicePushToken`. Restent, de la plus petite à la plus utilisée : `RouteSlug`, `ApiToken`,
-  `Notification`, `IcalToken`, `UserDashboardPrefs`, `UserNavPrefs`, `Log` (lecture), `Availability`, `UserShiftTypeRate`,
-  `AppSettings`, `ShiftType`, `Shift`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `User` (187 fichiers).
+  `WebPushSubscription`, `DevicePushToken`, `RouteSlug`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`,
+  `UserNavPrefs`, `Log` (lecture, `ActivityEntry`), `Availability`, `UserShiftTypeRate`, `AppSettings` (`AppSetting`),
+  `ShiftType`, `Shift`. Restent, de la plus petite à la plus utilisée : `Role` (permissions simulées dans presque tous les
+  tests de contrôleurs : ~690 tests à réécrire), `RoleAssignment`, `Store`, `StoreUser`, `User`.
   Chaque conversion remplace aussi les doubles de test par des tests sur base réelle. Outil : les méthodes du
   repository deviennent des méthodes statiques du modèle (noms réservés par Eloquent renommés : `save` → `put`…).
 - **Tâches planifiées** (plus de `CronRunner`) : commandes Artisan `kintai:*` planifiées par `Schedule` (`routes/console.php` pour le Core, `register()` du bundle pour les siennes) ;
