@@ -7,7 +7,7 @@ namespace Tests\Unit\Http;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Tests\Support\RecordingLog;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\AccessLog;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -19,25 +19,21 @@ use PHPUnit\Framework\TestCase;
  */
 final class AccessLogTest extends TestCase
 {
-    private array $storedSettings = [];
     private RecordingLog $log;
 
     protected function setUp(): void
     {
+        kintai_test_settings();
         $this->log = kintai_test_log();
     }
 
     protected function tearDown(): void
     {
-        app()->forgetInstance(AppSettingsRepositoryInterface::class);
         app()->forgetInstance(\App\Services\AppSettingsService::class);
     }
 
     private function terminate(string $uri, int $status): void
     {
-        $settings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $settings->method('all')->willReturnCallback(fn() => $this->storedSettings);
-        app()->instance(AppSettingsRepositoryInterface::class, $settings);
         app()->forgetInstance(\App\Services\AppSettingsService::class);
 
         $request = Request::create($uri, 'GET');
@@ -83,7 +79,7 @@ final class AccessLogTest extends TestCase
 
     public function testSkipsWhenAccessLogDisabledViaSettings(): void
     {
-        $this->storedSettings = ['access_log_enabled' => '0'];
+        kintai_test_settings(['access_log_enabled' => '0']);
 
         $this->terminate('/admin/shifts', 200);
 

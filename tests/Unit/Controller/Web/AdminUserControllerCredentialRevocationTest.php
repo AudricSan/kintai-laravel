@@ -10,7 +10,7 @@ use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Models\ApiToken;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -86,7 +86,7 @@ final class AdminUserControllerCredentialRevocationTest extends TestCase
             new PlanLimitService(
                 $stores,
                 $this->users,
-                new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             new OwnerGuard(new PermissionService($roleAssignments, $roles), $this->users),
             new CredentialRevoker($this->remember),

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use Illuminate\Contracts\Bus\Dispatcher;
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Jobs\DeliverNotification;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
@@ -48,32 +47,11 @@ final class NotificationEmailTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
-        $schema->create('notifications', function ($table) {
-            $table->increments('id');
-            $table->integer('user_id');
-            $table->string('type');
-            $table->string('body_key')->nullable();
-            $table->text('params')->nullable();
-            $table->text('body')->nullable();
-            $table->string('link', 500)->nullable();
-            $table->string('reference_type', 40)->nullable();
-            $table->integer('reference_id')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-        });
-        $schema->create('notification_preferences', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id');
-            $table->string('type', 64);
-            $table->string('channel', 16);
-            $table->boolean('enabled');
-            $table->unique(['user_id', 'type', 'channel']);
-        });
+        kintai_test_database();
+        kintai_test_migrate();
+        foreach ([7, 8, 9] as $userId) {
+            kintai_test_user($userId);
+        }
 
         $this->usersById = [
             7 => ['id' => 7, 'email' => 'employe@exemple.fr', 'language' => 'fr', 'quiet_hours_start' => null, 'quiet_hours_end' => null],
@@ -93,7 +71,7 @@ final class NotificationEmailTest extends TestCase
         $this->prefs = new NotificationPreferenceService($registry, $users);
 
         $this->settings = new InMemoryAppSettings(['app_public_url' => 'https://kintai.exemple.fr/app']);
-        $this->tokens   = new UnsubscribeTokens($this->settings);
+        $this->tokens   = new UnsubscribeTokens();
     }
 
     private function service(bool $configured = true, bool $withMailer = true, ?Dispatcher $bus = null): NotificationService
@@ -108,7 +86,7 @@ final class NotificationEmailTest extends TestCase
         (new \ReflectionProperty($manager, 'bundles'))->setValue($manager, []);
         $mailer = new NotificationMailer(
             new MailerService($config, $transport),
-            new PublicUrlResolver(new AppSettingsService($this->settings), ''),
+            new PublicUrlResolver(new AppSettingsService(), ''),
             $this->tokens,
             $translations,
         );
@@ -252,11 +230,11 @@ final class NotificationEmailTest extends TestCase
         $this->service(configured: false)->notify(7, 'shift_assigned', 'notif_shift_assigned_body');
         $this->assertSame([], $this->sent, 'e-mail non réglé sur l\'instance');
 
-        $this->settings->values = [];
+        \App\Models\AppSetting::query()->delete();
         $this->service()->notify(7, 'shift_assigned', 'notif_shift_assigned_body');
         $this->assertSame([], $this->sent, 'sans URL publique les liens ne seraient pas absolus');
 
-        $this->settings->values = ['app_public_url' => 'https://kintai.exemple.fr'];
+        \App\Models\AppSetting::putMany(['app_public_url' => 'https://kintai.exemple.fr']);
         $this->service()->notify(9, 'shift_assigned', 'notif_shift_assigned_body');
         $this->assertSame([], $this->sent, 'utilisateur sans adresse e-mail');
 

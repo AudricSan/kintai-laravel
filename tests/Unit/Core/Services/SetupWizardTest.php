@@ -7,7 +7,7 @@ namespace Tests\Unit\Core\Services;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\InstalledBundleManifestStore;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\BundleActivationService;
@@ -22,18 +22,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class SetupWizardTest extends TestCase
 {
-    /** Réglages en mémoire. */
-    private function settings(): AppSettingsRepositoryInterface
-    {
-        return new class implements AppSettingsRepositoryInterface {
-            public array $values = [];
-            public function all(): array { return $this->values; }
-            public function get(string $key): ?string { return $this->values[$key] ?? null; }
-            public function set(string $key, string $value): void { $this->values[$key] = $value; }
-            public function setMany(array $settings): void { $this->values = $settings + $this->values; }
-        };
-    }
-
     /** Catalogue factice : cinq bundles. */
     private static function catalog(): \Closure
     {
@@ -47,7 +35,7 @@ final class SetupWizardTest extends TestCase
      * @param list<string>          $installed bundles « installés » (présents pour la découverte une fois installés)
      * @param array<string, string> $failures  slug => motif d'échec de l'installation
      */
-    private function wizard(AppSettingsRepositoryInterface $settings, array &$installed, array $failures = []): SetupWizard
+    private function wizard(array &$installed, array $failures = []): SetupWizard
     {
         $dir = sys_get_temp_dir() . '/kintai-setup-' . uniqid();
         mkdir($dir, 0777, true);
@@ -64,11 +52,11 @@ final class SetupWizardTest extends TestCase
         $planLimits = new PlanLimitService(
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
-            new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+            new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
-        $activation = new BundleActivationService($settings, new FeatureManager([]), new BundleDiscoveryService($dir . '/legacy', $store, $dir, '1.0.0'), $planLimits);
+        $activation = new BundleActivationService(new FeatureManager([]), new BundleDiscoveryService($dir . '/legacy', $store, $dir, '1.0.0'), $planLimits);
 
-        return new SetupWizard($settings, self::catalog(), $installer, $activation, $planLimits);
+        return new SetupWizard(self::catalog(), $installer, $activation, $planLimits);
     }
 
     /** Bundle installé minimal (manifeste avec contrat, classe d'entrée) pour que la découverte le voie. */
@@ -86,13 +74,13 @@ final class SetupWizardTest extends TestCase
 
     public function testStartPutsANewInstanceOnTheFirstStepWithoutActiveBundles(): void
     {
-        $settings = $this->settings();
-        SetupWizard::start($settings, 'alpha');
+        kintai_test_settings();
+        SetupWizard::start('alpha');
 
-        $this->assertSame('[]', $settings->get('enabled_bundles'));
-        $this->assertSame('alpha', $settings->get('bundle_update_channel'));
+        $this->assertSame('[]', AppSetting::value('enabled_bundles'));
+        $this->assertSame('alpha', AppSetting::value('bundle_update_channel'));
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
         $this->assertTrue($wizard->isPending());
         $this->assertSame(SetupWizard::STEP_ORGANISATION, $wizard->step());
 
@@ -102,10 +90,10 @@ final class SetupWizardTest extends TestCase
 
     public function testStepsComeInOrderAndDoneOrSkippedOnesAreLeftBehind(): void
     {
-        $settings = $this->settings();
-        SetupWizard::start($settings, 'release');
+        kintai_test_settings();
+        SetupWizard::start('release');
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
 
         $walked = [];
         while (($step = $wizard->step()) !== SetupWizard::STEP_RECAP) {
@@ -120,10 +108,10 @@ final class SetupWizardTest extends TestCase
 
     public function testAStepCanBeRevisitedAndUnknownOnesAreIgnored(): void
     {
-        $settings = $this->settings();
-        SetupWizard::start($settings, 'release');
+        kintai_test_settings();
+        SetupWizard::start('release');
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
         $wizard->mark('organisation');
         $wizard->mark('nonexistent');
         $wizard->mark(SetupWizard::STEP_RECAP);
@@ -147,10 +135,10 @@ final class SetupWizardTest extends TestCase
 
     public function testProgressOfAnInstanceInTheOldTwoStepWizardIsKept(): void
     {
-        $settings = $this->settings();
-        $settings->setMany([SetupWizard::PENDING_KEY => '1', SetupWizard::STEP_KEY => 'bundles']);
+        kintai_test_settings();
+        AppSetting::putMany([SetupWizard::PENDING_KEY => '1', SetupWizard::STEP_KEY => 'bundles']);
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
 
         $this->assertSame(SetupWizard::DONE, $wizard->progress()['license'], 'la licence était déjà faite');
         $this->assertSame('organisation', $wizard->step(), 'les nouvelles étapes lui sont proposées');
@@ -158,15 +146,16 @@ final class SetupWizardTest extends TestCase
 
     public function testAnInstanceInstalledBeforeTheWizardIsNotConcerned(): void
     {
+        kintai_test_settings();
         $installed = [];
-        $this->assertFalse($this->wizard($this->settings(), $installed)->isPending());
+        $this->assertFalse($this->wizard($installed)->isPending());
     }
 
     public function testChoicesOutsideTheCatalogueOrAboveTheLicenseAreRefused(): void
     {
-        $settings = $this->settings();
+        kintai_test_settings();
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
 
         $this->assertSame('setup_bundles_unknown', $wizard->install(['timeoff', 'pirate'], 'release')['error']);
         $this->assertSame([], $installed, 'rien installé');
@@ -174,9 +163,9 @@ final class SetupWizardTest extends TestCase
 
     public function testBundlesBeyondTheQuotaAreRememberedNotRefused(): void
     {
-        $settings = $this->settings();
+        kintai_test_settings();
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
 
         $result = $wizard->install(['timeoff', 'timeclock', 'shift-swap', 'notebook', 'messaging'], 'release');
 
@@ -189,9 +178,9 @@ final class SetupWizardTest extends TestCase
 
     public function testPendingBundlesInstallInOrderOnceThereIsRoom(): void
     {
-        $settings = $this->settings();
+        kintai_test_settings();
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
         $wizard->install(['timeoff', 'timeclock', 'shift-swap', 'notebook', 'messaging'], 'release');
         $this->assertSame(['messaging'], $wizard->pendingBundles());
 
@@ -201,7 +190,7 @@ final class SetupWizardTest extends TestCase
         $this->assertSame(['messaging'], $none['pending']);
 
         // Une place se libère (ici : un bundle désactivé) : le bundle en attente s'installe.
-        $settings->set('enabled_bundles', json_encode(['timeoff', 'timeclock', 'shift-swap']));
+        AppSetting::put('enabled_bundles', json_encode(['timeoff', 'timeclock', 'shift-swap']));
         $result = $wizard->installPending('release');
 
         $this->assertSame(['messaging'], $result['installed']);
@@ -211,11 +200,11 @@ final class SetupWizardTest extends TestCase
 
     public function testAFailedPendingInstallStaysPending(): void
     {
-        $settings = $this->settings();
+        kintai_test_settings();
         $installed = [];
-        $wizard = $this->wizard($settings, $installed, ['messaging' => 'réseau']);
+        $wizard = $this->wizard($installed, ['messaging' => 'réseau']);
         $wizard->install(['timeoff', 'timeclock', 'shift-swap', 'notebook', 'messaging'], 'release');
-        $settings->set('enabled_bundles', json_encode(['timeoff']));
+        AppSetting::put('enabled_bundles', json_encode(['timeoff']));
 
         $result = $wizard->installPending('release');
 
@@ -226,8 +215,9 @@ final class SetupWizardTest extends TestCase
 
     public function testNothingPendingMeansNothingToDo(): void
     {
+        kintai_test_settings();
         $installed = [];
-        $result = $this->wizard($this->settings(), $installed)->installPending('release');
+        $result = $this->wizard($installed)->installPending('release');
 
         $this->assertSame([], $result['installed']);
         $this->assertSame([], $result['pending']);
@@ -236,9 +226,9 @@ final class SetupWizardTest extends TestCase
 
     public function testAnotherChoiceReplacesTheRememberedList(): void
     {
-        $settings = $this->settings();
+        kintai_test_settings();
         $installed = [];
-        $wizard = $this->wizard($settings, $installed);
+        $wizard = $this->wizard($installed);
         $wizard->install(['timeoff', 'timeclock', 'shift-swap', 'notebook', 'messaging'], 'release');
 
         $wizard->install([], 'release');
@@ -248,10 +238,10 @@ final class SetupWizardTest extends TestCase
 
     public function testChosenBundlesAreInstalledOnTheChannelAndEnabledFailuresReported(): void
     {
-        $settings = $this->settings();
-        SetupWizard::start($settings, 'alpha');
+        kintai_test_settings();
+        SetupWizard::start('alpha');
         $installed = [];
-        $wizard = $this->wizard($settings, $installed, ['shift-swap' => 'Release introuvable']);
+        $wizard = $this->wizard($installed, ['shift-swap' => 'Release introuvable']);
 
         $result = $wizard->install(['timeoff', 'shift-swap', 'timeclock'], 'alpha');
 
@@ -260,6 +250,6 @@ final class SetupWizardTest extends TestCase
         $this->assertSame(['shift-swap' => 'Release introuvable'], $result['failed']);
         $this->assertSame([], $result['inactive']);
         $this->assertSame([['timeoff', '1.2.1'], ['timeclock', '1.2.1']], $installed, 'versions du canal alpha');
-        $this->assertSame(['timeoff', 'timeclock'], json_decode((string) $settings->get('enabled_bundles'), true));
+        $this->assertSame(['timeoff', 'timeclock'], json_decode((string) AppSetting::value('enabled_bundles'), true));
     }
 }

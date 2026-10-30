@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\DailyReportRepositoryInterface;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -1290,7 +1290,7 @@ final class AdminUserControllerTest extends TestCase
                 new PlanLimitService(
                     $this->stores,
                     $this->users,
-                    new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                    new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
                 new OwnerGuard(new PermissionService($this->roleAssignments, $this->roles), $this->users),
                 null,

@@ -6,7 +6,7 @@ namespace kintai\Bundles\Installed\StorePhoto\Services;
 
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Contract\Data\AppSettingsRepositoryInterface;
+use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
 
@@ -21,7 +21,6 @@ final class PhotoRetentionService
 {
     public function __construct(
         private readonly StorePhotoRepositoryInterface $photos,
-        private readonly AppSettingsRepositoryInterface $settings,
         private readonly StoreRepositoryInterface $stores,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
@@ -31,8 +30,8 @@ final class PhotoRetentionService
     /** @return array{retention_days: int, cleanup_delay: int, compressed: int, notified: int, purged: int, errors: list<string>} */
     public function run(): array
     {
-        $retentionDays = max(1, (int) $this->settings->get('photo_retention_days', '14'));
-        $cleanupDelay  = max(1, (int) $this->settings->get('photo_cleanup_delay', '7'));
+        $retentionDays = max(1, (int) AppSetting::value('photo_retention_days', '14'));
+        $cleanupDelay  = max(1, (int) AppSetting::value('photo_cleanup_delay', '7'));
         $photoDir      = $this->photoDir ?? storage_path('uploads/img/');
         $result = ['retention_days' => $retentionDays, 'cleanup_delay' => $cleanupDelay, 'compressed' => 0, 'notified' => 0, 'purged' => 0, 'errors' => []];
 

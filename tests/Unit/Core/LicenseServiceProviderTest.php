@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
-use Illuminate\Container\Container;
 use App\FeatureManager;
 use App\LicenseServiceProvider;
-use App\Repositories\AppSettingsRepositoryInterface;
+use Illuminate\Database\ConnectionResolverInterface;
+use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\TestCase;
 
 // BASE_PATH est requis par LicenseServiceProvider (fallback vers config/license.php).
@@ -17,13 +17,35 @@ if (!defined('BASE_PATH')) {
 
 final class LicenseServiceProviderTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        Model::setConnectionResolver($GLOBALS['kintai_test_app']['db']);
+    }
+
+    /** Les modèles Eloquent tombent sur une connexion qui lève l'erreur donnée (base indisponible ou bogue). */
+    private static function failingConnections(\Throwable $error): void
+    {
+        Model::setConnectionResolver(new class($error) implements ConnectionResolverInterface {
+            public function __construct(private \Throwable $error) {}
+
+            public function connection($name = null)
+            {
+                throw $this->error;
+            }
+
+            public function getDefaultConnection()
+            {
+                return 'testing';
+            }
+
+            public function setDefaultConnection($name): void {}
+        });
+    }
+
     public function testUsesEnabledBundlesFromAppSettingsWhenPresent(): void
     {
         $container = new \Tests\Support\TestContainer();
-        $appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->with(LicenseServiceProvider::SETTINGS_KEY)
-            ->willReturn('["daily-report","store-photos"]');
-        $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
+        kintai_test_settings([LicenseServiceProvider::SETTINGS_KEY => '["daily-report","store-photos"]']);
 
         (new LicenseServiceProvider($container))->register();
 
@@ -36,9 +58,7 @@ final class LicenseServiceProviderTest extends TestCase
     public function testFallsBackToConfigFileWhenNoAppSettingsValueStored(): void
     {
         $container = new \Tests\Support\TestContainer();
-        $appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->with(LicenseServiceProvider::SETTINGS_KEY)->willReturn(null);
-        $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
+        kintai_test_settings();
 
         (new LicenseServiceProvider($container))->register();
 
@@ -54,14 +74,7 @@ final class LicenseServiceProviderTest extends TestCase
         // `php artisan migrate` sur base neuve). La table app_settings n'existe pas encore : sans
         // repli, « no such table » empêchait toute installation neuve.
         $container = new \Tests\Support\TestContainer();
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->willThrowException(new \Illuminate\Database\QueryException(
-            'sqlite',
-            'select * from "app_settings" where "app_settings"."key" = ? limit 1',
-            [LicenseServiceProvider::SETTINGS_KEY],
-            new \PDOException('SQLSTATE[HY000]: General error: 1 no such table: app_settings'),
-        ));
-        $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
+        kintai_test_database();
 
         (new LicenseServiceProvider($container))->register();
 
@@ -72,9 +85,7 @@ final class LicenseServiceProviderTest extends TestCase
     public function testARawPdoErrorIsAlsoTolerated(): void
     {
         $container = new \Tests\Support\TestContainer();
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->willThrowException(new \PDOException('no such table: app_settings'));
-        $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
+        self::failingConnections(new \PDOException('no such table: app_settings'));
 
         (new LicenseServiceProvider($container))->register();
 
@@ -85,9 +96,7 @@ final class LicenseServiceProviderTest extends TestCase
     {
         // Seules les erreurs de base sont tolérées : un vrai bogue doit rester visible.
         $container = new \Tests\Support\TestContainer();
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->willThrowException(new \LogicException('bogue'));
-        $container->instance(AppSettingsRepositoryInterface::class, $appSettings);
+        self::failingConnections(new \LogicException('bogue'));
 
         $this->expectException(\LogicException::class);
         (new LicenseServiceProvider($container))->register();

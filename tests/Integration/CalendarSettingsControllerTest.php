@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use App\Models\AppSetting;
 use App\Models\CalendarConnection;
 use App\Auth\UserAnonymizer;
 use App\Auth\CredentialRevoker;
@@ -72,7 +73,7 @@ final class CalendarSettingsControllerTest extends TestCase
         $_POST = ['google_calendar_enabled' => '1', 'google_calendar_client_id' => 'new-id', 'google_calendar_client_secret' => 'brand-new-secret'];
         $this->controller->save(Request::capture());
         $this->assertSame('brand-new-secret', $this->google->clientSecret());
-        $this->assertStringNotContainsString('brand-new-secret', (string) $this->values->get('google_calendar_client_secret'));
+        $this->assertStringNotContainsString('brand-new-secret', (string) AppSetting::value('google_calendar_client_secret'));
     }
 
     public function testUncheckingTheBoxDisablesTheFeatureWithoutLosingTheCredentials(): void
@@ -121,7 +122,7 @@ final class CalendarSettingsControllerTest extends TestCase
 
     public function testTheCheckAsksToFinishTheSetupWhenCredentialsAreMissing(): void
     {
-        $this->values->set('google_calendar_client_secret', '');
+        AppSetting::put('google_calendar_client_secret', '');
 
         $response = $this->controller->test(Request::capture());
 

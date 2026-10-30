@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web\System;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
 use Illuminate\Http\Request;
@@ -27,7 +27,7 @@ final class BackupControllerTest extends TestCase
 
     private string $tmpDir;
     private UpdateService $updateService;
-    private BackupService $backup;
+    private BackupService $backup;
     private AppSettingsService $settings;
     private ViewFactory $view;
 
@@ -41,17 +41,14 @@ final class BackupControllerTest extends TestCase
 
         $_ENV['LARAVEL_STORAGE_PATH'] = $this->tmpDir . '/storage';
 
-        $capsule = kintai_test_database();
+        $capsule = kintai_test_database();
 
         $this->updateService = new UpdateService($this->tmpDir);
 
         $this->backup = new BackupService($capsule);
         $this->setPrivate($this->backup, 'backupDir', $this->tmpDir . '/storage/backups');
-
-        $settingsRepo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $settingsRepo->method('get')->willReturn(null);
-        $settingsRepo->method('all')->willReturn([]);
-        $this->settings = new AppSettingsService($settingsRepo);
+        kintai_test_settings([]);
+        $this->settings = new AppSettingsService();
 
         $this->view = kintai_test_views(sys_get_temp_dir());
 
@@ -121,7 +118,7 @@ final class BackupControllerTest extends TestCase
     {
         $githubUpdate = new GithubUpdateService(
             $this->updateService,
-            $this->backup,
+            $this->backup,
             $this->settings,
             $this->tmpDir,
             // Releases publiées comme par release.yml : archive vérifiable + SHA256SUMS (audit M10).

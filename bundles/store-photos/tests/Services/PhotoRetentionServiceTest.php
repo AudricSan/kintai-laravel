@@ -7,7 +7,7 @@ namespace Tests\Bundles\StorePhoto\Services;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Bundles\Installed\StorePhoto\Services\PhotoRetentionService;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Contract\Data\AppSettingsRepositoryInterface;
+use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Data\StoreRepositoryInterface;
 use kintai\Contract\Services\NotificationService;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -54,8 +54,7 @@ final class PhotoRetentionServiceTest extends TestCase
 
     public function testArchivesNotifiesOnceAndPurges(): void
     {
-        $settings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $settings->method('get')->willReturnMap([['photo_retention_days', '14', '10'], ['photo_cleanup_delay', '7', '3']]);
+        kintai_test_settings(['photo_retention_days' => '10', 'photo_cleanup_delay' => '3']);
 
         $photos = $this->createMock(StorePhotoRepositoryInterface::class);
         $photos->expects($this->once())->method('getPendingCompression')->with(10)->willReturn([
@@ -81,7 +80,7 @@ final class PhotoRetentionServiceTest extends TestCase
             ['store' => 'Shibuya', 'date' => '2026-09-01', 'days' => '3'], 10, '/admin/photos/5/10'
         );
 
-        $result = (new PhotoRetentionService($photos, $settings, $stores, $permissions, $notifications, $this->dir))->run();
+        $result = (new PhotoRetentionService($photos, $stores, $permissions, $notifications, $this->dir))->run();
 
         $this->assertSame(2, $result['compressed']);
         $this->assertSame(1, $result['notified'], 'envoi déjà signalé : pas de nouvelle notification');
@@ -98,8 +97,7 @@ final class PhotoRetentionServiceTest extends TestCase
 
     public function testNoOwnerMeansNoNotificationAndNoMarker(): void
     {
-        $settings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $settings->method('get')->willReturnArgument(1);
+        kintai_test_settings();
         $photos = $this->createStub(StorePhotoRepositoryInterface::class);
         $photos->method('getPendingCompression')->willReturn([['id' => 10, 'store_id' => 5, 'mail_sent_at' => null]]);
         $photos->method('getExpiredSubmissions')->willReturn([]);
@@ -108,7 +106,7 @@ final class PhotoRetentionServiceTest extends TestCase
         $notifications = $this->createMock(NotificationService::class);
         $notifications->expects($this->never())->method('notifyMany');
 
-        $result = (new PhotoRetentionService($photos, $settings, $this->createStub(StoreRepositoryInterface::class), $permissions, $notifications, $this->dir))->run();
+        $result = (new PhotoRetentionService($photos, $this->createStub(StoreRepositoryInterface::class), $permissions, $notifications, $this->dir))->run();
 
         $this->assertSame(['compressed' => 1, 'notified' => 0], ['compressed' => $result['compressed'], 'notified' => $result['notified']]);
     }

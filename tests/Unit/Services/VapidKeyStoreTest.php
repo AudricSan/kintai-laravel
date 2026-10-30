@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\VapidKeyStore;
 use Minishlink\WebPush\VAPID;
 use PHPUnit\Framework\TestCase;
@@ -12,18 +12,9 @@ use PHPUnit\Framework\TestCase;
 /** Clés VAPID de l'instance : création, conservation, contact transmis aux services de push. */
 final class VapidKeyStoreTest extends TestCase
 {
-    private AppSettingsRepositoryInterface $settings;
-
     protected function setUp(): void
     {
-        $this->settings = new class implements AppSettingsRepositoryInterface {
-            public array $values = [];
-
-            public function all(): array { return $this->values; }
-            public function get(string $key): ?string { return $this->values[$key] ?? null; }
-            public function set(string $key, string $value): void { $this->values[$key] = $value; }
-            public function setMany(array $settings): void { $this->values = $settings + $this->values; }
-        };
+        kintai_test_settings();
     }
 
     private static function decode(string $base64Url): string
@@ -52,7 +43,7 @@ final class VapidKeyStoreTest extends TestCase
 
     public function testEnsureCreatesTheKeysOnceAndKeepsThem(): void
     {
-        $store = new VapidKeyStore($this->settings);
+        $store = new VapidKeyStore();
         $this->assertNull($store->publicKey());
         $this->assertFalse($store->isAvailable());
 
@@ -70,7 +61,7 @@ final class VapidKeyStoreTest extends TestCase
 
     public function testRegenerateReplacesThePair(): void
     {
-        $store = new VapidKeyStore($this->settings);
+        $store = new VapidKeyStore();
         $store->ensure();
         $before = $store->publicKey();
 
@@ -81,29 +72,29 @@ final class VapidKeyStoreTest extends TestCase
 
     public function testNotAvailableWithOnlyOneKey(): void
     {
-        $this->settings->set(VapidKeyStore::PUBLIC_KEY, 'public');
+        AppSetting::put(VapidKeyStore::PUBLIC_KEY, 'public');
 
-        $this->assertFalse((new VapidKeyStore($this->settings))->isAvailable());
+        $this->assertFalse((new VapidKeyStore())->isAvailable());
     }
 
     public function testSubjectPrefersExplicitSettingThenSupportEmailThenPublicUrl(): void
     {
-        $store = new VapidKeyStore($this->settings);
+        $store = new VapidKeyStore();
         $this->assertSame('https://github.com/AudricSan/Kintai', $store->subject(), 'contact de repli');
 
-        $this->settings->set('app_public_url', 'https://kintai.example');
+        AppSetting::put('app_public_url', 'https://kintai.example');
         $this->assertSame('https://kintai.example', $store->subject());
 
-        $this->settings->set('app_public_url', 'http://pas-https.example');
+        AppSetting::put('app_public_url', 'http://pas-https.example');
         $this->assertSame('https://github.com/AudricSan/Kintai', $store->subject(), 'une URL non HTTPS n\'est pas un contact valide');
 
-        $this->settings->set('app_support_email', 'support@kintai.example');
+        AppSetting::put('app_support_email', 'support@kintai.example');
         $this->assertSame('mailto:support@kintai.example', $store->subject());
 
-        $this->settings->set('app_support_email', 'pas-un-email');
+        AppSetting::put('app_support_email', 'pas-un-email');
         $this->assertSame('https://github.com/AudricSan/Kintai', $store->subject());
 
-        $this->settings->set(VapidKeyStore::SUBJECT, 'mailto:owner@kintai.example');
+        AppSetting::put(VapidKeyStore::SUBJECT, 'mailto:owner@kintai.example');
         $this->assertSame('mailto:owner@kintai.example', $store->subject());
     }
 

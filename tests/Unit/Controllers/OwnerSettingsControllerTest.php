@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Controllers;
 
 use Illuminate\Container\Container;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;
@@ -20,9 +20,6 @@ use PHPUnit\Framework\TestCase;
 
 final class OwnerSettingsControllerTest extends TestCase
 {
-    /** Snapshot de app_settings vu par le test courant — modifié en place par setMany(). */
-    private array $stored = [];
-
     protected function setUp(): void
     {
         $viewDir = sys_get_temp_dir() . '/system';
@@ -44,24 +41,15 @@ final class OwnerSettingsControllerTest extends TestCase
 
     /**
      * Construit un contrôleur dont l'AppSettingsService voit $initialStored comme état
-     * initial — doit être appelé APRÈS avoir préparé $this->stored, car AppSettingsService
-     * met en cache repo->all() une seule fois, à la construction.
+     * initial — les réglages sont écrits dans la base de test avant la construction du service.
      */
     private function makeController(array $initialStored = [], string $envUrl = ''): OwnerSettingsController
     {
-        $this->stored = $initialStored;
-
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturnCallback(fn() => $this->stored);
-        $repo->method('setMany')->willReturnCallback(function (array $settings): void {
-            foreach ($settings as $k => $v) {
-                $this->stored[(string) $k] = (string) $v;
-            }
-        });
+        kintai_test_settings($initialStored);
 
         $view = kintai_test_views(sys_get_temp_dir());
 
-        $settings = new AppSettingsService($repo);
+        $settings = new AppSettingsService();
 
         return new OwnerSettingsController($view, $settings, new AuditLogger(), new PublicUrlResolver($settings, $envUrl));
     }
@@ -82,7 +70,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('#00ff00', $this->stored['app_success_color']);
+        $this->assertSame('#00ff00', AppSetting::map()['app_success_color']);
     }
 
     public function testSaveFallsBackToPreviousValueOnInvalidHex(): void
@@ -92,7 +80,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('#123456', $this->stored['app_danger_color']);
+        $this->assertSame('#123456', AppSetting::map()['app_danger_color']);
     }
 
     public function testSavePersistsDarkModeToggle(): void
@@ -102,7 +90,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('manual', $this->stored['app_theme_dark_mode']);
+        $this->assertSame('manual', AppSetting::map()['app_theme_dark_mode']);
     }
 
     public function testSaveRejectsUnknownDarkModeValue(): void
@@ -112,7 +100,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('auto', $this->stored['app_theme_dark_mode']);
+        $this->assertSame('auto', AppSetting::map()['app_theme_dark_mode']);
     }
 
     public function testSaveStoresAManualDarkColor(): void
@@ -125,7 +113,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('#112233', $this->stored['app_primary_color_dark']);
+        $this->assertSame('#112233', AppSetting::map()['app_primary_color_dark']);
     }
 
     public function testSaveClearsAnInvalidManualDarkColorToEmptyMeaningAuto(): void
@@ -135,7 +123,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('', $this->stored['app_primary_color_dark']);
+        $this->assertSame('', AppSetting::map()['app_primary_color_dark']);
     }
 
     public function testSaveDefaultsAccessLogEnabledToOffWhenCheckboxUnchecked(): void
@@ -145,7 +133,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('0', $this->stored['access_log_enabled']);
+        $this->assertSame('0', AppSetting::map()['access_log_enabled']);
     }
 
     public function testSavePersistsAccessLogEnabled(): void
@@ -155,7 +143,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('1', $this->stored['access_log_enabled']);
+        $this->assertSame('1', AppSetting::map()['access_log_enabled']);
     }
 
     public function testSaveClampsLogRetentionDaysToRange(): void
@@ -165,7 +153,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('3650', $this->stored['log_retention_days']);
+        $this->assertSame('3650', AppSetting::map()['log_retention_days']);
     }
 
     public function testSaveAllowsZeroLogRetentionDaysMeaningUnlimited(): void
@@ -175,7 +163,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('0', $this->stored['log_retention_days']);
+        $this->assertSame('0', AppSetting::map()['log_retention_days']);
     }
 
     public function testSaveStoresANormalizedPublicUrl(): void
@@ -185,7 +173,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('https://kintai.example.com/app', $this->stored[PublicUrlResolver::SETTING_KEY]);
+        $this->assertSame('https://kintai.example.com/app', AppSetting::map()[PublicUrlResolver::SETTING_KEY]);
     }
 
     public function testSaveRefusesAnInvalidPublicUrlAndKeepsThePreviousOne(): void
@@ -196,8 +184,8 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $response = $controller->save(Request::capture());
 
-        $this->assertSame('https://old.example.com', $this->stored[PublicUrlResolver::SETTING_KEY]);
-        $this->assertArrayNotHasKey('app_subtitle', $this->stored, 'Rien ne doit être enregistré quand l\'URL est refusée.');
+        $this->assertSame('https://old.example.com', AppSetting::map()[PublicUrlResolver::SETTING_KEY]);
+        $this->assertArrayNotHasKey('app_subtitle', AppSetting::map(), 'Rien ne doit être enregistré quand l\'URL est refusée.');
         $this->assertStringContainsString('error=public_url_invalid', $this->locationOf($response));
     }
 
@@ -208,7 +196,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('', $this->stored[PublicUrlResolver::SETTING_KEY]);
+        $this->assertSame('', AppSetting::map()[PublicUrlResolver::SETTING_KEY]);
     }
 
     private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
@@ -233,7 +221,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('120', $this->stored['api_rate_limit_per_minute']);
+        $this->assertSame('120', AppSetting::map()['api_rate_limit_per_minute']);
     }
 
     public function testSaveClampsTheApiRateLimit(): void
@@ -241,11 +229,11 @@ final class OwnerSettingsControllerTest extends TestCase
         $controller = $this->makeController();
         $_POST = ['api_rate_limit_per_minute' => '-5'];
         $controller->save(Request::capture());
-        $this->assertSame('0', $this->stored['api_rate_limit_per_minute']);
+        $this->assertSame('0', AppSetting::map()['api_rate_limit_per_minute']);
 
         $_POST = ['api_rate_limit_per_minute' => '999999999'];
         $controller->save(Request::capture());
-        $this->assertSame('100000', $this->stored['api_rate_limit_per_minute']);
+        $this->assertSame('100000', AppSetting::map()['api_rate_limit_per_minute']);
     }
 
     public function testSaveKeepsTheCurrentApiRateLimitWhenTheFieldIsAbsent(): void
@@ -255,7 +243,7 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('300', $this->stored['api_rate_limit_per_minute']);
+        $this->assertSame('300', AppSetting::map()['api_rate_limit_per_minute']);
     }
 
     /** Audit M12 : une requête partielle ne coupe plus le journal ni la maintenance, n'efface plus les textes. */
@@ -269,12 +257,12 @@ final class OwnerSettingsControllerTest extends TestCase
 
         $controller->save(Request::capture());
 
-        $this->assertSame('1', $this->stored['access_log_enabled']);
-        $this->assertSame('1', $this->stored['maintenance_mode_enabled']);
-        $this->assertSame('Travaux', $this->stored['maintenance_message']);
-        $this->assertSame('Kintai Tokyo', $this->stored['app_subtitle']);
-        $this->assertSame('Bienvenue', $this->stored['app_login_notice']);
-        $this->assertSame('30', $this->stored['log_retention_days']);
+        $this->assertSame('1', AppSetting::map()['access_log_enabled']);
+        $this->assertSame('1', AppSetting::map()['maintenance_mode_enabled']);
+        $this->assertSame('Travaux', AppSetting::map()['maintenance_message']);
+        $this->assertSame('Kintai Tokyo', AppSetting::map()['app_subtitle']);
+        $this->assertSame('Bienvenue', AppSetting::map()['app_login_notice']);
+        $this->assertSame('30', AppSetting::map()['log_retention_days']);
     }
 
     private function makeControllerWithLocale(string $envDir): OwnerSettingsController
@@ -315,6 +303,6 @@ final class OwnerSettingsControllerTest extends TestCase
         $response = $this->makeControllerWithLocale(sys_get_temp_dir() . '/kintai-missing-dir-' . uniqid())->save(Request::capture());
 
         $this->assertStringContainsString('error=instance_locale_not_saved', (string) ($response->headers->get('Location') ?? ''));
-        $this->assertSame('Ma société', $this->stored['app_subtitle']);
+        $this->assertSame('Ma société', AppSetting::map()['app_subtitle']);
     }
 }

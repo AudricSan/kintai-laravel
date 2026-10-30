@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 /**
  * Chiffrement des secrets gardés en base (jeton de rafraîchissement Google, secret client OAuth) : AES-256-GCM
@@ -20,8 +20,6 @@ final class SecretBox
     private const CIPHER = 'aes-256-gcm';
     private const IV_BYTES  = 12;
     private const TAG_BYTES = 16;
-
-    public function __construct(private readonly AppSettingsRepositoryInterface $settings) {}
 
     public function encrypt(string $plain): string
     {
@@ -53,10 +51,10 @@ final class SecretBox
 
     private function key(): string
     {
-        $secret = $this->settings->get(UnsubscribeTokens::SECRET_KEY);
+        $secret = AppSetting::value(UnsubscribeTokens::SECRET_KEY);
         if ($secret === null || strlen($secret) < 32) {
             $secret = bin2hex(random_bytes(32));
-            $this->settings->set(UnsubscribeTokens::SECRET_KEY, $secret);
+            AppSetting::put(UnsubscribeTokens::SECRET_KEY, $secret);
         }
         // Clé propre à cet usage : le même secret signe aussi les liens de désabonnement.
         return hash('sha256', 'kintai-secretbox-v1|' . $secret, true);

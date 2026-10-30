@@ -6,7 +6,7 @@ namespace App;
 
 use Illuminate\Support\ServiceProvider;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 final class LicenseServiceProvider extends ServiceProvider
 {
@@ -61,7 +61,7 @@ final class LicenseServiceProvider extends ServiceProvider
     private function storedSetting(): ?string
     {
         try {
-            return $this->app->make(AppSettingsRepositoryInterface::class)->get(self::SETTINGS_KEY);
+            return AppSetting::value(self::SETTINGS_KEY);
         } catch (\Illuminate\Database\QueryException|\PDOException) {
             return null;
         }

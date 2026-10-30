@@ -13,7 +13,7 @@ final class UnsubscribeTokensTest extends TestCase
 {
     public function testASignatureOnlyValidatesWhatItWasMadeFor(): void
     {
-        $tokens = new UnsubscribeTokens(new InMemoryAppSettings());
+        $tokens = (new InMemoryAppSettings())->into(new UnsubscribeTokens());
         $sig    = $tokens->sign(7, 'shift_assigned', 'email');
 
         $this->assertTrue($tokens->verify(7, 'shift_assigned', 'email', $sig));
@@ -25,7 +25,7 @@ final class UnsubscribeTokensTest extends TestCase
 
     public function testEmptyOrMissingInputIsNeverValid(): void
     {
-        $tokens = new UnsubscribeTokens(new InMemoryAppSettings());
+        $tokens = (new InMemoryAppSettings())->into(new UnsubscribeTokens());
 
         $this->assertFalse($tokens->verify(7, 'shift_assigned', 'email', ''));
         $this->assertFalse($tokens->verify(0, 'shift_assigned', 'email', $tokens->sign(0, 'shift_assigned', 'email')));
@@ -44,7 +44,7 @@ final class UnsubscribeTokensTest extends TestCase
         $this->assertSame($sig, (new UnsubscribeTokens($settings))->sign(7, 'shift_assigned', 'email'), 'la signature survit entre deux requêtes');
         $this->assertSame($secret, $settings->get(UnsubscribeTokens::SECRET_KEY), 'le secret n\'est pas recréé');
 
-        $other = new UnsubscribeTokens(new InMemoryAppSettings());
+        $other = (new InMemoryAppSettings())->into(new UnsubscribeTokens());
         $this->assertNotSame($sig, $other->sign(7, 'shift_assigned', 'email'), 'une autre instance signe autrement');
         $this->assertFalse($other->verify(7, 'shift_assigned', 'email', $sig));
     }

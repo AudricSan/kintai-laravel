@@ -12,7 +12,7 @@ use App\Services\AuditLogger;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\InstalledBundleManifestStore;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\BundleActivationService;
@@ -47,22 +47,21 @@ final class SetupWizardControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->store = new InMemoryAppSettings();
-        SetupWizard::start($this->store, 'release');
+        SetupWizard::start('release');
 
         $dir = sys_get_temp_dir() . '/kintai-setup-ctl-' . bin2hex(random_bytes(4));
         mkdir($dir, 0777, true);
         $planLimits = new PlanLimitService(
             $this->createStub(StoreRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
-            new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+            new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
         $activation = new BundleActivationService(
-            $this->store,
             new FeatureManager([]),
             new BundleDiscoveryService($dir . '/legacy', new InstalledBundleManifestStore($dir . '/installed.json'), $dir, '1.0.0'),
             $planLimits,
         );
-        $this->wizard = new SetupWizard($this->store, fn(string $channel): array => $this->catalog, fn(array $entry): ?string => null, $activation, $planLimits);
+        $this->wizard = new SetupWizard(fn(string $channel): array => $this->catalog, fn(array $entry): ?string => null, $activation, $planLimits);
 
         // Une seule étape de formulaire factice suffit : le contrôleur ne connaît que l'interface.
         $fake = new class($this) implements SetupStepInterface {
@@ -99,7 +98,7 @@ final class SetupWizardControllerTest extends TestCase
             $view,
             $this->wizard,
             (new \ReflectionClass(LicenseClientService::class))->newInstanceWithoutConstructor(),
-            new AppSettingsService($this->store),
+            new AppSettingsService(),
             new AuditLogger(),
             $steps,
             new \App\Setup\SetupQuestionnaire([

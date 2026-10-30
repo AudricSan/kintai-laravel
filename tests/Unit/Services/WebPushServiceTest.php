@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use GuzzleHttp\Psr7\Response as PsrResponse;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\WebPushSubscription;
 use App\Services\VapidKeyStore;
 use App\Services\WebPushEndpointValidator;
@@ -37,15 +37,8 @@ final class WebPushServiceTest extends TestCase
     {
         kintai_test_database();
         kintai_test_migrate();
-        $settings = new class implements AppSettingsRepositoryInterface {
-            public array $values = [];
-
-            public function all(): array { return $this->values; }
-            public function get(string $key): ?string { return $this->values[$key] ?? null; }
-            public function set(string $key, string $value): void { $this->values[$key] = $value; }
-            public function setMany(array $settings): void { $this->values = $settings + $this->values; }
-        };
-        $this->keys = new VapidKeyStore($settings);
+        kintai_test_settings();
+        $this->keys = new VapidKeyStore();
         $this->keys->ensure();
 
     }
@@ -173,12 +166,8 @@ final class WebPushServiceTest extends TestCase
         $this->assertSame([], $this->sent, 'aucun abonnement');
 
         $this->store($this->subscription(1, 7, 'https://push.example/a'));
-        $emptyKeys = new VapidKeyStore(new class implements AppSettingsRepositoryInterface {
-            public function all(): array { return []; }
-            public function get(string $key): ?string { return null; }
-            public function set(string $key, string $value): void {}
-            public function setMany(array $settings): void {}
-        });
+        \App\Models\AppSetting::query()->delete(); // plus de clés VAPID
+        $emptyKeys = new VapidKeyStore();
         $client = new class implements ClientInterface {
             public function sendRequest(RequestInterface $request): ResponseInterface { throw new \LogicException('ne doit pas être appelé'); }
         };

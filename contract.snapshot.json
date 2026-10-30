@@ -25,9 +25,9 @@
             "status": "stable",
             "target": "Illuminate\\Container\\Container"
         },
-        "kintai\\Contract\\Data\\AppSettingsRepositoryInterface": {
+        "kintai\\Contract\\Data\\AppSetting": {
             "status": "stable",
-            "target": "App\\Repositories\\AppSettingsRepositoryInterface"
+            "target": "App\\Models\\AppSetting"
         },
         "kintai\\Contract\\Data\\ShiftRepositoryInterface": {
             "status": "stable",

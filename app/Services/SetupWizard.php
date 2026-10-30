@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\LicenseServiceProvider;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 /**
  * Assistant de configuration qui suit l'installateur (public/install.php). Étapes, dans l'ordre :
@@ -65,7 +65,6 @@ final class SetupWizard
      *                            le motif de l'échec
      */
     public function __construct(
-        private readonly AppSettingsRepositoryInterface $settings,
         private readonly \Closure $catalog,
         private readonly \Closure $installer,
         private readonly BundleActivationService $activation,
@@ -76,9 +75,9 @@ final class SetupWizard
      * Appelé par l'installateur sur une instance neuve : aucun bundle actif, assistant à la première étape, bundles
      * suivis sur le même canal que le Core.
      */
-    public static function start(AppSettingsRepositoryInterface $settings, string $coreChannel): void
+    public static function start(string $coreChannel): void
     {
-        $settings->setMany([
+        AppSetting::putMany([
             LicenseServiceProvider::SETTINGS_KEY => '[]',
             'bundle_update_channel'              => $coreChannel,
             self::PENDING_KEY                    => '1',
@@ -88,7 +87,7 @@ final class SetupWizard
 
     public function isPending(): bool
     {
-        return $this->settings->get(self::PENDING_KEY) === '1';
+        return AppSetting::value(self::PENDING_KEY) === '1';
     }
 
     /**
@@ -98,11 +97,11 @@ final class SetupWizard
      */
     public function progress(): array
     {
-        $raw = $this->settings->get(self::DONE_KEY);
+        $raw = AppSetting::value(self::DONE_KEY);
         $saved = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
         if (!is_array($saved)) {
             // Assistant en deux étapes : Licence faite si l'ancienne clé est déjà passée à « bundles ».
-            $saved = $this->settings->get(self::STEP_KEY) === self::STEP_BUNDLES ? [self::STEP_LICENSE => self::DONE] : [];
+            $saved = AppSetting::value(self::STEP_KEY) === self::STEP_BUNDLES ? [self::STEP_LICENSE => self::DONE] : [];
         }
         $progress = [];
         foreach (self::SKIPPABLE as $step) {
@@ -156,7 +155,7 @@ final class SetupWizard
         }
         $progress = array_filter($this->progress(), static fn($s) => $s !== null);
         $progress[$step] = $skipped ? self::SKIPPED : self::DONE;
-        $this->settings->set(self::DONE_KEY, json_encode($progress, JSON_THROW_ON_ERROR));
+        AppSetting::put(self::DONE_KEY, json_encode($progress, JSON_THROW_ON_ERROR));
     }
 
     /** Étape « Licence » terminée (licence activée ou passée). */
@@ -168,7 +167,7 @@ final class SetupWizard
     /** Assistant terminé (ou passé) : plus de bandeau. */
     public function finish(): void
     {
-        $this->settings->set(self::PENDING_KEY, '0');
+        AppSetting::put(self::PENDING_KEY, '0');
     }
 
     /** Place restante dans le quota (nombre de bundles encore activables), ou null si illimité. */
@@ -196,7 +195,7 @@ final class SetupWizard
      */
     public function pendingBundles(): array
     {
-        $decoded = json_decode((string) $this->settings->get(self::PENDING_BUNDLES_KEY), true);
+        $decoded = json_decode((string) AppSetting::value(self::PENDING_BUNDLES_KEY), true);
         return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
     }
 
@@ -221,7 +220,7 @@ final class SetupWizard
         $batch = $room === null ? $pending : array_slice($pending, 0, $room);
         $result = $this->install($batch, $channel, false);
         $remaining = array_values(array_diff($pending, $result['installed']));
-        $this->settings->set(self::PENDING_BUNDLES_KEY, json_encode($remaining, JSON_THROW_ON_ERROR));
+        AppSetting::put(self::PENDING_BUNDLES_KEY, json_encode($remaining, JSON_THROW_ON_ERROR));
         $result['pending'] = $remaining;
         return $result;
     }
@@ -251,10 +250,10 @@ final class SetupWizard
             $result['pending'] = array_slice($slugs, $room);
             $slugs = array_slice($slugs, 0, $room);
             if ($remember) {
-                $this->settings->set(self::PENDING_BUNDLES_KEY, json_encode($result['pending'], JSON_THROW_ON_ERROR));
+                AppSetting::put(self::PENDING_BUNDLES_KEY, json_encode($result['pending'], JSON_THROW_ON_ERROR));
             }
         } elseif ($remember) {
-            $this->settings->set(self::PENDING_BUNDLES_KEY, '[]');
+            AppSetting::put(self::PENDING_BUNDLES_KEY, '[]');
         }
 
         foreach ($slugs as $slug) {

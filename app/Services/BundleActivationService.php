@@ -7,7 +7,7 @@ namespace App\Services;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\LicenseServiceProvider;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 /**
  * Activation des bundles dans la limite du quota de la licence (plan gratuit : 4 bundles actifs).
@@ -24,7 +24,6 @@ final class BundleActivationService
     public const QUOTA_FULL = 'quota_full';
 
     public function __construct(
-        private readonly AppSettingsRepositoryInterface $appSettings,
         private readonly FeatureManager $features,
         private readonly BundleDiscoveryService $discovery,
         private readonly PlanLimitService $planLimits,
@@ -39,7 +38,7 @@ final class BundleActivationService
      */
     public function enabledSlugs(): array
     {
-        $stored = json_decode((string) $this->appSettings->get(LicenseServiceProvider::SETTINGS_KEY), true);
+        $stored = json_decode((string) AppSetting::value(LicenseServiceProvider::SETTINGS_KEY), true);
         $isEnabled = is_array($stored)
             ? static fn(string $slug): bool => in_array($slug, $stored, true)
             : fn(string $slug): bool => $this->features->isEnabled($slug);
@@ -66,7 +65,7 @@ final class BundleActivationService
             return self::QUOTA_FULL;
         }
         $enabled[] = $slug;
-        $this->appSettings->set(LicenseServiceProvider::SETTINGS_KEY, json_encode($enabled, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        AppSetting::put(LicenseServiceProvider::SETTINGS_KEY, json_encode($enabled, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         return self::ACTIVATED;
     }
 

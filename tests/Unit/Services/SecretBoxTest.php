@@ -13,7 +13,7 @@ final class SecretBoxTest extends TestCase
 {
     public function testRoundTripAndTheStoredValueIsNeverThePlainText(): void
     {
-        $box    = new SecretBox(new InMemoryAppSettings());
+        $box    = (new InMemoryAppSettings())->into(new SecretBox());
         $stored = $box->encrypt('1//refresh-token');
 
         $this->assertStringStartsWith('enc1:', $stored);
@@ -23,16 +23,16 @@ final class SecretBoxTest extends TestCase
 
     public function testTwoEncryptionsOfTheSameTextDiffer(): void
     {
-        $box = new SecretBox(new InMemoryAppSettings());
+        $box = (new InMemoryAppSettings())->into(new SecretBox());
 
         $this->assertNotSame($box->encrypt('x'), $box->encrypt('x'));
     }
 
     public function testASecretEncryptedByAnotherInstanceIsRefused(): void
     {
-        $stored = (new SecretBox(new InMemoryAppSettings()))->encrypt('token');
+        $stored = ((new InMemoryAppSettings())->into(new SecretBox()))->encrypt('token');
 
-        $this->assertNull((new SecretBox(new InMemoryAppSettings()))->decrypt($stored));
+        $this->assertNull(((new InMemoryAppSettings())->into(new SecretBox()))->decrypt($stored));
     }
 
     public function testATamperedValueIsRefused(): void
@@ -48,7 +48,7 @@ final class SecretBoxTest extends TestCase
 
     public function testAValueWithoutPrefixIsReadAsIs(): void
     {
-        $this->assertSame('legacy', (new SecretBox(new InMemoryAppSettings()))->decrypt('legacy'));
+        $this->assertSame('legacy', ((new InMemoryAppSettings())->into(new SecretBox()))->decrypt('legacy'));
     }
 
     public function testTheInstanceSecretIsCreatedOnceAndReused(): void

@@ -7,7 +7,7 @@ namespace Tests\Unit\Core;
 use App\Auth\AuthService;
 use Illuminate\Container\Container;
 use App\Http\Middleware\NotificationMiddleware;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\Notification;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
@@ -85,20 +85,8 @@ final class NotificationMiddlewareTest extends TestCase
     /** Réglages en mémoire ; clés VAPID présentes ou non. */
     private function bindVapid(?string $public, ?string $private = 'private-key'): void
     {
-        $settings = new class($public, $private) implements AppSettingsRepositoryInterface {
-            public array $values = [];
-
-            public function __construct(?string $public, ?string $private)
-            {
-                $this->values = array_filter([VapidKeyStore::PUBLIC_KEY => $public, VapidKeyStore::PRIVATE_KEY => $private], fn($v) => $v !== null);
-            }
-
-            public function all(): array { return $this->values; }
-            public function get(string $key): ?string { return $this->values[$key] ?? null; }
-            public function set(string $key, string $value): void { $this->values[$key] = $value; }
-            public function setMany(array $settings): void { $this->values = $settings + $this->values; }
-        };
-        $this->container->instance(VapidKeyStore::class, new VapidKeyStore($settings));
+        kintai_test_settings(array_filter([VapidKeyStore::PUBLIC_KEY => $public, VapidKeyStore::PRIVATE_KEY => $private], fn($v) => $v !== null));
+        $this->container->instance(VapidKeyStore::class, new VapidKeyStore());
     }
 
     public function testPushWebConfigEmptyWhenAnonymous(): void

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
@@ -34,18 +33,9 @@ final class NotificationUnsubscribeControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $capsule->getConnection()->getSchemaBuilder()->create('notification_preferences', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id');
-            $table->string('type', 64);
-            $table->string('channel', 16);
-            $table->boolean('enabled');
-            $table->unique(['user_id', 'type', 'channel']);
-        });
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_settings();
 
         session()->put('_token', 'test-token');
         $router = kintai_test_registrar();
@@ -62,7 +52,7 @@ final class NotificationUnsubscribeControllerTest extends TestCase
             new NotificationTypeRegistry(new ExtensionRegistry($manager)),
             $this->createStub(UserRepositoryInterface::class),
         );
-        $this->tokens = new UnsubscribeTokens(new InMemoryAppSettings());
+        $this->tokens = (new InMemoryAppSettings())->into(new UnsubscribeTokens());
         $view = kintai_test_views(dirname(__DIR__, 4) . '/resources/views');
         $view->share('BASE_URL', '');
         $this->controller = new NotificationUnsubscribeController($view, $this->tokens, $this->prefs);

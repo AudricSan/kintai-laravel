@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use App\Services\BackupService;
 use App\Services\GithubUpdateService;
@@ -95,9 +95,8 @@ final class GithubUpdateServiceTest extends TestCase
 
     private function makeSettings(string $channel = 'release'): AppSettingsService
     {
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn(['update_channel' => $channel]);
-        return new AppSettingsService($repo);
+        kintai_test_settings(['update_channel' => $channel]);
+        return new AppSettingsService();
     }
 
     private function makeService(string $tag, array $files, ?string $currentVersion = '0.0.0', string $channel = 'release', bool $prerelease = false, string $targetCommitish = 'main'): GithubUpdateService

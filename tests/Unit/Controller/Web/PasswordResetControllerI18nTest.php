@@ -10,7 +10,7 @@ use App\Models\ApiToken;
 use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use App\Services\PasswordResetService;
 use App\Services\PublicUrlResolver;
@@ -53,13 +53,11 @@ final class PasswordResetControllerI18nTest extends TestCase
                 $this->createStub(UserRepositoryInterface::class),
             ),
         );
-
-        $settingsRepo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $settingsRepo->method('all')->willReturn([]);
+        kintai_test_settings([]);
         $this->controller = new PasswordResetController(
             kintai_test_views($viewDir),
             $service,
-            new PublicUrlResolver(new AppSettingsService($settingsRepo), 'https://kintai.example.com'),
+            new PublicUrlResolver(new AppSettingsService(), 'https://kintai.example.com'),
         );
     }
 

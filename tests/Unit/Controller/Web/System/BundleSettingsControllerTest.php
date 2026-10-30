@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web\System;
 
 use App\BundleDiscoveryService;
 use App\FeatureManager;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -26,8 +26,6 @@ if (!defined('BASE_PATH')) {
 final class BundleSettingsControllerTest extends TestCase
 {
     private static string $legacyBundlesDir;
-
-    private AppSettingsRepositoryInterface&Stub $appSettings;
 
     /**
      * Depuis que TeamDirectory (le dernier bundle du monorepo) a été extrait vers son
@@ -79,9 +77,9 @@ final class BundleSettingsControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_settings();
         $this->ensureViewFile('system.bundles');
         $this->ensureViewFile('layout.app');
-        $this->appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
     }
 
     protected function tearDown(): void
@@ -94,14 +92,13 @@ final class BundleSettingsControllerTest extends TestCase
     {
         return new BundleSettingsController(
             kintai_test_views(sys_get_temp_dir()),
-            $this->appSettings,
             $features,
             new AuditLogger(),
             new BundleDiscoveryService(self::$legacyBundlesDir),
             $planLimits ?? new PlanLimitService(
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
-                new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
         );
     }
@@ -120,22 +117,14 @@ final class BundleSettingsControllerTest extends TestCase
 
     public function testSavePersistsSelectedBundlesAsJson(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $controller = $this->makeController(new FeatureManager(['team-directory']));
 
         $_POST = ['bundle_team-directory' => '1'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $captured = null;
-        $this->appSettings->expects($this->once())->method('set')->willReturnCallback(
-            function (string $key, string $value) use (&$captured) {
-                $this->assertSame('enabled_bundles', $key);
-                $captured = json_decode($value, true);
-            }
-        );
-
         $response = $controller->save($req);
+        $captured = json_decode((string) AppSetting::value('enabled_bundles'), true);
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
@@ -145,7 +134,6 @@ final class BundleSettingsControllerTest extends TestCase
 
     public function testSaveBlocksWhenFreePlanBundleQuotaExceeded(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         // Plan gratuit = 4 bundles actifs max (PlanLimitService) ; 5 sont découverts dans
         // le fixture (team-directory + fake-bundle-{2..5}), donc tout cocher dépasse le quota.
         $controller = $this->makeController(new FeatureManager([]));
@@ -160,8 +148,6 @@ final class BundleSettingsControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->appSettings->expects($this->never())->method('set');
-
         $response = $controller->save($req);
 
         $this->assertSame(302, $response->getStatusCode());
@@ -170,7 +156,6 @@ final class BundleSettingsControllerTest extends TestCase
     /** Au-dessus du quota (instance antérieure), garder ou réduire reste permis : seul l'ajout est refusé. */
     public function testSaveAboveTheQuotaKeepsWorkingWithoutAdditions(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $all = ['team-directory', 'fake-bundle-2', 'fake-bundle-3', 'fake-bundle-4', 'fake-bundle-5'];
         $controller = $this->makeController(new FeatureManager($all));
 
@@ -178,14 +163,12 @@ final class BundleSettingsControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->appSettings->expects($this->once())->method('set');
-
         $this->assertStringEndsWith('/admin/bundles?success=1', $controller->save($req)->headers->get('Location') ?? '');
+        $this->assertNotNull(AppSetting::value('enabled_bundles'));
     }
 
     public function testSaveAllowsExactlyFourBundlesOnFreePlan(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $controller = $this->makeController(new FeatureManager([]));
 
         $_POST = [
@@ -197,11 +180,10 @@ final class BundleSettingsControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->appSettings->expects($this->once())->method('set');
-
         $response = $controller->save($req);
 
         $this->assertSame(302, $response->getStatusCode());
+        $this->assertNotNull(AppSetting::value('enabled_bundles'));
     }
 
     public function testOfficialBundlesRegistryListsBundlesShippedWithTheRepo(): void
@@ -223,14 +205,8 @@ final class BundleSettingsControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $captured = null;
-        $this->appSettings->method('set')->willReturnCallback(
-            function (string $key, string $value) use (&$captured) {
-                $captured = json_decode($value, true);
-            }
-        );
-
         $controller->save($req);
+        $captured = json_decode((string) AppSetting::value('enabled_bundles'), true);
 
         $this->assertSame([], $captured);
     }

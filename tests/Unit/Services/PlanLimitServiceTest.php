@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Exceptions\PlanLimitExceededException;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\LicenseClientService;
@@ -34,14 +34,14 @@ final class PlanLimitServiceTest extends TestCase
     {
         $this->stores  = $this->createStub(StoreRepositoryInterface::class);
         $this->users   = $this->createStub(UserRepositoryInterface::class);
+        kintai_test_settings();
         $this->service = $this->makeService();
     }
 
-    /** Aucune clé de licence enregistrée (mock AppSettingsRepositoryInterface non stubbé -> get() = null) : isPaidPlanActive() reste false, donc le plan gratuit s'applique. */
+    /** Aucune clé de licence enregistrée (table app_settings vide) : isPaidPlanActive() reste false, donc le plan gratuit s'applique. */
     private function makeService(): PlanLimitService
     {
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $license = new LicenseClientService($appSettings, ['base_url' => '', 'api_key' => '', 'grace_period_days' => 14]);
+        $license = new LicenseClientService(['base_url' => '', 'api_key' => '', 'grace_period_days' => 14]);
 
         return new PlanLimitService($this->stores, $this->users, $license);
     }
@@ -102,17 +102,9 @@ final class PlanLimitServiceTest extends TestCase
 
     private function makePaidService(): PlanLimitService
     {
-        $store = [];
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->willReturnCallback(function (string $k) use (&$store) {
-            return $store[$k] ?? null;
-        });
-        $appSettings->method('set')->willReturnCallback(function (string $k, string $v) use (&$store): void {
-            $store[$k] = $v;
-        });
+        kintai_test_settings();
 
         $license = new LicenseClientService(
-            $appSettings,
             ['base_url' => 'https://license.test/api/v1', 'api_key' => 'kintai-key', 'grace_period_days' => 14],
             transport: fn(): string => json_encode(['valid' => true, 'status' => 'active']),
         );
@@ -162,17 +154,9 @@ final class PlanLimitServiceTest extends TestCase
         openssl_sign($encodedPayload, $signature, $privateKey, OPENSSL_ALGO_SHA256);
         $token = $encodedPayload . '.' . $encode($signature);
 
-        $store = [];
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->willReturnCallback(function (string $k) use (&$store) {
-            return $store[$k] ?? null;
-        });
-        $appSettings->method('set')->willReturnCallback(function (string $k, string $v) use (&$store): void {
-            $store[$k] = $v;
-        });
+        kintai_test_settings();
 
         $license = new LicenseClientService(
-            $appSettings,
             ['base_url' => 'https://license.test/api/v1', 'api_key' => 'kintai-key', 'grace_period_days' => 14],
             transport: fn(): string => json_encode(['valid' => true, 'status' => 'active', 'license_token' => $token]),
             tokenVerifier: new LicenseTokenVerifier(self::$keypair['public']),

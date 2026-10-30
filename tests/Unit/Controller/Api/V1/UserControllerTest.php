@@ -13,7 +13,7 @@ use App\Repositories\StoreUserRepositoryInterface;
 use Tests\Support\ApiOwnerAuth;
 use App\Exceptions\PlanLimitExceededException;
 use App\Auth\OwnerGuard;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -48,7 +48,7 @@ final class UserControllerTest extends TestCase
                 new PlanLimitService(
                     $stores,
                     $this->users,
-                    new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                    new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
                 ApiOwnerAuth::permissions($this),
                 $this->createStub(StoreUserRepositoryInterface::class),
@@ -112,7 +112,7 @@ final class UserControllerTest extends TestCase
             new PlanLimitService(
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->users,
-                new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             ApiOwnerAuth::permissions($this),
             $this->createStub(StoreUserRepositoryInterface::class),

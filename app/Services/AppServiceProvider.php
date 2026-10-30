@@ -17,7 +17,7 @@ use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
 use App\Models\UserShiftTypeRate;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\DevicePushToken;
@@ -108,14 +108,14 @@ final class AppServiceProvider extends ServiceProvider
             );
         });
         $this->app->singleton(HttpTransportInterface::class, fn() => new CurlHttpTransport());
-        $this->app->singleton(UnsubscribeTokens::class,fn(Container $c) => new UnsubscribeTokens($c->make(AppSettingsRepositoryInterface::class)));
+        $this->app->singleton(UnsubscribeTokens::class,fn(Container $c) => new UnsubscribeTokens());
         $this->app->singleton(NotificationMailer::class, fn(Container $c) => new NotificationMailer(
             $c->make(MailerService::class),
             $c->make(PublicUrlResolver::class),
             $c->make(UnsubscribeTokens::class),
             $c->make('translator'),
         ));
-        $this->app->singleton(VapidKeyStore::class, fn(Container $c) => new VapidKeyStore($c->make(AppSettingsRepositoryInterface::class)));
+        $this->app->singleton(VapidKeyStore::class, fn(Container $c) => new VapidKeyStore());
         $this->app->singleton(WebPushService::class, fn(Container $c) => new WebPushService(
             $c->make(VapidKeyStore::class),
             null,
@@ -137,7 +137,7 @@ final class AppServiceProvider extends ServiceProvider
             $c->make('translator'),
         ));
 
-        $this->app->singleton(AppSettingsService::class, fn(Container $c) => new AppSettingsService($c->make(AppSettingsRepositoryInterface::class)));
+        $this->app->singleton(AppSettingsService::class, fn(Container $c) => new AppSettingsService());
 
         $this->app->singleton(PublicUrlResolver::class, fn(Container $c) => new PublicUrlResolver($c->make(AppSettingsService::class)));
 
@@ -171,7 +171,6 @@ final class AppServiceProvider extends ServiceProvider
             $path = dirname(dirname(__DIR__)) . '/config/license_server.php';
             $config = file_exists($path) ? require $path : [];
             return new LicenseClientService(
-                $c->make(AppSettingsRepositoryInterface::class),
                 $config,
                 tokenVerifier: $c->make(LicenseTokenVerifier::class),
             );
@@ -238,7 +237,6 @@ final class AppServiceProvider extends ServiceProvider
 
         // Assistant de configuration : bundles du catalogue pour un canal, installés comme depuis /admin/bundles/market.
         $this->app->singleton(SetupWizard::class, fn(Container $c) => new SetupWizard(
-            $c->make(\App\Repositories\AppSettingsRepositoryInterface::class),
             static function (string $channel) use ($c): array {
                 $entries = [];
                 foreach ($c->make(BundleRegistry\BundleCatalogService::class)->listAvailableBundles() as $entry) {

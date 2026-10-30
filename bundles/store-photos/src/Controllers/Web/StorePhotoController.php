@@ -9,7 +9,7 @@ use kintai\Contract\Services\ImageCompressionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Data\StoreRepositoryInterface;
-use kintai\Contract\Data\AppSettingsRepositoryInterface;
+use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -24,7 +24,6 @@ final class StorePhotoController
         private readonly ViewFactory $view,
         private readonly StorePhotoRepositoryInterface $photos,
         private readonly StoreRepositoryInterface $stores,
-        private readonly AppSettingsRepositoryInterface $appSettings,
         private readonly AuditLogger $auditLogger,
         private readonly ImageCompressionService $imageCompressor,
         private readonly NotificationService $notifs,
@@ -151,7 +150,7 @@ final class StorePhotoController
                 'week_label'     => $weekLabel,
                 'notes'          => $notes,
                 'image_count'    => 0,
-                'retention_days' => max(1, (int) $this->appSettings->get('photo_retention_days', '14')),
+                'retention_days' => max(1, (int) AppSetting::value('photo_retention_days', '14')),
                 'created_by'     => $createdBy,
                 'updated_at'     => date('Y-m-d H:i:s'),
             ]);
@@ -443,8 +442,8 @@ final class StorePhotoController
 
         return response($this->view->make('store-photos::store-photos-settings', [
             'title'               => __('store_photos_photo_settings'),
-            'retentionDays'       => $this->appSettings->get('photo_retention_days', '14'),
-            'cleanupDelay'        => $this->appSettings->get('photo_cleanup_delay', '7'),
+            'retentionDays'       => AppSetting::value('photo_retention_days', '14'),
+            'cleanupDelay'        => AppSetting::value('photo_cleanup_delay', '7'),
         ])->render());
     }
 
@@ -458,7 +457,7 @@ final class StorePhotoController
         $retentionDays = max(1, (int) ($request->post('photo_retention_days') ?: 14));
         $cleanupDelay  = max(1, (int) ($request->post('photo_cleanup_delay') ?: 7));
 
-        $this->appSettings->setMany([
+        AppSetting::putMany([
             'photo_retention_days' => (string) $retentionDays,
             'photo_cleanup_delay'  => (string) $cleanupDelay,
         ]);

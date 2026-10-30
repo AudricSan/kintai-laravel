@@ -7,7 +7,7 @@ namespace Tests\Unit\Core\Cron;
 use App\Console\Commands\BackupCommand;
 use App\Console\Commands\LicenseCheckCommand;
 use App\Console\Commands\LogPurgeCommand;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\ActivityEntry;
 use App\Services\AppSettingsService;
 use App\Services\BackupService;
@@ -39,7 +39,7 @@ final class ScheduledCommandsTest extends TestCase
 
     private function settings(array $values): void
     {
-        app()->instance(AppSettingsService::class, new AppSettingsService(new InMemoryAppSettings($values)));
+        app()->instance(AppSettingsService::class, (new InMemoryAppSettings($values))->into(new AppSettingsService()));
     }
 
     // ── Planificateur ──────────────────────────────────────────────────────────────────────────────────────────
@@ -134,10 +134,8 @@ final class ScheduledCommandsTest extends TestCase
 
     private function license(array $store, ?callable $transport = null): array
     {
-        $settings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $settings->method('get')->willReturnCallback(fn(string $k) => $store[$k] ?? null);
+        $this->settings($store);
         app()->instance(LicenseClientService::class, new LicenseClientService(
-            $settings,
             ['base_url' => 'https://license.test/api/v1', 'api_key' => 'kintai-key', 'grace_period_days' => 14],
             transport: $transport,
         ));

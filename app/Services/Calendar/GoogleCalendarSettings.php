@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Calendar;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\SecretBox;
 
 /**
@@ -18,18 +18,17 @@ final class GoogleCalendarSettings
     public const ENABLED       = 'google_calendar_enabled';
 
     public function __construct(
-        private readonly AppSettingsRepositoryInterface $settings,
         private readonly SecretBox $secrets,
     ) {}
 
     public function clientId(): string
     {
-        return trim((string) $this->settings->get(self::CLIENT_ID));
+        return trim((string) AppSetting::value(self::CLIENT_ID));
     }
 
     public function clientSecret(): string
     {
-        $stored = (string) $this->settings->get(self::CLIENT_SECRET);
+        $stored = (string) AppSetting::value(self::CLIENT_SECRET);
         return $stored === '' ? '' : (string) $this->secrets->decrypt($stored);
     }
 
@@ -41,12 +40,12 @@ final class GoogleCalendarSettings
     /** Activée par l'Owner ET identifiants renseignés : c'est la condition pour proposer « Connecter Google Calendar ». */
     public function isAvailable(): bool
     {
-        return (string) $this->settings->get(self::ENABLED) === '1' && $this->clientId() !== '' && $this->hasSecret();
+        return (string) AppSetting::value(self::ENABLED) === '1' && $this->clientId() !== '' && $this->hasSecret();
     }
 
     public function isEnabled(): bool
     {
-        return (string) $this->settings->get(self::ENABLED) === '1';
+        return (string) AppSetting::value(self::ENABLED) === '1';
     }
 
     /** @param string|null $clientSecret null ou vide : le secret enregistré est conservé */
@@ -56,6 +55,6 @@ final class GoogleCalendarSettings
         if ($clientSecret !== null && trim($clientSecret) !== '') {
             $values[self::CLIENT_SECRET] = $this->secrets->encrypt(trim($clientSecret));
         }
-        $this->settings->setMany($values);
+        AppSetting::putMany($values);
     }
 }

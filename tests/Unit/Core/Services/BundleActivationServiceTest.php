@@ -6,7 +6,7 @@ namespace Tests\Unit\Core\Services;
 
 use App\BundleDiscoveryService;
 use App\FeatureManager;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\BundleActivationService;
@@ -46,34 +46,30 @@ final class BundleActivationServiceTest extends TestCase
     }
 
     /** @param list<string> $enabled */
-    private function service(array $enabled, ?AppSettingsRepositoryInterface $settings = null): BundleActivationService
+    private function service(array $enabled): BundleActivationService
     {
+        kintai_test_settings();
+
         return new BundleActivationService(
-            $settings ?? $this->createStub(AppSettingsRepositoryInterface::class),
             new FeatureManager($enabled),
             new BundleDiscoveryService(self::$bundlesDir),
             new PlanLimitService(
                 $this->createStub(StoreRepositoryInterface::class),
                 $this->createStub(UserRepositoryInterface::class),
-                new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
         );
     }
 
     public function testABundleIsActivatedWhenThereIsRoom(): void
     {
-        $settings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $settings->expects($this->once())->method('set')->with('enabled_bundles', json_encode(['activation-a', 'activation-b']));
-
-        $this->assertSame(BundleActivationService::ACTIVATED, $this->service(['activation-a'], $settings)->activateIfRoom('activation-b'));
+        $this->assertSame(BundleActivationService::ACTIVATED, $this->service(['activation-a'])->activateIfRoom('activation-b'));
+        $this->assertSame(['activation-a', 'activation-b'], json_decode((string) AppSetting::value('enabled_bundles'), true));
     }
 
     public function testAFullQuotaLeavesTheBundleInactive(): void
     {
-        $settings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $settings->expects($this->never())->method('set');
-
-        $service = $this->service(['activation-a', 'activation-b', 'activation-c', 'activation-d'], $settings);
+        $service = $this->service(['activation-a', 'activation-b', 'activation-c', 'activation-d']);
 
         $this->assertSame(BundleActivationService::QUOTA_FULL, $service->activateIfRoom('activation-e'));
         $this->assertSame(BundleActivationService::ALREADY, $service->activateIfRoom('activation-a'));

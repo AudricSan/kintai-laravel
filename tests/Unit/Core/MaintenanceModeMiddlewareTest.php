@@ -8,7 +8,7 @@ use App\Auth\AuthService;
 use Illuminate\Container\Container;
 use App\Exceptions\ServiceUnavailableException;
 use App\Http\Middleware\MaintenanceModeMiddleware;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
@@ -50,9 +50,8 @@ final class MaintenanceModeMiddlewareTest extends TestCase
 
     private function bindSettings(array $stored): void
     {
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn($stored);
-        $this->container->instance(AppSettingsService::class, new AppSettingsService($repo));
+        kintai_test_settings($stored);
+        $this->container->instance(AppSettingsService::class, new AppSettingsService());
     }
 
     private function bindAuth(?array $user): void

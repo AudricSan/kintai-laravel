@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web\System;
 
 use App\BundleDiscoveryService;
 use App\InstalledBundleManifestStore;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\BundleRegistry;
 use Tests\Support\InstalledBundleExpectations;
 use Illuminate\Http\Request;
@@ -29,8 +29,6 @@ if (!defined('BASE_PATH')) {
 final class BundleMarketControllerTest extends TestCase
 {
     use InstalledBundleExpectations;
-
-    private AppSettingsRepositoryInterface&Stub $appSettings;
     private ?\Closure $registryFetcher = null;
     private ?\Closure $releaseFetcher = null;
     private ?\Closure $zipDownloader = null;
@@ -45,8 +43,7 @@ final class BundleMarketControllerTest extends TestCase
         kintai_test_registries([]);
         kintai_test_database();
         kintai_test_migrate();
-        $this->appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $this->appSettings->method('all')->willReturn([]);
+        kintai_test_settings([]);
 
         $this->bundlesDir = sys_get_temp_dir() . '/kintai-bundle-market-' . uniqid();
         mkdir($this->bundlesDir, 0777, true);
@@ -82,13 +79,12 @@ final class BundleMarketControllerTest extends TestCase
             $catalog,
             $installer,
             new AuditLogger(),
-            $this->appSettings,
             new BundleDiscoveryService(
                 $this->bundlesDir . '/no-legacy-bundles-here',
                 new InstalledBundleManifestStore($this->bundlesDir . '/installed.json'),
                 $this->bundlesDir,
             ),
-            new AppSettingsService($this->appSettings),
+            new AppSettingsService(),
         );
     }
 
@@ -197,7 +193,7 @@ final class BundleMarketControllerTest extends TestCase
      */
     public function testMarketResolvesLatestVersionFromConfiguredChannelWithSchema2Registry(): void
     {
-        $this->appSettings->method('all')->willReturn(['bundle_update_channel' => 'alpha']);
+        kintai_test_settings(['bundle_update_channel' => 'alpha']);
 
         kintai_test_registries([
             ['id' => 1, 'name' => 'Registry officiel', 'url' => 'https://example.test/registry.json', 'is_official' => true],
@@ -226,26 +222,24 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testSaveChannelPersistsChannelAndRedirects(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $this->appSettings->method('all')->willReturn([]);
+        kintai_test_settings([]);
         $_POST = ['channel' => 'beta'];
 
-        $this->appSettings->expects($this->once())->method('setMany')->with(['bundle_update_channel' => 'beta']);
-
         $response = $this->makeController()->saveChannel(Request::capture());
+
+        $this->assertSame('beta', AppSetting::value('bundle_update_channel'));
 
         $this->assertStringContainsString('channel_saved=beta', $this->locationOf($response));
     }
 
     public function testSaveChannelRejectsUnknownValueAndFallsBackToRelease(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $this->appSettings->method('all')->willReturn([]);
+        kintai_test_settings([]);
         $_POST = ['channel' => 'nightly'];
 
-        $this->appSettings->expects($this->once())->method('setMany')->with(['bundle_update_channel' => 'release']);
-
         $response = $this->makeController()->saveChannel(Request::capture());
+
+        $this->assertSame('release', AppSetting::value('bundle_update_channel'));
 
         $this->assertStringContainsString('channel_saved=release', $this->locationOf($response));
     }
@@ -438,12 +432,9 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testUninstallFailsForABundleNotManagedByTheInstaller(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $this->appSettings->method('all')->willReturn([]);
+        kintai_test_settings([]);
         $_POST = ['slug' => 'daily-report'];
         $this->expectNoInstalledChange();
-        $this->appSettings->expects($this->never())->method('set');
-
         $response = $this->makeController()->uninstall(Request::capture());
 
         $this->assertStringNotContainsString('uninstalled=', $this->locationOf($response));
@@ -451,17 +442,15 @@ final class BundleMarketControllerTest extends TestCase
 
     public function testUninstallRemovesTheBundleAndClearsItFromEnabledBundles(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
-        $this->appSettings->method('all')->willReturn([]);
+        kintai_test_settings([]);
         mkdir($this->bundlesDir . '/feedback/1.0.0', 0777, true);
         $_POST = ['slug' => 'feedback'];
         $this->seedInstalled('feedback', '1.0.0');
         $this->expectInstalledDelete('feedback');
-        $this->appSettings->expects($this->atLeastOnce())->method('get')->with('enabled_bundles')->willReturn(json_encode(['feedback', 'messaging']));
-        $this->appSettings->expects($this->once())->method('set')
-            ->with('enabled_bundles', $this->callback(fn(string $json) => json_decode($json, true) === ['messaging']));
-
+        kintai_test_settings(['enabled_bundles' => json_encode(['feedback', 'messaging'])]);
         $response = $this->makeController()->uninstall(Request::capture());
+
+        $this->assertSame(['messaging'], json_decode((string) AppSetting::value('enabled_bundles'), true));
 
         $this->assertStringContainsString('uninstalled=feedback', $this->locationOf($response));
         $this->assertDirectoryDoesNotExist($this->bundlesDir . '/feedback');

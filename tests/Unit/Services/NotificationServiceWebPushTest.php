@@ -6,7 +6,7 @@ namespace Tests\Unit\Services;
 
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\DevicePushToken;
 use App\Repositories\JsonLanguageRepository;
 use App\Repositories\JsonTranslationRepository;
@@ -62,15 +62,8 @@ final class NotificationServiceWebPushTest extends TestCase
         $registry = new NotificationTypeRegistry(new ExtensionRegistry($manager));
         $this->prefs = new NotificationPreferenceService($registry, $users);
 
-        $settings = new class implements AppSettingsRepositoryInterface {
-            public array $values = [];
-
-            public function all(): array { return $this->values; }
-            public function get(string $key): ?string { return $this->values[$key] ?? null; }
-            public function set(string $key, string $value): void { $this->values[$key] = $value; }
-            public function setMany(array $settings): void { $this->values = $settings + $this->values; }
-        };
-        $keys = new VapidKeyStore($settings);
+        kintai_test_settings();
+        $keys = new VapidKeyStore();
         $keys->ensure();
 
 

@@ -7,7 +7,7 @@ namespace Tests\Bundles\StorePhoto\Controllers\Web;
 
 use kintai\Bundles\Installed\StorePhoto\Controllers\Web\StorePhotoController;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use Illuminate\Http\Request;
@@ -24,7 +24,6 @@ final class StorePhotoControllerTest extends TestCase
 {
     private StorePhotoRepositoryInterface&Stub $photos;
     private StoreRepositoryInterface&Stub $stores;
-    private AppSettingsRepositoryInterface&Stub $appSettings;
     private NotificationService $notifs;
     private ?StorePhotoController $controller = null;
 
@@ -39,7 +38,6 @@ final class StorePhotoControllerTest extends TestCase
 
         $this->photos = $this->createStub(StorePhotoRepositoryInterface::class);
         $this->stores = $this->createStub(StoreRepositoryInterface::class);
-        $this->appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -54,7 +52,6 @@ final class StorePhotoControllerTest extends TestCase
                 $view,
                 $this->photos,
                 $this->stores,
-                $this->appSettings,
                 new AuditLogger(),
                 new ImageCompressionService(),
                 $this->notifs,
@@ -159,7 +156,6 @@ final class StorePhotoControllerTest extends TestCase
             $view,
             $this->photos,
             $this->stores,
-            $this->appSettings,
             new AuditLogger(),
             new ImageCompressionService(),
             $this->notifs,
@@ -201,7 +197,6 @@ final class StorePhotoControllerTest extends TestCase
             $view,
             $this->photos,
             $this->stores,
-            $this->appSettings,
             new AuditLogger(),
             new ImageCompressionService(),
             $this->notifs,
@@ -415,7 +410,7 @@ final class StorePhotoControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 7]);
 
-        $this->appSettings->method('get')->willReturn('14');
+        kintai_test_settings(['photo_retention_days' => '14']);
         $this->photos->method('saveSubmission')->willReturn(['id' => 55, 'store_id' => 1]);
 
         $response = $this->controller()->store($req);
@@ -461,7 +456,7 @@ final class StorePhotoControllerTest extends TestCase
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 7]);
 
-        $this->appSettings->method('get')->willReturn('14');
+        kintai_test_settings(['photo_retention_days' => '14']);
         $this->photos->method('findTodaySubmission')->willReturn(null);
         $this->photos->expects($this->once())->method('saveSubmission')
             ->with($this->callback(fn (array $data) => ($data['store_id'] ?? null) === 1 && ($data['image_count'] ?? null) === 0))
@@ -581,7 +576,7 @@ final class StorePhotoControllerTest extends TestCase
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->appSettings->method('get')->willReturn('14');
+        kintai_test_settings(['photo_retention_days' => '14']);
 
         $response = $this->controller()->settings($req);
 
@@ -590,19 +585,17 @@ final class StorePhotoControllerTest extends TestCase
 
     public function testSaveSettingsPersistsRetentionAndCleanupDelay(): void
     {
-        $this->appSettings = $this->createMock(AppSettingsRepositoryInterface::class);
         $_POST = ['photo_retention_days' => '30', 'photo_cleanup_delay' => '10'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
-        $this->appSettings->expects($this->once())->method('setMany')->with([
-            'photo_retention_days' => '30',
-            'photo_cleanup_delay'  => '10',
-        ]);
+        kintai_test_settings();
 
         $response = $this->controller()->saveSettings($req);
 
         $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame('30', \App\Models\AppSetting::value('photo_retention_days'));
+        $this->assertSame('10', \App\Models\AppSetting::value('photo_cleanup_delay'));
     }
 
     private function assertRedirectLocation(Response $response, string $expected): void

@@ -7,7 +7,7 @@ namespace App\Http\Controllers\System;
 use App\BundleDiscoveryService;
 use App\FeatureManager;
 use App\LicenseServiceProvider;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -22,7 +22,6 @@ final class BundleSettingsController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly AppSettingsRepositoryInterface $appSettings,
         private readonly FeatureManager $features,
         private readonly AuditLogger $auditLogger,
         private readonly BundleDiscoveryService $discovery,
@@ -83,7 +82,7 @@ final class BundleSettingsController
             return redirect()->away($this->base() . '/admin/bundles?error=bundle_quota_exceeded');
         }
 
-        $this->appSettings->set(
+        AppSetting::put(
             LicenseServiceProvider::SETTINGS_KEY,
             json_encode($enabled, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         );

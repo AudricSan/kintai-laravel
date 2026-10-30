@@ -88,8 +88,8 @@ final class NotificationSettingsControllerTest extends TestCase
         );
 
         $this->settings = new InMemoryAppSettings(['app_public_url' => 'https://kintai.exemple.fr', 'notifications_retention_days' => '45']);
-        $appSettings    = new AppSettingsService($this->settings);
-        $vapid          = new VapidKeyStore($this->settings);
+        $appSettings    = new AppSettingsService();
+        $vapid          = new VapidKeyStore();
         $vapid->ensure();
 
         $transport = kintai_test_mailer(function (array $to, string $subject): bool {
@@ -112,7 +112,7 @@ final class NotificationSettingsControllerTest extends TestCase
             $registry,
             $this->prefs,
             null,
-            new NotificationMailer($mailer, $publicUrl, new UnsubscribeTokens($this->settings), $translations),
+            new NotificationMailer($mailer, $publicUrl, new UnsubscribeTokens(), $translations),
         );
 
         $this->view = kintai_test_views(BASE_PATH . '/resources/views');

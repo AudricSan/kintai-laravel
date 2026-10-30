@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\StoreUserRepositoryInterface;
@@ -43,7 +43,7 @@ final class StoreServiceTest extends TestCase
                 new PlanLimitService(
                     $this->stores,
                     $this->createStub(UserRepositoryInterface::class),
-                    new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                    new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
             );
         }
@@ -212,7 +212,7 @@ final class StoreServiceTest extends TestCase
             new PlanLimitService(
                 $this->stores,
                 $this->createStub(UserRepositoryInterface::class),
-                new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             null,
             $assignments,

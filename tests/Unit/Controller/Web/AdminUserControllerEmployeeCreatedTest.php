@@ -12,7 +12,7 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\Events;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -107,7 +107,7 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
             new AuditLogger(),
             new RoleAssignmentSyncService($roles, $roleAssignments),
             $permissions,
-            new PlanLimitService($stores, $users, new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => ''])),
+            new PlanLimitService($stores, $users, new LicenseClientService(['base_url' => '', 'api_key' => ''])),
             new OwnerGuard($permissions, $users),
             events: $events,
         );

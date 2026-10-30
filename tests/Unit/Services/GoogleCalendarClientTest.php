@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
+use App\Models\AppSetting;
 use App\Services\Calendar\GoogleCalendarClient;
 use App\Services\Calendar\GoogleCalendarException;
 use App\Services\Calendar\GoogleCalendarSettings;
@@ -20,8 +21,8 @@ final class GoogleCalendarClientTest extends TestCase
 
     protected function setUp(): void
     {
-        $settings = new InMemoryAppSettings();
-        $config   = new GoogleCalendarSettings($settings, new SecretBox($settings));
+        new InMemoryAppSettings();
+        $config = new GoogleCalendarSettings(new SecretBox());
         $config->save(true, 'client-id.apps.googleusercontent.com', 'client-secret');
         $this->http   = new FakeHttpTransport();
         $this->client = new GoogleCalendarClient($config, $this->http);
@@ -142,15 +143,15 @@ final class GoogleCalendarClientTest extends TestCase
 
     public function testSettingsKeepTheSecretWhenTheFormLeavesItEmptyAndNeverStoreItInClear(): void
     {
-        $values   = new InMemoryAppSettings();
-        $settings = new GoogleCalendarSettings($values, new SecretBox($values));
+        new InMemoryAppSettings();
+        $settings = new GoogleCalendarSettings(new SecretBox());
 
         $settings->save(true, 'id', 'secret-1');
         $settings->save(true, 'id-2', '');
 
         $this->assertSame('secret-1', $settings->clientSecret());
         $this->assertSame('id-2', $settings->clientId());
-        $this->assertStringNotContainsString('secret-1', $values->get(GoogleCalendarSettings::CLIENT_SECRET));
+        $this->assertStringNotContainsString('secret-1', AppSetting::value(GoogleCalendarSettings::CLIENT_SECRET));
         $this->assertTrue($settings->isAvailable());
 
         $settings->save(false, 'id-2', null);

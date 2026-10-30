@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Mail\MailerService;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
@@ -14,10 +14,9 @@ final class MailSenderSettingTest extends TestCase
 {
     private function settings(array $stored = []): AppSettingsService
     {
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn($stored);
+        kintai_test_settings($stored);
 
-        return new AppSettingsService($repo);
+        return new AppSettingsService();
     }
 
     /** @return array<string, mixed> */

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 /**
  * Client du serveur de licence distant (projet séparé "License Manager", API
@@ -25,7 +25,6 @@ final class LicenseClientService
     private $transport;
 
     public function __construct(
-        private readonly AppSettingsRepositoryInterface $appSettings,
         private readonly array $config,
         private readonly HttpFetcher $http = new HttpFetcher(),
         ?callable $transport = null,
@@ -41,27 +40,27 @@ final class LicenseClientService
 
     public function licenseKey(): ?string
     {
-        $key = $this->appSettings->get(self::SETTING_LICENSE_KEY);
+        $key = AppSetting::value(self::SETTING_LICENSE_KEY);
         return $key !== null && $key !== '' ? $key : null;
     }
 
     /** Identifiant stable de cette instance, généré une seule fois au premier besoin. */
     public function instanceId(): string
     {
-        $id = $this->appSettings->get(self::SETTING_INSTANCE_ID);
+        $id = AppSetting::value(self::SETTING_INSTANCE_ID);
         if ($id !== null && $id !== '') {
             return $id;
         }
 
         $id = bin2hex(random_bytes(16));
-        $this->appSettings->set(self::SETTING_INSTANCE_ID, $id);
+        AppSetting::put(self::SETTING_INSTANCE_ID, $id);
         return $id;
     }
 
     /** État en cache (pour affichage sur /admin/license), ou null si aucune licence n'a jamais été activée. */
     public function state(): ?array
     {
-        $raw = $this->appSettings->get(self::SETTING_STATE);
+        $raw = AppSetting::value(self::SETTING_STATE);
         if ($raw === null || $raw === '') {
             return null;
         }
@@ -123,7 +122,7 @@ final class LicenseClientService
             return ['valid' => false, 'error' => 'missing_license_key'];
         }
 
-        $this->appSettings->set(self::SETTING_LICENSE_KEY, $licenseKey);
+        AppSetting::put(self::SETTING_LICENSE_KEY, $licenseKey);
 
         if (!$this->isConfigured()) {
             $this->writeState(['status' => 'inactive', 'checked_at' => time()]);
@@ -168,8 +167,8 @@ final class LicenseClientService
             ]);
         }
 
-        $this->appSettings->set(self::SETTING_LICENSE_KEY, '');
-        $this->appSettings->set(self::SETTING_STATE, '');
+        AppSetting::put(self::SETTING_LICENSE_KEY, '');
+        AppSetting::put(self::SETTING_STATE, '');
     }
 
     /** @return array{valid: bool, error?: string, status?: string, type?: string, expires_at?: ?string} */
@@ -250,6 +249,6 @@ final class LicenseClientService
 
     private function writeState(array $state): void
     {
-        $this->appSettings->set(self::SETTING_STATE, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        AppSetting::put(self::SETTING_STATE, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 }

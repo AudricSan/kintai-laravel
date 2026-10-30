@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 final class AppSettingsService
 {
     private array $cache = [];
 
-    public function __construct(private readonly AppSettingsRepositoryInterface $repo)
+    public function __construct()
     {
-        $this->cache = $repo->all();
+        $this->cache = AppSetting::map();
     }
 
     public function get(string $key, string $default = ''): string
@@ -22,7 +22,7 @@ final class AppSettingsService
 
     public function setMany(array $settings): void
     {
-        $this->repo->setMany($settings);
+        AppSetting::putMany($settings);
         foreach ($settings as $k => $v) {
             $this->cache[(string) $k] = (string) $v;
         }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use App\Services\MascotResolver;
 use PHPUnit\Framework\TestCase;
@@ -17,9 +17,8 @@ final class MascotResolverTest extends TestCase
 {
     private function makeResolver(array $stored = []): MascotResolver
     {
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn($stored);
-        return new MascotResolver(new AppSettingsService($repo));
+        kintai_test_settings($stored);
+        return new MascotResolver(new AppSettingsService());
     }
 
     public function testActiveIsAlwaysKitsuneWhenModeFixed(): void

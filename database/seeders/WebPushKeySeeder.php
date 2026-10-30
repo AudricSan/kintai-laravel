@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\VapidKeyStore;
 
 /**
@@ -17,7 +17,7 @@ final class WebPushKeySeeder extends Seeder
     public function run(): void
     {
         try {
-            (new VapidKeyStore($this->container->make(AppSettingsRepositoryInterface::class)))->ensure();
+            (new VapidKeyStore($this->container->make(AppSetting::class)))->ensure();
         } catch (\Throwable) {
             // openssl indisponible : le web push reste désactivé.
         }

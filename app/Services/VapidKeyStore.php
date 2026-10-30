@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 /**
  * Clés VAPID du web push natif : une paire par instance, créée automatiquement (installation, ou migration pour une
@@ -23,8 +23,6 @@ final class VapidKeyStore
 
     /** Contact de repli (exigé par les services de push) quand l'instance n'a ni e-mail de support ni URL publique. */
     private const FALLBACK_SUBJECT = 'https://github.com/AudricSan/Kintai';
-
-    public function __construct(private readonly AppSettingsRepositoryInterface $settings) {}
 
     /** Crée la paire si elle n'existe pas. Retourne faux si la création est impossible (openssl indisponible). */
     public function ensure(): bool
@@ -46,34 +44,34 @@ final class VapidKeyStore
         if ($pair === null) {
             return false;
         }
-        $this->settings->setMany([self::PUBLIC_KEY => $pair['public'], self::PRIVATE_KEY => $pair['private']]);
+        AppSetting::putMany([self::PUBLIC_KEY => $pair['public'], self::PRIVATE_KEY => $pair['private']]);
         return true;
     }
 
     public function publicKey(): ?string
     {
-        $value = $this->settings->get(self::PUBLIC_KEY);
+        $value = AppSetting::value(self::PUBLIC_KEY);
         return $value !== null && $value !== '' ? $value : null;
     }
 
     public function privateKey(): ?string
     {
-        $value = $this->settings->get(self::PRIVATE_KEY);
+        $value = AppSetting::value(self::PRIVATE_KEY);
         return $value !== null && $value !== '' ? $value : null;
     }
 
     /** Contact transmis aux services de push : réglage explicite, sinon e-mail de support, sinon URL publique. */
     public function subject(): string
     {
-        $explicit = trim((string) $this->settings->get(self::SUBJECT));
+        $explicit = trim((string) AppSetting::value(self::SUBJECT));
         if ($explicit !== '') {
             return $explicit;
         }
-        $email = trim((string) $this->settings->get('app_support_email'));
+        $email = trim((string) AppSetting::value('app_support_email'));
         if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
             return 'mailto:' . $email;
         }
-        $url = trim((string) (env('APP_URL', '') ?: $this->settings->get('app_public_url')));
+        $url = trim((string) (env('APP_URL', '') ?: AppSetting::value('app_public_url')));
         if (preg_match('#^https://#i', $url) === 1) {
             return $url;
         }

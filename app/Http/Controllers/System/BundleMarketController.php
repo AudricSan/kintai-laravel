@@ -6,7 +6,7 @@ namespace App\Http\Controllers\System;
 
 use App\BundleDiscoveryService;
 use App\LicenseServiceProvider;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\BundleRegistry;
 use App\Models\InstalledBundle;
 use Illuminate\Container\Container;
@@ -37,7 +37,6 @@ final class BundleMarketController
         private readonly BundleCatalogService $catalog,
         private readonly BundleInstallerService $installer,
         private readonly AuditLogger $auditLogger,
-        private readonly AppSettingsRepositoryInterface $appSettings,
         private readonly BundleDiscoveryService $discovery,
         private readonly AppSettingsService $settings,
         // Activation dans la limite du quota ; résolue dans le conteneur si absente (tests existants).
@@ -222,7 +221,7 @@ final class BundleMarketController
      */
     private function disableBundle(string $slug): void
     {
-        $stored = $this->appSettings->get(LicenseServiceProvider::SETTINGS_KEY);
+        $stored = AppSetting::value(LicenseServiceProvider::SETTINGS_KEY);
         if ($stored === null) {
             return;
         }
@@ -232,7 +231,7 @@ final class BundleMarketController
             return;
         }
 
-        $this->appSettings->set(
+        AppSetting::put(
             LicenseServiceProvider::SETTINGS_KEY,
             json_encode(array_values(array_diff($enabled, [$slug])), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         );

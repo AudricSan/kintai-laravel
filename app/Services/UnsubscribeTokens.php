@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 
 /**
  * Signature des liens de désabonnement des e-mails de notification : HMAC-SHA256 de (utilisateur, type, canal) avec
@@ -16,8 +16,6 @@ use App\Repositories\AppSettingsRepositoryInterface;
 final class UnsubscribeTokens
 {
     public const SECRET_KEY = 'instance_secret';
-
-    public function __construct(private readonly AppSettingsRepositoryInterface $settings) {}
 
     public function sign(int $userId, string $type, string $channel): string
     {
@@ -37,10 +35,10 @@ final class UnsubscribeTokens
 
     private function secret(): string
     {
-        $secret = $this->settings->get(self::SECRET_KEY);
+        $secret = AppSetting::value(self::SECRET_KEY);
         if ($secret === null || strlen($secret) < 32) {
             $secret = bin2hex(random_bytes(32));
-            $this->settings->set(self::SECRET_KEY, $secret);
+            AppSetting::put(self::SECRET_KEY, $secret);
         }
         return $secret;
     }

@@ -7,7 +7,7 @@ namespace Tests\Unit\Middleware;
 use Illuminate\Container\Container;
 use App\Exceptions\HttpException;
 use App\Http\Middleware\ApiRateLimitMiddleware;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppSettingsService;
@@ -33,11 +33,10 @@ final class ApiRateLimitMiddlewareTest extends TestCase
     private function middleware(?string $setting): ApiRateLimitMiddleware
     {
         $this->store = new \Illuminate\Cache\ArrayStore();
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn($setting === null ? [] : [ApiRateLimitMiddleware::SETTING_KEY => $setting]);
+        kintai_test_settings($setting === null ? [] : [ApiRateLimitMiddleware::SETTING_KEY => $setting]);
 
         $container = new \Tests\Support\TestContainer();
-        $container->instance(AppSettingsService::class, new AppSettingsService($repo));
+        $container->instance(AppSettingsService::class, new AppSettingsService());
 
         return new ApiRateLimitMiddleware($container, new \Illuminate\Cache\RateLimiter(new \Illuminate\Cache\Repository($this->store)));
     }

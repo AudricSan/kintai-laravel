@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use App\Auth\PasswordHasher;
 use App\InstalledBundleManifestStore;
 use App\Database\DemoDataSeeder;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
@@ -86,13 +86,12 @@ final class WebInstaller
 
             $ownerId = $this->createOwner($app, $in);
 
-            $settings = $app->make(AppSettingsRepositoryInterface::class);
             // Sert aux liens absolus des e-mails ; modifiable dans /admin/owner-settings, APP_URL prime (PublicUrlResolver).
             if ($publicUrl !== null) {
-                $settings->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
+                AppSetting::putMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
             }
             // Aucun bundle actif au départ ; l'Owner choisit sa licence puis ses bundles dans /admin/setup.
-            SetupWizard::start($settings, $app->make(AppSettingsService::class)->updateChannel());
+            SetupWizard::start($app->make(AppSettingsService::class)->updateChannel());
 
             $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
 
@@ -192,7 +191,7 @@ final class WebInstaller
             }
 
             if ($publicUrl !== null) {
-                $app->make(AppSettingsRepositoryInterface::class)->setMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
+                AppSetting::putMany([PublicUrlResolver::SETTING_KEY => $publicUrl]);
             }
 
             $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));

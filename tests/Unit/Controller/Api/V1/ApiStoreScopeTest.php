@@ -11,7 +11,7 @@ use App\Auth\UserTargetGuard;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\ValidationException;
 use App\Models\ApiToken;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Models\Availability;
 use App\Models\IcalToken;
 use App\Repositories\RoleAssignmentRepositoryInterface;
@@ -109,7 +109,7 @@ final class ApiStoreScopeTest extends TestCase
         $planLimits = new PlanLimitService(
             $this->createStub(StoreRepositoryInterface::class),
             $this->users,
-            new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+            new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
         return new UserController($this->users, new AuditLogger(), $planLimits, $this->permissions, $this->storeUsers, new OwnerGuard($this->permissions, $this->users), $revoker);
     }
@@ -463,7 +463,7 @@ final class ApiStoreScopeTest extends TestCase
         $planLimits = new PlanLimitService(
             $this->createStub(StoreRepositoryInterface::class),
             $this->users,
-            new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+            new LicenseClientService(['base_url' => '', 'api_key' => '']),
         );
         $revoker = new CredentialRevoker($this->createStub(UserRepositoryInterface::class));
         $controller = new UserController(

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use App\Services\PublicUrlResolver;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,10 +18,9 @@ final class PublicUrlResolverTest extends TestCase
 {
     private function resolver(string $setting = '', string $env = ''): PublicUrlResolver
     {
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn($setting === '' ? [] : [PublicUrlResolver::SETTING_KEY => $setting]);
+        kintai_test_settings($setting === '' ? [] : [PublicUrlResolver::SETTING_KEY => $setting]);
 
-        return new PublicUrlResolver(new AppSettingsService($repo), $env);
+        return new PublicUrlResolver(new AppSettingsService(), $env);
     }
 
     /** @return array<string, array{string, string}> */

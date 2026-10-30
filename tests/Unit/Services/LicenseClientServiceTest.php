@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\HttpFetcher;
 use App\Services\LicenseClientService;
 use App\Services\LicenseTokenVerifier;
@@ -18,9 +18,6 @@ final class LicenseClientServiceTest extends TestCase
     /** @var array{private: string, public: string} Paire jetable, generee a la volee — voir TestSigningKeypair. */
     private static array $keypair;
 
-    private array $store = [];
-    private AppSettingsRepositoryInterface&Stub $appSettings;
-
     public static function setUpBeforeClass(): void
     {
         self::$keypair = TestSigningKeypair::generate();
@@ -28,12 +25,7 @@ final class LicenseClientServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->store = [];
-        $this->appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $this->appSettings->method('get')->willReturnCallback(fn(string $k) => $this->store[$k] ?? null);
-        $this->appSettings->method('set')->willReturnCallback(function (string $k, string $v): void {
-            $this->store[$k] = $v;
-        });
+        kintai_test_settings();
     }
 
     private function makeService(array $config = [], ?callable $transport = null, ?LicenseTokenVerifier $tokenVerifier = null): LicenseClientService
@@ -45,7 +37,6 @@ final class LicenseClientServiceTest extends TestCase
         ], $config);
 
         return new LicenseClientService(
-            $this->appSettings,
             $config,
             new HttpFetcher(),
             $transport,
@@ -178,7 +169,7 @@ final class LicenseClientServiceTest extends TestCase
     public function testRefreshIfStaleCallsRefreshWhenNeverChecked(): void
     {
         $service = $this->makeService(['check_interval_hours' => 24], fn(): string => json_encode(['valid' => true]));
-        $this->store['license_key'] = 'KEY-1';
+        AppSetting::put('license_key', 'KEY-1');
 
         $service->refreshIfStale();
 
@@ -190,8 +181,8 @@ final class LicenseClientServiceTest extends TestCase
         $service = $this->makeService(['check_interval_hours' => 24], function (): never {
             $this->fail('le transport ne doit pas être appelé si l\'état est encore frais');
         });
-        $this->store['license_key'] = 'KEY-1';
-        $this->store['license_state'] = json_encode(['status' => 'inactive', 'checked_at' => time()]);
+        AppSetting::put('license_key', 'KEY-1');
+        AppSetting::put('license_state', json_encode(['status' => 'inactive', 'checked_at' => time()]));
 
         $service->refreshIfStale();
         $this->addToAssertionCount(1);
@@ -221,10 +212,10 @@ final class LicenseClientServiceTest extends TestCase
         $service = $this->makeService(['grace_period_days' => 14], fn(): string => json_encode(['valid' => true]));
         $service->activate('KEY-1');
 
-        $state = json_decode($this->store['license_state'], true);
+        $state = json_decode((string) AppSetting::value('license_state'), true);
         $state['status'] = 'degraded';
         $state['last_valid_at'] = time() - (20 * 86400);
-        $this->store['license_state'] = json_encode($state);
+        AppSetting::put('license_state', json_encode($state));
 
         $this->assertFalse($service->isPaidPlanActive());
     }

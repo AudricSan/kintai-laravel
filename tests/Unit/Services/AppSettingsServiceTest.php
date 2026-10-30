@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use PHPUnit\Framework\TestCase;
 
@@ -12,9 +12,8 @@ final class AppSettingsServiceTest extends TestCase
 {
     private function makeService(array $stored = []): AppSettingsService
     {
-        $repo = $this->createStub(AppSettingsRepositoryInterface::class);
-        $repo->method('all')->willReturn($stored);
-        return new AppSettingsService($repo);
+        kintai_test_settings($stored);
+        return new AppSettingsService();
     }
 
     public function testUpdateChannelDefaultsToRelease(): void

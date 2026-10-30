@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web\System;
 
 use App\BundleDiscoveryService;
 use App\FeatureManager;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\StoreRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -23,11 +23,10 @@ if (!defined('BASE_PATH')) {
 
 final class LicenseControllerTest extends TestCase
 {
-    private array $store = [];
 
     protected function setUp(): void
     {
-        $this->store = [];
+        kintai_test_settings();
         $this->ensureViewFile('system.license');
         $this->ensureViewFile('layout.app');
     }
@@ -40,14 +39,8 @@ final class LicenseControllerTest extends TestCase
 
     private function makeController(array $config = [], ?callable $transport = null): LicenseController
     {
-        $appSettings = $this->createStub(AppSettingsRepositoryInterface::class);
-        $appSettings->method('get')->willReturnCallback(fn(string $k) => $this->store[$k] ?? null);
-        $appSettings->method('set')->willReturnCallback(function (string $k, string $v): void {
-            $this->store[$k] = $v;
-        });
-
         $config = array_merge(['base_url' => 'https://license.test/api/v1', 'api_key' => 'kintai-key', 'grace_period_days' => 14], $config);
-        $license = new LicenseClientService($appSettings, $config, transport: $transport);
+        $license = new LicenseClientService($config, transport: $transport);
 
         $planLimits = new PlanLimitService(
             $this->createStub(StoreRepositoryInterface::class),
@@ -91,7 +84,7 @@ final class LicenseControllerTest extends TestCase
         $response = $controller->activate($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('KEY-1', $this->store['license_key'] ?? null);
+        $this->assertSame('KEY-1', AppSetting::value('license_key'));
     }
 
     public function testActivateWithInvalidKeyRedirectsWithError(): void
@@ -111,12 +104,12 @@ final class LicenseControllerTest extends TestCase
         $_POST = ['license_key' => 'KEY-1'];
         $req = Request::capture();
         $controller->activate($req);
-        $this->assertNotNull($this->store['license_key'] ?? null);
+        $this->assertNotNull(AppSetting::value('license_key'));
 
         $response = $controller->deactivate(Request::capture());
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('', $this->store['license_key'] ?? null);
+        $this->assertSame('', AppSetting::value('license_key'));
     }
 
     private function ensureViewFile(string $view): void

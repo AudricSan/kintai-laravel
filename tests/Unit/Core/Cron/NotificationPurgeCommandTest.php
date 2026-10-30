@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Cron;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use App\Console\Commands\NotificationPurgeCommand;
 use App\Services\AppSettingsService;
 use App\Models\Notification;
 use App\Models\WebPushSubscription;
-use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\TestCase;
 
 /** Purge des notifications lues (jamais des non lues) et des abonnements web push inutilisés, contre un vrai schéma. */
@@ -17,41 +15,16 @@ final class NotificationPurgeCommandTest extends TestCase
 {
     protected function setUp(): void
     {
-        $capsule = new Capsule();
-        $capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $capsule->setAsGlobal();
-        $capsule->bootEloquent();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
-        $schema->create('notifications', function ($table) {
-            $table->increments('id');
-            $table->integer('user_id');
-            $table->string('type');
-            $table->string('body_key')->nullable();
-            $table->text('params')->nullable();
-            $table->text('body')->nullable();
-            $table->string('link', 500)->nullable();
-            $table->string('reference_type', 40)->nullable();
-            $table->integer('reference_id')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-        });
-        $schema->create('web_push_subscriptions', function ($table) {
-            $table->increments('id');
-            $table->unsignedInteger('user_id')->index();
-            $table->text('endpoint');
-            $table->char('endpoint_hash', 64)->unique();
-            $table->string('p256dh', 255);
-            $table->string('auth', 255);
-            $table->string('user_agent', 255)->nullable();
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('last_used_at')->nullable();
-        });
+        kintai_test_database();
+        kintai_test_migrate();
+        kintai_test_user(1);
     }
 
     /** Lance la commande avec ces réglages d'Owner ; renvoie sa sortie JSON décodée. */
     private function purge(array $settings = []): array
     {
-        app()->instance(AppSettingsService::class, new AppSettingsService(new InMemoryAppSettings($settings)));
+        kintai_test_settings($settings);
+        app()->instance(AppSettingsService::class, new AppSettingsService());
         [$code, $output] = kintai_test_command(new NotificationPurgeCommand());
         app()->forgetInstance(AppSettingsService::class);
 

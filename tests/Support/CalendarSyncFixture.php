@@ -69,8 +69,8 @@ trait CalendarSyncFixture
         $translations = kintai_test_real_translator('en', false);
 
         $this->values  = new InMemoryAppSettings(['app_subtitle' => 'Sakura Co.']);
-        $this->secrets = new SecretBox($this->values);
-        $this->google  = new GoogleCalendarSettings($this->values, $this->secrets);
+        $this->secrets = new SecretBox();
+        $this->google  = new GoogleCalendarSettings($this->secrets);
         $this->google->save(true, 'client-id', 'client-secret');
 
         $this->http = new FakeHttpTransport();
@@ -93,7 +93,7 @@ trait CalendarSyncFixture
                 $this->sent[] = [$userId, $type, $bodyKey];
             }
         };
-        $this->appSettings = new AppSettingsService($this->values);
+        $this->appSettings = new AppSettingsService();
 
         $this->sync = new CalendarSyncService(
             new GoogleCalendarClient($this->google, $this->http),

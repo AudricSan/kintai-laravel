@@ -8,7 +8,7 @@ use App\Auth\OwnerGuard;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
 use App\Exceptions\ForbiddenException;
-use App\Repositories\AppSettingsRepositoryInterface;
+use App\Models\AppSetting;
 use App\Repositories\RoleAssignmentRepositoryInterface;
 use App\Repositories\RoleRepositoryInterface;
 use App\Repositories\ShiftRepositoryInterface;
@@ -80,7 +80,7 @@ final class AdminUserControllerScopeTest extends TestCase
             new PlanLimitService(
                 $stores,
                 $this->users,
-                new LicenseClientService($this->createStub(AppSettingsRepositoryInterface::class), ['base_url' => '', 'api_key' => '']),
+                new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),
             new OwnerGuard(new PermissionService($assignments, $roles), $this->users),
         );

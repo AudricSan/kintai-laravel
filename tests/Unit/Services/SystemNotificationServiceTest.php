@@ -33,7 +33,7 @@ final class SystemNotificationServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->notifs   = $this->createStub(NotificationService::class);
-        $this->settings = new AppSettingsService(new InMemoryAppSettings());
+        $this->settings = (new InMemoryAppSettings())->into(new AppSettingsService());
         $this->alerts   = [];
         $this->called   = [];
     }

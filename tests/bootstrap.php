@@ -7,6 +7,11 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 // Les tests démarrent la vraie application (configuration chargée), sans lire le .env de l'instance et avec une
 // session en mémoire.
 putenv('SESSION_DRIVER=array');
+// Étanchéité : la connexion par défaut est une base en mémoire dès le démarrage, jamais storage/app/database.sqlite.
+putenv('DB_CONNECTION=sqlite');
+putenv('DB_DATABASE=:memory:');
+$_ENV['DB_CONNECTION'] = $_SERVER['DB_CONNECTION'] = 'sqlite';
+$_ENV['DB_DATABASE'] = $_SERVER['DB_DATABASE'] = ':memory:';
 $_ENV['APP_KEY'] = $_SERVER['APP_KEY'] = 'base64:' . base64_encode(str_repeat('k', 32));
 putenv('APP_KEY=' . $_ENV['APP_KEY']);
 $_ENV['SESSION_DRIVER'] = $_SERVER['SESSION_DRIVER'] = 'array';
@@ -164,6 +169,18 @@ function kintai_test_migrate(): void
     $kernel->call('db:seed', ['--force' => true]);
 }
 
+// Aide des tests : base en mémoire neuve dont app_settings ne contient que les réglages donnés (clé => valeur).
+function kintai_test_settings(array $values = []): void
+{
+    // Base de test déjà prête (le test y a inséré ses lignes) : on la garde ; sinon neuve et migrée, jamais celle de l'instance.
+    if (config('database.default') !== 'testing' || !Illuminate\Support\Facades\Schema::hasTable('app_settings')) {
+        kintai_test_database();
+        kintai_test_migrate();
+    }
+    Illuminate\Database\Eloquent\Model::setConnectionResolver($GLOBALS['kintai_test_app']['db']);
+    App\Models\AppSetting::query()->delete();
+    App\Models\AppSetting::putMany($values);
+}
 // Aide des tests : traducteur de Laravel adossé à des textes donnés (langue => clé => texte), installé comme
 // « translator » de l'application (__() et trans() le lisent). Remis par kintai_test_translator_reset().
 function kintai_test_translator(array $catalog = [], string $locale = 'en'): Illuminate\Translation\Translator

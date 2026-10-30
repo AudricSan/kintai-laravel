@@ -43,6 +43,7 @@ final class ContainerResolvableConstructorsTest extends TestCase
     public function testNoConstructorParameterIsAClosureOrCallable(string $class): void
     {
         $constructor = (new \ReflectionClass($class))->getConstructor();
+        $this->addToAssertionCount(1); // une classe sans constructeur se résout d'elle-même
         foreach ($constructor?->getParameters() ?? [] as $param) {
             $type = $param->getType();
             $names = $type instanceof \ReflectionNamedType ? [$type->getName()] : array_map(
