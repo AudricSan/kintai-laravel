@@ -7,7 +7,7 @@ namespace Tests\Unit\Auth;
 use Illuminate\Container\Container;
 use App\Mail\MailerService;
 use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\PasswordResetRepositoryInterface;
+use App\Models\PasswordResetToken;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\PasswordResetService;
@@ -22,9 +22,12 @@ final class PasswordResetMailLocaleTest extends TestCase
 {
     private Translator $translator;
     private PasswordResetService $service;
+    private ?int $expectedTokens = null;
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $catalog = [
             'fr' => ['reset_mail_subject' => 'Sujet FR', 'reset_mail_title' => 'Titre FR', 'reset_mail_greeting' => 'Bonjour :name,'],
             'ja' => ['reset_mail_subject' => '件名 JA', 'reset_mail_title' => 'タイトル JA', 'reset_mail_greeting' => ':name 様'],
@@ -34,7 +37,6 @@ final class PasswordResetMailLocaleTest extends TestCase
         // __() passe par le conteneur : on y place ce traducteur le temps du test.
 
         $this->service = new PasswordResetService(
-            $this->createStub(PasswordResetRepositoryInterface::class),
             $this->createStub(UserRepositoryInterface::class),
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             null,
@@ -89,5 +91,22 @@ final class PasswordResetMailLocaleTest extends TestCase
 
         $this->assertStringContainsString('&lt;b&gt;Aiko&lt;/b&gt;', $body);
         $this->assertStringNotContainsString('<b>Aiko</b>', $body);
+    }
+
+    /** Enregistre un jeton de réinitialisation tel que le service le stocke (empreinte du jeton). */
+    private function seedToken(array $record): void
+    {
+        PasswordResetToken::create([
+            'email'      => $record['email'],
+            'token'      => hash_token($record['token']),
+            'expires_at' => $record['expires_at'],
+        ]);
+    }
+
+    protected function assertPostConditions(): void
+    {
+        if ($this->expectedTokens !== null) {
+            $this->assertSame($this->expectedTokens, PasswordResetToken::count(), 'jetons de réinitialisation enregistrés');
+        }
     }
 }

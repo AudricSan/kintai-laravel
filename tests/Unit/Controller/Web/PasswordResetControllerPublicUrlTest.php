@@ -6,7 +6,7 @@ namespace Tests\Unit\Controller\Web;
 
 use App\Mail\MailerService;
 use App\Repositories\AppSettingsRepositoryInterface;
-use App\Repositories\PasswordResetRepositoryInterface;
+use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class PasswordResetControllerPublicUrlTest extends TestCase
 {
-    private PasswordResetRepositoryInterface&MockObject $resets;
+    private ?int $expectedTokens = null;
     private UserRepositoryInterface&Stub $users;
     private string $viewDir;
 
@@ -39,7 +39,9 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
             file_put_contents($file, $body);
         }
 
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
+        kintai_test_database();
+
+        kintai_test_migrate();
         $this->users  = $this->createStub(UserRepositoryInterface::class);
         $this->users->method('findByEmail')->willReturn([
             'id' => 7, 'email' => 'user@test.com', 'display_name' => 'User', 'is_active' => 1, 'deleted_at' => null,
@@ -58,7 +60,6 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
         $repo->method('all')->willReturn($setting === '' ? [] : [PublicUrlResolver::SETTING_KEY => $setting]);
 
         $service = new PasswordResetService(
-            $this->resets,
             $this->users,
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
         );
@@ -77,7 +78,7 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
 
     public function testAResetTokenIsCreatedWhenAPublicUrlIsConfigured(): void
     {
-        $this->resets->expects($this->once())->method('create');
+        $this->expectedTokens = 1;
 
         $body = $this->controller('https://kintai.example.com')->sendLink($this->request())->getContent();
 
@@ -86,11 +87,28 @@ final class PasswordResetControllerPublicUrlTest extends TestCase
 
     public function testNothingIsSentWithoutAPublicUrlEvenIfTheRequestHasAHostHeader(): void
     {
-        $this->resets->expects($this->never())->method('create');
+        $this->expectedTokens = 0;
 
         $body = $this->controller('')->sendLink($this->request())->getContent();
 
         // Même page « envoyé » qu'avec un compte inconnu : pas d'énumération possible.
         $this->assertSame('SENT', $body);
+    }
+
+    /** Enregistre un jeton de réinitialisation tel que le service le stocke (empreinte du jeton). */
+    private function seedToken(array $record): void
+    {
+        PasswordResetToken::create([
+            'email'      => $record['email'],
+            'token'      => hash_token($record['token']),
+            'expires_at' => $record['expires_at'],
+        ]);
+    }
+
+    protected function assertPostConditions(): void
+    {
+        if ($this->expectedTokens !== null) {
+            $this->assertSame($this->expectedTokens, PasswordResetToken::count(), 'jetons de réinitialisation enregistrés');
+        }
     }
 }

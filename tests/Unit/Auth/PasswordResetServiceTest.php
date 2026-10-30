@@ -8,19 +8,20 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use App\Mail\MailerService;
-use App\Repositories\PasswordResetRepositoryInterface;
+use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 use App\Services\PasswordResetService;
 
 final class PasswordResetServiceTest extends TestCase
 {
-    private PasswordResetRepositoryInterface&Stub $resets;
+    private ?int $expectedTokens = null;
     private UserRepositoryInterface&Stub $users;
     private ?PasswordResetService $service = null;
 
     protected function setUp(): void
     {
-        $this->resets = $this->createStub(PasswordResetRepositoryInterface::class);
+        kintai_test_database();
+        kintai_test_migrate();
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
         // MailerService est final — on instancie la vraie classe avec driver natif.
@@ -35,7 +36,7 @@ final class PasswordResetServiceTest extends TestCase
                 'default' => 'sendmail',
                 'from'   => ['address' => 'test@kintai.test', 'name' => 'Kintai'],
             ]);
-            $this->service = new PasswordResetService($this->resets, $this->users, $mailer);
+            $this->service = new PasswordResetService($this->users, $mailer);
         }
 
         return $this->service;
@@ -69,28 +70,25 @@ final class PasswordResetServiceTest extends TestCase
 
     public function testSendResetLinkReturnsTrueForUnknownEmail(): void
     {
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
         $this->users->method('findByEmail')->willReturn(null);
-        $this->resets->expects($this->never())->method('create');
+        $this->expectedTokens = 0;
 
         $this->assertTrue($this->service()->sendResetLink('unknown@test.com', 'https://example.com'));
     }
 
     public function testSendResetLinkReturnsTrueForInactiveUser(): void
     {
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
         $user = array_merge($this->activeUser(), ['is_active' => 0]);
         $this->users->method('findByEmail')->willReturn($user);
-        $this->resets->expects($this->never())->method('create');
+        $this->expectedTokens = 0;
 
         $this->assertTrue($this->service()->sendResetLink('user@test.com', 'https://example.com'));
     }
 
     public function testSendResetLinkCreatesTokenForActiveUser(): void
     {
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
         $this->users->method('findByEmail')->willReturn($this->activeUser());
-        $this->resets->expects($this->once())->method('create');
+        $this->expectedTokens = 1;
 
         // mail() retourne false en CLI — on vérifie seulement que le token est créé
         $this->service()->sendResetLink('user@test.com', 'https://example.com');
@@ -98,10 +96,9 @@ final class PasswordResetServiceTest extends TestCase
 
     public function testSendResetLinkReturnsTrueForSoftDeletedUser(): void
     {
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
         $deleted = array_merge($this->activeUser(), ['deleted_at' => '2025-01-01 00:00:00']);
         $this->users->method('findByEmail')->willReturn($deleted);
-        $this->resets->expects($this->never())->method('create');
+        $this->expectedTokens = 0;
 
         $this->assertTrue($this->service()->sendResetLink('user@test.com', 'https://example.com'));
     }
@@ -123,10 +120,9 @@ final class PasswordResetServiceTest extends TestCase
 
     public function testWithoutAPublicUrlNothingIsSentAndNoTokenIsCreated(): void
     {
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
         // Sans URL publique, mieux vaut ne rien envoyer (et le journaliser) qu'un lien cassé.
         $this->users->method('findByEmail')->willReturn($this->activeUser());
-        $this->resets->expects($this->never())->method('create');
+        $this->expectedTokens = 0;
 
         $this->assertFalse($this->service()->sendResetLink('user@test.com', ''));
         $this->assertFalse($this->service()->sendResetLink('user@test.com', '/Kintai'));
@@ -136,7 +132,6 @@ final class PasswordResetServiceTest extends TestCase
 
     public function testFindValidTokenReturnsNullForUnknownToken(): void
     {
-        $this->resets->method('findByToken')->willReturn(null);
 
         $this->assertNull($this->service()->findValidToken('badtoken'));
     }
@@ -146,14 +141,14 @@ final class PasswordResetServiceTest extends TestCase
         $expired = array_merge($this->validRecord(), [
             'expires_at' => date('Y-m-d H:i:s', time() - 10),
         ]);
-        $this->resets->method('findByToken')->willReturn($expired);
+        $this->seedToken($expired);
 
         $this->assertNull($this->service()->findValidToken('abc123'));
     }
 
     public function testFindValidTokenReturnsRecordForValidToken(): void
     {
-        $this->resets->method('findByToken')->willReturn($this->validRecord());
+        $this->seedToken($this->validRecord());
 
         $this->assertNotNull($this->service()->findValidToken('abc123'));
     }
@@ -162,34 +157,48 @@ final class PasswordResetServiceTest extends TestCase
 
     public function testResetReturnsFalseForInvalidToken(): void
     {
-        $this->resets->method('findByToken')->willReturn(null);
 
         $this->assertFalse($this->service()->reset('badtoken', 'newpassword'));
     }
 
     public function testResetUpdatesPasswordAndDeletesToken(): void
     {
-        $this->resets = $this->createMock(PasswordResetRepositoryInterface::class);
         $this->users = $this->createMock(UserRepositoryInterface::class);
-        $this->resets->method('findByToken')->willReturn($this->validRecord());
+        $this->seedToken($this->validRecord());
         $this->users->method('findByEmail')->willReturn($this->activeUser());
 
         $this->users->expects($this->once())->method('save')
             ->with($this->callback(fn(array $data) => password_verify('newpassword', $data['password_hash'])));
 
-        $this->resets->expects($this->once())->method('deleteByEmail')
-            ->with('user@test.com');
+        $this->expectedTokens = 0;
 
         $this->assertTrue($this->service()->reset('abc123', 'newpassword'));
     }
 
     public function testResetReturnsFalseIfUserDisabledAfterTokenCreation(): void
     {
-        $this->resets->method('findByToken')->willReturn($this->validRecord());
+        $this->seedToken($this->validRecord());
         $this->users->method('findByEmail')->willReturn(
             array_merge($this->activeUser(), ['is_active' => 0])
         );
 
         $this->assertFalse($this->service()->reset('abc123', 'newpassword'));
+    }
+
+    /** Enregistre un jeton de réinitialisation tel que le service le stocke (empreinte du jeton). */
+    private function seedToken(array $record): void
+    {
+        PasswordResetToken::create([
+            'email'      => $record['email'],
+            'token'      => hash_token($record['token']),
+            'expires_at' => $record['expires_at'],
+        ]);
+    }
+
+    protected function assertPostConditions(): void
+    {
+        if ($this->expectedTokens !== null) {
+            $this->assertSame($this->expectedTokens, PasswordResetToken::count(), 'jetons de réinitialisation enregistrés');
+        }
     }
 }

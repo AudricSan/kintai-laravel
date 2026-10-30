@@ -7,7 +7,7 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
 use App\Repositories\ApiTokenRepositoryInterface;
-use App\Repositories\PasswordResetRepositoryInterface;
+use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Repositories\AppSettingsRepositoryInterface;
@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class PasswordResetControllerI18nTest extends TestCase
 {
-    private PasswordResetRepositoryInterface&Stub $resets;
+    private ?int $expectedTokens = null;
     private UserRepositoryInterface&Stub $users;
     private PasswordResetController $controller;
 
@@ -41,11 +41,12 @@ final class PasswordResetControllerI18nTest extends TestCase
         $this->writeView($viewDir, 'auth/reset-password', '<?= "TITLE=" . $title . "|ERROR=" . ($error ?? "") ?>');
         $this->writeView($viewDir, 'layout/guest', '<?= $content ?>');
 
-        $this->resets = $this->createStub(PasswordResetRepositoryInterface::class);
+        kintai_test_database();
+
+        kintai_test_migrate();
         $this->users  = $this->createStub(UserRepositoryInterface::class);
 
         $service = new PasswordResetService(
-            $this->resets,
             $this->users,
             new MailerService(['default' => 'sendmail', 'from' => ['address' => 'test@kintai.test', 'name' => 'Kintai']]),
             new CredentialRevoker(
@@ -95,7 +96,7 @@ final class PasswordResetControllerI18nTest extends TestCase
 
     public function testResetFormTitleIsATranslationKey(): void
     {
-        $this->resets->method('findByToken')->willReturn($this->validRecord());
+        $this->seedToken($this->validRecord());
         $request = Request::capture();
         $request->setRouteParams(['token' => 'tok']);
 
@@ -104,7 +105,7 @@ final class PasswordResetControllerI18nTest extends TestCase
 
     public function testTooShortPasswordErrorIsATranslationKey(): void
     {
-        $this->resets->method('findByToken')->willReturn($this->validRecord());
+        $this->seedToken($this->validRecord());
 
         $body = $this->controller->reset($this->resetRequest('short', 'short'))->getContent();
 
@@ -113,7 +114,7 @@ final class PasswordResetControllerI18nTest extends TestCase
 
     public function testMismatchErrorIsATranslationKey(): void
     {
-        $this->resets->method('findByToken')->willReturn($this->validRecord());
+        $this->seedToken($this->validRecord());
 
         $body = $this->controller->reset($this->resetRequest('long-enough-1', 'long-enough-2'))->getContent();
 
@@ -123,7 +124,6 @@ final class PasswordResetControllerI18nTest extends TestCase
     public function testInvalidLinkErrorIsATranslationKey(): void
     {
         // Jeton inconnu : la vérification finale du service échoue.
-        $this->resets->method('findByToken')->willReturn(null);
 
         $body = $this->controller->reset($this->resetRequest('long-enough-1', 'long-enough-1'))->getContent();
 
@@ -153,6 +153,23 @@ final class PasswordResetControllerI18nTest extends TestCase
                       'password_mismatch', 'reset_password_invalid_link', 'reset_password_too_short', 'reset_password_submit'] as $key) {
                 $this->assertArrayHasKey($key, $messages, "{$lang}.json : clé « {$key} » manquante");
             }
+        }
+    }
+
+    /** Enregistre un jeton de réinitialisation tel que le service le stocke (empreinte du jeton). */
+    private function seedToken(array $record): void
+    {
+        PasswordResetToken::create([
+            'email'      => $record['email'],
+            'token'      => hash_token($record['token'] ?? 'tok'),
+            'expires_at' => $record['expires_at'],
+        ]);
+    }
+
+    protected function assertPostConditions(): void
+    {
+        if ($this->expectedTokens !== null) {
+            $this->assertSame($this->expectedTokens, PasswordResetToken::count(), 'jetons de réinitialisation enregistrés');
         }
     }
 }

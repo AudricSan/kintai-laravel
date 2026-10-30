@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Translation\Translator;
 use App\Auth\CredentialRevoker;
 use App\Mail\MailerService;
-use App\Repositories\PasswordResetRepositoryInterface;
+use App\Models\PasswordResetToken;
 use App\Repositories\UserRepositoryInterface;
 
 final class PasswordResetService
@@ -17,7 +17,6 @@ final class PasswordResetService
     private const TTL_HOURS = 1;
 
     public function __construct(
-        private readonly PasswordResetRepositoryInterface $resets,
         private readonly UserRepositoryInterface $users,
         private readonly MailerService $mailer,
         // Optionnel pour les tests qui construisent le service à la main.
@@ -48,7 +47,9 @@ final class PasswordResetService
         $token     = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + self::TTL_HOURS * 3600);
 
-        $this->resets->create($email, hash_token($token), $expiresAt);
+        // Une seule demande en cours par adresse : la nouvelle remplace l'ancienne.
+        PasswordResetToken::where('email', $email)->delete();
+        PasswordResetToken::create(['email' => $email, 'token' => hash_token($token), 'expires_at' => $expiresAt]);
 
         $name = trim(($user['display_name'] ?? '') !== ''
             ? $user['display_name']
@@ -82,17 +83,13 @@ final class PasswordResetService
      */
     public function findValidToken(string $token): ?array
     {
-        $record = $this->resets->findByToken(hash_token($token));
+        $record = PasswordResetToken::where('token', hash_token($token))->first();
 
-        if ($record === null) {
+        if ($record === null || (string) $record->expires_at < date('Y-m-d H:i:s')) {
             return null;
         }
 
-        if (($record['expires_at'] ?? '') < date('Y-m-d H:i:s')) {
-            return null;
-        }
-
-        return $record;
+        return $record->toArray();
     }
 
     /**
@@ -116,7 +113,7 @@ final class PasswordResetService
             'password_hash' => \App\Auth\PasswordHasher::hash($newPassword),
         ]));
 
-        $this->resets->deleteByEmail($record['email']);
+        PasswordResetToken::where('email', $record['email'])->delete();
         // Un cookie « rester connecté » ou un jeton d'API volé ne doit pas survivre à la réinitialisation.
         // Les sessions déjà ouvertes tombent d'elles-mêmes (l'empreinte du mot de passe a changé).
         $this->revoker?->revokeAllFor((int) $user['id']);

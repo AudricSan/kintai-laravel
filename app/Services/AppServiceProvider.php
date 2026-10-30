@@ -16,7 +16,6 @@ use App\Repositories\ShiftRepositoryInterface;
 use App\Repositories\ShiftTypeRepositoryInterface;
 use App\Repositories\NotificationRepositoryInterface;
 use App\Repositories\WebPushSubscriptionRepositoryInterface;
-use App\Repositories\PasswordResetRepositoryInterface;
 use App\Repositories\UserShiftTypeRateRepositoryInterface;
 use App\Repositories\AppSettingsRepositoryInterface;
 use App\Repositories\LanguageRepositoryInterface;
@@ -137,7 +136,6 @@ final class AppServiceProvider extends ServiceProvider
         ));
         
         $this->app->singleton(PasswordResetService::class, fn(Container $c) => new PasswordResetService(
-            $c->make(PasswordResetRepositoryInterface::class),
             $c->make(UserRepositoryInterface::class),
             $c->make(MailerService::class),
             $c->make(\App\Auth\CredentialRevoker::class),
