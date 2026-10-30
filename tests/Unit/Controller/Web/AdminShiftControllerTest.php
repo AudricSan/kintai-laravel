@@ -51,6 +51,8 @@ final class AdminShiftControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        kintai_test_database();
+        kintai_test_migrate();
         $this->ensureViewFile('scheduling.shifts');
         $this->ensureViewFile('layout.app');
         
