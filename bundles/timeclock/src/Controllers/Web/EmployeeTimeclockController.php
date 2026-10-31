@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Timeclock\Controllers\Web;
 
+use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -24,7 +24,6 @@ final class EmployeeTimeclockController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly TimeclockRepositoryInterface $timeclocks,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -37,12 +36,12 @@ final class EmployeeTimeclockController
         $userId = (int) ($user['id'] ?? 0);
 
         $today        = date('Y-m-d');
-        $activeClock  = $this->timeclocks->findActiveByUser($userId);
-        $todayEntries = $this->timeclocks->findByUserAndDate($userId, $today);
+        $activeClock  = Timeclock::findActiveByUser($userId);
+        $todayEntries = Timeclock::findByUserAndDate($userId, $today);
 
         $weekStart   = date('Y-m-d', strtotime('monday this week'));
         $weekEnd     = date('Y-m-d', strtotime('sunday this week'));
-        $allEntries  = $this->timeclocks->findByUser($userId);
+        $allEntries  = Timeclock::findByUser($userId);
         $weekEntries = array_filter(
             $allEntries,
             fn($e) => ($e['shift_date'] ?? '') >= $weekStart && ($e['shift_date'] ?? '') <= $weekEnd
@@ -82,7 +81,7 @@ final class EmployeeTimeclockController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        if ($this->timeclocks->findActiveByUser($userId) !== null) {
+        if (Timeclock::findActiveByUser($userId) !== null) {
             throw new ConflictException(__('timeclock_already_active'));
         }
 
@@ -90,7 +89,7 @@ final class EmployeeTimeclockController
 
         $now       = date('Y-m-d H:i:s');
         $effective = $this->resolveClientTime($request->input('client_time'), $now);
-        $record    = $this->timeclocks->save([
+        $record    = Timeclock::put([
             'user_id'        => $userId,
             'store_id'       => $storeId,
             'shift_date'     => substr($effective, 0, 10),
@@ -119,7 +118,7 @@ final class EmployeeTimeclockController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $active = $this->timeclocks->findActiveByUser($userId);
+        $active = Timeclock::findActiveByUser($userId);
         if ($active === null) {
             throw new NotFoundException(__('timeclock_no_active'));
         }
@@ -137,7 +136,7 @@ final class EmployeeTimeclockController
         }
         $duration = (int) round(($clockOutTime->getTimestamp() - $clockInTime->getTimestamp()) / 60);
 
-        $record = $this->timeclocks->save(array_merge($active, [
+        $record = Timeclock::put(array_merge($active, [
             'clock_out_time'   => $effective,
             'duration_minutes' => $duration,
             'updated_at'       => $now,

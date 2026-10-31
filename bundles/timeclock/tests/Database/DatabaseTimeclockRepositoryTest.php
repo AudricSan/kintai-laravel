@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\Timeclock\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
+use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -32,7 +32,7 @@ final class DatabaseTimeclockRepositoryTest extends TestCase
             $db->table('timeclocks')->insert(['id' => $id, 'user_id' => 10, 'store_id' => $store, 'shift_date' => $date, 'clock_in_time' => $date . ' 09:00:00']);
         }
 
-        $ids = array_map('intval', array_column((new DatabaseTimeclockRepository())->findByStoreBetween(1, '2026-06-01', '2026-06-30'), 'id'));
+        $ids = array_map('intval', array_column(Timeclock::findByStoreBetween(1, '2026-06-01', '2026-06-30'), 'id'));
 
         $this->assertSame([1, 2, 3], $ids);
     }

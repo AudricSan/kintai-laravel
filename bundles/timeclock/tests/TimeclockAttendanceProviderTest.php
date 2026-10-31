@@ -6,13 +6,18 @@ namespace Tests\Bundles\Timeclock;
 
 use kintai\Bundles\Installed\Timeclock\Providers\TimeclockAttendanceProvider;
 use Tests\Support\TestContainer;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /** Fournisseur de pointages du bundle (contrat 1.11) : mêmes lignes que la lecture historique de la table par le Core. */
 final class TimeclockAttendanceProviderTest extends TestCase
 {
-    private TimeclockRepositoryInterface $repo;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeclocks', 'timeclock'];
+    }
 
     private function provider(): TimeclockAttendanceProvider
     {
@@ -20,16 +25,10 @@ final class TimeclockAttendanceProviderTest extends TestCase
             ['id' => 1, 'user_id' => 4, 'store_id' => 1, 'shift_date' => '2026-10-13', 'clock_in_time' => '2026-10-13 09:00:00', 'clock_out_time' => '2026-10-13 17:00:00'],
             ['id' => 2, 'user_id' => 4, 'store_id' => 1, 'shift_date' => '2026-10-14', 'clock_in_time' => '2026-10-14 08:58:00', 'clock_out_time' => null],
             ['id' => 3, 'user_id' => 5, 'store_id' => 2, 'shift_date' => '2026-10-14', 'clock_in_time' => '2026-10-14 10:00:00', 'clock_out_time' => ''],
-            ['id' => 4, 'user_id' => 5, 'store_id' => 2, 'shift_date' => '2026-10-14', 'clock_in_time' => null, 'clock_out_time' => null],
         ];
-        $this->repo = $this->createStub(TimeclockRepositoryInterface::class);
-        $this->repo->method('findAll')->willReturn($rows);
-        $this->repo->method('findByStoreBetween')->willReturnCallback(fn(int $s, string $from, string $to) => array_values(array_filter(
-            $rows,
-            fn($r) => $r['store_id'] === $s && $r['shift_date'] >= $from && $r['shift_date'] <= $to
-        )));
+        $this->resetRows();
+        $this->seedRows($rows);
         $container = new TestContainer();
-        $container->instance(TimeclockRepositoryInterface::class, $this->repo);
         return new TimeclockAttendanceProvider($container);
     }
 

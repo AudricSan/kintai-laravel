@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Timeclock\Providers;
 
+use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use kintai\Contract\Container;
 use kintai\Contract\Provider\Attendance;
 use kintai\Contract\Provider\AttendanceProvider;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 
 /**
  * Pointages pour les tableaux de bord du Core (pointages en cours ou oubliés, retards) — contrat 1.11. Mêmes données
@@ -19,11 +19,10 @@ final class TimeclockAttendanceProvider implements AttendanceProvider
 
     public function attendance(?array $userIds, ?array $storeIds, ?string $from = null, ?string $to = null): array
     {
-        $repo = $this->container->make(TimeclockRepositoryInterface::class);
         if ($storeIds !== null && count($storeIds) === 1 && $from !== null && $to !== null) {
-            $rows = $repo->findByStoreBetween((int) $storeIds[0], $from, $to);
+            $rows = Timeclock::findByStoreBetween((int) $storeIds[0], $from, $to);
         } else {
-            $rows = $repo->findAll();
+            $rows = Timeclock::findAll();
         }
 
         $attendance = [];

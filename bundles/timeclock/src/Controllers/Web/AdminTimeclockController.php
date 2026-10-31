@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Timeclock\Controllers\Web;
 
+use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\Store;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -29,7 +29,6 @@ final class AdminTimeclockController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly TimeclockRepositoryInterface $timeclocks,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -47,7 +46,7 @@ final class AdminTimeclockController
         // findByStoreAndDate() directement sur store_id fourni par l'utilisateur : ce dernier ne
         // vérifiait pas managedIds, un manager pouvait donc lire les pointages d'un store qu'il
         // ne gère pas simplement en changeant store_id dans l'URL.
-        $entries = $this->filterByStore($this->timeclocks->findAll(), $managedIds);
+        $entries = $this->filterByStore(Timeclock::findAll(), $managedIds);
 
         if ($filterStoreId !== null) {
             $entries = array_values(array_filter($entries, fn($e) => (int) ($e['store_id'] ?? 0) === (int) $filterStoreId));
@@ -80,7 +79,7 @@ final class AdminTimeclockController
     {
         $id = (int) $request->route('id');
 
-        $entry = $this->timeclocks->findById($id);
+        $entry = Timeclock::findById($id);
         if ($entry === null) {
             throw new NotFoundException(__('timeclock_error_entry_not_found'));
         }
@@ -104,7 +103,7 @@ final class AdminTimeclockController
             $updated['duration_minutes'] = null;
         }
 
-        $this->timeclocks->save($updated);
+        Timeclock::put($updated);
         $this->auditLogger->logUpdate($request, 'timeclock.edited', 'timeclock', (int) $entry['id'], $entry, $updated, [], (int) ($entry['store_id'] ?? 0) ?: null);
 
         $date = $request->post('redirect_date', date('Y-m-d'));
@@ -115,7 +114,7 @@ final class AdminTimeclockController
     {
         $id = (int) $request->route('id');
 
-        $entry = $this->timeclocks->findById($id);
+        $entry = Timeclock::findById($id);
         if ($entry === null) {
             throw new NotFoundException(__('timeclock_error_entry_not_found'));
         }
@@ -127,7 +126,7 @@ final class AdminTimeclockController
             'date'     => $entry['clock_in_date'] ?? '',
         ], $storeId ?: null);
 
-        $this->timeclocks->delete($id);
+        Timeclock::remove($id);
 
         $date = $request->query('date', date('Y-m-d'));
         return redirect()->away($this->base() . '/admin/timeclocks?date=' . urlencode($date))->with('success', 'deleted');

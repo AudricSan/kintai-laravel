@@ -13,12 +13,12 @@ use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\StoreUser;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression (audit RBAC du 11/09/2026) : show/update/destroy ne re-vérifiaient
@@ -27,12 +27,18 @@ use PHPUnit\Framework\TestCase;
  */
 final class TimeclockControllerTest extends TestCase
 {
-    private TimeclockRepositoryInterface&Stub $timeclocks;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeclocks', 'timeclock'];
+    }
+
     private ?TimeclockController $controller = null;
 
     protected function setUp(): void
     {
-        $this->timeclocks  = $this->createStub(TimeclockRepositoryInterface::class);
+        $this->resetRows();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -40,7 +46,6 @@ final class TimeclockControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $this->controller  = new TimeclockController(
-                $this->timeclocks,
                 new AuditLogger(),
                 new PermissionService()
             );
@@ -89,10 +94,10 @@ final class TimeclockControllerTest extends TestCase
 
     public function testIndexFiltersByStoreAndDate(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_GET = ['store_id' => '5', 'date' => '2026-08-01'];
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findByStoreAndDate')->with(5, '2026-08-01')->willReturn([['id' => 1, 'store_id' => 5]]);
+        $this->seedRows([['id' => 1, 'store_id' => 5, 'shift_date' => '2026-08-01']]);
 
         $response = $this->controller()->index($this->requestAsOwner());
         $body = json_decode($response->getContent(), true);
@@ -102,12 +107,12 @@ final class TimeclockControllerTest extends TestCase
 
     public function testIndexByUserIdExcludesEntriesFromOtherStoresForScopedManager(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_GET = ['user_id' => '99'];
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findByUser')->with(99)->willReturn([
-            ['id' => 1, 'store_id' => 5],
-            ['id' => 2, 'store_id' => 9],
+        $this->seedRows([
+            ['id' => 1, 'store_id' => 5, 'user_id' => 99],
+            ['id' => 2, 'store_id' => 9, 'user_id' => 99],
         ]);
 
         $response = $this->controller()->index($this->requestAsStoreManager(2, 5));
@@ -119,11 +124,11 @@ final class TimeclockControllerTest extends TestCase
 
     public function testClockInRejectsWhenAlreadyActive(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = $this->requestWithJson(['user_id' => 1]);
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(['id' => 5]);
-        $this->timeclocks->expects($this->never())->method('save');
+        $this->seedRows([['id' => 5, 'user_id' => 1, 'clock_out_time' => null]]);
+        $this->expectNoChange();
 
         $this->expectException(ConflictException::class);
         $this->controller()->clockIn($req);
@@ -131,10 +136,10 @@ final class TimeclockControllerTest extends TestCase
 
     public function testClockOutThrowsWhenNoActiveEntry(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = $this->requestWithJson(['user_id' => 1]);
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
+        $this->seedRows([]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->clockOut($req);
@@ -153,9 +158,9 @@ final class TimeclockControllerTest extends TestCase
 
     public function testDestroyDeletesExistingEntry(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'store_id' => 5]);
-        $this->timeclocks->expects($this->once())->method('delete')->with(7);
+        $this->resetRows();
+        $this->seedRows([['id' => 7, 'store_id' => 5]]);
+        $this->expectDeleted(7);
 
         $req = $this->requestAsOwner();
         $req->setRouteParams(['id' => '7']);
@@ -167,9 +172,9 @@ final class TimeclockControllerTest extends TestCase
 
     public function testDestroyRejectsEntryFromAnotherStore(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'store_id' => 9]);
-        $this->timeclocks->expects($this->never())->method('delete');
+        $this->resetRows();
+        $this->seedRows([['id' => 7, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '7']);
@@ -180,9 +185,9 @@ final class TimeclockControllerTest extends TestCase
 
     public function testUpdateRejectsEntryFromAnotherStore(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findById')->with(7)->willReturn(['id' => 7, 'store_id' => 9]);
-        $this->timeclocks->expects($this->never())->method('save');
+        $this->resetRows();
+        $this->seedRows([['id' => 7, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '7']);

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Timeclock\Controllers\Api;
 
+use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ConflictException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\StoreUser;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -20,8 +20,10 @@ use kintai\Contract\Services\AuditLogger;
  */
 final class TimeclockController
 {
+    /** Champs qu'un gestionnaire peut corriger sur un pointage (la durée est recalculée, l'adresse IP et le rattachement ne changent pas). */
+    private const UPDATE_FIELDS = ['shift_date', 'clock_in_time', 'clock_out_time', 'notes'];
+
     public function __construct(
-        private readonly TimeclockRepositoryInterface $timeclocks,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
     ) {}
@@ -35,13 +37,13 @@ final class TimeclockController
         $date    = $request->query('date');
 
         if ($storeId !== null && $date !== null) {
-            $items = $this->timeclocks->findByStoreAndDate((int) $storeId, $date);
+            $items = Timeclock::findByStoreAndDate((int) $storeId, $date);
         } elseif ($userId !== null && $date !== null) {
-            $items = $this->timeclocks->findByUserAndDate((int) $userId, $date);
+            $items = Timeclock::findByUserAndDate((int) $userId, $date);
         } elseif ($storeId !== null) {
-            $items = $this->timeclocks->findByStore((int) $storeId);
+            $items = Timeclock::findByStore((int) $storeId);
         } elseif ($userId !== null) {
-            $items = $this->timeclocks->findByUser((int) $userId);
+            $items = Timeclock::findByUser((int) $userId);
         } else {
             $items = [];
         }
@@ -72,7 +74,7 @@ final class TimeclockController
         $data   = $request->json()->all() ?? [];
         $userId = (int) ($data['user_id'] ?? 0);
 
-        if ($this->timeclocks->findActiveByUser($userId) !== null) {
+        if (Timeclock::findActiveByUser($userId) !== null) {
             throw new ConflictException(__('timeclock_error_clockin_already_active'));
         }
 
@@ -87,7 +89,7 @@ final class TimeclockController
         }
 
         $now    = date('Y-m-d H:i:s');
-        $record = $this->timeclocks->save([
+        $record = Timeclock::put([
             'user_id'        => $userId,
             'store_id'       => $storeId,
             'shift_date'     => date('Y-m-d'),
@@ -107,7 +109,7 @@ final class TimeclockController
         $data   = $request->json()->all() ?? [];
         $userId = (int) ($data['user_id'] ?? 0);
 
-        $active = $this->timeclocks->findActiveByUser($userId);
+        $active = Timeclock::findActiveByUser($userId);
         if ($active === null) {
             throw new NotFoundException(__('timeclock_error_no_active_clockin'));
         }
@@ -117,7 +119,7 @@ final class TimeclockController
         $clockOutTime = new \DateTimeImmutable($now);
         $duration     = (int) round(($clockOutTime->getTimestamp() - $clockInTime->getTimestamp()) / 60);
 
-        $record = $this->timeclocks->save(array_merge($active, [
+        $record = Timeclock::put(array_merge($active, [
             'clock_out_time'   => $now,
             'duration_minutes' => $duration,
             'updated_at'       => $now,
@@ -135,14 +137,16 @@ final class TimeclockController
         // Audit du 03/10/2026 : l'employé et le magasin du pointage ne changent pas (déplacer l'entrée vers un magasin tiers contournait requireTimeclock()).
         $body = $request->json()->all() ?? [];
         unset($body['user_id'], $body['store_id'], $body['created_at']);
+        // Liste blanche (audit SEC-14) : seuls ces champs se modifient, jamais une colonne choisie par le client.
+        $body = array_intersect_key($body, array_flip(self::UPDATE_FIELDS));
         $data   = array_merge($body, ['id' => $id, 'updated_at' => date('Y-m-d H:i:s')]);
-        $record = $this->timeclocks->save($data);
+        $record = Timeclock::put($data);
 
         if (!empty($data['clock_in_time']) && !empty($data['clock_out_time'])) {
             $in       = new \DateTimeImmutable($record['clock_in_time']);
             $out      = new \DateTimeImmutable($record['clock_out_time']);
             $duration = (int) round(($out->getTimestamp() - $in->getTimestamp()) / 60);
-            $record   = $this->timeclocks->save(array_merge($record, ['duration_minutes' => $duration]));
+            $record   = Timeclock::put(array_merge($record, ['duration_minutes' => $duration]));
         }
 
         $this->auditLogger->logUpdate($request, 'timeclock.updated', 'timeclock', resourceId: $id, oldData: $old, newData: $record, extraContext: $body, storeId: (int) ($old['store_id'] ?? 0) ?: null);
@@ -154,7 +158,7 @@ final class TimeclockController
     {
         $record = $this->requireTimeclock($request, 'timeclock.delete');
         $id     = (int) $record['id'];
-        $this->timeclocks->delete($id);
+        Timeclock::remove($id);
         $this->auditLogger->log($request, 'timeclock.deleted', 'timeclock', resourceId: $id);
         return response()->noContent();
     }
@@ -169,7 +173,7 @@ final class TimeclockController
     {
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
-            fn(int $id) => $this->timeclocks->findById($id),
+            fn(int $id) => Timeclock::findById($id),
             (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: __('timeclock_error_entry_not_found'),

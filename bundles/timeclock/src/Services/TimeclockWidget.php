@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Timeclock\Services;
 
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
+use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use kintai\Contract\Data\User;
 
 /**
@@ -14,7 +14,6 @@ use kintai\Contract\Data\User;
 final class TimeclockWidget
 {
     public function __construct(
-        private readonly TimeclockRepositoryInterface $timeclocks,
     ) {}
 
     /**
@@ -28,7 +27,7 @@ final class TimeclockWidget
     public function activeNow(array $storeIds, array $storesMap, string $today): array
     {
         $active = array_values(array_filter(
-            $this->timeclocks->findAll(),
+            Timeclock::findAll(),
             static fn(array $tc): bool => in_array((int) ($tc['store_id'] ?? 0), $storeIds, true)
                 && ($tc['shift_date'] ?? '') === $today && empty($tc['clock_out_time'])
         ));
@@ -51,6 +50,6 @@ final class TimeclockWidget
     /** Employé : son pointage en cours (sans sortie), ou null. */
     public function activeForUser(int $userId): ?array
     {
-        return $this->timeclocks->findActiveByUser($userId);
+        return Timeclock::findActiveByUser($userId);
     }
 }

@@ -11,7 +11,6 @@ use App\Exceptions\ConflictException;
 use App\Exceptions\NotFoundException;
 use App\Models\Store;
 use App\Models\StoreUser;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
@@ -19,10 +18,17 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 final class EmployeeTimeclockControllerTest extends TestCase
 {
-    private TimeclockRepositoryInterface&Stub $timeclocks;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeclocks', 'timeclock'];
+    }
+
     private ?EmployeeTimeclockController $controller = null;
 
     protected function setUp(): void
@@ -33,7 +39,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile($viewDir, 'employee-timeclock');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $this->timeclocks = $this->createStub(TimeclockRepositoryInterface::class);
+        $this->resetRows();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -45,7 +51,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view->addNamespace('timeclock', $viewDir);
             $this->controller = new EmployeeTimeclockController(
                 $view,
-                $this->timeclocks,
                 new AuditLogger(),
             );
         }
@@ -63,14 +68,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testTimeclockRendersWhenFeatureEnabled(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
-        $this->timeclocks->method('findByUserAndDate')->willReturn([]);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findByUser')->with(1)->willReturn([]);
+        $this->seedRows([]);
+        $this->seedRows([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->timeclock($req);
 
@@ -92,15 +97,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testClockInCreatesEntry(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['user_id'] === 1 && $data['store_id'] === 5 && $data['clock_out_time'] === null
-        ))->willReturn(['id' => 10]);
+        $this->seedRows([]);
+        $this->expectSaved(fn(array $data) => $data['user_id'] === 1 && $data['store_id'] === 5 && $data['clock_out_time'] === null);
 
         $response = $this->controller()->clockIn($req);
 
@@ -110,30 +113,28 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Un employé multi-magasins pointe sur le magasin qu'il choisit (avant : toujours le premier). */
     public function testClockInUsesTheChosenStoreWhenMember(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_POST['store_id'] = '7';
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5], ['store_id' => 7]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['store_id'] === 7
-        ))->willReturn(['id' => 10]);
+        $this->seedRows([]);
+        $this->expectSaved(fn(array $data) => $data['store_id'] === 7);
 
         $this->assertSame(201, $this->controller()->clockIn($req)->getStatusCode());
     }
 
     public function testClockInRefusesAStoreTheEmployeeDoesNotBelongTo(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_POST['store_id'] = '99';
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
-        $this->timeclocks->expects($this->never())->method('save');
+        $this->seedRows([]);
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->clockIn($req);
@@ -142,13 +143,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Avant : la ligne était créée avec store_id = 0 pour un employé sans magasin. */
     public function testClockInRefusesAnEmployeeWithoutAnyStore(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
-        $this->timeclocks->expects($this->never())->method('save');
+        $this->seedRows([]);
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->clockIn($req);
@@ -156,13 +157,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testClockInRejectsWhenAlreadyActive(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(['id' => 9]);
-        $this->timeclocks->expects($this->never())->method('save');
+        $this->seedRows([['id' => 9, 'user_id' => 1, 'clock_out_time' => null]]);
+        $this->expectNoChange();
 
         $this->expectException(ConflictException::class);
         $this->controller()->clockIn($req);
@@ -170,16 +171,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testClockOutComputesDuration(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn([
-            'id' => 9, 'store_id' => 5, 'clock_in_time' => date('Y-m-d H:i:s', strtotime('-30 minutes')),
-        ]);
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['id'] === 9 && $data['duration_minutes'] >= 29 && $data['duration_minutes'] <= 31
-        ))->willReturn(['id' => 9]);
+        $this->seedRows([[
+            'id' => 9, 'user_id' => 1, 'store_id' => 5, 'clock_in_time' => date('Y-m-d H:i:s', strtotime('-30 minutes')),
+        ]]);
+        $this->expectSaved(fn(array $data) => $data['id'] === 9 && $data['duration_minutes'] >= 29 && $data['duration_minutes'] <= 31);
 
         $response = $this->controller()->clockOut($req);
 
@@ -188,11 +187,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testClockOutThrowsWhenNoActiveEntry(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
+        $this->seedRows([]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->clockOut($req);
@@ -201,7 +200,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Un pointage synchronisé après coup (hors-ligne) doit garder l'heure réelle du clic, pas l'heure de synchro. */
     public function testClockInUsesClientTimeWhenWithinTrustWindow(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $clientTime = (new \DateTimeImmutable('-2 hours'))->format('c');
         $_POST['client_time'] = $clientTime;
 
@@ -209,12 +208,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
+        $this->seedRows([]);
 
         $expected = (new \DateTimeImmutable($clientTime))->format('Y-m-d H:i:s');
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['clock_in_time'] === $expected && $data['shift_date'] === substr($expected, 0, 10)
-        ))->willReturn(['id' => 10]);
+        $this->expectSaved(fn(array $data) => $data['clock_in_time'] === $expected && $data['shift_date'] === substr($expected, 0, 10));
 
         $response = $this->controller()->clockIn($req);
 
@@ -224,19 +221,17 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Un client_time trop ancien (dérive excessive) est ignoré au profit de l'heure serveur. */
     public function testClockInIgnoresClientTimeOutsideTrustWindow(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_POST['client_time'] = (new \DateTimeImmutable('-2 days'))->format('c');
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         kintai_test_store_users(findByUser: fn(int $id) => $id === 1 ? [['store_id' => 5]] : []);
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn(null);
+        $this->seedRows([]);
 
         $today = date('Y-m-d');
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['shift_date'] === $today
-        ))->willReturn(['id' => 10]);
+        $this->expectSaved(fn(array $data) => $data['shift_date'] === $today);
 
         $this->controller()->clockIn($req);
     }
@@ -244,18 +239,16 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** La durée d'un pointage hors-ligne se calcule sur l'heure réelle de sortie, pas l'heure de synchro. */
     public function testClockOutUsesClientTimeForDuration(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_POST['client_time'] = (new \DateTimeImmutable('-30 minutes'))->format('c');
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn([
-            'id' => 9, 'store_id' => 5, 'clock_in_time' => (new \DateTimeImmutable('-90 minutes'))->format('Y-m-d H:i:s'),
-        ]);
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['duration_minutes'] >= 59 && $data['duration_minutes'] <= 61
-        ))->willReturn(['id' => 9]);
+        $this->seedRows([[
+            'id' => 9, 'user_id' => 1, 'store_id' => 5, 'clock_in_time' => (new \DateTimeImmutable('-90 minutes'))->format('Y-m-d H:i:s'),
+        ]]);
+        $this->expectSaved(fn(array $data) => $data['duration_minutes'] >= 59 && $data['duration_minutes'] <= 61);
 
         $response = $this->controller()->clockOut($req);
 
@@ -265,18 +258,16 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Une sortie hors-ligne rejouée avant son entrée (désordre de synchro) retombe sur l'heure serveur. */
     public function testClockOutFallsBackToServerTimeWhenClientTimeBeforeClockIn(): void
     {
-        $this->timeclocks = $this->createMock(TimeclockRepositoryInterface::class);
+        $this->resetRows();
         $_POST['client_time'] = (new \DateTimeImmutable('-2 hours'))->format('c');
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
-        $this->timeclocks->expects($this->atLeastOnce())->method('findActiveByUser')->with(1)->willReturn([
-            'id' => 9, 'store_id' => 5, 'clock_in_time' => (new \DateTimeImmutable('-30 minutes'))->format('Y-m-d H:i:s'),
-        ]);
-        $this->timeclocks->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['duration_minutes'] >= 0
-        ))->willReturn(['id' => 9]);
+        $this->seedRows([[
+            'id' => 9, 'user_id' => 1, 'store_id' => 5, 'clock_in_time' => (new \DateTimeImmutable('-30 minutes'))->format('Y-m-d H:i:s'),
+        ]]);
+        $this->expectSaved(fn(array $data) => $data['duration_minutes'] >= 0);
 
         $this->controller()->clockOut($req);
     }

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace kintai\Bundles\Installed\Timeclock;
 
 use kintai\Bundles\Installed\Timeclock\Providers\TimeclockAttendanceProvider;
-use kintai\Bundles\Installed\Timeclock\Repositories\DatabaseTimeclockRepository;
-use kintai\Bundles\Installed\Timeclock\Repositories\TimeclockRepositoryInterface;
 use kintai\Bundles\Installed\Timeclock\Services\TimeclockWidget;
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
@@ -41,7 +39,6 @@ final class TimeclockBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->singleton(TimeclockRepositoryInterface::class, fn() => new DatabaseTimeclockRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'timeclock');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');
