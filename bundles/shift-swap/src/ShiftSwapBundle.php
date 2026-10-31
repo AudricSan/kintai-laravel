@@ -6,8 +6,6 @@ namespace kintai\Bundles\Installed\ShiftSwap;
 
 use kintai\Bundles\Installed\ShiftSwap\Providers\PendingSwapsProvider;
 use kintai\Bundles\Installed\ShiftSwap\Providers\SwapRequestsProvider;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\DatabaseShiftSwapRequestRepository;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Bundles\Installed\ShiftSwap\Services\PendingSwapsWidget;
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
@@ -43,7 +41,6 @@ final class ShiftSwapBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->singleton(ShiftSwapRequestRepositoryInterface::class, fn() => new DatabaseShiftSwapRequestRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'shift-swap');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

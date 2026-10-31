@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ShiftSwap\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\DatabaseShiftSwapRequestRepository;
+use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -97,13 +97,12 @@ final class ShiftSwapRequestsMigrationTest extends TestCase
         $this->assertFalse($schema->hasTable('shift_swap_requests_legacy_schema'));
 
         // Écriture du code : ce qui échouait sur l'ancien schéma.
-        $repo = new DatabaseShiftSwapRequestRepository();
-        $saved = $repo->save(['store_id' => 1, 'requester_id' => 2, 'target_user_id' => 4, 'requester_shift_id' => 41,
+        $saved = ShiftSwapRequest::put(['store_id' => 1, 'requester_id' => 2, 'target_user_id' => 4, 'requester_shift_id' => 41,
             'status' => 'pending', 'accepted_at' => null, 'created_at' => '2026-10-14 09:00:00']);
-        $this->assertSame(4, (int) $repo->findById((int) $saved['id'])['target_user_id']);
+        $this->assertSame(4, (int) ShiftSwapRequest::findById((int) $saved['id'])['target_user_id']);
 
         if ($existing === 'legacySqlSchema') {
-            $old = $repo->findById(7);
+            $old = ShiftSwapRequest::findById(7);
             $this->assertSame([3, 'accepted', 9, '2026-09-02 10:00:00', '2026-09-01 12:00:00', '2026-09-01 08:00:00'],
                 [(int) $old['target_user_id'], $old['status'], (int) $old['approved_by_id'], $old['approved_at'], $old['accepted_at'], $old['created_at']]);
         }

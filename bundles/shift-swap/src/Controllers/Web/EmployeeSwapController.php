@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftSwap\Controllers\Web;
 
+use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Data\Shift;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
@@ -26,7 +26,6 @@ final class EmployeeSwapController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
     ) {}
@@ -39,8 +38,8 @@ final class EmployeeSwapController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $sent     = $this->swapRequests->findByRequester($userId);
-        $received = $this->swapRequests->findByTarget($userId);
+        $sent     = ShiftSwapRequest::findByRequester($userId);
+        $received = ShiftSwapRequest::findByTarget($userId);
 
         usort($sent,     fn($a, $b) => strcmp($b['created_at'] ?? '', $a['created_at'] ?? ''));
         usort($received, fn($a, $b) => strcmp($b['created_at'] ?? '', $a['created_at'] ?? ''));
@@ -142,7 +141,7 @@ final class EmployeeSwapController
             throw new ForbiddenException(__('shift_swap_error_shifts_different_stores'));
         }
 
-        $savedSwap = $this->swapRequests->save([
+        $savedSwap = ShiftSwapRequest::put([
             'store_id'           => (int) $myShift['store_id'],
             'requester_id'       => $userId,
             'target_user_id'     => $targetId,
@@ -174,7 +173,7 @@ final class EmployeeSwapController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $swap = $this->swapRequests->findById((int) $request->route('id'));
+        $swap = ShiftSwapRequest::findById((int) $request->route('id'));
         if ($swap === null || (int) $swap['target_user_id'] !== $userId) {
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
@@ -185,7 +184,7 @@ final class EmployeeSwapController
         $newSwap = array_merge($swap, [
             'accepted_at' => date('Y-m-d H:i:s'),
         ]);
-        $this->swapRequests->save($newSwap);
+        ShiftSwapRequest::put($newSwap);
 
         $this->auditLogger->logUpdate($request, 'swap.peer_accepted', 'shift_swap_request', (int) $swap['id'], $swap, $newSwap, [
             'requester_id' => $swap['requester_id'] ?? null,
@@ -210,7 +209,7 @@ final class EmployeeSwapController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $swap = $this->swapRequests->findById((int) $request->route('id'));
+        $swap = ShiftSwapRequest::findById((int) $request->route('id'));
         if ($swap === null || (int) $swap['target_user_id'] !== $userId) {
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
@@ -219,7 +218,7 @@ final class EmployeeSwapController
         }
 
         $refusedSwap = array_merge($swap, ['status' => 'refused']);
-        $this->swapRequests->save($refusedSwap);
+        ShiftSwapRequest::put($refusedSwap);
         $this->auditLogger->logUpdate($request, 'swap.peer_refused', 'shift_swap_request', (int) $swap['id'], $swap, $refusedSwap, [
             'requester_id' => $swap['requester_id'] ?? null,
         ], (int) ($swap['store_id'] ?? 0) ?: null);
@@ -243,7 +242,7 @@ final class EmployeeSwapController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $swap = $this->swapRequests->findById((int) $request->route('id'));
+        $swap = ShiftSwapRequest::findById((int) $request->route('id'));
         if ($swap === null || (int) $swap['requester_id'] !== $userId) {
             throw new ForbiddenException(__('shift_swap_error_request_not_found'));
         }
@@ -252,7 +251,7 @@ final class EmployeeSwapController
         }
 
         $cancelledSwap = array_merge($swap, ['status' => 'cancelled']);
-        $this->swapRequests->save($cancelledSwap);
+        ShiftSwapRequest::put($cancelledSwap);
         $this->auditLogger->logUpdate($request, 'swap.cancelled', 'shift_swap_request', (int) $swap['id'], $swap, $cancelledSwap, []);
 
         $myShift     = Shift::findById((int) ($swap['requester_shift_id'] ?? 0));

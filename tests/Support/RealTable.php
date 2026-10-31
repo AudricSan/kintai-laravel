@@ -42,14 +42,28 @@ trait RealTable
     {
         [$table, $bundle] = $this->realTable();
         kintai_test_table($table, bundle: $bundle);
+        $this->rtSeeded = false;
     }
 
-    /** @param list<array<string, mixed>> $rows */
+    private bool $rtSeeded = false;
+
+    /**
+     * Pose ces lignes. Le premier appel (depuis resetRows()) vide la table ; les suivants ajoutent, et une ligne de même
+     * identifiant en remplace une posée avant.
+     *
+     * @param list<array<string, mixed>> $rows
+     */
     private function seedRows(array $rows): void
     {
         [$table, $bundle] = $this->realTable();
-        kintai_test_table($table, bundle: $bundle);
+        if (!$this->rtSeeded) {
+            kintai_test_table($table, bundle: $bundle);
+            $this->rtSeeded = true;
+        }
         foreach ($rows as $row) {
+            if (isset($row['id'])) {
+                DB::table($table)->where('id', $row['id'])->delete();
+            }
             DB::table($table)->insert($this->completed($table, $row));
         }
     }

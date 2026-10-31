@@ -8,7 +8,6 @@ namespace Tests\Bundles\ShiftSwap\Controllers\Web;
 use kintai\Bundles\Installed\ShiftSwap\Controllers\Web\EmployeeSwapController;
 use App\Exceptions\ForbiddenException;
 use App\Models\Shift;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
@@ -20,6 +19,7 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression : storeSwap/acceptSwap/refuseSwap écrivaient et relisaient les clés
@@ -29,7 +29,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class EmployeeSwapControllerTest extends TestCase
 {
-    private ShiftSwapRequestRepositoryInterface&Stub $swapRequests;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['shift_swap_requests', 'shift-swap'];
+    }
+
     private NotificationService&Stub $notifs;
     private ?EmployeeSwapController $controller = null;
 
@@ -41,7 +47,7 @@ final class EmployeeSwapControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'swaps');
         $this->ensureViewFile($viewDir, 'swaps-form');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
-        $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs       = $this->createStub(NotificationService::class);
     }
 
@@ -54,7 +60,6 @@ final class EmployeeSwapControllerTest extends TestCase
             $view->addNamespace('shift-swap', $viewDir);
             $this->controller = new EmployeeSwapController(
                 $view,
-                $this->swapRequests,
                 new AuditLogger(),
                 $this->notifs,
             );
@@ -87,23 +92,20 @@ final class EmployeeSwapControllerTest extends TestCase
         kintai_test_shifts([$myShift, $targetShift]);
 
         $captured = null;
-        $this->swapRequests->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d + ['id' => 42];
-        });
+        $this->startCapture();
 
-        $this->notifs->expects($this->once())->method('notify')->with(2, 'swap_requested', $this->anything(), $this->anything(), 42);
+        $this->notifs->expects($this->once())->method('notify')->with(2, 'swap_requested', $this->anything(), $this->anything(), 1);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
 
         $response = $this->controller()->storeSwap($req);
+        $captured = $this->capturedRow();
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertArrayHasKey('target_user_id', $captured);
         $this->assertSame(2, $captured['target_user_id']);
         $this->assertArrayNotHasKey('target_id', $captured);
-        $this->assertArrayHasKey('accepted_at', $captured);
         $this->assertNull($captured['accepted_at']);
         $this->assertArrayNotHasKey('peer_accepted_at', $captured);
     }
@@ -111,12 +113,15 @@ final class EmployeeSwapControllerTest extends TestCase
     /** Ouvrir la liste marque comme lues les notifications des échanges affichés (envoyés et reçus, sans doublon). */
     public function testSwapsMarksTheNotificationsOfTheDisplayedSwapsAsRead(): void
     {
-        $this->swapRequests = $this->createStub(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         kintai_test_store_users(findByUser: fn() => [['store_id' => 5, 'user_id' => 1]]);
         kintai_test_store_features(null, []);
-        $this->swapRequests->method('findByRequester')->willReturn([['id' => 3, 'created_at' => '2026-01-01'], ['id' => 4, 'created_at' => '2026-01-02']]);
-        $this->swapRequests->method('findByTarget')->willReturn([['id' => 4, 'created_at' => '2026-01-02'], ['id' => 9, 'created_at' => '2026-01-03']]);
+        $this->seedRows([
+            ['id' => 3, 'requester_id' => 1, 'created_at' => '2026-01-01'],
+            ['id' => 4, 'requester_id' => 1, 'created_at' => '2026-01-02'],
+            ['id' => 9, 'requester_id' => 2, 'target_user_id' => 1, 'created_at' => '2026-01-03'],
+        ]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(1, 'swap', [4, 3, 9]);
 
         $req = Request::capture();
@@ -141,19 +146,13 @@ final class EmployeeSwapControllerTest extends TestCase
 
     public function testAcceptSwapReadsAndWritesAcceptedAtColumn(): void
     {
-        $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $swap = [
             'id' => 5, 'store_id' => 3, 'requester_id' => 1,
             'target_user_id' => 9, 'status' => 'pending', 'accepted_at' => null,
         ];
-        $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn($swap);
-
-        $captured = null;
-        $this->swapRequests->expects($this->once())->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d;
-        });
+        $this->seedRows([$swap]);
 
         $this->notifs->expects($this->once())->method('notify')->with(1, 'swap_peer_accepted', $this->anything(), $this->anything(), 5);
 
@@ -164,18 +163,17 @@ final class EmployeeSwapControllerTest extends TestCase
         $response = $this->controller()->acceptSwap($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertArrayHasKey('accepted_at', $captured);
-        $this->assertNotNull($captured['accepted_at']);
+        $this->assertNotNull($this->rowsInTable()[0]['accepted_at'], 'accepted_at est renseigné');
     }
 
     public function testAcceptSwapForbiddenWhenCurrentUserIsNotTheTarget(): void
     {
-        $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $swap = [
             'id' => 5, 'store_id' => 3, 'requester_id' => 1,
             'target_user_id' => 9, 'status' => 'pending', 'accepted_at' => null,
         ];
-        $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn($swap);
+        $this->seedRows([$swap]);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
@@ -187,19 +185,13 @@ final class EmployeeSwapControllerTest extends TestCase
 
     public function testRefuseSwapReadsTargetUserIdColumn(): void
     {
-        $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $swap = [
             'id' => 5, 'store_id' => 3, 'requester_id' => 1,
             'target_user_id' => 9, 'status' => 'pending', 'accepted_at' => null,
         ];
-        $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn($swap);
-
-        $captured = null;
-        $this->swapRequests->expects($this->once())->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d;
-        });
+        $this->seedRows([$swap]);
 
         $this->notifs->expects($this->once())->method('notify')->with(1, 'swap_peer_refused', $this->anything(), $this->anything(), 5);
 
@@ -210,19 +202,19 @@ final class EmployeeSwapControllerTest extends TestCase
         $response = $this->controller()->refuseSwap($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('refused', $captured['status']);
+        $this->assertSame('refused', $this->rowsInTable()[0]['status']);
     }
 
     public function testCancelSwapNotifiesTargetUser(): void
     {
-        $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $swap = [
             'id' => 5, 'store_id' => 3, 'requester_id' => 1,
             'target_user_id' => 9, 'status' => 'pending', 'accepted_at' => null,
         ];
-        $this->swapRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn($swap);
-        $this->swapRequests->expects($this->once())->method('save');
+        $this->seedRows([$swap]);
+        $this->expectSaved(fn(array $row) => true);
 
         $this->notifs->expects($this->once())->method('notify')->with(9, 'swap_cancelled', $this->anything(), $this->anything(), 5);
 

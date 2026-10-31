@@ -11,11 +11,11 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression (audit RBAC du 11/09/2026) : show/update/destroy ne re-vérifiaient
@@ -24,14 +24,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class ShiftSwapRequestControllerTest extends TestCase
 {
-    private ShiftSwapRequestRepositoryInterface&MockObject $swapRequests;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['shift_swap_requests', 'shift-swap'];
+    }
+
     private ShiftSwapRequestController $controller;
 
     protected function setUp(): void
     {
-        $this->swapRequests = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->controller   = new ShiftSwapRequestController(
-            $this->swapRequests,
             new AuditLogger(),
             new PermissionService()
         );
@@ -59,9 +64,9 @@ final class ShiftSwapRequestControllerTest extends TestCase
     {
         $_GET = ['requester_id' => '99'];
 
-        $this->swapRequests->method('findByRequester')->with(99)->willReturn([
-            ['id' => 1, 'store_id' => 5],
-            ['id' => 2, 'store_id' => 9],
+        $this->seedRows([
+            ['id' => 1, 'store_id' => 5, 'requester_id' => 99],
+            ['id' => 2, 'store_id' => 9, 'requester_id' => 99],
         ]);
 
         $response = $this->controller->index($this->requestAsStoreManager(2, 5));
@@ -73,7 +78,7 @@ final class ShiftSwapRequestControllerTest extends TestCase
 
     public function testShowThrowsNotFoundForMissingSwap(): void
     {
-        $this->swapRequests->method('findById')->with(99)->willReturn(null);
+        $this->seedRows([]);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '99']);
@@ -84,7 +89,7 @@ final class ShiftSwapRequestControllerTest extends TestCase
 
     public function testShowRejectsSwapFromAnotherStore(): void
     {
-        $this->swapRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -95,8 +100,8 @@ final class ShiftSwapRequestControllerTest extends TestCase
 
     public function testUpdateRejectsSwapFromAnotherStore(): void
     {
-        $this->swapRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
-        $this->swapRequests->expects($this->never())->method('save');
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -107,8 +112,8 @@ final class ShiftSwapRequestControllerTest extends TestCase
 
     public function testDestroyAllowsSwapInManagedStore(): void
     {
-        $this->swapRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 5]);
-        $this->swapRequests->expects($this->once())->method('delete')->with(5);
+        $this->seedRows([['id' => 5, 'store_id' => 5]]);
+        $this->expectDeleted(5);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -120,8 +125,8 @@ final class ShiftSwapRequestControllerTest extends TestCase
 
     public function testDestroyRejectsSwapFromAnotherStore(): void
     {
-        $this->swapRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
-        $this->swapRequests->expects($this->never())->method('delete');
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);

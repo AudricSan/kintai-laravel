@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftSwap\Services;
 
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
+use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use kintai\Contract\Data\User;
 
 /**
@@ -13,7 +13,6 @@ use kintai\Contract\Data\User;
 final class PendingSwapsWidget
 {
     public function __construct(
-        private readonly ShiftSwapRequestRepositoryInterface $swaps,
     ) {}
 
     /**
@@ -25,7 +24,7 @@ final class PendingSwapsWidget
     public function forManager(array $storeIds): array
     {
         $pending = array_values(array_filter(
-            $this->swaps->findAll(),
+            ShiftSwapRequest::findAll(),
             static fn(array $r): bool => in_array((int) ($r['store_id'] ?? 0), $storeIds, true) && ($r['status'] ?? '') === 'pending'
         ));
         $usersMap = [];
@@ -43,7 +42,7 @@ final class PendingSwapsWidget
     public function forEmployee(int $userId): array
     {
         return array_values(array_filter(
-            $this->swaps->findByTarget($userId),
+            ShiftSwapRequest::findByTarget($userId),
             static fn(array $s): bool => ($s['status'] ?? '') === 'pending' && ($s['accepted_at'] ?? null) === null
         ));
     }

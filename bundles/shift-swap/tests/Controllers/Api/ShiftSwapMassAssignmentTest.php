@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Bundles\ShiftSwap\Controllers\Api;
 
 use kintai\Bundles\Installed\ShiftSwap\Controllers\Api\ShiftSwapRequestController;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Models\RoleAssignment;
@@ -14,6 +13,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression (audit du 03/10/2026), reprise du Core à l'extraction : la création par l'API fusionnait le JSON brut du
@@ -23,6 +23,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class ShiftSwapMassAssignmentTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['shift_swap_requests', 'shift-swap'];
+    }
+
     private const ME       = 2;
     private const MY_STORE = 5;
     private const OTHER    = 6;
@@ -52,15 +59,14 @@ final class ShiftSwapMassAssignmentTest extends TestCase
 
     public function testSwapCreationIsForcedPendingAndIgnoresId(): void
     {
-        $repo = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
-        $repo->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d): bool => !array_key_exists('id', $d)
+        $this->resetRows();
+        $this->nextRowId(50); // la demande créée prend 50 : jamais l'identifiant 3 envoyé par le client
+        $this->expectSaved(fn(array $d): bool => (int) $d['id'] === 50
                 && $d['status'] === 'pending'
-                && !array_key_exists('approved_by_id', $d)
-                && $d['store_id'] === self::MY_STORE
-                && $d['requester_id'] === self::ME
-        ))->willReturn(['id' => 12]);
-        $controller = new ShiftSwapRequestController($repo, new AuditLogger(), $this->permissions);
+                && $d['approved_by_id'] === null
+                && (int) $d['store_id'] === self::MY_STORE
+                && (int) $d['requester_id'] === self::ME);
+        $controller = new ShiftSwapRequestController(new AuditLogger(), $this->permissions);
 
         $controller->store($this->request([
             'id' => 3, 'store_id' => self::MY_STORE, 'status' => 'approved', 'approved_by_id' => 99,
@@ -70,9 +76,9 @@ final class ShiftSwapMassAssignmentTest extends TestCase
 
     public function testSwapCreationForAnotherStoreIsForbidden(): void
     {
-        $repo = $this->createMock(ShiftSwapRequestRepositoryInterface::class);
-        $repo->expects($this->never())->method('save');
-        $controller = new ShiftSwapRequestController($repo, new AuditLogger(), $this->permissions);
+        $this->resetRows();
+        $this->expectNoChange();
+        $controller = new ShiftSwapRequestController(new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->store($this->request(['store_id' => self::OTHER, 'requester_shift_id' => 4]));

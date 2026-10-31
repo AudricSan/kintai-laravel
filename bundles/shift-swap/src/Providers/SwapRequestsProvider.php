@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftSwap\Providers;
 
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
+use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use kintai\Contract\Container;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\Swap;
@@ -20,12 +20,11 @@ final class SwapRequestsProvider implements SwapProvider
 
     public function swaps(?array $storeIds, ?string $from = null, ?string $to = null): array
     {
-        $repo = $this->container->make(ShiftSwapRequestRepositoryInterface::class);
         $storeIds ??= array_map(fn(array $s): int => (int) $s['id'], $this->container->make(Store::class)->findAll());
 
         $swaps = [];
         foreach ($storeIds as $storeId) {
-            foreach ($repo->findByStore((int) $storeId) as $r) {
+            foreach (ShiftSwapRequest::findByStore((int) $storeId) as $r) {
                 $date = substr((string) ($r['created_at'] ?? ''), 0, 10);
                 if (($from !== null && $date < $from) || ($to !== null && $date > $to) || ($r['created_at'] ?? '') === '') {
                     continue;

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftSwap\Providers;
 
+use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use kintai\Contract\Container;
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 
 /**
  * Demandes d'échange de shift en attente, pour la page « Demandes » et le compteur du tableau de bord du Core
@@ -28,7 +28,7 @@ final class PendingSwapsProvider implements PendingRequestsProvider
     public function pending(?array $storeIds): array
     {
         $requests = [];
-        foreach ($this->container->make(ShiftSwapRequestRepositoryInterface::class)->findAll() as $r) {
+        foreach (ShiftSwapRequest::findAll() as $r) {
             $storeId = (int) ($r['store_id'] ?? 0);
             if (($r['status'] ?? '') !== 'pending' || ($storeIds !== null && !in_array($storeId, $storeIds, true))) {
                 continue;

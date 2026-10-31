@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftSwap\Controllers\Web;
 
+use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Data\Shift;
-use kintai\Bundles\Installed\ShiftSwap\Repositories\ShiftSwapRequestRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\User;
@@ -23,7 +23,6 @@ final class AdminSwapController
     use HasAdminAccess;
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ShiftSwapRequestRepositoryInterface $swapRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         // Requis par le trait HasAdminAccess (memberUserIds) : sans lui, un gérant limité à ses magasins
@@ -132,7 +131,7 @@ final class AdminSwapController
         Shift::put(array_merge($reqShift, ['user_id' => $targetId]));
         Shift::put(array_merge($tgtShift, ['user_id' => $requesterId]));
 
-        $savedSwap = $this->swapRequests->save([
+        $savedSwap = ShiftSwapRequest::put([
             'store_id'           => $storeId,
             'requester_id'       => $requesterId,
             'target_user_id'     => $targetId,
@@ -181,7 +180,7 @@ final class AdminSwapController
 
         $usersMap  = $this->buildUsersMap();
         $storesMap = $this->buildStoresMap($managedIds);
-        $swaps     = $this->filterByStore($this->swapRequests->findAll(), $managedIds);
+        $swaps     = $this->filterByStore(ShiftSwapRequest::findAll(), $managedIds);
 
         $statusFilter = (string) ($request->query('status') ?? '');
         if ($statusFilter !== '') {
@@ -234,7 +233,7 @@ final class AdminSwapController
 
     public function approveSwap(Request $request): Response
     {
-        $swap = $this->swapRequests->findById((int) $request->route('id'));
+        $swap = ShiftSwapRequest::findById((int) $request->route('id'));
         if ($swap === null) {
             throw new NotFoundException(__('shift_swap_error_request_not_found'));
         }
@@ -268,7 +267,7 @@ final class AdminSwapController
         Shift::put(array_merge($reqShift, ['user_id' => $targetId]));
         Shift::put(array_merge($tgtShift, ['user_id' => $requesterId]));
 
-        $this->swapRequests->save(array_merge($swap, ['status' => 'accepted']));
+        ShiftSwapRequest::put(array_merge($swap, ['status' => 'accepted']));
         $this->auditLogger->logUpdate($request, 'swap.approved', 'shift_swap_request', (int) $swap['id'], $swap, array_merge($swap, ['status' => 'accepted']), [], (int) ($swap['store_id'] ?? 0) ?: null);
         $this->notifs->notifyMany(
             array_filter([(int) ($swap['requester_id'] ?? 0), (int) ($swap['target_user_id'] ?? 0)]),
@@ -286,7 +285,7 @@ final class AdminSwapController
 
     public function refuseSwap(Request $request): Response
     {
-        $swap = $this->swapRequests->findById((int) $request->route('id'));
+        $swap = ShiftSwapRequest::findById((int) $request->route('id'));
         if ($swap === null) {
             throw new NotFoundException(__('shift_swap_error_request_not_found'));
         }
@@ -295,7 +294,7 @@ final class AdminSwapController
         if (($swap['status'] ?? '') !== 'pending') {
             return redirect()->away($this->base() . '/admin/swap-requests')->with('error', 'invalid_state');
         }
-        $this->swapRequests->save(array_merge($swap, ['status' => 'refused']));
+        ShiftSwapRequest::put(array_merge($swap, ['status' => 'refused']));
         $this->auditLogger->logUpdate($request, 'swap.refused', 'shift_swap_request', (int) $swap['id'], $swap, array_merge($swap, ['status' => 'refused']), [], (int) ($swap['store_id'] ?? 0) ?: null);
         $this->notifs->notify(
             (int) ($swap['requester_id'] ?? 0),
@@ -318,7 +317,7 @@ final class AdminSwapController
      */
     public function deleteSwap(Request $request): Response
     {
-        $swap = $this->swapRequests->findById((int) $request->route('id'));
+        $swap = ShiftSwapRequest::findById((int) $request->route('id'));
         if ($swap === null) {
             throw new NotFoundException(__('shift_swap_error_request_not_found'));
         }
@@ -362,7 +361,7 @@ final class AdminSwapController
             'was_status'   => $swap['status'] ?? null,
         ], (int) ($swap['store_id'] ?? 0) ?: null);
 
-        $this->swapRequests->delete((int) $swap['id']);
+        ShiftSwapRequest::remove((int) $swap['id']);
 
         return redirect()->away($this->base() . '/admin/swap-requests')->with('success', 'deleted');
     }
