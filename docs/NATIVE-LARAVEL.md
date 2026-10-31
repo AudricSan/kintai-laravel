@@ -46,8 +46,8 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
   `RoleDashboardLayout`, `BundleRegistry`, `InstalledBundle`, `UserDashboardLayout`, `CalendarSync` (3 modèles),
   `WebPushSubscription`, `DevicePushToken`, `RouteSlug`, `ApiToken`, `Notification`, `IcalToken`, `UserDashboardPrefs`,
   `UserNavPrefs`, `Log` (lecture, `ActivityEntry`), `Availability`, `UserShiftTypeRate`, `AppSettings` (`AppSetting`),
-  `ShiftType`, `Shift`, `Role` (tests : `kintai_test_roles()` / `kintai_test_role_table()`), `RoleAssignment` (`kintai_test_assignments()`), `StoreUser` (`kintai_test_store_users()`), `Store` (`kintai_test_stores()`, `kintai_test_store_features()`), `User` (`kintai_test_users()`, `kintai_test_remember_token()`). Reste :
-  les deux dépôts JSON de langues (`JsonLanguageRepository`, `JsonTranslationRepository`).
+  `ShiftType`, `Shift`, `Role` (tests : `kintai_test_roles()` / `kintai_test_role_table()`), `RoleAssignment` (`kintai_test_assignments()`), `StoreUser` (`kintai_test_store_users()`), `Store` (`kintai_test_stores()`, `kintai_test_store_features()`), `User` (`kintai_test_users()`, `kintai_test_remember_token()`). Langues : table `languages` (`Language`, `LanguageSeeder`, `kintai_test_languages()`) ; l'éditeur de traductions lit et écrit `lang/{locale}.json` par `TranslationManagementService`.
+  Interfaces à implémentation unique supprimées (`StoreService`, `ShiftService`, `StoreStatsService`, `SystemAlertDetectors`, transport HTTP → `Http::fake()`). Restent, car polymorphes : `SetupStepInterface`, `ComponentInterface`, `RouteParamBinder`, fournisseurs du contrat.
   Chaque conversion remplace aussi les doubles de test par des tests sur base réelle. Outil : les méthodes du
   repository deviennent des méthodes statiques du modèle (noms réservés par Eloquent renommés : `save` → `put`…).
 - **Tâches planifiées** (plus de `CronRunner`) : commandes Artisan `kintai:*` planifiées par `Schedule` (`routes/console.php` pour le Core, `register()` du bundle pour les siennes) ;
@@ -63,7 +63,7 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 
 | Reste | Détail | Piste |
 | :--- | :--- | :--- |
-| Interfaces maison | une quinzaine d'`*Interface` à implémentation unique (`StoreStatsServiceInterface`, `LanguageRepositoryInterface`…) | supprimer l'interface, injecter la classe |
+| Repositories des 12 bundles | `bundles/*/src/Repositories` (`Database*Repository` + interface, enveloppes de modèles Eloquent) | méthodes statiques sur le modèle du bundle, tests sur base réelle |
 | `AuthService` | enveloppe autour du garde `session` (`attempt`, `user`, `isAdmin`…) | appeler `Auth::guard()` / `Gate` directement |
 | `$_SERVER` / `$_COOKIE` / `setcookie` | URL de base (`base_url()`, SCRIPT_NAME), schéma/hôte des liens iCal et Google, `LocaleCookie`, `I18nMiddleware` | `request()->getSchemeAndHttpHost()`, `Cookie::queue()` ; une trentaine de tests posent ces variables |
 | Registre de routes maison | `App\Http\Routing\Routes` (nom → URI pour `route_url()`) | `route()` de Laravel sur les routes nommées |
