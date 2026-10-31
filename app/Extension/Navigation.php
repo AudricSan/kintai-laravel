@@ -302,7 +302,7 @@ final class Navigation
 
         return [
             new NavItem('shifts', NavItem::PLANNING, 'shifts', 'admin.shifts.timeline', 'employee.shifts.day',
-                icon: 'calendar', employeeLabel: 'my_planning', activePaths: ['/admin/shifts', '/employee/shifts'],
+                icon: 'calendar', employeeLabel: 'my_planning', activePaths: ['/admin/shifts', '/employee/shifts', '!/admin/shifts/calendar'],
                 storeFeature: 'shifts', order: 10, mobile: true),
             new NavItem('calendar', NavItem::PLANNING, 'calendar', 'admin.shifts.calendar', 'admin.shifts.calendar',
                 icon: 'calendar', activePaths: ['/admin/shifts/calendar'], order: 20),
@@ -313,19 +313,16 @@ final class Navigation
             new NavItem('users', NavItem::HR, 'staff', 'admin.users', 'admin.users',
                 icon: 'users', activePaths: ['/admin/users'], order: 10, mobile: true),
             new NavItem('stores', NavItem::HR, 'stores', 'admin.stores', 'admin.stores',
-                icon: 'store', activePaths: ['/admin/stores'], order: 20),
-            // Lien direct vers le rapport du magasin quand l'utilisateur n'en gère qu'un, sinon vers la liste.
+                icon: 'store', activePaths: ['/admin/stores', '!*/employee-report', '!*/reports/', '!*/stats', '!*/profitability'], order: 20),
+            // Rapport agrégé de tous les magasins gérés.
             new NavItem('employee_report', NavItem::REPORTS, 'employee_report', 'admin.stores.employee_report', 'admin.stores.employee_report',
                 icon: 'chart', order: 20,
                 links: static function (array $view, bool $isManager): array {
                     if (!($view['route_visible'])('admin.stores.employee_report')) {
                         return [];
                     }
-                    $managed = $view['managed_store_ids'] ?? null;
-                    $base = (string) ($view['BASE_URL'] ?? '');
-                    $href = is_array($managed) && count($managed) === 1
-                        ? $base . '/admin/stores/' . store_segment((int) $managed[0]) . '/employee-report'
-                        : $base . '/admin/stores';
+                    // Rapport agrégé de tous les magasins gérés (la page redirige vers le rapport du magasin s'il n'y en a qu'un).
+                    $href = (string) ($view['BASE_URL'] ?? '') . '/admin/employee-report';
                     return [['href' => $href, 'label' => __('employee_report'), 'active' => str_contains((string) ($view['path'] ?? ''), '/employee-report')]];
                 }),
             new NavItem('audit_log', NavItem::SYSTEM, 'activity_log', 'admin.activity', 'admin.activity',

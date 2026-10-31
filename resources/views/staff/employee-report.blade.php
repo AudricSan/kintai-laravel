@@ -68,6 +68,7 @@ if (!function_exists('repStatCard')) {
 }
 
 $currencyStyle = store_currency_style($store);
+$statsStoreByUser = $statsStoreByUser ?? []; // uid → magasin des statistiques détaillées (vue agrégée uniquement)
 
 @endphp
 
@@ -78,10 +79,28 @@ $currencyStyle = store_currency_style($store);
     </h2>
     <div class="page-header__actions">
         @php $_actionCan = $user_can ?? fn(string $k): bool => true; // Liens des bundles (rapport de salaire… — Bundle::actions(), contrat 1.6). @endphp
+        @if ((int) $store['id'] > 0)
         @foreach (\App\Extension\Actions::current()->links(\kintai\Contract\Extension\Action::STORE_REPORT, ['store_id' => (int) $store['id']], $_actionCan) as $_a)
         {!! Button::make(($_a['icon'] !== '' ? $_a['icon'] . ' ' : '') . $_a['label'])->{$_a['style'] === 'danger' ? 'danger' : ($_a['style'] === 'primary' ? 'primary' : 'ghost')}()->sm()->link($_a['href'])->render() !!}        @endforeach
-        {!! Button::make('⎙ ' . __('export_pdf'))->primary()->sm()->attrs(['data-on-click' => '@print'])->render() !!}        {!! Button::make(__('statistics'))->ghost()->sm()->link($BASE_URL . '/admin/stores/' . store_segment((int) $store['id']) . '/stats')->render() !!}        {!! Button::make(__('back'))->ghost()->sm()->link(back_url(route_url('admin.stores')))->render() !!}    </div>
+        @endif
+        {!! Button::make('⎙ ' . __('export_pdf'))->primary()->sm()->attrs(['data-on-click' => '@print'])->render() !!}        @if ((int) $store['id'] > 0){!! Button::make(__('statistics'))->ghost()->sm()->link($BASE_URL . '/admin/stores/' . store_segment((int) $store['id']) . '/stats')->render() !!}@endif        {!! Button::make(__('back'))->ghost()->sm()->link(back_url(route_url('home')))->render() !!}    </div>
 </div>
+
+@php
+    // Changer de magasin sans repasser par la liste des magasins (seulement ceux que l'utilisateur gère).
+    $_switchStores = array_values(array_filter(
+        \App\Models\Store::findAll(),
+        static fn(array $s): bool => !is_array($managed_store_ids ?? null) || in_array((int) $s['id'], $managed_store_ids, true),
+    ));
+@endphp
+@if (count($_switchStores) > 1)
+<div class="sstat-period-nav">
+    <a href="{!! $BASE_URL !!}/admin/employee-report?period={!! (int) $period !!}" class="{!! (int) $store['id'] === 0 ? 'active' : '' !!}">{!! __('all_stores') !!}</a>
+    @foreach ($_switchStores as $_s)
+        <a href="{!! $BASE_URL !!}/admin/stores/{!! store_segment((int) $_s['id']) !!}/employee-report?period={!! (int) $period !!}" class="{!! (int) $_s['id'] === (int) $store['id'] ? 'active' : '' !!}">{{ $_s['name'] }}</a>
+    @endforeach
+</div>
+@endif
 
 <div class="sstat-period-nav">
     @foreach ([7 => __('period_7d'), 30 => __('period_30d'), 90 => __('period_3m'), 180 => __('period_6m'), 365 => __('period_1y')] as $d => $label)
@@ -177,12 +196,14 @@ $currencyStyle = store_currency_style($store);
         $t->column(__('absence_days_col'), fn($stat) => '<span class="td-right td-mono ' . ((($stat['abs_days'] ?? 0) > 3) ? 'erep-val--warn' : '') . '">' . ((($stat['abs_days'] ?? 0) > 0) ? $stat['abs_days'] : '—') . '</span>', 'td-right')
             ->column(__('swaps_col'), fn($stat) => '<span class="td-right td-mono">' . (($stat['swaps'] ?? 0) > 0 ? $stat['swaps'] : '—') . '</span>', 'td-right')
             ->column(__('max_consec_col'), fn($stat) => '<span class="td-right td-mono ' . ((($stat['max_consec'] ?? 0) >= 6) ? 'erep-val--warn' : '') . '">' . (($stat['max_consec'] ?? 0) > 0 ? $stat['max_consec'] : '—') . '</span>', 'td-right')
-            ->column(__('actions'), function($stat, $uid) use ($BASE_URL, $store, $period, $_actionCan) {
+            ->column(__('actions'), function($stat, $uid) use ($BASE_URL, $store, $period, $_actionCan, $statsStoreByUser) {
                 $uid = (int) $uid;
-                $statsUrl = $BASE_URL . '/admin/stores/' . store_segment((int) $store['id']) . '/employee-report/' . employee_segment($uid) . '/stats?period=' . $period;
+                // Vue agrégée : les statistiques détaillées s'ouvrent dans le magasin où l'employé a le plus travaillé.
+                $rowStoreId = (int) ($statsStoreByUser[$uid] ?? $store['id']);
+                $statsUrl = $BASE_URL . '/admin/stores/' . store_segment($rowStoreId) . '/employee-report/' . employee_segment($uid) . '/stats?period=' . $period;
                 $html = Button::make('📊 ' . __('view_stats'))->ghost()->sm()->link($statsUrl)->render();
                 // Liens des bundles (rapport de salaire… — Bundle::actions(), contrat 1.6).
-                $context = ['store_id' => (int) $store['id'], 'user_id' => $uid, 'period' => (int) $period];
+                $context = ['store_id' => $rowStoreId, 'user_id' => $uid, 'period' => (int) $period];
                 foreach (\App\Extension\Actions::current()->links(\kintai\Contract\Extension\Action::STORE_REPORT_ROW, $context, $_actionCan) as $_a) {
                     $html .= Button::make(($_a['icon'] !== '' ? $_a['icon'] . ' ' : '') . $_a['label'])->{$_a['style'] === 'danger' ? 'danger' : ($_a['style'] === 'primary' ? 'primary' : 'ghost')}()->sm()->link($_a['href'])->render();
                 }

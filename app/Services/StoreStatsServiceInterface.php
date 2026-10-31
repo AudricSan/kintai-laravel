@@ -24,6 +24,14 @@ interface StoreStatsServiceInterface
 
     public function employeeReport(int $storeId, int $period): array;
 
+    /**
+     * Rapport employés agrégé sur plusieurs magasins : mêmes clés que employeeReport(), plus statsStoreByUser
+     * (uid → magasin où ouvrir ses statistiques détaillées) et currencies (devises des magasins agrégés).
+     *
+     * @param list<int> $storeIds
+     */
+    public function employeeReportAll(array $storeIds, int $period): array;
+
     public function buildPayslipData(int $storeId, int $userId, string $from, string $to): array;
 
     /** Comparaison multi-magasins des KPIs clés. */

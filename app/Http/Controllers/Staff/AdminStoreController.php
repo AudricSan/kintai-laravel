@@ -640,6 +640,31 @@ final class AdminStoreController
         ]))->render());
     }
 
+    /**
+     * GET /admin/employee-report : le rapport employés de tous les magasins gérés, agrégé. Un seul magasin :
+     * redirection vers son rapport.
+     */
+    public function employeeReportAll(Request $request): Response
+    {
+        $storeIds = array_map(fn($s) => (int) $s['id'], $this->availableStores($this->managedIds($request)));
+        if ($storeIds === []) {
+            throw new NotFoundException(__('error_store_not_found'));
+        }
+        if (count($storeIds) === 1) {
+            return redirect()->away(base_url() . '/admin/stores/' . store_segment($storeIds[0]) . '/employee-report');
+        }
+
+        $period = max(7, min(365, (int) ($request->query('period') ?? 30)));
+        $data   = $this->storeStatsService->employeeReportAll($storeIds, $period);
+        $currencies = $data['currencies'];
+
+        return response($this->view->make('staff.employee-report', array_merge($data, [
+            'title'    => __('report_employees') . ' — ' . __('all_stores'),
+            'store'    => ['id' => 0, 'name' => __('all_stores'), 'currency' => $currencies[0] ?? 'EUR'],
+            'currency' => count($currencies) === 1 ? $currencies[0] : 'EUR',
+        ]))->render());
+    }
+
     public function employeeReport(Request $request): Response
     {
         $storeId = (int) $request->route('store');

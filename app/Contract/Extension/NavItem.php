@@ -33,7 +33,7 @@ final class NavItem
      * @param string                           $icon           Clé d'icône du Core (calendar, clock, leaf, arrows…)
      * @param string|null                      $employeeLabel  Clé de traduction côté employé (défaut : $label)
      * @param list<string>                     $activePaths    Préfixes de chemin qui rendent l'entrée active ; « *fragment »
-     *                                                         = le chemin contient le fragment
+     *                                                         = le chemin contient le fragment ; « !préfixe » = exclusion ; « !préfixe » = exclusion
      * @param string|null                      $storeFeature   Fonctionnalité par magasin requise (ex. « timeoff »)
      * @param string|null                      $badge          Nom de la variable de vue contenant un compteur à afficher
      * @param int                              $order          Ordre dans la section (les entrées du Core vont de 10 en 10)
@@ -105,7 +105,22 @@ final class NavItem
 
     public function isActive(string $path): bool
     {
+        // « !préfixe » : exclusion, prioritaire (ex. « !/admin/shifts/calendar » : cette page a sa propre entrée).
         foreach ($this->activePaths as $pattern) {
+            if (!str_starts_with($pattern, '!') || strlen($pattern) < 2) {
+                continue;
+            }
+            $excluded = substr($pattern, 1);
+            if (str_starts_with($excluded, '*')
+                ? strlen($excluded) > 1 && str_contains($path, substr($excluded, 1))
+                : str_starts_with($path, $excluded)) {
+                return false;
+            }
+        }
+        foreach ($this->activePaths as $pattern) {
+            if (str_starts_with($pattern, '!')) {
+                continue;
+            }
             // « *fragment » : le chemin contient le fragment (ex. « */reports/hiring » couvre aussi
             // /admin/stores/3/reports/hiring) ; sinon, préfixe.
             $matches = str_starts_with($pattern, '*')

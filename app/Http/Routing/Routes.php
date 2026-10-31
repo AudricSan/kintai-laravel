@@ -44,7 +44,9 @@ final class Routes
             throw new \InvalidArgumentException("Route [{$name}] not defined.");
         }
 
-        $path = '/' . $route->uri();
+        // La route racine a pour uri « / » : sans ltrim on obtiendrait « // », lu par le navigateur comme une URL
+        // protocole-relative (lien bloqué, about:blank#blocked).
+        $path = '/' . ltrim($route->uri(), '/');
 
         foreach ($params as $key => $value) {
             $type = in_array($key, ['store', 'employee'], true) ? $key : null;

@@ -916,6 +916,100 @@ final class StoreStatsService implements StoreStatsServiceInterface
         ];
     }
 
+    public function employeeReportAll(array $storeIds, int $period): array
+    {
+        $reports    = [];
+        $currencies = [];
+        foreach ($storeIds as $storeId) {
+            $storeId = (int) $storeId;
+            $reports[$storeId] = $this->employeeReport($storeId, $period);
+            $currencies[(string) (Store::findById($storeId)['currency'] ?? 'EUR')] = true;
+        }
+
+        return self::mergeEmployeeReports($reports, array_keys($currencies), $period);
+    }
+
+    /**
+     * Additionne des rapports employés par magasin (storeId → résultat d'employeeReport()). Absences et échanges sont
+     * lus par employé, pas par magasin : le maximum, pas la somme, pour ne pas les compter deux fois.
+     *
+     * @param array<int, array<string, mixed>> $reports
+     * @param list<string>                     $currencyList
+     */
+    public static function mergeEmployeeReports(array $reports, array $currencyList, int $period): array
+    {
+        $merged           = null;
+        $statsStoreByUser = [];
+        $shiftsInStore    = [];
+
+        foreach ($reports as $storeId => $report) {
+            foreach ($report['employeeStats'] as $uid => $stat) {
+                if (!isset($statsStoreByUser[$uid]) || $stat['shifts'] > ($shiftsInStore[$uid] ?? 0)) {
+                    $statsStoreByUser[$uid] = $storeId;
+                    $shiftsInStore[$uid]    = $stat['shifts'];
+                }
+            }
+
+            if ($merged === null) {
+                $merged = $report;
+                continue;
+            }
+            foreach ($report['employeeStats'] as $uid => $stat) {
+                if (!isset($merged['employeeStats'][$uid])) {
+                    $merged['employeeStats'][$uid] = $stat;
+                    continue;
+                }
+                $m = &$merged['employeeStats'][$uid];
+                foreach (['shifts', 'gross_hours', 'net_hours', 'cost', 'work_days'] as $k) {
+                    $m[$k] += $stat[$k];
+                }
+                // Absences et échanges sont lus par employé, pas par magasin : les sommer les compterait deux fois.
+                $m['abs_days']   = max($m['abs_days'], $stat['abs_days']);
+                $m['swaps']      = max($m['swaps'], $stat['swaps']);
+                $m['max_consec'] = max($m['max_consec'], $stat['max_consec']);
+                $m['has_rate']   = $m['has_rate'] || $stat['has_rate'];
+                unset($m);
+            }
+            $merged['usersMap']      += $report['usersMap'];
+            $merged['membersMap']    += $report['membersMap'];
+            $merged['storeTypesMap'] += $report['storeTypesMap'];
+            $merged['memberIds']      = array_values(array_unique(array_merge($merged['memberIds'], $report['memberIds'])));
+        }
+
+        if ($merged === null) {
+            return ['since' => date('Y-m-d', strtotime("-{$period} days")), 'today' => date('Y-m-d'), 'period' => $period,
+                'usersMap' => [], 'membersMap' => [], 'memberIds' => [], 'employeeStats' => [], 'storeTypesMap' => [],
+                'totalShifts' => 0, 'totalNetHours' => 0.0, 'totalGrossHours' => 0.0, 'totalCost' => 0.0,
+                'totalAbsDays' => 0, 'activeCount' => 0, 'anyHasRate' => false, 'statsStoreByUser' => [], 'currencies' => []];
+        }
+
+        $stats = $merged['employeeStats'];
+        foreach ($stats as &$s) {
+            $s['gross_hours'] = round($s['gross_hours'], 1);
+            $s['net_hours']   = round($s['net_hours'], 1);
+            $s['cost']        = round($s['cost'], 2);
+            // Des coûts en devises différentes ne s'additionnent pas : sans devise commune, le coût reste masqué.
+            if (count($currencyList) > 1) {
+                $s['has_rate'] = false;
+            }
+        }
+        unset($s);
+        uasort($stats, fn($a, $b) => $b['net_hours'] <=> $a['net_hours']);
+
+        return array_merge($merged, [
+            'employeeStats'    => $stats,
+            'activeCount'      => count(array_filter($stats, fn($e) => $e['shifts'] > 0)),
+            'totalShifts'      => array_sum(array_column($stats, 'shifts')),
+            'totalNetHours'    => round(array_sum(array_column($stats, 'net_hours')), 1),
+            'totalGrossHours'  => round(array_sum(array_column($stats, 'gross_hours')), 1),
+            'totalCost'        => round(array_sum(array_column($stats, 'cost')), 2),
+            'totalAbsDays'     => array_sum(array_column($stats, 'abs_days')),
+            'anyHasRate'       => !empty(array_filter($stats, fn($e) => $e['has_rate'])),
+            'statsStoreByUser' => $statsStoreByUser,
+            'currencies'       => $currencyList,
+        ]);
+    }
+
     public function buildPayslipData(int $storeId, int $userId, string $from, string $to): array
     {
         $since = $from;

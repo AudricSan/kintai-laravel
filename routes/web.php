@@ -243,6 +243,7 @@ Route::prefix('admin')->middleware([AuthMiddleware::class, PermissionMiddleware:
     Route::get('/stores/{store}/stats', [AdminStoreController::class, 'storeStats'])->name('admin.stores.stats')->permission('payroll.view');
     Route::get('/stores/{store}/stats/export', [AdminStoreController::class, 'storeStatsExport'])->name('admin.stores.stats_export')->permission('payroll.export');
     Route::get('/stores/{store}/profitability', [AdminStoreController::class, 'storeProfitability'])->name('admin.stores.profitability')->permission('payroll.view');
+    Route::get('/employee-report', [AdminStoreController::class, 'employeeReportAll'])->name('admin.employee_report_all')->permission('payroll.view');
     Route::get('/stores/{store}/employee-report', [AdminStoreController::class, 'employeeReport'])->name('admin.stores.employee_report')->permission('payroll.view');
     Route::get('/stores/{store}/employee-report/{employee}/stats', [AdminStoreController::class, 'employeeStats'])->name('admin.stores.employee_stats')->permission('payroll.view');
 
