@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Notebook\Services;
 
-use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Bundles\Installed\Notebook\Services\TeamNotesWidget;
 use kintai\Contract\Data\User;
 use PHPUnit\Framework\TestCase;
@@ -23,28 +22,28 @@ final class TeamNotesWidgetTest extends TestCase
 
     public function testEntriesAreFilteredSortedLimitedAndNamed(): void
     {
-        $notes = $this->createMock(NotebookEntryRepositoryInterface::class);
-        $notes->expects($this->once())->method('findVisibleForStores')->with([3, 4])->willReturn([
+        kintai_test_table('notebook_entries', bundle: 'notebook', rows: [
             $this->note(1, '2026-10-01 10:00:00'),
             $this->note(2, '2026-10-02 10:00:00', expiresAt: '2026-10-05 00:00:00'),
             $this->note(3, '2026-09-01 10:00:00', pinned: true, storeId: 3),
             $this->note(4, '2026-10-03 10:00:00'),
             $this->note(5, '2026-10-04 10:00:00'),
             $this->note(6, '2026-10-05 10:00:00'),
-            $this->note(7, '2026-10-06 10:00:00', authorId: null),
+            $this->note(7, '2026-10-06 10:00:00', authorId: 999),
             $this->note(8, '2026-10-07 10:00:00', expiresAt: '2026-11-01 00:00:00', authorId: 2),
+            $this->note(9, '2026-10-08 10:00:00', storeId: 5), // autre magasin : invisible
         ]);
         kintai_test_users(findById: fn(int $id) => array_column([
             [1, ['id' => 1, 'last_name' => 'Tanaka', 'first_name' => 'Yui']],
             [2, ['id' => 2, 'last_name' => '', 'first_name' => '', 'email' => 'x@kintai.test']],
         ], 1, 0)[$id] ?? null);
-        $entries = (new TeamNotesWidget($notes))->entries([3, 4], [3 => 'Shibuya'], '2026-10-10 00:00:00');
+        $entries = (new TeamNotesWidget())->entries([3, 4], [3 => 'Shibuya'], '2026-10-10 00:00:00');
 
         $this->assertSame([3, 8, 7, 6, 5], array_column($entries, 'id'), 'épinglée, puis récentes ; expirée écartée ; 5 au plus');
         $this->assertSame('Tanaka Yui', $entries[0]['author_name']);
         $this->assertSame('Shibuya', $entries[0]['store_name']);
         $this->assertSame('x@kintai.test', $entries[1]['author_name'], 'sans nom : e-mail');
-        $this->assertNull($entries[2]['author_name'], 'sans auteur');
+        $this->assertNull($entries[2]['author_name'], 'auteur inconnu');
         $this->assertNull($entries[1]['store_name'], 'toute l\'organisation');
     }
 }

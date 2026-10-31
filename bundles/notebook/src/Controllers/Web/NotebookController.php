@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Notebook\Controllers\Web;
 
+use kintai\Bundles\Installed\Notebook\Models\NotebookEntry;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\User;
@@ -22,7 +22,6 @@ final class NotebookController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly NotebookEntryRepositoryInterface $notes,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
@@ -38,7 +37,7 @@ final class NotebookController
         $managedIds = $this->managedIds($request);
         $storeIds   = $managedIds ?? array_map(fn($s) => (int) $s['id'], Store::findAll());
 
-        $entries = $this->notes->findVisibleForStores($storeIds);
+        $entries = NotebookEntry::findVisibleForStores($storeIds);
 
         $showExpired = $request->query('show_expired') === '1';
         if (!$showExpired) {
@@ -113,7 +112,7 @@ final class NotebookController
 
         $expiresAt = $this->parseExpiresAt($request->post('expires_at', ''));
 
-        $saved = $this->notes->save([
+        $saved = NotebookEntry::put([
             'author_id'  => $userId,
             'store_id'   => $storeId,
             'content'    => $content,
@@ -151,7 +150,7 @@ final class NotebookController
         $old = $entry;
         $entry['content']    = $content;
         $entry['expires_at'] = $this->parseExpiresAt($request->post('expires_at', ''));
-        $this->notes->save($entry);
+        NotebookEntry::put($entry);
 
         $this->auditLogger->logUpdate(
             $request,
@@ -173,7 +172,7 @@ final class NotebookController
         $entry = $this->requireEntry($request);
         $this->assertCanEdit($request, $entry);
 
-        $this->notes->delete((int) $entry['id']);
+        NotebookEntry::remove((int) $entry['id']);
 
         $this->auditLogger->log(
             $request,
@@ -197,14 +196,14 @@ final class NotebookController
             throw new \kintai\Contract\Exceptions\ForbiddenException(__('notebook_error_forbidden'));
         }
         $entry['pinned'] = empty($entry['pinned']) ? 1 : 0;
-        $this->notes->save($entry);
+        NotebookEntry::put($entry);
 
         return redirect()->away($this->base() . '/notebook')->with('success', 'updated');
     }
 
     private function requireEntry(Request $request): array
     {
-        $entry = $this->notes->findById((int) $request->route('id'));
+        $entry = NotebookEntry::findById((int) $request->route('id'));
         if ($entry === null) {
             throw new \kintai\Contract\Exceptions\NotFoundException(__('notebook_error_entry_not_found'));
         }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Notebook\Services;
 
-use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
+use kintai\Bundles\Installed\Notebook\Models\NotebookEntry;
 use kintai\Contract\Data\User;
 
 /**
@@ -17,7 +17,6 @@ final class TeamNotesWidget
     public const LIMIT = 5;
 
     public function __construct(
-        private readonly NotebookEntryRepositoryInterface $notes,
     ) {}
 
     /**
@@ -29,7 +28,7 @@ final class TeamNotesWidget
     {
         $now ??= date('Y-m-d H:i:s');
         $entries = array_values(array_filter(
-            $this->notes->findVisibleForStores($storeIds),
+            NotebookEntry::findVisibleForStores($storeIds),
             fn($n) => empty($n['expires_at']) || $n['expires_at'] > $now
         ));
         usort($entries, function ($a, $b) {

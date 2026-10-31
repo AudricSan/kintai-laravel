@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Notebook\Controllers\Api;
 
+use kintai\Bundles\Installed\Notebook\Models\NotebookEntry;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 
 final class NotebookController
 {
     public function __construct(
-        private readonly NotebookEntryRepositoryInterface $notes,
         private readonly PermissionService $permissions,
     ) {}
 
@@ -24,8 +23,8 @@ final class NotebookController
         $storeId = $request->query('store_id');
 
         $items = $storeId !== null
-            ? $this->notes->findByStore((int) $storeId)
-            : $this->notes->findAll();
+            ? NotebookEntry::findByStore((int) $storeId)
+            : NotebookEntry::findAll();
 
         $items = $this->permissions->restrictToScope($this->authUser($request), 'notebook.view', $items);
 
@@ -63,7 +62,7 @@ final class NotebookController
             throw new \kintai\Contract\Exceptions\ForbiddenException(__('notebook_error_forbidden'));
         }
 
-        return response()->json($this->notes->save([
+        return response()->json(NotebookEntry::put([
             'author_id'  => (int) ($authUser['id'] ?? 0),
             'store_id'   => $storeId,
             'content'    => $content,
@@ -92,14 +91,14 @@ final class NotebookController
         if (array_key_exists('expires_at', $body)) {
             $data['expires_at'] = $body['expires_at'];
         }
-        return response()->json($this->notes->save($data));
+        return response()->json(NotebookEntry::put($data));
     }
 
     /** DELETE /api/v1/notebook-entries/{id} */
     public function destroy(Request $request): Response
     {
         $item = $this->requireEntry($request, 'notebook.create');
-        $this->notes->delete((int) $item['id']);
+        NotebookEntry::remove((int) $item['id']);
         return response()->noContent();
     }
 
@@ -113,7 +112,7 @@ final class NotebookController
     {
         $authUser = $this->authUser($request);
         $id       = (int) $request->route('id');
-        $item     = $this->notes->findById($id);
+        $item     = NotebookEntry::findById($id);
 
         if ($item === null) {
             throw new \kintai\Contract\Exceptions\NotFoundException('Note introuvable.');

@@ -4,36 +4,29 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Notebook\Controllers\Api;
 
-use kintai\Bundles\Installed\Notebook\Controllers\Api\NotebookController;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
-use App\Models\RoleAssignment;
-use App\Models\Role;
 use Illuminate\Http\Request;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\MockObject\Stub;
+use Illuminate\Support\Facades\DB;
+use kintai\Bundles\Installed\Notebook\Controllers\Api\NotebookController;
 use PHPUnit\Framework\TestCase;
 
 final class NotebookControllerTest extends TestCase
 {
-    private NotebookEntryRepositoryInterface&Stub $notes;
     private ?NotebookController $controller = null;
 
-    protected function setUp(): void
+    /** Notes de la base de test (table réelle notebook_entries). */
+    private function notes(array $rows = []): void
     {
-        $this->notes       = $this->createStub(NotebookEntryRepositoryInterface::class);
+        kintai_test_table('notebook_entries', bundle: 'notebook', rows: $rows);
     }
 
-    /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
+    /** Objet testé, construit à la première utilisation. */
     private function controller(): NotebookController
     {
         if ($this->controller === null) {
-            $this->controller = new NotebookController(
-                $this->notes,
-                new PermissionService(),
-            );
+            $this->controller = new NotebookController(new PermissionService());
         }
 
         return $this->controller;
@@ -74,13 +67,15 @@ final class NotebookControllerTest extends TestCase
         return $req;
     }
 
+    private function note(int $id, int $authorId, ?int $storeId, string $content = 'x'): array
+    {
+        return ['id' => $id, 'author_id' => $authorId, 'store_id' => $storeId, 'content' => $content, 'pinned' => 0, 'created_at' => '2026-01-01 10:00:00'];
+    }
+
     public function testIndexRestrictsResultsToTheUsersGrantedScope(): void
     {
         $this->grantStoreScoped(9, 1, ['notebook.view']);
-        $this->notes->method('findAll')->willReturn([
-            ['id' => 1, 'store_id' => 1, 'content' => 'a'],
-            ['id' => 2, 'store_id' => 2, 'content' => 'b'],
-        ]);
+        $this->notes([$this->note(1, 9, 1, 'a'), $this->note(2, 9, 2, 'b')]);
 
         $response = $this->controller()->index($this->requestFor(9));
         $data     = json_decode($response->getContent(), true);
@@ -91,7 +86,7 @@ final class NotebookControllerTest extends TestCase
     public function testShowThrowsNotFoundForAnUnknownId(): void
     {
         $this->grantStoreScoped(9, 1, ['notebook.view']);
-        $this->notes->method('findById')->willReturn(null);
+        $this->notes();
 
         $req = $this->requestFor(9);
         $req->setRouteParams(['id' => '999']);
@@ -103,7 +98,7 @@ final class NotebookControllerTest extends TestCase
     public function testShowIsAllowedForTheAuthorEvenWithoutPermission(): void
     {
         $this->grantStoreScoped(9, 1, []); // aucune permission accordée
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
+        $this->notes([$this->note(5, 9, 1)]);
 
         $req = $this->requestFor(9);
         $req->setRouteParams(['id' => '5']);
@@ -117,7 +112,7 @@ final class NotebookControllerTest extends TestCase
     public function testShowForbidsANonAuthorWithoutThePermission(): void
     {
         $this->grantStoreScoped(2, 1, []); // pas notebook.view
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
+        $this->notes([$this->note(5, 9, 1)]);
 
         $req = $this->requestFor(2);
         $req->setRouteParams(['id' => '5']);
@@ -128,55 +123,55 @@ final class NotebookControllerTest extends TestCase
 
     public function testStoreSetsTheAuthenticatedUserAsAuthorRegardlessOfPayload(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantGlobal(9); // note « organisation » : portée globale requise
-        $this->notes->method('save')->willReturnCallback(fn(array $data) => $data + ['id' => 1]);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['author_id'] === 9 && $data['pinned'] === 0
-        ));
+        $this->notes();
 
         $req = $this->withJsonBody($this->requestFor(9), ['content' => 'hello', 'author_id' => 999]);
 
         $response = $this->controller()->store($req);
 
         $this->assertSame(201, $response->getStatusCode());
+        $row = DB::table('notebook_entries')->first();
+        $this->assertSame(9, (int) $row->author_id);
+        $this->assertSame(0, (int) $row->pinned);
+        $this->assertSame('hello', $row->content);
     }
 
     public function testUpdateStripsAuthorIdFromThePayloadSoItCanNeverChangeOwnership(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(9, 1, []); // auteur, pas besoin de permission
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => !array_key_exists('author_id', $data) && $data['content'] === 'updated'
-        ));
+        $this->notes([$this->note(5, 9, 1, 'old')]);
 
         $req = $this->withJsonBody($this->requestFor(9), ['content' => 'updated', 'author_id' => 999]);
         $req->setRouteParams(['id' => '5']);
 
         $this->controller()->update($req);
+
+        $row = DB::table('notebook_entries')->where('id', 5)->first();
+        $this->assertSame(9, (int) $row->author_id);
+        $this->assertSame('updated', $row->content);
     }
 
     public function testDestroyForbidsANonAuthorWithoutNotebookCreatePermission(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(2, 1, []); // pas notebook.create
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
-        $this->notes->expects($this->never())->method('delete');
+        $this->notes([$this->note(5, 9, 1)]);
 
         $req = $this->requestFor(2);
         $req->setRouteParams(['id' => '5']);
 
-        $this->expectException(ForbiddenException::class);
-        $this->controller()->destroy($req);
+        try {
+            $this->controller()->destroy($req);
+            $this->fail('ForbiddenException attendue');
+        } catch (ForbiddenException) {
+            $this->assertSame(1, DB::table('notebook_entries')->count(), 'la note est conservée');
+        }
     }
 
     public function testDestroyAllowsAUserHoldingNotebookCreateOnTheStore(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(2, 1, ['notebook.create']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
-        $this->notes->expects($this->once())->method('delete')->with(5);
+        $this->notes([$this->note(5, 9, 1)]);
 
         $req = $this->requestFor(2);
         $req->setRouteParams(['id' => '5']);
@@ -184,58 +179,68 @@ final class NotebookControllerTest extends TestCase
         $response = $this->controller()->destroy($req);
 
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame(0, DB::table('notebook_entries')->count());
     }
 
     // --- Audit du 03/10/2026 : liste blanche à la création et à la modification ---
 
     public function testStoreIgnoresIdSoItCannotOverwriteSomeoneElsesNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(9, 1, ['notebook.create']);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => !array_key_exists('id', $data)
-                && $data['author_id'] === 9
-                && $data['pinned'] === 0
-                && $data['store_id'] === 1
-        ))->willReturn(['id' => 50]);
+        $this->notes([$this->note(5, 1, 1, 'original')]);
 
         $req = $this->withJsonBody($this->requestFor(9), ['id' => 5, 'content' => 'x', 'store_id' => 1, 'pinned' => 1, 'author_id' => 1]);
 
         $this->assertSame(201, $this->controller()->store($req)->getStatusCode());
+
+        $this->assertSame('original', DB::table('notebook_entries')->where('id', 5)->value('content'), 'la note existante est intacte');
+        $created = DB::table('notebook_entries')->where('id', '!=', 5)->first();
+        $this->assertSame(9, (int) $created->author_id);
+        $this->assertSame(0, (int) $created->pinned);
+        $this->assertSame(1, (int) $created->store_id);
     }
 
     public function testStoreForbidsAnOrganisationWideNoteWithoutGlobalScope(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(9, 1, ['notebook.create']);
-        $this->notes->expects($this->never())->method('save');
+        $this->notes();
 
-        $this->expectException(ForbiddenException::class);
-        $this->controller()->store($this->withJsonBody($this->requestFor(9), ['content' => 'pour tous']));
+        try {
+            $this->controller()->store($this->withJsonBody($this->requestFor(9), ['content' => 'pour tous']));
+            $this->fail('ForbiddenException attendue');
+        } catch (ForbiddenException) {
+            $this->assertSame(0, DB::table('notebook_entries')->count());
+        }
     }
 
     public function testStoreForbidsANoteInAStoreTheCallerDoesNotManage(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(9, 1, ['notebook.create']);
-        $this->notes->expects($this->never())->method('save');
+        $this->notes();
 
-        $this->expectException(ForbiddenException::class);
-        $this->controller()->store($this->withJsonBody($this->requestFor(9), ['content' => 'x', 'store_id' => 2]));
+        try {
+            $this->controller()->store($this->withJsonBody($this->requestFor(9), ['content' => 'x', 'store_id' => 2]));
+            $this->fail('ForbiddenException attendue');
+        } catch (ForbiddenException) {
+            $this->assertSame(0, DB::table('notebook_entries')->count());
+        }
     }
 
     public function testUpdateCannotMoveTheNoteNorPinItNorChangeItsCreationDate(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
         $this->grantStoreScoped(9, 1, []); // auteur, sans notebook.manage
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data === ['id' => 5, 'content' => 'updated']
-        ));
+        $this->notes([$this->note(5, 9, 1, 'old')]);
 
         $req = $this->withJsonBody($this->requestFor(9), ['content' => 'updated', 'store_id' => null, 'pinned' => 1, 'created_at' => '2000-01-01', 'id' => 99]);
         $req->setRouteParams(['id' => '5']);
 
         $this->controller()->update($req);
+
+        $row = DB::table('notebook_entries')->where('id', 5)->first();
+        $this->assertSame('updated', $row->content);
+        $this->assertSame(1, (int) $row->store_id);
+        $this->assertSame(0, (int) $row->pinned);
+        $this->assertSame('2026-01-01 10:00:00', $row->created_at);
+        $this->assertSame(1, DB::table('notebook_entries')->count());
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * store_id nullable : null = note visible par toute l'organisation, sinon
- * rattachée à un store précis (voir NotebookEntryRepositoryInterface::findVisibleForStores()).
+ * rattachée à un store précis (voir NotebookEntry::findVisibleForStores()).
  */
 return new class extends Migration
 {

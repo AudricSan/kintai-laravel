@@ -7,13 +7,13 @@ namespace Tests\Bundles\Notebook\Controllers\Web;
 use kintai\Bundles\Installed\Notebook\Controllers\Web\NotebookController;
 use App\Auth\PermissionService;
 use App\Exceptions\ForbiddenException;
-use kintai\Bundles\Installed\Notebook\Repositories\NotebookEntryRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
@@ -24,14 +24,12 @@ use PHPUnit\Framework\TestCase;
 
 final class NotebookControllerTest extends TestCase
 {
-    private NotebookEntryRepositoryInterface&Stub $notes;
     private NotificationService&Stub $notifs;
     private ?NotebookController $controller = null;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
-        $this->notes       = $this->createStub(NotebookEntryRepositoryInterface::class);
         $this->notifs      = $this->createStub(NotificationService::class);
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store 1'], ['id' => 2, 'name' => 'Store 2']]);
@@ -48,7 +46,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         if ($this->controller === null) {
             $this->controller = new NotebookController(
                 kintai_test_views(sys_get_temp_dir()),
-                $this->notes,
                 new AuditLogger(),
                 $this->notifs,
                 new PermissionService(),
@@ -97,6 +94,70 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     protected function tearDown(): void
     {
         $_POST = [];
+
+        if ($this->unchangedSnapshot !== null) {
+            $this->assertEquals($this->unchangedSnapshot, $this->allNotes(), 'aucune note ne devait être créée, modifiée ni supprimée');
+        }
+        if ($this->savedMatcher !== null) {
+            $changed = array_filter($this->allNotes(), fn(array $row) => !in_array($row, $this->savedBefore, false));
+            $this->assertNotEmpty($changed, 'une note devait être enregistrée');
+            $this->assertNotEmpty(array_filter($changed, $this->savedMatcher), 'la note enregistrée ne correspond pas');
+        }
+        if ($this->deletedId !== null) {
+            $this->assertNull(DB::table('notebook_entries')->where('id', $this->deletedId)->first(), 'la note devait être supprimée');
+        }
+    }
+
+    // ── Notes réelles (table notebook_entries) ───────────────────────────
+
+    /** @var list<array<string, mixed>>|null */
+    private ?array $unchangedSnapshot = null;
+    private ?\Closure $savedMatcher = null;
+    /** @var list<array<string, mixed>> */
+    private array $savedBefore = [];
+    private ?int $deletedId = null;
+
+    /** @return list<array<string, mixed>> */
+    private function allNotes(): array
+    {
+        return DB::table('notebook_entries')->orderBy('id')->get()->map(fn($r) => (array) $r)->all();
+    }
+
+    private function resetNotes(): void
+    {
+        kintai_test_table('notebook_entries', bundle: 'notebook');
+    }
+
+    /** @param list<array<string, mixed>> $rows */
+    private function seedNotes(array $rows): void
+    {
+        kintai_test_table('notebook_entries', bundle: 'notebook', rows: array_map(
+            static fn(array $row): array => $row + ['author_id' => 1, 'content' => 'x', 'pinned' => 0, 'created_at' => '2026-01-01 00:00:00'],
+            $rows,
+        ));
+    }
+
+    /** La prochaine note créée recevra cet identifiant. */
+    private function nextNoteId(int $id): void
+    {
+        DB::table('notebook_entries')->insert(['id' => $id - 1, 'author_id' => 1, 'content' => 'x', 'pinned' => 0, 'created_at' => '2026-01-01 00:00:00']);
+        DB::table('notebook_entries')->where('id', $id - 1)->delete();
+    }
+
+    private function expectNoNoteChange(): void
+    {
+        $this->unchangedSnapshot = $this->allNotes();
+    }
+
+    private function expectNoteSaved(callable $matcher): void
+    {
+        $this->savedBefore  = $this->allNotes();
+        $this->savedMatcher = \Closure::fromCallable($matcher);
+    }
+
+    private function expectNoteDeleted(int $id): void
+    {
+        $this->deletedId = $id;
     }
 
     // ── store() ──────────────────────────────────────────────────────────
@@ -105,7 +166,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     public function testIndexMarksTheNotificationsOfTheDisplayedNotesAsRead(): void
     {
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->notes->method('findVisibleForStores')->willReturn([
+        $this->seedNotes([
             ['id' => 3, 'author_id' => 1, 'store_id' => null, 'content' => 'a', 'pinned' => 0, 'created_at' => '2026-01-01 10:00:00', 'expires_at' => null],
             ['id' => 8, 'author_id' => 1, 'store_id' => null, 'content' => 'b', 'pinned' => 1, 'created_at' => '2026-01-02 10:00:00', 'expires_at' => null],
         ]);
@@ -121,11 +182,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreRejectsEmptyContent(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantGlobalRole(1);
         $_POST = ['content' => '   '];
 
-        $this->notes->expects($this->never())->method('save');
+        $this->expectNoNoteChange();
 
         $response = $this->controller()->store($this->request(1, null));
 
@@ -134,15 +195,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreCreatesAStoreScopedNoteWhenUserManagesThatStore(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->notifs = $this->createMock(NotificationService::class);
         $this->grantStoreScopedRole(9, 1, ['notebook.create', 'notebook.view']);
         $_POST = ['content' => 'Bonjour équipe', 'store_id' => '1'];
 
-        $this->notes->method('save')->willReturn(['id' => 42]);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['author_id'] === 9 && $data['store_id'] === 1 && $data['content'] === 'Bonjour équipe'
-        ));
+        $this->nextNoteId(42);
+        $this->expectNoteSaved(fn(array $data) => $data['author_id'] === 9 && $data['store_id'] === 1 && $data['content'] === 'Bonjour équipe');
 
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 9, 'store_id' => 1]] : []);
         kintai_test_users(findById: fn(int $id) => $id === 9 ? ['id' => 9] : null, findAll: fn() => [['id' => 9, 'first_name' => 'Jean', 'last_name' => 'Dupont']]);
@@ -162,11 +221,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreRejectsAStoreScopedNoteOnAStoreTheUserDoesNotManage(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(9, 1, ['notebook.create']);
         $_POST = ['content' => 'Bonjour', 'store_id' => '2'];
 
-        $this->notes->expects($this->never())->method('save');
+        $this->expectNoNoteChange();
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->store($this->request(9, [1]));
@@ -174,11 +233,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreRejectsAnOrgWideNoteWhenUserIsNotGloballyScoped(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(9, 1, ['notebook.create']);
         $_POST = ['content' => 'Pour tous', 'store_id' => ''];
 
-        $this->notes->expects($this->never())->method('save');
+        $this->expectNoNoteChange();
 
         $response = $this->controller()->store($this->request(9, [1]));
 
@@ -187,7 +246,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreAllowsAnOrgWideNoteForAGloballyScopedUser(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->notifs = $this->createMock(NotificationService::class);
         // Deux utilisateurs globalement scopés (ex. deux Owners) : les deux doivent être
         // notifiés, pas seulement l'auteur — vérifie que notifyMembers() ne s'arrête pas
@@ -196,10 +255,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         kintai_test_roles(findById: fn(int $id) => $id === 9 ? ['id' => 9, 'is_system' => 1] : null);
         $_POST = ['content' => 'Pour tous'];
 
-        $this->notes->method('save')->willReturn(['id' => 7]);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['store_id'] === null
-        ));
+        $this->nextNoteId(7);
+        $this->expectNoteSaved(fn(array $data) => $data['store_id'] === null);
 
         kintai_test_users(findAll: fn() => [['id' => 1, 'display_name' => 'Alice'], ['id' => 2]]);
         $this->notifs->expects($this->once())->method('notifyMany')->with(
@@ -220,17 +277,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testUpdateAllowsTheAuthorToEditTheirOwnNoteWithoutManagePermission(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(9, 1, ['notebook.create']); // pas de notebook.manage
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1, 'content' => 'old', 'expires_at' => null]);
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => 1, 'content' => 'old', 'expires_at' => null]]);
         $_POST = ['content' => 'new content'];
 
         $req = $this->request(9, [1]);
         $req->setRouteParams(['id' => '5']);
 
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['content'] === 'new content'
-        ));
+        $this->expectNoteSaved(fn(array $data) => $data['content'] === 'new content');
 
         $response = $this->controller()->update($req);
 
@@ -239,15 +294,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testUpdateAllowsAManagerToEditSomeoneElsesNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.manage']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1, 'content' => 'old', 'expires_at' => null]);
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => 1, 'content' => 'old', 'expires_at' => null]]);
         $_POST = ['content' => 'edited by manager'];
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
 
-        $this->notes->expects($this->once())->method('save');
+        $this->expectNoteSaved(fn(array $row) => true);
 
         $response = $this->controller()->update($req);
 
@@ -256,12 +311,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testUpdateForbidsANonAuthorWithoutManagePermission(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.create']); // pas manage
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1, 'content' => 'old', 'expires_at' => null]);
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => 1, 'content' => 'old', 'expires_at' => null]]);
         $_POST = ['content' => 'attempted edit'];
 
-        $this->notes->expects($this->never())->method('save');
+        $this->expectNoNoteChange();
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -272,11 +327,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDestroyForbidsANonAuthorWithoutManagePermission(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.create']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => 1]]);
 
-        $this->notes->expects($this->never())->method('delete');
+        $this->expectNoNoteChange();
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -287,10 +342,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDestroyAllowsTheAuthorToDeleteTheirOwnNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(9, 1, []);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1]);
-        $this->notes->expects($this->once())->method('delete')->with(5);
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => 1]]);
+        $this->expectNoteDeleted(5);
 
         $req = $this->request(9, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -305,11 +360,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Audit du 13/10/2026 : notebook.manage dans UN magasin ne suffit pas pour une note globale. */
     public function testUpdateForbidsSingleStoreManagerOnAnOrgWideNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.manage']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => null, 'content' => 'old', 'expires_at' => null]);
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => null, 'content' => 'old', 'expires_at' => null]]);
         $_POST = ['content' => 'attempted edit'];
-        $this->notes->expects($this->never())->method('save');
+        $this->expectNoNoteChange();
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -320,10 +375,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDestroyForbidsSingleStoreManagerOnAnOrgWideNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.manage']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => null]);
-        $this->notes->expects($this->never())->method('delete');
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => null]]);
+        $this->expectNoNoteChange();
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -334,10 +389,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testTogglePinForbidsSingleStoreManagerOnAnOrgWideNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.manage']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => null, 'pinned' => 0]);
-        $this->notes->expects($this->never())->method('save');
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => null, 'pinned' => 0]]);
+        $this->expectNoNoteChange();
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -348,10 +403,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testTogglePinAllowsAStoreManagerOnTheirOwnStoreNote(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantStoreScopedRole(2, 1, ['notebook.manage']);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => 1, 'pinned' => 0]);
-        $this->notes->expects($this->once())->method('save');
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => 1, 'pinned' => 0]]);
+        $this->expectNoteSaved(fn(array $row) => true);
 
         $req = $this->request(2, [1]);
         $req->setRouteParams(['id' => '5']);
@@ -364,12 +419,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testTogglePinFlipsPinnedState(): void
     {
-        $this->notes = $this->createMock(NotebookEntryRepositoryInterface::class);
+        $this->resetNotes();
         $this->grantGlobalRole(1);
-        $this->notes->method('findById')->willReturn(['id' => 5, 'author_id' => 9, 'store_id' => null, 'pinned' => 0]);
-        $this->notes->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) => $data['pinned'] === 1
-        ));
+        $this->seedNotes([['id' => 5, 'author_id' => 9, 'store_id' => null, 'pinned' => 0]]);
+        $this->expectNoteSaved(fn(array $data) => $data['pinned'] === 1);
 
         $req = $this->request(1, null);
         $req->setRouteParams(['id' => '5']);
@@ -391,13 +444,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $view->addNamespace('notebook', $viewDir);
         $controller = new NotebookController(
             $view,
-            $this->notes,
             new AuditLogger(),
             $this->notifs,
             new PermissionService(),
         );
 
-        $this->notes->method('findVisibleForStores')->willReturn([
+        $this->seedNotes([
             ['id' => 1, 'author_id' => 1, 'store_id' => 1, 'content' => 'récente', 'pinned' => 0, 'expires_at' => null, 'created_at' => '2026-09-20 10:00:00'],
             ['id' => 2, 'author_id' => 1, 'store_id' => null, 'content' => 'épinglée', 'pinned' => 1, 'expires_at' => null, 'created_at' => '2026-09-10 08:00:00'],
             ['id' => 3, 'author_id' => 1, 'store_id' => 1, 'content' => 'expirée', 'pinned' => 0, 'expires_at' => '2020-01-01 00:00:00', 'created_at' => '2026-09-21 10:00:00'],
@@ -419,13 +471,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $view->addNamespace('notebook', $viewDir);
         $controller = new NotebookController(
             $view,
-            $this->notes,
             new AuditLogger(),
             $this->notifs,
             new PermissionService(),
         );
 
-        $this->notes->method('findVisibleForStores')->willReturn([
+        $this->seedNotes([
             ['id' => 3, 'author_id' => 1, 'store_id' => 1, 'content' => 'expirée', 'pinned' => 0, 'expires_at' => '2020-01-01 00:00:00', 'created_at' => '2026-09-21 10:00:00'],
         ]);
 
