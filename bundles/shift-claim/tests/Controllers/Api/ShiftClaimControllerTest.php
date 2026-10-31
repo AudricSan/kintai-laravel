@@ -12,11 +12,11 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression (audit RBAC du 11/09/2026) : show/update/destroy ne re-vérifiaient
@@ -27,12 +27,18 @@ use PHPUnit\Framework\TestCase;
  */
 final class ShiftClaimControllerTest extends TestCase
 {
-    private ShiftClaimRepositoryInterface&Stub $claims;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['shift_claims', 'shift-claim'];
+    }
+
     private ?ShiftClaimController $controller = null;
 
     protected function setUp(): void
     {
-        $this->claims      = $this->createStub(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -40,7 +46,6 @@ final class ShiftClaimControllerTest extends TestCase
     {
         if ($this->controller === null) {
             $this->controller  = new ShiftClaimController(
-                $this->claims,
                 new PermissionService()
             );
         }
@@ -68,7 +73,7 @@ final class ShiftClaimControllerTest extends TestCase
 
     public function testIndexWithoutFilterExcludesOtherStoresForScopedManager(): void
     {
-        $this->claims->method('findAll')->willReturn([
+        $this->seedRows([
             ['id' => 1, 'store_id' => 5],
             ['id' => 2, 'store_id' => 9],
         ]);
@@ -82,8 +87,8 @@ final class ShiftClaimControllerTest extends TestCase
 
     public function testShowThrowsNotFoundForMissingClaim(): void
     {
-        $this->claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $this->claims->expects($this->atLeastOnce())->method('findById')->with(99)->willReturn(null);
+        $this->resetRows();
+        $this->seedRows([]);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '99']);
@@ -94,8 +99,8 @@ final class ShiftClaimControllerTest extends TestCase
 
     public function testShowRejectsClaimFromAnotherStore(): void
     {
-        $this->claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $this->claims->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
+        $this->resetRows();
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -106,9 +111,9 @@ final class ShiftClaimControllerTest extends TestCase
 
     public function testDestroyAllowsClaimInManagedStore(): void
     {
-        $this->claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $this->claims->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 5]);
-        $this->claims->expects($this->once())->method('delete')->with(5);
+        $this->resetRows();
+        $this->seedRows([['id' => 5, 'store_id' => 5]]);
+        $this->expectDeleted(5);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -120,9 +125,9 @@ final class ShiftClaimControllerTest extends TestCase
 
     public function testDestroyRejectsClaimFromAnotherStore(): void
     {
-        $this->claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $this->claims->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
-        $this->claims->expects($this->never())->method('delete');
+        $this->resetRows();
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);

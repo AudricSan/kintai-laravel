@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Services;
 
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use kintai\Contract\Event\OpenShiftClosed;
 
 /**
@@ -14,16 +14,14 @@ use kintai\Contract\Event\OpenShiftClosed;
  */
 final class WithdrawPendingClaimsOnClose
 {
-    public function __construct(private readonly ShiftClaimRepositoryInterface $claims) {}
-
     public function __invoke(OpenShiftClosed $event): void
     {
         if ($event->shiftId() <= 0) {
             return;
         }
-        foreach ($this->claims->findByShift($event->shiftId()) as $claim) {
+        foreach (ShiftClaim::findByShift($event->shiftId()) as $claim) {
             if (($claim['status'] ?? '') === 'pending') {
-                $this->claims->save(array_merge($claim, ['status' => 'withdrawn']));
+                ShiftClaim::put(array_merge($claim, ['status' => 'withdrawn']));
             }
         }
     }

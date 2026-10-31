@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Controllers\Web;
 
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
@@ -26,7 +26,6 @@ final class AdminShiftClaimController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly ShiftService $shiftService,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
@@ -53,7 +52,7 @@ final class AdminShiftClaimController
         // Enrichir chaque shift avec ses candidatures
         $shiftsWithClaims = [];
         foreach ($openShifts as $shift) {
-            $claims = $this->shiftClaims->findByShift((int) $shift['id']);
+            $claims = ShiftClaim::findByShift((int) $shift['id']);
             foreach ($claims as &$claim) {
                 $claim['_user_name'] = $usersMap[(int) ($claim['user_id'] ?? 0)] ?? '—';
             }
@@ -196,9 +195,9 @@ final class AdminShiftClaimController
         $old = $shift;
         $saved = Shift::put(array_merge($shift, ['is_open' => 0]));
         $withdrawn = 0;
-        foreach ($this->shiftClaims->findByShift((int) $shift['id']) as $claim) {
+        foreach (ShiftClaim::findByShift((int) $shift['id']) as $claim) {
             if (($claim['status'] ?? '') === 'pending') {
-                $this->shiftClaims->save(array_merge($claim, ['status' => 'withdrawn']));
+                ShiftClaim::put(array_merge($claim, ['status' => 'withdrawn']));
                 $withdrawn++;
                 $this->notifs->notify(
                     (int) ($claim['user_id'] ?? 0),
@@ -216,7 +215,7 @@ final class AdminShiftClaimController
 
     public function approveShiftClaim(Request $request): Response
     {
-        $claim = $this->shiftClaims->findById((int) $request->route('id'));
+        $claim = ShiftClaim::findById((int) $request->route('id'));
         if ($claim === null) {
             throw new NotFoundException(__('shift_claim_error_claim_not_found'));
         }
@@ -238,7 +237,7 @@ final class AdminShiftClaimController
         $resolver = (int) ($request->attributes->get('auth_user')['id'] ?? 0);
 
         // Attribution, fermeture de la bourse, refus des autres candidats et notifications : même logique que l'API.
-        [$result, $savedClaim] = (new ShiftClaimApproval($this->shiftClaims, $this->notifs))
+        [$result, $savedClaim] = (new ShiftClaimApproval($this->notifs))
             ->approve($claim, $shift, $resolver);
         if ($result !== ShiftClaimApproval::APPROVED) {
             return redirect()->away($this->base() . '/admin/open-shifts')->with('error', 'already_resolved');
@@ -251,7 +250,7 @@ final class AdminShiftClaimController
 
     public function rejectShiftClaim(Request $request): Response
     {
-        $claim = $this->shiftClaims->findById((int) $request->route('id'));
+        $claim = ShiftClaim::findById((int) $request->route('id'));
         if ($claim === null) {
             throw new NotFoundException(__('shift_claim_error_claim_not_found'));
         }
@@ -270,7 +269,7 @@ final class AdminShiftClaimController
         $authUser = $request->attributes->get('auth_user');
         $resolver = (int) ($authUser['id'] ?? 0);
 
-        $savedClaim = $this->shiftClaims->save(array_merge($claim, [
+        $savedClaim = ShiftClaim::put(array_merge($claim, [
             'status'      => 'rejected',
             'resolved_at' => $now,
             'resolved_by' => $resolver,

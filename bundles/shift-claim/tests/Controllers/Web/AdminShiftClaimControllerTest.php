@@ -6,7 +6,6 @@ namespace Tests\Bundles\ShiftClaim\Controllers\Web;
 
 
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Web\AdminShiftClaimController;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
@@ -20,10 +19,17 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 final class AdminShiftClaimControllerTest extends TestCase
 {
-    private ShiftClaimRepositoryInterface&Stub $shiftClaims;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['shift_claims', 'shift-claim'];
+    }
+
     private ShiftService&Stub $shiftService;
     private NotificationService&Stub $notifs;
     private ?AdminShiftClaimController $controller = null;
@@ -45,7 +51,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'open-shifts');
         $this->ensureViewFile($viewDir, 'open-shifts-select');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
-        $this->shiftClaims = $this->createStub(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $this->shiftService = $this->createStub(ShiftService::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
@@ -59,7 +65,6 @@ final class AdminShiftClaimControllerTest extends TestCase
             $view->addNamespace('shift-claim', $viewDir);
             $this->controller = new AdminShiftClaimController(
                 $view,
-                $this->shiftClaims,
                 $this->shiftService,
                 new AuditLogger(),
                 $this->notifs,
@@ -85,13 +90,13 @@ final class AdminShiftClaimControllerTest extends TestCase
 
     public function testOpenShiftsEnrichesEachShiftWithItsClaims(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_shifts([
             ['id' => 1, 'is_open' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5],
         ]);
         kintai_test_shift_types([]);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findByShift')->with(1)->willReturn([
+        $this->seedRows([
             ['id' => 10, 'user_id' => 9, 'status' => 'pending'],
         ]);
 
@@ -106,14 +111,14 @@ final class AdminShiftClaimControllerTest extends TestCase
     public function testOpenShiftsMarksTheNotificationsOfTheDisplayedShiftsAsRead(): void
     {
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->shiftClaims = $this->createStub(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_shifts([
             ['id' => 1, 'is_open' => 1, 'shift_date' => '2026-08-01', 'store_id' => 5],
             ['id' => 2, 'is_open' => 1, 'shift_date' => '2026-08-02', 'store_id' => 5],
         ]);
         kintai_test_shift_types([]);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
-        $this->shiftClaims->method('findByShift')->willReturn([]);
+        $this->seedRows([]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(4, 'open_shift', [1, 2]);
 
         $req = Request::capture();
@@ -173,8 +178,7 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['user_id' => 20],
             ['user_id' => 21],
         ] : []);
-        $this->notifs->expects($this->once())->method('notifyMany')
-            ->with($this->callback(fn($ids) => !in_array(9, $ids, true) && in_array(20, $ids, true) && in_array(21, $ids, true)), 'open_shift_published', $this->anything(), $this->anything(), 1);
+        $this->notifs->expects($this->once())->method('notifyMany')->with($this->callback(fn($ids) => !in_array(9, $ids, true) && in_array(20, $ids, true) && in_array(21, $ids, true)), 'open_shift_published', $this->anything(), $this->anything(), 1);
 
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
@@ -185,16 +189,15 @@ final class AdminShiftClaimControllerTest extends TestCase
 
     public function testUnpublishShiftWithdrawsPendingClaims(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $shift = ['id' => 1, 'store_id' => 5, 'is_open' => 1];
         kintai_test_shifts([$shift]);
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findByShift')->with(1)->willReturn([
-            ['id' => 10, 'user_id' => 7, 'status' => 'pending'],
-            ['id' => 11, 'user_id' => 8, 'status' => 'withdrawn'],
+        $this->seedRows([
+            ['id' => 10, 'shift_id' => 1, 'user_id' => 7, 'status' => 'pending'],
+            ['id' => 11, 'shift_id' => 1, 'user_id' => 8, 'status' => 'withdrawn'],
         ]);
-        $this->shiftClaims->expects($this->once())->method('save')
-            ->with($this->callback(fn($d) => $d['id'] === 10 && $d['status'] === 'withdrawn'));
+        $this->expectSaved(fn($d) => (int) $d['id'] === 10 && $d['status'] === 'withdrawn');
         $this->notifs->expects($this->once())->method('notify')->with(7, 'shift_claim_withdrawn', $this->anything(), $this->anything(), 1);
 
         $req = Request::capture();
@@ -208,26 +211,16 @@ final class AdminShiftClaimControllerTest extends TestCase
 
     public function testApproveShiftClaimAssignsShiftAndRejectsOtherPendingClaims(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $claim = ['id' => 10, 'shift_id' => 1, 'user_id' => 9, 'status' => 'pending'];
         $shift = ['id' => 1, 'store_id' => 5, 'is_open' => 1];
 
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($claim);
+        $this->seedRows([$claim]);
         kintai_test_shifts([$shift]);
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findByShift')->with(1)->willReturn([
+        $this->seedRows([
             $claim,
-            ['id' => 11, 'user_id' => 3, 'status' => 'pending'],
+            ['id' => 11, 'shift_id' => 1, 'user_id' => 3, 'status' => 'pending'],
         ]);
-
-        $this->shiftClaims->expects($this->once())->method('approveIfPending')
-            ->with(10, $this->anything(), 1)
-            ->willReturn(array_merge($claim, ['status' => 'approved']));
-
-        $savedClaims = [];
-        $this->shiftClaims->method('save')->willReturnCallback(function (array $d) use (&$savedClaims) {
-            $savedClaims[] = $d;
-            return $d;
-        });
 
         $notified = [];
         $this->notifs->method('notify')->willReturnCallback(function (int $userId, string $type) use (&$notified) {
@@ -245,10 +238,9 @@ final class AdminShiftClaimControllerTest extends TestCase
         $closedShift = \App\Models\Shift::findById(1);
         $this->assertSame(9, $closedShift['user_id']);
         $this->assertSame(0, (int) $closedShift['is_open']);
-        // Seule la candidature #11 (l'autre pending) passe par save() : #10 est
-        // gérée par approveIfPending(), pas par save().
-        $this->assertCount(1, $savedClaims);
-        $this->assertSame('rejected', $savedClaims[0]['status']);
+        // #10 approuvée, #11 (l'autre candidature en attente) rejetée.
+        $this->assertSame('approved', \Illuminate\Support\Facades\DB::table('shift_claims')->where('id', 10)->value('status'));
+        $this->assertSame('rejected', \Illuminate\Support\Facades\DB::table('shift_claims')->where('id', 11)->value('status'));
         $this->assertContains([9, 'shift_claim_approved'], $notified);
         $this->assertContains([3, 'shift_claim_rejected'], $notified);
     }
@@ -256,14 +248,13 @@ final class AdminShiftClaimControllerTest extends TestCase
     /** Shift cédé (audit n°8, B3) : à l'approbation, l'ancien titulaire est prévenu qu'il ne l'a plus. */
     public function testApprovingAHandedOverShiftNotifiesTheFormerHolder(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $claim = ['id' => 10, 'shift_id' => 1, 'user_id' => 9, 'status' => 'pending'];
         $shift = ['id' => 1, 'store_id' => 5, 'is_open' => 1, 'user_id' => 4];
 
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($claim);
+        $this->seedRows([$claim]);
         kintai_test_shifts([$shift]);
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findByShift')->with(1)->willReturn([$claim]);
-        $this->shiftClaims->method('approveIfPending')->willReturn(array_merge($claim, ['status' => 'approved']));
+        $this->seedRows([$claim]);
 
         $notified = [];
         $this->notifs->method('notify')->willReturnCallback(function (int $userId, string $type) use (&$notified) {
@@ -288,15 +279,15 @@ final class AdminShiftClaimControllerTest extends TestCase
      */
     public function testApproveShiftClaimReturnsAlreadyResolvedWhenClaimLosesRace(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $claim = ['id' => 10, 'shift_id' => 1, 'user_id' => 9, 'status' => 'pending'];
         $shift = ['id' => 1, 'store_id' => 5, 'is_open' => 1];
 
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($claim);
+        // Candidature déjà résolue par l'autre administrateur entre-temps.
+        $this->seedRows([array_merge($claim, ['status' => 'approved'])]);
         kintai_test_shifts([$shift]);
-        $this->shiftClaims->expects($this->once())->method('approveIfPending')->willReturn(null);
-        $this->shiftClaims->expects($this->never())->method('save');
+        $this->expectNoChange();
         $this->notifs->expects($this->never())->method('notify');
 
         $req = Request::capture();
@@ -319,14 +310,13 @@ final class AdminShiftClaimControllerTest extends TestCase
      */
     public function testApproveShiftClaimRevertsApprovalWhenShiftAlreadyClosedByConcurrentApproval(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $claim = ['id' => 10, 'shift_id' => 1, 'user_id' => 9, 'status' => 'pending'];
         $shift = ['id' => 1, 'store_id' => 5, 'is_open' => 1];
 
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($claim);
+        $this->seedRows([$claim]);
         kintai_test_shifts([$shift]);
-        $this->shiftClaims->method('approveIfPending')->willReturn(array_merge($claim, ['status' => 'approved']));
         // Course : un autre approbateur ferme le shift entre la lecture du contrôleur et la fermeture.
         $closedByAnother = false;
         \Illuminate\Support\Facades\DB::listen(function ($query) use (&$closedByAnother): void {
@@ -336,11 +326,6 @@ final class AdminShiftClaimControllerTest extends TestCase
             }
         });
 
-        $reverted = null;
-        $this->shiftClaims->expects($this->once())->method('save')->willReturnCallback(function (array $d) use (&$reverted) {
-            $reverted = $d;
-            return $d;
-        });
         $this->notifs->expects($this->never())->method('notify');
 
         $req = Request::capture();
@@ -352,9 +337,10 @@ final class AdminShiftClaimControllerTest extends TestCase
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('already_resolved', (string) session('error'));
-        $this->assertSame('pending', $reverted['status']);
-        $this->assertNull($reverted['resolved_at']);
-        $this->assertNull($reverted['resolved_by']);
+        $reverted = \Illuminate\Support\Facades\DB::table('shift_claims')->where('id', 10)->first();
+        $this->assertSame('pending', $reverted->status);
+        $this->assertNull($reverted->resolved_at);
+        $this->assertNull($reverted->resolved_by);
     }
 
     private function locationOf(\Symfony\Component\HttpFoundation\Response $response): string
@@ -364,19 +350,14 @@ final class AdminShiftClaimControllerTest extends TestCase
 
     public function testRejectShiftClaimSetsRejectedStatus(): void
     {
-        $this->shiftClaims = $this->createMock(ShiftClaimRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $claim = ['id' => 10, 'shift_id' => 1, 'user_id' => 9, 'status' => 'pending'];
         $shift = ['id' => 1, 'store_id' => 5];
 
-        $this->shiftClaims->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn($claim);
+        $this->seedRows([$claim]);
         kintai_test_shifts([$shift]);
 
-        $captured = null;
-        $this->shiftClaims->expects($this->once())->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d;
-        });
         $this->notifs->expects($this->once())->method('notify')->with(9, 'shift_claim_rejected', $this->anything(), $this->anything(), 1);
 
         $req = Request::capture();
@@ -387,7 +368,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $response = $this->controller()->rejectShiftClaim($req);
 
         $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame('rejected', $captured['status']);
+        $this->assertSame('rejected', \Illuminate\Support\Facades\DB::table('shift_claims')->where('id', 10)->value('status'));
     }
 
     public function testOpenShiftsFiltersShiftsByTypeWithoutAffectingClaimsList(): void
@@ -403,9 +384,9 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 20, 'name' => 'Soir'],
         ]);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
-        $this->shiftClaims->method('findByShift')->willReturnMap([
-            [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending']]],
-            [2, [['id' => 200, 'user_id' => 9, 'status' => 'approved']]],
+        $this->seedRows([
+            ['shift_id' => 1, 'id' => 100, 'user_id' => 9, 'status' => 'pending'],
+            ['shift_id' => 2, 'id' => 200, 'user_id' => 9, 'status' => 'approved'],
         ]);
 
         $_GET = ['type' => '10'];
@@ -430,9 +411,9 @@ final class AdminShiftClaimControllerTest extends TestCase
         ]);
         kintai_test_shift_types([]);
         kintai_test_stores(findAll: fn() => [['id' => 5, 'name' => 'Store A']]);
-        $this->shiftClaims->method('findByShift')->willReturnMap([
-            [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending']]],
-            [2, [['id' => 200, 'user_id' => 9, 'status' => 'approved']]],
+        $this->seedRows([
+            ['shift_id' => 1, 'id' => 100, 'user_id' => 9, 'status' => 'pending'],
+            ['shift_id' => 2, 'id' => 200, 'user_id' => 9, 'status' => 'approved'],
         ]);
 
         $_GET = ['claim_status' => 'approved'];
@@ -459,9 +440,9 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);
-        $this->shiftClaims->method('findByShift')->willReturnMap([
-            [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-01 10:00:00']]],
-            [2, [['id' => 200, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-02 10:00:00']]],
+        $this->seedRows([
+            ['shift_id' => 1, 'id' => 100, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-01 10:00:00'],
+            ['shift_id' => 2, 'id' => 200, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-02 10:00:00'],
         ]);
 
         $_GET = ['sort' => 'store_asc'];
@@ -490,9 +471,9 @@ final class AdminShiftClaimControllerTest extends TestCase
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);
-        $this->shiftClaims->method('findByShift')->willReturnMap([
-            [1, [['id' => 100, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-01 10:00:00']]],
-            [2, [['id' => 200, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-02 10:00:00']]],
+        $this->seedRows([
+            ['shift_id' => 1, 'id' => 100, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-01 10:00:00'],
+            ['shift_id' => 2, 'id' => 200, 'user_id' => 9, 'status' => 'pending', 'claimed_at' => '2026-08-02 10:00:00'],
         ]);
 
         $_GET = ['claim_sort' => 'store_asc'];

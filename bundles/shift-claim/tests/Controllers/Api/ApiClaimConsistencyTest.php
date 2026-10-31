@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Bundles\ShiftClaim\Controllers\Api;
 
 use kintai\Bundles\Installed\ShiftClaim\Controllers\Api\ShiftClaimController;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use App\Auth\PermissionService;
 use App\Exceptions\ValidationException;
@@ -17,6 +16,7 @@ use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * API cohérente avec le web (audit n°8 de Kintai) : une candidature ne vise qu'un shift publié du magasin indiqué, et
@@ -24,6 +24,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class ApiClaimConsistencyTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['shift_claims', 'shift-claim'];
+    }
+
     private const MANAGER = 1;
     private const EMPLOYEE = 3;
 
@@ -65,12 +72,12 @@ final class ApiClaimConsistencyTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('unavailableShifts')]
     public function testAClaimNeedsAPublishedShiftOfThatStore(?array $shift): void
     {
-        $claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $claims->expects($this->never())->method('save');
+        $this->resetRows();
+        $this->expectNoChange();
         kintai_test_shifts($shift === null ? [] : [$shift]);
 
         $this->expectException(ValidationException::class);
-        (new ShiftClaimController($claims, $this->permissions))
+        (new ShiftClaimController($this->permissions))
             ->store($this->request(self::EMPLOYEE, ['store_id' => 1, 'shift_id' => 8]));
     }
 
@@ -78,19 +85,17 @@ final class ApiClaimConsistencyTest extends TestCase
     {
         $claim = ['id' => 10, 'shift_id' => 8, 'user_id' => self::EMPLOYEE, 'store_id' => 1, 'status' => 'pending'];
         $shift = ['id' => 8, 'store_id' => 1, 'is_open' => 1, 'user_id' => 4];
-        $claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $claims->method('findById')->willReturn($claim);
-        $claims->method('findByShift')->willReturn([$claim]);
-        $claims->expects($this->once())->method('approveIfPending')->willReturn(['status' => 'approved'] + $claim);
+        $this->resetRows();
+        $this->seedRows([$claim]);
         kintai_test_shifts([$shift]);
         $notifs = $this->createStub(NotificationService::class);
         $notified = [];
         $notifs->method('notify')->willReturnCallback(function (int $u, string $type) use (&$notified) {
             $notified[] = [$u, $type];
         });
-        $approval = new ShiftClaimApproval($claims, $notifs);
+        $approval = new ShiftClaimApproval($notifs);
 
-        $response = (new ShiftClaimController($claims, $this->permissions, $approval))
+        $response = (new ShiftClaimController($this->permissions, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -101,14 +106,13 @@ final class ApiClaimConsistencyTest extends TestCase
     public function testApprovingAClosedShiftIsAConflict(): void
     {
         $claim = ['id' => 10, 'shift_id' => 8, 'user_id' => self::EMPLOYEE, 'store_id' => 1, 'status' => 'pending'];
-        $claims = $this->createMock(ShiftClaimRepositoryInterface::class);
-        $claims->method('findById')->willReturn($claim);
-        $claims->expects($this->never())->method('approveIfPending');
+        $this->resetRows();
+        $this->seedRows([$claim]);
+        $this->expectNoChange();
         kintai_test_shifts([['id' => 8, 'store_id' => 1, 'is_open' => 0, 'user_id' => 5]]);
-        $approval = new ShiftClaimApproval($claims,
-            $this->createStub(NotificationService::class));
+        $approval = new ShiftClaimApproval($this->createStub(NotificationService::class));
 
-        $response = (new ShiftClaimController($claims, $this->permissions, $approval))
+        $response = (new ShiftClaimController($this->permissions, $approval))
             ->update($this->request(self::MANAGER, ['status' => 'approved'], ['id' => '10']));
 
         $this->assertSame(409, $response->getStatusCode());

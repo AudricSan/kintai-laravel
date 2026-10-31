@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Controllers\Web;
 
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use kintai\Contract\Auth\PermissionService;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
@@ -26,7 +26,6 @@ final class EmployeeShiftClaimController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ShiftClaimRepositoryInterface $shiftClaims,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
@@ -66,7 +65,7 @@ final class EmployeeShiftClaimController
 
         // Marquer chaque shift avec la candidature de cet employé s'il existe
         $myClaims = [];
-        foreach ($this->shiftClaims->findByUser($userId) as $c) {
+        foreach (ShiftClaim::findByUser($userId) as $c) {
             $myClaims[(int) $c['shift_id']] = $c;
         }
 
@@ -121,13 +120,13 @@ final class EmployeeShiftClaimController
         }
 
         // Éviter doublon (UNIQUE shift_id + user_id)
-        $existing = $this->shiftClaims->findByUserAndShift($userId, $shiftId);
+        $existing = ShiftClaim::findByUserAndShift($userId, $shiftId);
         if ($existing !== null && in_array($existing['status'] ?? '', ['pending', 'approved'], true)) {
             return redirect()->away($this->base() . '/employee/open-shifts')->with('error', 'already_claimed');
         }
 
         $note = trim($request->post('note') ?? '');
-        $claim = $this->shiftClaims->save([
+        $claim = ShiftClaim::put([
             'shift_id'   => $shiftId,
             'user_id'    => $userId,
             'store_id'   => (int) ($shift['store_id'] ?? 0),
@@ -152,12 +151,12 @@ final class EmployeeShiftClaimController
         $userId = (int) ($user['id'] ?? 0);
         $shiftId = (int) $request->route('id');
 
-        $claim = $this->shiftClaims->findByUserAndShift($userId, $shiftId);
+        $claim = ShiftClaim::findByUserAndShift($userId, $shiftId);
         if ($claim === null || ($claim['status'] ?? '') !== 'pending') {
             return redirect()->away($this->base() . '/employee/open-shifts')->with('error', 'not_found');
         }
 
-        $withdrawn = $this->shiftClaims->save(array_merge($claim, ['status' => 'withdrawn']));
+        $withdrawn = ShiftClaim::put(array_merge($claim, ['status' => 'withdrawn']));
         $this->auditLogger->logUpdate($request, 'shift_claim.withdrawn', 'shift_claim', (int) ($claim['id'] ?? 0), $claim, $withdrawn, [
             'shift_id' => $claim['shift_id'] ?? null,
         ], (int) ($claim['store_id'] ?? 0) ?: null);

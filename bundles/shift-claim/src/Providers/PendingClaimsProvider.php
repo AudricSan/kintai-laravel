@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Providers;
 
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use kintai\Contract\Container;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 
 /**
  * Candidatures en attente sur la bourse aux shifts, pour la page « Demandes » et le compteur du tableau de bord du
@@ -29,16 +29,12 @@ final class PendingClaimsProvider implements PendingRequestsProvider
 
     public function pending(?array $storeIds): array
     {
-        if (!$this->container->has(ShiftClaimRepositoryInterface::class)) {
-            return [];
-        }
-        $claims = $this->container->make(ShiftClaimRepositoryInterface::class);
         $shifts = $this->container->make(Shift::class);
         $storeIds ??= array_map(fn($s) => (int) $s['id'], $this->container->make(Store::class)->findAll());
 
         $found = [];
         foreach ($storeIds as $storeId) {
-            foreach ($claims->findPendingByStore((int) $storeId) as $claim) {
+            foreach (ShiftClaim::findPendingByStore((int) $storeId) as $claim) {
                 $shift = $shifts->findById((int) ($claim['shift_id'] ?? 0));
                 $found[] = ['claim' => $claim, 'store_id' => (int) $storeId, 'shift' => $shift ?? []];
             }

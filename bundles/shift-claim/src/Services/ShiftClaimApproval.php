@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Services;
 
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Services\NotificationService;
@@ -23,7 +23,6 @@ final class ShiftClaimApproval
     public const ALREADY_RESOLVED = 'already_resolved';
 
     public function __construct(
-        private readonly ShiftClaimRepositoryInterface $claims,
         private readonly NotificationService $notifs,
     ) {}
 
@@ -39,7 +38,7 @@ final class ShiftClaimApproval
         }
 
         $now   = date('Y-m-d H:i:s');
-        $saved = $this->claims->approveIfPending((int) $claim['id'], $now, $resolverId);
+        $saved = ShiftClaim::approveIfPending((int) $claim['id'], $now, $resolverId);
         if ($saved === null) {
             return [self::ALREADY_RESOLVED, null];
         }
@@ -48,16 +47,16 @@ final class ShiftClaimApproval
         if (Shift::closeOpenShiftTo((int) $shift['id'], (int) $claim['user_id']) === null) {
             // Shift fermé entre-temps par une autre approbation : on annule la nôtre plutôt que de laisser une
             // candidature « approved » sur un shift attribué à quelqu'un d'autre.
-            $this->claims->save(array_merge($saved, ['status' => 'pending', 'resolved_at' => null, 'resolved_by' => null]));
+            ShiftClaim::put(array_merge($saved, ['status' => 'pending', 'resolved_at' => null, 'resolved_by' => null]));
             return [self::ALREADY_RESOLVED, null];
         }
 
         $replace = $this->shiftReplace($shift);
 
         // Refuser les autres candidatures encore en attente.
-        foreach ($this->claims->findByShift((int) $shift['id']) as $other) {
+        foreach (ShiftClaim::findByShift((int) $shift['id']) as $other) {
             if ((int) $other['id'] !== (int) $claim['id'] && ($other['status'] ?? '') === 'pending') {
-                $this->claims->save(array_merge($other, ['status' => 'rejected', 'resolved_at' => $now, 'resolved_by' => $resolverId]));
+                ShiftClaim::put(array_merge($other, ['status' => 'rejected', 'resolved_at' => $now, 'resolved_by' => $resolverId]));
                 $this->notifs->notify((int) $other['user_id'], 'shift_claim_rejected', 'notif_shift_claim_rejected_body',
                     $replace, (int) $shift['id'], '/employee/open-shifts?highlight=' . (int) $shift['id']);
             }

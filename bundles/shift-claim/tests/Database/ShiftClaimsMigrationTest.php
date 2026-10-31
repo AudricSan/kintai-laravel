@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ShiftClaim\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\DatabaseShiftClaimRepository;
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -39,9 +39,8 @@ final class ShiftClaimsMigrationTest extends TestCase
         foreach (['id', 'shift_id', 'user_id', 'store_id', 'status', 'note', 'claimed_at', 'resolved_at', 'resolved_by', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('shift_claims', $column), "shift_claims.{$column}");
         }
-        $repo = new DatabaseShiftClaimRepository();
-        $saved = $repo->save(['shift_id' => 8, 'user_id' => 2, 'store_id' => 5]);
-        $this->assertSame('pending', $repo->findById((int) $saved['id'])['status']);
+        $saved = ShiftClaim::put(['shift_id' => 8, 'user_id' => 2, 'store_id' => 5]);
+        $this->assertSame('pending', ShiftClaim::findById((int) $saved['id'])['status']);
         $this->assertSame([], $runner->runPendingFor('shift-claim', $this->migrationsPath()), 'rejouée : rien');
     }
 

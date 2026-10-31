@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ShiftClaim\Controllers\Api;
 
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 use kintai\Bundles\Installed\ShiftClaim\Services\ShiftClaimApproval;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\StoreUser;
@@ -37,7 +37,6 @@ final class ShiftClaimController
     private const UPDATE_FIELDS = ['status', 'note'];
 
     public function __construct(
-        private readonly ShiftClaimRepositoryInterface $claims,
         private readonly PermissionService $permissions,
         // Résolus par le conteneur ; facultatifs pour les tests qui ne touchent ni à la création ni à l'approbation.
         private readonly ?ShiftClaimApproval $approval = null,
@@ -53,15 +52,15 @@ final class ShiftClaimController
         $status  = $request->query('status');
 
         if ($shiftId !== null) {
-            $items = $this->claims->findByShift((int) $shiftId);
+            $items = ShiftClaim::findByShift((int) $shiftId);
         } elseif ($userId !== null) {
-            $items = $this->claims->findByUser((int) $userId);
+            $items = ShiftClaim::findByUser((int) $userId);
         } elseif ($storeId !== null && $status === 'pending') {
-            $items = $this->claims->findPendingByStore((int) $storeId);
+            $items = ShiftClaim::findPendingByStore((int) $storeId);
         } elseif ($storeId !== null) {
-            $items = $this->claims->findByStore((int) $storeId);
+            $items = ShiftClaim::findByStore((int) $storeId);
         } else {
-            $items = $this->claims->findAll();
+            $items = ShiftClaim::findAll();
         }
 
         // Éléments couverts par la permission, PLUS ceux de l'appelant : un employé sans open_shifts.view lit les siens avec
@@ -113,7 +112,7 @@ final class ShiftClaimController
         if ((int) ($shift['user_id'] ?? 0) === $userId) {
             throw new ValidationException(['shift_id' => __('shift_claim_error_open_shift_own')]);
         }
-        $existing = $this->claims->findByUserAndShift($userId, $shiftId);
+        $existing = ShiftClaim::findByUserAndShift($userId, $shiftId);
         if ($existing !== null && in_array($existing['status'] ?? '', ['pending', 'approved'], true)) {
             throw new ValidationException(['shift_id' => __('shift_claim_already_claimed')]);
         }
@@ -124,7 +123,7 @@ final class ShiftClaimController
             'status'     => 'pending',
             'claimed_at' => date('Y-m-d H:i:s'),
         ];
-        return response()->json($this->claims->save($data), 201);
+        return response()->json(ShiftClaim::put($data), 201);
     }
 
     /** PUT /api/v1/shift-claims/{id} */
@@ -143,21 +142,21 @@ final class ShiftClaimController
             if ($result !== ShiftClaimApproval::APPROVED) {
                 return response()->json(['error' => __('shift_claim_error_open_shift_unavailable'), 'code' => 'ALREADY_RESOLVED'], 409);
             }
-            return response()->json($this->claims->findById($id) ?? $saved);
+            return response()->json(ShiftClaim::findById($id) ?? $saved);
         }
         // Une résolution est tracée avec son auteur et sa date.
         if (isset($data['status']) && $data['status'] !== 'pending') {
             $data['resolved_by'] = (int) ($this->authUser($request)['id'] ?? 0);
             $data['resolved_at'] = date('Y-m-d H:i:s');
         }
-        return response()->json($this->claims->save($data));
+        return response()->json(ShiftClaim::put($data));
     }
 
     /** DELETE /api/v1/shift-claims/{id} */
     public function destroy(Request $request): Response
     {
         $claim = $this->requireClaim($request, 'open_shifts.approve');
-        $this->claims->delete((int) $claim['id']);
+        ShiftClaim::remove((int) $claim['id']);
         return response()->noContent();
     }
 
@@ -177,7 +176,7 @@ final class ShiftClaimController
     {
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
-            fn(int $id) => $this->claims->findById($id),
+            fn(int $id) => ShiftClaim::findById($id),
             (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: __('shift_claim_error_claim_not_found'),

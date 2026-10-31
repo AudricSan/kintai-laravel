@@ -12,8 +12,6 @@ use kintai\Contract\Container;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\ShiftFormSection;
 use kintai\Contract\Extension\StoreFeature;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\DatabaseShiftClaimRepository;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\ShiftClaimRepositoryInterface;
 
 /**
  * Le bundle possède son modèle, son dépôt et sa table (shift_claims). Ce qu'il apporte au Core passe par ses
@@ -51,10 +49,6 @@ final class ShiftClaimBundle extends Bundle
     {
         $container = $this->app;
 
-        $container->singleton(
-            ShiftClaimRepositoryInterface::class,
-            fn() => new DatabaseShiftClaimRepository()
-        );
     }
 
     /**

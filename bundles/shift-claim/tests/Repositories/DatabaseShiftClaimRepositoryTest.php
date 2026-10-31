@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ShiftClaim\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Bundles\Installed\ShiftClaim\Repositories\DatabaseShiftClaimRepository;
+use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim as EloquentShiftClaim;
 
@@ -18,7 +18,6 @@ use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim as EloquentShiftClaim;
  */
 final class DatabaseShiftClaimRepositoryTest extends TestCase
 {
-    private DatabaseShiftClaimRepository $repo;
 
     protected function setUp(): void
     {
@@ -36,14 +35,13 @@ final class DatabaseShiftClaimRepositoryTest extends TestCase
             $table->timestamps();
         });
 
-        $this->repo = new DatabaseShiftClaimRepository();
     }
 
     public function testApproveIfPendingApprovesAndReturnsUpdatedClaim(): void
     {
         $c = EloquentShiftClaim::create(['shift_id' => 1, 'user_id' => 9, 'store_id' => 5, 'status' => 'pending']);
 
-        $result = $this->repo->approveIfPending($c->id, '2026-09-15 10:00:00', 1);
+        $result = ShiftClaim::approveIfPending($c->id, '2026-09-15 10:00:00', 1);
 
         $this->assertNotNull($result);
         $this->assertSame('approved', $result['status']);
@@ -55,7 +53,7 @@ final class DatabaseShiftClaimRepositoryTest extends TestCase
     {
         $c = EloquentShiftClaim::create(['shift_id' => 1, 'user_id' => 9, 'store_id' => 5, 'status' => 'rejected']);
 
-        $result = $this->repo->approveIfPending($c->id, '2026-09-15 10:00:00', 1);
+        $result = ShiftClaim::approveIfPending($c->id, '2026-09-15 10:00:00', 1);
 
         $this->assertNull($result);
         $this->assertSame('rejected', EloquentShiftClaim::find($c->id)->status);
@@ -63,6 +61,6 @@ final class DatabaseShiftClaimRepositoryTest extends TestCase
 
     public function testApproveIfPendingReturnsNullWhenClaimNotFound(): void
     {
-        $this->assertNull($this->repo->approveIfPending(999, '2026-09-15 10:00:00', 1));
+        $this->assertNull(ShiftClaim::approveIfPending(999, '2026-09-15 10:00:00', 1));
     }
 }
