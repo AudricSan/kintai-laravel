@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Install;
 
 use Closure;
+use Dotenv\Dotenv;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Foundation\Application;
@@ -56,6 +57,13 @@ final class WebInstaller
     /** @var list<Closure> annulations, jouées en ordre inverse */
     private array $undo = [];
 
+    /**
+     * Contenu du .env en cours d'assemblage : écrit une seule fois, à la toute fin. Le serveur de développement
+     * (`php artisan serve`) redémarre dès que ce fichier change et coupe la requête en cours : l'écrire au début laissait
+     * l'installation à moitié faite et le formulaire sans réponse. Les variables sont déjà visibles du processus (setEnv).
+     */
+    private ?string $env = null;
+
     public function __construct(private readonly string $basePath) {}
 
     /**
@@ -66,9 +74,11 @@ final class WebInstaller
     public function install(InstallInput $in, ?string $publicUrl): array
     {
         $this->undo = [];
+        $this->env = null;
 
         try {
             // En premier : un fichier d'environnement non inscriptible arrête tout avant la moindre écriture en base.
+            $this->assertEnvWritable();
             $this->writeLocale($in->locale);
             $this->writeAppKey();
 
@@ -94,6 +104,7 @@ final class WebInstaller
             SetupWizard::start($app->make(AppSettingsService::class)->updateChannel());
 
             $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
+            $this->flushEnv(); // en dernier : un redémarrage du serveur de développement ne coupe plus rien d'utile
 
             return [
                 'owner_id'      => $ownerId,
@@ -157,14 +168,21 @@ final class WebInstaller
     public function import(string $sourceDir, string $locale, ?string $publicUrl = null): array
     {
         $this->undo = [];
+        $this->env = null;
 
         try {
+            $this->assertEnvWritable();
             $source = $this->importSource($sourceDir);
             $database = $this->importDatabaseConfig($source);
 
             $env = is_file($source . '/.env') ? (string) file_get_contents($source . '/.env') : '';
             if ($env !== '') {
-                $this->writeFile('.env', $env);
+                $this->env = $env;
+                foreach (Dotenv::parse($env) as $key => $value) {
+                    if ($value !== null) {
+                        $this->exportEnv((string) $key, $value);
+                    }
+                }
             }
             if (preg_match('/^' . InstanceLocale::ENV_KEY . '=\S/m', $env) !== 1) {
                 $this->writeLocale($locale);
@@ -195,6 +213,7 @@ final class WebInstaller
             }
 
             $this->writeFile('storage/installed.lock', bin2hex(random_bytes(32)));
+            $this->flushEnv();
 
             return ['migrations' => $migrations, 'users' => $users, 'bundles' => $bundles];
         } catch (Throwable $e) {
@@ -209,17 +228,10 @@ final class WebInstaller
     /** Clé de chiffrement de l'instance (`php artisan key:generate`), si le fichier d'environnement n'en a pas. */
     private function writeAppKey(): void
     {
-        $env = new EnvFileWriter($this->basePath);
-        $content = is_file($env->path()) ? (string) file_get_contents($env->path()) : '';
-        if (preg_match('/^APP_KEY=\S/m', $content) === 1) {
+        if (preg_match('/^APP_KEY=\S/m', $this->envContent()) === 1) {
             return;
         }
-        $this->rememberFile($env->path());
-        try {
-            $env->set('APP_KEY', 'base64:' . base64_encode(random_bytes(32)));
-        } catch (\RuntimeException $e) {
-            throw new InstallFailure('install_error_not_writable', ['name' => basename($env->path())], $e);
-        }
+        $this->setEnv('APP_KEY', 'base64:' . base64_encode(random_bytes(32)));
     }
 
     private function writeLocale(string $locale): void
@@ -227,14 +239,7 @@ final class WebInstaller
         if ($locale === '') {
             return;
         }
-        $env = new EnvFileWriter($this->basePath);
-        $path = $env->path();
-        $this->rememberFile($path);
-        try {
-            $env->set(InstanceLocale::ENV_KEY, $locale);
-        } catch (\RuntimeException $e) {
-            throw new InstallFailure('install_error_not_writable', ['name' => basename($path)], $e);
-        }
+        $this->setEnv(InstanceLocale::ENV_KEY, $locale);
     }
 
     /** Supprime toutes les tables, vues et déclencheurs d'une base SQLite, sans toucher au fichier. */
@@ -543,14 +548,55 @@ final class WebInstaller
     /** Écrit les variables DB_* dans le fichier d'environnement (restauré si l'installation échoue). */
     private function writeDatabaseEnv(array $variables): void
     {
-        $env = new EnvFileWriter($this->basePath);
-        $this->rememberFile($env->path());
+        foreach ($variables as $key => $value) {
+            $this->setEnv($key, $value);
+        }
+    }
+
+    private function envContent(): string
+    {
+        $path = (new EnvFileWriter($this->basePath))->path();
+
+        return $this->env ??= is_file($path) ? (string) file_get_contents($path) : '';
+    }
+
+    /** Variable pour la suite de l'installation (visible du processus) ; le fichier n'est écrit qu'à la fin (flushEnv). */
+    private function setEnv(string $key, string $value): void
+    {
         try {
-            foreach ($variables as $key => $value) {
-                $env->set($key, $value);
-            }
-        } catch (\RuntimeException | \InvalidArgumentException $e) {
-            throw new InstallFailure('install_error_not_writable', ['name' => basename($env->path())], $e);
+            $this->env = EnvFileWriter::with($this->envContent(), $key, $value);
+        } catch (\InvalidArgumentException $e) {
+            throw new InstallFailure('install_error_not_writable', ['name' => '.env'], $e);
+        }
+        $this->exportEnv($key, $value);
+    }
+
+    private function exportEnv(string $key, string $value): void
+    {
+        putenv($key . '=' . $value);
+        $_ENV[$key]    = $value;
+        $_SERVER[$key] = $value;
+    }
+
+    /** Le .env doit pouvoir être écrit à la fin : on le vérifie avant de toucher à quoi que ce soit. */
+    private function assertEnvWritable(): void
+    {
+        $path = (new EnvFileWriter($this->basePath))->path();
+        if (is_file($path) ? !is_writable($path) : !is_writable(dirname($path))) {
+            throw new InstallFailure('install_error_not_writable', ['name' => basename($path)]);
+        }
+    }
+
+    /** Écrit le .env assemblé (restauré si l'installation échoue). */
+    private function flushEnv(): void
+    {
+        if ($this->env === null) {
+            return;
+        }
+        $path = (new EnvFileWriter($this->basePath))->path();
+        $this->rememberFile($path);
+        if (@file_put_contents($path, $this->env, LOCK_EX) === false) {
+            throw new InstallFailure('install_error_not_writable', ['name' => basename($path)]);
         }
     }
 
