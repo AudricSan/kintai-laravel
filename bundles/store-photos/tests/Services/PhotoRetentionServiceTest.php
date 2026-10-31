@@ -92,6 +92,7 @@ final class PhotoRetentionServiceTest extends TestCase
     {
         kintai_test_settings();
         $this->seedSubmissions([['id' => 10, 'store_id' => 5, 'week_label' => '2026-09-01', 'mail_sent_at' => null, 'compressed' => 0, 'created_at' => date('Y-m-d H:i:s', strtotime('-18 days'))]]);
+        DB::table('role_assignments')->delete(); // pas d'Owner laissé par un test précédent
         $permissions = $this->permissions([]);
         $notifications = $this->createMock(NotificationService::class);
         $notifications->expects($this->never())->method('notifyMany');
