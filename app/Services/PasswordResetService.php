@@ -110,6 +110,7 @@ final class PasswordResetService
 
         User::put(array_merge($user, [
             'password_hash' => \App\Auth\PasswordHasher::hash($newPassword),
+            'must_change_password' => 0,
         ]));
 
         PasswordResetToken::where('email', $record['email'])->delete();

@@ -38,7 +38,8 @@ final class AccessLog
 
     public function terminate(Request $request, Response $response): void
     {
-        $uri = $request->slashPath();
+        // Les jetons porteurs d'accès (flux iCal, réinitialisation de mot de passe) ne doivent pas finir dans les journaux.
+        $uri = preg_replace('#^/(ical|reset-password)/[^/]+#', '/$1/***', $request->slashPath()) ?? $request->slashPath();
         if (str_ends_with($uri, '/stream') || in_array($uri, self::EXCLUDED_URIS, true)) {
             return;
         }

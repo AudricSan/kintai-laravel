@@ -655,3 +655,24 @@ function kintai_test_languages(array $codes): void
         Illuminate\Support\Facades\DB::table('languages')->insert(['code' => $code, 'name' => $code, 'is_active' => 1, 'sort_order' => $i]);
     }
 }
+
+// Aide des tests : table réelle (celle d'un modèle de bundle, par exemple) vidée puis remplie avec ces lignes ; les clés
+// qui ne sont pas des colonnes sont ignorées ; le slug du bundle propriétaire de la table crée celle-ci si elle manque.
+function kintai_test_table(string $table, array $rows = [], ?string $bundle = null): void
+{
+    if (config('database.default') !== 'testing' || !Illuminate\Support\Facades\Schema::hasTable('users')) {
+        kintai_test_database();
+        kintai_test_migrate();
+    }
+    // Table d'un bundle : ses migrations sont jouées par le migrateur de Laravel, comme le fait son fournisseur.
+    if ($bundle !== null && !Illuminate\Support\Facades\Schema::hasTable($table)) {
+        (new Tests\Support\BundleMigrationHarness())->runPendingFor($bundle, base_path('bundles/' . $bundle . '/database/migrations'));
+    }
+    Illuminate\Database\Eloquent\Model::setConnectionResolver($GLOBALS['kintai_test_app']['db']);
+    kintai_test_fk_off();
+    Illuminate\Support\Facades\DB::table($table)->delete();
+    $columns = array_flip(Illuminate\Support\Facades\Schema::getColumnListing($table));
+    foreach ($rows as $row) {
+        Illuminate\Support\Facades\DB::table($table)->insert(array_intersect_key($row, $columns));
+    }
+}

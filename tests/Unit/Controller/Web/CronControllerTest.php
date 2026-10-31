@@ -47,7 +47,7 @@ final class CronControllerTest extends TestCase
     {
         CronToken::create(['user_id' => 1, 'job_name' => 'log-purge', 'token' => hash_token('raw-token')]);
 
-        $response = (new CronController())->run($this->request('log-purge', ['token' => 'raw-token']));
+        $response = (new CronController())->run($this->request('log-purge', [], ['Authorization' => 'Bearer raw-token']));
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertFalse(json_decode($response->getContent(), true)['ok'], 'rétention illimitée : rien à purger');
@@ -74,7 +74,7 @@ final class CronControllerTest extends TestCase
         CronToken::create(['user_id' => 1, 'job_name' => '', 'token' => hash_token('old'), 'expires_at' => '2020-01-01 00:00:00']);
 
         $this->expectException(ForbiddenException::class);
-        (new CronController())->run($this->request('log-purge', ['token' => 'old']));
+        (new CronController())->run($this->request('log-purge', [], ['Authorization' => 'Bearer old']));
     }
 
     public function testATokenScopedToAnotherJobIsRefused(): void
@@ -82,7 +82,7 @@ final class CronControllerTest extends TestCase
         CronToken::create(['user_id' => 1, 'job_name' => 'backup', 'token' => hash_token('raw-token')]);
 
         $this->expectException(ForbiddenException::class);
-        (new CronController())->run($this->request('log-purge', ['token' => 'raw-token']));
+        (new CronController())->run($this->request('log-purge', [], ['Authorization' => 'Bearer raw-token']));
     }
 
     public function testACommandThatIsNotScheduledCannotBeRunByAddress(): void
@@ -90,6 +90,14 @@ final class CronControllerTest extends TestCase
         CronToken::create(['user_id' => 1, 'job_name' => '', 'token' => hash_token('raw-token')]);
 
         $this->expectException(NotFoundException::class);
-        (new CronController())->run($this->request('cron-token', ['token' => 'raw-token']));
+        (new CronController())->run($this->request('cron-token', [], ['Authorization' => 'Bearer raw-token']));
+    }
+    /** SEC-10 : le jeton dans l'adresse (journaux, Referer) est refusé tant que CRON_ALLOW_QUERY_TOKEN n'est pas activé. */
+    public function testAQueryStringTokenIsRefusedByDefault(): void
+    {
+        CronToken::create(['user_id' => 1, 'job_name' => '', 'token' => hash_token('raw-token')]);
+
+        $this->expectException(ForbiddenException::class);
+        (new CronController())->run($this->request('log-purge', ['token' => 'raw-token']));
     }
 }

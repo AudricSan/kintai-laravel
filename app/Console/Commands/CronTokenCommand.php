@@ -54,7 +54,7 @@ final class CronTokenCommand extends Command
         $this->line($rawToken);
         $this->newLine();
         $this->line('Exemple :');
-        $this->line('  curl "https://votre-site.example/cron/run/' . ($job !== '' ? $job : '{tâche}') . "?token={$rawToken}\"");
+        $this->line('  curl "https://votre-site.example/cron/run/' . ($job !== '' ? $job : '{tâche}') . "\" -H \"Authorization: Bearer {$rawToken}\"");
 
         return self::SUCCESS;
     }

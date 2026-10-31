@@ -74,7 +74,7 @@ final class UserController
         return response()->json($this->withoutSecrets($user));
     }
 
-    /** POST /api/v1/users — `password` (en clair) facultatif ; sans lui, mot de passe par défaut à changer. */
+    /** POST /api/v1/users — `password` (en clair) facultatif ; sans lui, mot de passe temporaire aléatoire, renvoyé une seule fois (`temporary_password`) et à changer. */
     public function store(Request $request): Response
     {
         $this->planLimits->assertCanCreateEmployee();
@@ -82,7 +82,10 @@ final class UserController
         $body = $request->json()->all() ?? [];
         $data = $this->normalizeUser(PayloadValidator::validate($body, ApiPayloadRules::user()));
         $this->assertIdentityAvailable($data, 0);
-        $data['password_hash'] = $this->hashFromPayload($body) ?? PasswordHasher::hash(PasswordPolicy::DEFAULT_PASSWORD);
+        $temporaryPassword = null;
+        $data['password_hash'] = $this->hashFromPayload($body)
+            ?? PasswordHasher::hash($temporaryPassword = PasswordPolicy::temporary());
+        $data['must_change_password'] = $temporaryPassword !== null ? 1 : 0;
 
         $saved = User::put($data);
         if (!empty($saved['id'])) {
@@ -91,7 +94,8 @@ final class UserController
             ($this->events ?? Events::current())->dispatch(new EmployeeCreated($saved, null, $authId > 0 ? $authId : null, 'api'));
         }
         $this->auditLogger->log($request, 'user.created', 'user', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $this->withoutSecrets($data));
-        return response()->json($this->withoutSecrets($saved), 201);
+        // Le mot de passe temporaire n'est montré qu'ici, une seule fois.
+        return response()->json($this->withoutSecrets($saved) + ($temporaryPassword !== null ? ['temporary_password' => $temporaryPassword] : []), 201);
     }
 
     /** PUT /api/v1/users/{id} */

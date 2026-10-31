@@ -176,7 +176,7 @@ final class AuthService
         if (!is_array($state) || !hash_equals((string) ($state['fp'] ?? ''), $fingerprint)) {
             $state = [
                 'fp'   => $fingerprint,
-                'weak' => password_verify(PasswordPolicy::DEFAULT_PASSWORD, (string) ($user['password_hash'] ?? '')),
+                'weak' => !empty($user['must_change_password']),
             ];
             session()->put(self::SESSION_PW_WEAK, $state);
         }
@@ -201,7 +201,7 @@ final class AuthService
     {
         session()->put(self::SESSION_PW_WEAK, [
             'fp'   => $this->fingerprint($user),
-            'weak' => !PasswordPolicy::isLongEnough($password),
+            'weak' => !empty($user['must_change_password']) || !PasswordPolicy::isLongEnough($password),
         ]);
     }
 

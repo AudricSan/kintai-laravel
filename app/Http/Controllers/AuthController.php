@@ -127,7 +127,7 @@ final class AuthController
             // Connexion par code employé + code magasin + mot de passe
             $employeeCode = trim($request->post('employee_code', ''));
             $storeCode    = trim($request->post('store_code', ''));
-            $password     = $request->post('password', PasswordPolicy::DEFAULT_PASSWORD);
+            $password     = $request->post('password', '');
             $ok = $this->auth->attemptByCode($employeeCode, $storeCode, $password, $remember);
         } else {
             // Connexion classique email + mot de passe
@@ -535,6 +535,7 @@ final class AuthController
 
         $oldUser = $dbUser;
         $dbUser['password_hash'] = \App\Auth\PasswordHasher::hash($newPass);
+        $dbUser['must_change_password'] = 0;
         try {
             User::put($dbUser);
             // La session courante reste valide ; toutes les autres (autres appareils, cookie

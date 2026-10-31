@@ -12,8 +12,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 /**
- * Rappelle de changer le mot de passe par défaut « 0000 » (ou un mot de passe trop court), sans bloquer
- * l'application : un bandeau sur chaque page tant que ce n'est pas fait, et une fenêtre à chaque connexion.
+ * Impose le changement d'un mot de passe temporaire (compte créé ou réinitialisé par un administrateur) ou trop court
+ * (audit SEC-02) : tant qu'il n'est pas changé, toute page web renvoie vers le profil, sauf le profil lui-même, la
+ * déconnexion et le choix de langue.
  *
  * Partage avec les vues :
  * - password_change_recommended : le mot de passe de l'utilisateur connecté devrait être changé (bandeau) ;
@@ -27,7 +28,21 @@ final class PasswordReminderMiddleware
     /** Pas de page HTML derrière ces chemins : rien à rappeler, et la fenêtre ne doit pas y être consommée. */
     private const SKIP_PREFIXES = ['/api/', '/cron/', '/assets/', '/bundle-assets/', '/avatar/', '/storage/'];
 
+    /** Pages restant accessibles tant que le mot de passe n'est pas changé. */
+    private const ALLOWED_PREFIXES = ['/profile', '/logout', '/lang/'];
+
     public function __construct(private readonly Container $container) {}
+
+    private static function isAllowedWhilePending(string $uri): bool
+    {
+        foreach (self::ALLOWED_PREFIXES as $prefix) {
+            if ($uri === rtrim($prefix, '/') || str_starts_with($uri, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -45,6 +60,13 @@ final class PasswordReminderMiddleware
                 return $next($request);
             }
             $recommended = $auth->mustChangePassword();
+            if ($recommended && !self::isAllowedWhilePending($uri)) {
+                if ($request->wantsJsonResponse()) {
+                    return response()->json(['error' => 'password_change_required'], 403);
+                }
+
+                return redirect()->away(base_url() . '/profile?tab=info')->with('warning', __('profile_must_change_password_warning'));
+            }
             // La fenêtre est réservée à une vraie page : un appel AJAX (notifications…) ne doit pas la consommer.
             $popup = $request->method() === 'GET' && !$request->wantsJsonResponse() && $auth->consumePasswordReminder();
 

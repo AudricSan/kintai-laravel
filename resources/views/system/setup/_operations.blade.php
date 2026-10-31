@@ -35,7 +35,7 @@ ob_start();
 <p class="text-sm"><strong>{!! __('setup_ops_cron_command') !!}</strong></p>
 <pre class="setup-cron__code"><code>{{ (string) $stepData['cron_command'] }}</code></pre>
 <p class="text-sm"><strong>{!! __('setup_ops_cron_url') !!}</strong></p>
-<pre class="setup-cron__code"><code>{{ (string) $stepData['cron_url'] }}?token=…</code></pre>
+<pre class="setup-cron__code"><code>{{ (string) $stepData['cron_url'] }}  (Authorization: Bearer …)</code></pre>
 <p class="text-sm text-muted">{!! __('setup_ops_cron_token') !!}</p>
 <pre class="setup-cron__code"><code>{{ (string) $stepData['cron_token_command'] }}</code></pre>
 @include('system.setup._skip')

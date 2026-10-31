@@ -10,17 +10,28 @@ namespace App\Auth;
  * 4 au profil) : changer son mot de passe depuis le profil permettait de choisir plus faible que ce que
  * la réinitialisation exigeait.
  *
- * Le mot de passe par défaut « 0000 » attribué à la création d'un compte ne respecte pas MIN_LENGTH. Tant
- * qu'un utilisateur le garde (ou garde un mot de passe trop court), le web le lui rappelle par un bandeau et
- * une fenêtre à chaque connexion (PasswordReminderMiddleware, AuthService::mustChangePassword()), et l'API
- * refuse de lui délivrer un jeton.
+ * Un compte créé ou réinitialisé par un administrateur est marqué « à changer » (users.must_change_password), comme
+ * un mot de passe trop court saisi à la connexion : le web le renvoie vers le profil tant que ce n'est pas fait
+ * (PasswordReminderMiddleware, AuthService::mustChangePassword()), et l'API refuse de lui délivrer un jeton.
  */
 final class PasswordPolicy
 {
     public const MIN_LENGTH = 8;
 
-    /** Mot de passe attribué à un compte créé ou réinitialisé par un admin. */
-    public const DEFAULT_PASSWORD = '0000';
+    /**
+     * Mot de passe temporaire aléatoire attribué à un compte créé ou réinitialisé sans mot de passe choisi. Montré une
+     * seule fois à l'administrateur ; le compte doit le changer avant d'utiliser l'application (users.must_change_password).
+     */
+    public static function temporary(): string
+    {
+        $alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $out = '';
+        for ($i = 0; $i < 12; $i++) {
+            $out .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+
+        return $out;
+    }
 
     public static function isLongEnough(string $password): bool
     {

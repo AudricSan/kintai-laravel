@@ -30,7 +30,17 @@ final class PasswordPolicyTest extends TestCase
 
     public function testDefaultAccountPasswordIsNotCoveredByThePolicy(): void
     {
-        // Décision assumée : « 0000 » reste le mot de passe attribué à la création, signalé par un avertissement.
+        // Un mot de passe trop court est refusé au changement ; « 0000 » n'est plus attribué à personne.
         $this->assertFalse(PasswordPolicy::isLongEnough('0000'));
+    }
+    public function testTemporaryPasswordsAreRandomAndLongEnough(): void
+    {
+        $a = PasswordPolicy::temporary();
+        $b = PasswordPolicy::temporary();
+
+        $this->assertTrue(PasswordPolicy::isLongEnough($a));
+        $this->assertSame(12, strlen($a));
+        $this->assertNotSame($a, $b);
+        $this->assertMatchesRegularExpression('/^[A-Za-z0-9]+$/', $a);
     }
 }

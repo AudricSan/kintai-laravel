@@ -144,16 +144,17 @@ final class AdminUserControllerEmployeeCreatedTest extends TestCase
     }
 
     /**
-     * Audit n°8 : un employé créé sans mot de passe reçoit « 0000 » (signalé comme à changer), plus nom+prénom+code
-     * employé, devinable par un collègue.
+     * Audit n°8 puis SEC-02 : un employé créé sans mot de passe reçoit un mot de passe temporaire aléatoire, signalé
+     * comme à changer (users.must_change_password) ; ni « 0000 » ni nom+prénom+code employé, devinables par un collègue.
      */
     #[DataProvider('creationPaths')]
-    public function testAnEmployeeCreatedWithoutPasswordGetsTheDefaultOne(string $method, string $source): void
+    public function testAnEmployeeCreatedWithoutPasswordMustChangeATemporaryOne(string $method, string $source): void
     {
         $this->controller($this->events(false))->{$method}(self::request());
         $this->savedUsers = [\App\Models\User::query()->orderByDesc('id')->first()?->toArray()];
 
         $this->assertNotEmpty($this->savedUsers, $source);
-        $this->assertTrue(password_verify('0000', (string) $this->savedUsers[0]['password_hash']), $source);
+        $this->assertFalse(password_verify('0000', (string) $this->savedUsers[0]['password_hash']), $source);
+        $this->assertSame(1, (int) $this->savedUsers[0]['must_change_password'], $source);
     }
 }

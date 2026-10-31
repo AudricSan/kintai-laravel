@@ -2002,5 +2002,6 @@
     "timesheet_empty_week": "Aucun shift ni pointage cette semaine.",
     "timesheet_no_attendance": "Aucun bundle de pointage n'est actif : les shifts passés apparaissent comme des absences. Activez le bundle Pointage pour comparer les pointages au planning.",
     "audit_timesheet_approved": "Feuille de temps validée",
-    "audit_timesheet_reopened": "Validation de feuille de temps annulée"
+    "audit_timesheet_reopened": "Validation de feuille de temps annulée",
+    "temporary_password_notice": "Mot de passe temporaire (affiché une seule fois, à transmettre à la personne ; elle devra le changer à sa première connexion) :"
 }

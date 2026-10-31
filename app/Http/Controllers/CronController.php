@@ -17,13 +17,14 @@ use Symfony\Component\HttpFoundation\Response;
  * lance la commande Artisan `kintai:{tâche}`, à condition que le planificateur de Laravel la planifie (backup, log-purge,
  * license-check, notification-purge, system-notifications, calendar-sync, et celles des bundles actifs : auto-validate,
  * photo-retention…). Protégé par un jeton par tâche, stocké (haché) dans la table `cron_tokens`, passé de préférence
- * en en-tête `Authorization: Bearer <jeton>` (un `?token=` finit dans les journaux d'accès du serveur). Jeton créé par
+ * en en-tête `Authorization: Bearer <jeton>`. Un `?token=` n'est accepté que si CRON_ALLOW_QUERY_TOKEN=true (il finit dans
+ * les journaux d'accès du serveur). Jeton créé par
  * `php artisan kintai:cron-token --user-id=1 --job=backup` ou la page d'administration.
  *
  * Les paramètres de l'adresse (`?date=2026-10-13&all=1`) deviennent les options de la commande, si elle les déclare.
  *
  *    ─── Hébergement mutualisé (OVH…) : tâches planifiées de l'hébergeur ───────
- *     https://votresite.com/cron/run/auto-validate?token=VOTRE_JETON   (toutes les heures)
+ *     https://votresite.com/cron/run/auto-validate?token=VOTRE_JETON   (toutes les heures ; exige CRON_ALLOW_QUERY_TOKEN=true)
  *
  *    ─── Serveur avec accès SSH : une ligne de crontab pour tout le planificateur ──
  *     * * * * * cd /var/www/html && php artisan schedule:run >> /dev/null 2>&1
@@ -66,7 +67,9 @@ final class CronController
     /** Jeton valide, non expiré, pour cette tâche : renvoie sa ligne, ou refuse (403). */
     private function authorize(Request $request, string $job): CronToken
     {
-        $raw = (string) $request->query('token', '');
+        // Jeton en en-tête par défaut : une URL (?token=) finit dans les journaux du serveur, des proxys et du Referer.
+        // CRON_ALLOW_QUERY_TOKEN=true le réactive pour un hébergement dont le cron ne sait appeler qu'une adresse.
+        $raw = filter_var(env('CRON_ALLOW_QUERY_TOKEN', false), FILTER_VALIDATE_BOOL) ? (string) $request->query('token', '') : '';
         if ($raw === '' && preg_match('/^Bearer\s+(.+)$/i', (string) $request->header('Authorization'), $m) === 1) {
             $raw = $m[1];
         }

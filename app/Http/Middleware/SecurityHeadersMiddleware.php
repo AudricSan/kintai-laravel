@@ -31,7 +31,7 @@ final class SecurityHeadersMiddleware
         // Pas de 'unsafe-inline' pour les styles non plus : un attribut style="…" est ignoré, un <style> doit porter le
         // nonce. Les valeurs dynamiques passent par style_class() (App\View\InlineStyles), émises dans un <style nonce>.
         // Modifier element.style en JavaScript (CSSOM) n'est pas concerné.
-        $response->headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'nonce-{$nonce}'; img-src 'self' data: blob:; font-src 'self'; form-action 'self' https://github.com; frame-ancestors 'self'; object-src 'none'");
+        $response->headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'nonce-{$nonce}'; img-src 'self' data: blob:; font-src 'self'; form-action 'self' https://github.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; connect-src 'self'");
 
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

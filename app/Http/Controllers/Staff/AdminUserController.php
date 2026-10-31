@@ -441,11 +441,10 @@ final class AdminUserController
         if ($empCode !== null && User::findByEmployeeCode($empCode) !== null) {
             return redirect()->away($this->base() . '/admin/users/create')->with('error', 'employee_code_taken');
         }
+        $temporaryPassword = null;
         if ($password === '') {
-            // Mot de passe par défaut « 0000 », comme l'API et la réinitialisation : signalé comme à changer (rappel à
-            // chaque connexion, pas de jeton API). Avant : nom+prénom+code employé, devinable par n'importe quel collègue
-            // et jamais signalé.
-            $password = \App\Auth\PasswordPolicy::DEFAULT_PASSWORD;
+            // Mot de passe temporaire aléatoire, montré une seule fois à l'administrateur ; le compte doit le changer.
+            $password = $temporaryPassword = \App\Auth\PasswordPolicy::temporary();
         }
 
         // Un seul sélecteur "Rôle" (Owner + rôles par store) remplace l'ancien
@@ -478,6 +477,7 @@ final class AdminUserController
             'color'              => $request->post('color', '#3B82F6'),
             'employee_code'      => $empCode,
             'password_hash'      => \App\Auth\PasswordHasher::hash($password),
+            'must_change_password' => 1,
             'is_active'          => 1,
         ]);
         $this->roleSync->syncOwnerRole((int) ($saved['id'] ?? 0), $isOwner);
@@ -504,7 +504,7 @@ final class AdminUserController
         $this->auditLogger->log($request, 'user.created', 'user', (int) ($saved['id'] ?? 0), [
             'email' => $request->post('email', ''),
         ]);
-        return redirect()->away($this->base() . '/admin/users')->with('success', 'created');
+        return redirect()->away($this->base() . '/admin/users')->with('success', 'created')->with('temporary_password', $temporaryPassword);
     }
 
     /**
@@ -575,8 +575,8 @@ final class AdminUserController
         }
 
         if ($password === '') {
-            // Même règle que le formulaire : « 0000 », signalé comme à changer.
-            $password = \App\Auth\PasswordPolicy::DEFAULT_PASSWORD;
+            // Même règle que le formulaire : mot de passe temporaire aléatoire, à changer.
+            $password = \App\Auth\PasswordPolicy::temporary();
         }
 
         $saved = User::put([
@@ -595,6 +595,7 @@ final class AdminUserController
             'address'       => $request->post('address', '') ?: null,
             'employee_code' => $empCode,
             'password_hash' => \App\Auth\PasswordHasher::hash($password),
+            'must_change_password' => 1,
             'is_active'     => 1,
             'color'         => $color,
         ]);
@@ -839,6 +840,7 @@ final class AdminUserController
         $newPassword = $request->post('password', '');
         if ($newPassword !== '') {
             $data['password_hash'] = \App\Auth\PasswordHasher::hash($newPassword);
+            $data['must_change_password'] = 1;
         }
 
         User::put($data);
@@ -897,14 +899,16 @@ final class AdminUserController
         $this->assertCanActOnUser($request, (int) $user['id'], 'employees.update');
 
         $oldUser = $user;
-        $user['password_hash'] = \App\Auth\PasswordHasher::hash(\App\Auth\PasswordPolicy::DEFAULT_PASSWORD);
+        $temporaryPassword = \App\Auth\PasswordPolicy::temporary();
+        $user['password_hash'] = \App\Auth\PasswordHasher::hash($temporaryPassword);
+        $user['must_change_password'] = 1;
         User::put($user);
         $this->revoker?->revokeAllFor((int) $user['id']);
         $this->auditLogger->logUpdate($request, 'user.password_reset', 'user', (int) $user['id'], $oldUser, $user, [
             'email' => $user['email'] ?? null,
         ], null, null);
 
-        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit')->with('success', 'password_reset');
+        return redirect()->away($this->base() . '/admin/users/' . employee_segment($user['id']) . '/edit')->with('success', 'password_reset')->with('temporary_password', $temporaryPassword);
     }
 
     // -------------------------------------------------------------------------

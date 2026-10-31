@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use App\Auth\AuthService;
-use App\Auth\PasswordPolicy;
 use Illuminate\Container\Container;
 use App\Http\Middleware\PasswordReminderMiddleware;
 use App\Models\RoleAssignment;
@@ -20,12 +19,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Mot de passe par défaut « 0000 » ou de moins de 8 caractères : l'application reste accessible, mais un bandeau
- * le rappelle sur chaque page et une fenêtre s'ouvre à chaque connexion (décision du 01/10/2026, qui remplace le
- * blocage introduit après l'audit du 30/09/2026).
+ * Mot de passe temporaire (users.must_change_password) ou de moins de 8 caractères : tant qu'il n'est pas changé, toute
+ * page web renvoie vers le profil (audit du 31/10/2026, SEC-02), qui reste accessible avec un bandeau et une fenêtre.
  */
 final class PasswordReminderTest extends TestCase
 {
+    private const TEMP = 'Tmp-pass-12';
+
     /** @var array<string, mixed> */
     private array $row;
     private AuthService $auth;
@@ -40,7 +40,8 @@ final class PasswordReminderTest extends TestCase
             'email'         => 'emp@example.test',
             'is_active'     => 1,
             'deleted_at'    => null,
-            'password_hash' => $this->hash(PasswordPolicy::DEFAULT_PASSWORD),
+            'password_hash' => $this->hash(self::TEMP),
+            'must_change_password' => 1,
         ];
         kintai_test_users(findById: fn() => $this->row, findByEmail: fn() => $this->row);
         kintai_test_assignments(findByUser: fn() => []);
@@ -78,13 +79,14 @@ final class PasswordReminderTest extends TestCase
 
     public function testDefaultPasswordMustBeChangedAfterLogin(): void
     {
-        $this->assertTrue($this->auth->attempt('emp@example.test', '0000'));
+        $this->assertTrue($this->auth->attempt('emp@example.test', self::TEMP));
         $this->assertTrue($this->auth->mustChangePassword());
     }
 
     public function testShortPasswordMustBeChangedAtNextLogin(): void
     {
         $this->row['password_hash'] = $this->hash('abc123');
+        $this->row['must_change_password'] = 0;
         kintai_test_users(findById: fn() => $this->row);
         $this->assertTrue($this->auth->attempt('emp@example.test', 'abc123'));
         $this->assertTrue($this->auth->mustChangePassword());
@@ -94,12 +96,13 @@ final class PasswordReminderTest extends TestCase
     {
         $strong = bin2hex(random_bytes(6));
         $this->row['password_hash'] = $this->hash($strong);
+        $this->row['must_change_password'] = 0;
         kintai_test_users(findById: fn() => $this->row);
         $this->assertTrue($this->auth->attempt('emp@example.test', $strong));
         $this->assertFalse($this->auth->mustChangePassword());
     }
 
-    public function testSessionWithoutPlaintextStillDetectsDefaultPassword(): void
+    public function testSessionWithoutPlaintextStillDetectsATemporaryPassword(): void
     {
         // Session ouverte sans passer par attempt() (cookie « rester connecté », ancienne session).
         session()->put(auth()->getName(), 7);
@@ -109,6 +112,7 @@ final class PasswordReminderTest extends TestCase
     public function testSessionWithoutPlaintextAcceptsOtherPassword(): void
     {
         $this->row['password_hash'] = $this->hash(bin2hex(random_bytes(6)));
+        $this->row['must_change_password'] = 0;
         kintai_test_users(findById: fn() => $this->row);
         session()->put(auth()->getName(), 7);
         $this->assertFalse($this->auth->mustChangePassword());
@@ -121,10 +125,11 @@ final class PasswordReminderTest extends TestCase
 
     public function testChangingPasswordClearsTheRequirement(): void
     {
-        $this->auth->attempt('emp@example.test', '0000');
+        $this->auth->attempt('emp@example.test', self::TEMP);
         $this->assertTrue($this->auth->mustChangePassword());
 
         $this->row['password_hash'] = $this->hash(bin2hex(random_bytes(6)));
+        $this->row['must_change_password'] = 0;
         kintai_test_users(findById: fn() => $this->row);
         $this->auth->refreshSessionAfterPasswordChange($this->row);
 
@@ -142,31 +147,51 @@ final class PasswordReminderTest extends TestCase
     }
 
     /** @return array<string, array{string, string}> */
-    public static function anyPage(): array
+    public static function blockedPage(): array
     {
         return [
             'planning'       => ['/admin/shifts/timeline', 'GET'],
-            'export profil'  => ['/profile/export', 'GET'],
+            'tableau de bord' => ['/employee', 'GET'],
             'enregistrement' => ['/admin/shifts/create', 'POST'],
         ];
     }
 
-    /** 01/10/2026 : le changement n'est plus imposé ; l'application reste entièrement accessible. */
-    #[DataProvider('anyPage')]
-    public function testWeakPasswordNeverBlocksTheApplication(string $uri, string $method): void
+    /** SEC-02 : tant que le mot de passe n'est pas changé, toute page métier renvoie vers le profil. */
+    #[DataProvider('blockedPage')]
+    public function testPendingPasswordChangeSendsEveryBusinessPageToTheProfile(string $uri, string $method): void
     {
-        $this->auth->attempt('emp@example.test', '0000');
+        $this->auth->attempt('emp@example.test', self::TEMP);
 
         [$response] = $this->page($uri, $method);
 
-        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertStringEndsWith('/profile?tab=info', (string) $response->headers->get('Location'));
+    }
+
+    public function testTheProfileAndSignOutStayReachable(): void
+    {
+        $this->auth->attempt('emp@example.test', self::TEMP);
+
+        foreach ([['/profile', 'GET'], ['/profile/password', 'POST'], ['/profile/export', 'GET'], ['/logout', 'POST'], ['/lang/fr', 'POST']] as [$uri, $method]) {
+            [$response] = $this->page($uri, $method);
+            $this->assertSame(200, $response->getStatusCode(), $uri);
+        }
+    }
+
+    public function testABackgroundRequestGetsAJsonRefusalInsteadOfARedirect(): void
+    {
+        $this->auth->attempt('emp@example.test', self::TEMP);
+
+        [$response] = $this->page('/notifications/poll', 'GET', ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']);
+
+        $this->assertSame(403, $response->getStatusCode());
     }
 
     public function testBannerIsShownOnEveryPageWhilePasswordIsWeak(): void
     {
-        $this->auth->attempt('emp@example.test', '0000');
+        $this->auth->attempt('emp@example.test', self::TEMP);
 
-        foreach (['/employee', '/admin/shifts/timeline', '/profile'] as $uri) {
+        foreach (['/profile', '/profile/export'] as $uri) {
             [, $banner] = $this->page($uri);
             $this->assertTrue($banner, $uri);
         }
@@ -174,27 +199,27 @@ final class PasswordReminderTest extends TestCase
 
     public function testPopupIsShownOncePerLogin(): void
     {
-        $this->auth->attempt('emp@example.test', '0000');
+        $this->auth->attempt('emp@example.test', self::TEMP);
 
-        [, , $first]  = $this->page('/employee');
-        [, , $second] = $this->page('/employee/shifts');
+        [, , $first]  = $this->page('/profile');
+        [, , $second] = $this->page('/profile/export');
         $this->assertTrue($first, 'première page après la connexion');
         $this->assertFalse($second, 'pas à chaque page');
 
         // Nouvelle connexion : la fenêtre revient.
         $this->auth->logout();
-        $this->auth->attempt('emp@example.test', '0000');
-        [, , $again] = $this->page('/employee');
+        $this->auth->attempt('emp@example.test', self::TEMP);
+        [, , $again] = $this->page('/profile');
         $this->assertTrue($again, 'à chaque connexion');
     }
 
     public function testPopupIsNotConsumedByBackgroundRequests(): void
     {
-        $this->auth->attempt('emp@example.test', '0000');
+        $this->auth->attempt('emp@example.test', self::TEMP);
 
         [, , $ajax] = $this->page('/notifications/poll', 'GET', ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']);
         [, , $post] = $this->page('/admin/shifts/create', 'POST');
-        [, , $page] = $this->page('/employee');
+        [, , $page] = $this->page('/profile');
 
         $this->assertFalse($ajax);
         $this->assertFalse($post);
@@ -207,7 +232,7 @@ final class PasswordReminderTest extends TestCase
         $user = (new \App\Models\User())->newFromBuilder($this->row);
         auth()->guard()->login($user);
 
-        [, $banner, $popup] = $this->page('/employee');
+        [, $banner, $popup] = $this->page('/profile');
         $this->assertTrue($banner);
         $this->assertTrue($popup);
     }
@@ -216,6 +241,7 @@ final class PasswordReminderTest extends TestCase
     {
         $strong = bin2hex(random_bytes(6));
         $this->row['password_hash'] = $this->hash($strong);
+        $this->row['must_change_password'] = 0;
         kintai_test_users(findById: fn() => $this->row);
         $this->auth->attempt('emp@example.test', $strong);
 

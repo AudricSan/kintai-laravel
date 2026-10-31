@@ -121,6 +121,9 @@
         @endif
 
         <div class="page-content">
+            @if (session()->has('temporary_password'))
+                <div class="alert alert--warning mb-sm">{{ __('temporary_password_notice') }} <strong class="td-mono">{{ session('temporary_password') }}</strong></div>
+            @endif
             @foreach (['success', 'danger', 'warning'] as $_flashType)
                 @if (session()->has($_flashType))
                     <div class="alert alert--{{ $_flashType }} mb-sm">{{ session($_flashType) }}</div>

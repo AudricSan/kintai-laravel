@@ -64,7 +64,8 @@ final class AuthControllerShowProfilePasswordWarningTest extends TestCase
     {
         kintai_test_users(findById: fn() => [
             'id'            => self::USER_ID,
-            'password_hash' => password_hash('0000', PASSWORD_BCRYPT, ['cost' => 4]),
+            'password_hash' => password_hash('Tmp-pass-12', PASSWORD_BCRYPT, ['cost' => 4]),
+            'must_change_password' => 1,
         ]);
         $response = $this->controller->showProfile(Request::capture());
 

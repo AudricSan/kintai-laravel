@@ -2002,5 +2002,6 @@
     "timesheet_empty_week": "今週はシフトも打刻もありません。",
     "timesheet_no_attendance": "打刻バンドルが有効ではないため、過去のシフトは欠勤として表示されます。打刻を予定と比較するには打刻バンドルを有効にしてください。",
     "audit_timesheet_approved": "勤務表を承認",
-    "audit_timesheet_reopened": "勤務表の承認を取り消し"
+    "audit_timesheet_reopened": "勤務表の承認を取り消し",
+    "temporary_password_notice": "一時パスワード（一度だけ表示されます。本人に伝えてください。初回ログイン時に変更が必要です）："
 }

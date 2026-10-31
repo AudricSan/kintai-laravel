@@ -2002,5 +2002,6 @@
     "timesheet_empty_week": "No shift or clock-in this week.",
     "timesheet_no_attendance": "No time clock bundle is active: past shifts show as no-shows. Enable the Time clock bundle to compare clock-ins with the schedule.",
     "audit_timesheet_approved": "Timesheet approved",
-    "audit_timesheet_reopened": "Timesheet approval cancelled"
+    "audit_timesheet_reopened": "Timesheet approval cancelled",
+    "temporary_password_notice": "Temporary password (shown once; give it to the person, who must change it at first sign-in):"
 }
