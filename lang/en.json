@@ -1843,7 +1843,7 @@
     "bundle_core_incompatible": "it requires Kintai :min to :max (installed version: :current).",
     "install_title": "Installation",
     "install_subtitle": "Install your instance",
-    "install_success": "Installation complete, you are signed in as the owner.",
+    "install_success": "Installation complete. Sign in with the owner account you just created.",
     "install_redirecting": "Redirecting to the setup assistant…",
     "install_continue": "Continue to setup",
     "install_demo_accounts_warning": "Demo data: these accounts have a password everyone knows. Delete them before using this instance for real.",

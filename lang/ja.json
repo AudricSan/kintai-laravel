@@ -1843,7 +1843,7 @@
     "bundle_core_incompatible": "Kintai :min〜:max が必要です（インストール済み：:current）。",
     "install_title": "インストール",
     "install_subtitle": "インスタンスのインストール",
-    "install_success": "インストールが完了しました。オーナーとしてログインしています。",
+    "install_success": "インストールが完了しました。作成したオーナーのアカウントでログインしてください。",
     "install_redirecting": "セットアップアシスタントに移動しています…",
     "install_continue": "セットアップへ進む",
     "install_demo_accounts_warning": "デモデータ：これらのアカウントのパスワードは誰でも知っています。本番利用の前に削除してください。",

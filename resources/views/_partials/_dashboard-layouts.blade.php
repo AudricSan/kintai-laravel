@@ -13,7 +13,7 @@ if (empty($dashboard_layouts_route)) {
     return;
 }
 $_url     = route_url($dashboard_layouts_route);
-$_max     = \App\Repositories\UserDashboardLayoutRepositoryInterface::MAX_PER_DASHBOARD;
+$_max     = \App\Models\UserDashboardLayout::MAX_PER_DASHBOARD;
 $_active  = null;
 foreach ($_layouts as $_l) {
     if ($_l['is_active']) {

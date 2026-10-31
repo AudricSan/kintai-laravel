@@ -1843,7 +1843,7 @@
     "bundle_core_incompatible": "il nécessite Kintai :min à :max (version installée : :current).",
     "install_title": "Installation",
     "install_subtitle": "Installation de votre instance",
-    "install_success": "Installation terminée, vous êtes connecté en tant que propriétaire.",
+    "install_success": "Installation terminée. Connectez-vous avec le compte propriétaire que vous venez de créer.",
     "install_redirecting": "Redirection vers l'assistant de configuration…",
     "install_continue": "Continuer vers la configuration",
     "install_demo_accounts_warning": "Données de démonstration : ces comptes ont un mot de passe connu de tous. Supprimez-les avant d'utiliser cette instance pour de vrai.",

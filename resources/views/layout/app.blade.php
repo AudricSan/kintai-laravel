@@ -126,7 +126,7 @@
                     <div class="alert alert--{{ $_flashType }} mb-sm">{{ session($_flashType) }}</div>
                 @endif
             @endforeach
-            @foreach ($errors->all() as $_error)
+            @foreach ((session('errors') ? session('errors')->all() : []) as $_error)
                 <div class="alert alert--danger mb-sm">{{ $_error }}</div>
             @endforeach
             @include('layout.partials._old-input')
