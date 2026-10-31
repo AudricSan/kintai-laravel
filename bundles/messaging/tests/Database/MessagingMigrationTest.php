@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Bundles\Messaging\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;
+use kintai\Bundles\Installed\Messaging\Models\MessageThread;
+use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
+use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -104,16 +106,15 @@ final class MessagingMigrationTest extends TestCase
         }
 
         // Écritures du web (sent_at, participant sans date) et de l'API (participant avec created_at).
-        $repo = new DatabaseMessageRepository();
-        $thread = $repo->saveThread(['store_id' => 1, 'creator_id' => 1, 'subject' => 'Planning', 'created_at' => '2026-10-14 09:00:00']);
-        $repo->saveParticipant(['thread_id' => $thread['id'], 'user_id' => 2, 'is_read' => 0]);
-        $repo->saveParticipant(['thread_id' => $thread['id'], 'user_id' => 3, 'is_read' => 0, 'created_at' => '2026-10-14 09:00:00']);
-        $repo->saveMessage(['thread_id' => $thread['id'], 'sender_id' => 1, 'body' => 'Bonjour', 'sent_at' => '2026-10-14 09:00:00']);
+        $thread = MessageThread::put(['store_id' => 1, 'creator_id' => 1, 'subject' => 'Planning', 'created_at' => '2026-10-14 09:00:00']);
+        ThreadParticipant::put(['thread_id' => $thread['id'], 'user_id' => 2, 'is_read' => 0]);
+        ThreadParticipant::put(['thread_id' => $thread['id'], 'user_id' => 3, 'is_read' => 0, 'created_at' => '2026-10-14 09:00:00']);
+        ThreadMessage::put(['thread_id' => $thread['id'], 'sender_id' => 1, 'body' => 'Bonjour', 'sent_at' => '2026-10-14 09:00:00']);
 
-        $this->assertSame(1, $repo->countUnread(2));
-        $this->assertSame('2026-10-14 09:00:00', $repo->findMessagesByThread((int) $thread['id'])[0]['sent_at']);
+        $this->assertSame(1, ThreadParticipant::countUnread(2));
+        $this->assertSame('2026-10-14 09:00:00', ThreadMessage::findByThread((int) $thread['id'])[0]['sent_at']);
         if ($existing !== null) {
-            $this->assertSame('2026-01-01 08:00:00', $repo->findMessagesByThread(1)[0]['sent_at'], 'message existant : date d\'envoi conservée');
+            $this->assertSame('2026-01-01 08:00:00', ThreadMessage::findByThread(1)[0]['sent_at'], 'message existant : date d\'envoi conservée');
         }
         $this->assertSame([], $runner->runPendingFor('messaging', $this->migrationsPath()), 'rejouées : rien');
     }

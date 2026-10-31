@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Messaging\Controllers\Api;
 
+use kintai\Bundles\Installed\Messaging\Models\MessageThread;
+use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
+use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
+
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Http\Request;
@@ -35,7 +38,6 @@ use kintai\Contract\Http\Response;
 final class MessageController
 {
     public function __construct(
-        private readonly MessageRepositoryInterface $messages,
     ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -47,13 +49,13 @@ final class MessageController
     {
         $userId = $this->authUserId($request);
 
-        $participations = $this->messages->findParticipationsByUser($userId);
+        $participations = ThreadParticipant::findByUser($userId);
         $threads        = [];
         foreach ($participations as $p) {
             if (!ThreadVisibility::isVisible($p)) {
                 continue;
             }
-            $thread = $this->messages->findThreadById((int) $p['thread_id']);
+            $thread = MessageThread::findById((int) $p['thread_id']);
             if ($thread !== null) {
                 $threads[] = $thread;
             }
@@ -73,7 +75,7 @@ final class MessageController
             throw new ForbiddenException(__('error_access_denied'));
         }
 
-        $thread = $this->messages->saveThread([
+        $thread = MessageThread::put([
             'store_id'   => $storeId,
             'subject'    => $data['subject'] ?? null,
             'creator_id' => $userId,
@@ -81,7 +83,7 @@ final class MessageController
         ]);
         $threadId = (int) $thread['id'];
 
-        $this->messages->saveParticipant([
+        ThreadParticipant::put([
             'thread_id'  => $threadId,
             'user_id'    => $userId,
             'is_read'    => 1,
@@ -94,7 +96,7 @@ final class MessageController
         ));
         foreach ($participantIds as $uid) {
             $this->assertCanAddParticipant($userId, $uid);
-            $this->messages->saveParticipant([
+            ThreadParticipant::put([
                 'thread_id'  => $threadId,
                 'user_id'    => $uid,
                 'is_read'    => 0,
@@ -134,7 +136,7 @@ final class MessageController
     {
         $threadId = (int) $request->route('id');
         $this->requireThreadParticipant($request, $threadId);
-        return response()->json($this->messages->findMessagesByThread($threadId));
+        return response()->json(ThreadMessage::findByThread($threadId));
     }
 
     /** POST /api/v1/messages/threads/{id}/messages */
@@ -151,11 +153,11 @@ final class MessageController
             'sent_at'    => date('Y-m-d H:i:s'),
         ];
 
-        $saved = $this->messages->saveMessage($data);
+        $saved = ThreadMessage::put($data);
         // Comme une réponse web : non lue, et de retour dans la liste de ceux qui l'avaient masquée.
-        foreach ($this->messages->findParticipantsByThread($threadId) as $p) {
+        foreach (ThreadParticipant::findByThread($threadId) as $p) {
             if ((int) $p['user_id'] !== $userId) {
-                $this->messages->saveParticipant(ThreadVisibility::reveal($p));
+                ThreadParticipant::put(ThreadVisibility::reveal($p));
             }
         }
 
@@ -168,7 +170,7 @@ final class MessageController
         $userId = $this->authUserId($request);
         $id     = (int) $request->route('id');
 
-        $message = $this->messages->findMessageById($id);
+        $message = ThreadMessage::findById($id);
         if ($message === null) {
             throw new NotFoundException(__('messaging_error_message_not_found'));
         }
@@ -176,7 +178,7 @@ final class MessageController
             throw new ForbiddenException(__('messaging_error_delete_own_messages_only'));
         }
 
-        $this->messages->deleteMessage($id);
+        ThreadMessage::remove($id);
         return response()->noContent();
     }
 
@@ -189,7 +191,7 @@ final class MessageController
     {
         $threadId = (int) $request->route('id');
         $this->requireThreadParticipant($request, $threadId);
-        return response()->json($this->messages->findParticipantsByThread($threadId));
+        return response()->json(ThreadParticipant::findByThread($threadId));
     }
 
     /** POST /api/v1/messages/threads/{id}/participants */
@@ -208,7 +210,7 @@ final class MessageController
 
         $this->assertCanAddParticipant($actingUserId, (int) ($data['user_id'] ?? 0));
 
-        return response()->json($this->messages->saveParticipant($data), 201);
+        return response()->json(ThreadParticipant::put($data), 201);
     }
 
     /** GET /api/v1/messages/threads/{id}/participants/{user_id} */
@@ -218,7 +220,7 @@ final class MessageController
         $this->requireThreadParticipant($request, $threadId);
 
         $userId      = (int) $request->route('user_id');
-        $participant = $this->messages->findParticipant($threadId, $userId);
+        $participant = ThreadParticipant::findByThreadAndUser($threadId, $userId);
         if ($participant === null) {
             throw new NotFoundException(__('error_participant_not_found'));
         }
@@ -244,12 +246,12 @@ final class MessageController
      */
     private function requireThreadParticipant(Request $request, int $threadId): array
     {
-        $thread = $this->messages->findThreadById($threadId);
+        $thread = MessageThread::findById($threadId);
         if ($thread === null) {
             throw new NotFoundException(__('messaging_error_thread_not_found'));
         }
         $userId = $this->authUserId($request);
-        if ($this->messages->findParticipant($threadId, $userId) === null) {
+        if (ThreadParticipant::findByThreadAndUser($threadId, $userId) === null) {
             throw new NotFoundException(__('messaging_error_thread_not_found'));
         }
         return $thread;

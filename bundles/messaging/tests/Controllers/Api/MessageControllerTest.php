@@ -4,41 +4,36 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Messaging\Controllers\Api;
 
-
-use App\Models\StoreUser;
-use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use Illuminate\Http\Request;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\MockObject\Stub;
+use Illuminate\Support\Facades\DB;
+use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\MessagingRows;
 
 /**
  * Régression : ApiMessageController n'avait aucune vérification d'appartenance
  * malgré .wiki/API-Reference.md documentant messages.* comme "strictly scoped
  * to the token holder" — n'importe quel token valide pouvait lire/supprimer
  * les threads et messages de n'importe quel autre utilisateur.
+ *
+ * Les tests tournent sur les vraies tables message_threads, thread_messages et thread_participants.
  */
 final class MessageControllerTest extends TestCase
 {
-    private MessageRepositoryInterface&Stub $messages;
+    use MessagingRows;
+
     private ?MessageController $controller = null;
 
     protected function setUp(): void
     {
-        $this->messages  = $this->createStub(MessageRepositoryInterface::class);
+        $this->resetMessaging();
     }
 
-    /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function controller(): MessageController
     {
-        if ($this->controller === null) {
-            $this->controller = new MessageController($this->messages);
-        }
-
-        return $this->controller;
+        return $this->controller ??= new MessageController();
     }
 
     protected function tearDown(): void
@@ -62,24 +57,24 @@ final class MessageControllerTest extends TestCase
 
     public function testListThreadsAlwaysUsesTokenHolderRegardlessOfUserIdQuery(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
+        $this->thread(11);
+        $this->participant(10, 42);
+        $this->participant(11, 999);
         $_GET = ['user_id' => '999'];
-        $req  = $this->requestAs(42);
 
-        $this->messages->expects($this->once())
-            ->method('findParticipationsByUser')
-            ->with(42)
-            ->willReturn([]);
+        $response = $this->controller()->listThreads($this->requestAs(42));
 
-        $response = $this->controller()->listThreads($req);
         $this->assertSame(200, $response->getStatusCode());
+        $threads = json_decode($response->getContent(), true);
+        $threads = $threads['data'] ?? $threads;
+        $this->assertSame([10], array_map(fn(array $t): int => (int) $t['id'], $threads), 'seuls les fils du porteur du jeton');
     }
 
     // ── createThread ─────────────────────────────────────────────────────────
 
     public function testCreateThreadForcesCreatorIdFromTokenAndAddsSelfAsParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
         // L'appelant est membre du magasin 3, comme le participant ajouté.
         kintai_test_store_users(findByUser: fn() => [['store_id' => 3]], findMembership: fn() => ['store_id' => 3, 'user_id' => 42]);
         $req = $this->requestAs(42, [
@@ -89,35 +84,22 @@ final class MessageControllerTest extends TestCase
             'participant_ids'  => [7, 42], // 42 (soi-même) ne doit pas être dupliqué
         ]);
 
-        $this->messages->expects($this->once())
-            ->method('saveThread')
-            ->with($this->callback(fn($data) => $data['creator_id'] === 42 && $data['store_id'] === 3))
-            ->willReturn(['id' => 5, 'creator_id' => 42, 'store_id' => 3]);
-
-        $participantCalls = [];
-        $this->messages->expects($this->exactly(2))
-            ->method('saveParticipant')
-            ->willReturnCallback(function (array $data) use (&$participantCalls) {
-                $participantCalls[] = $data['user_id'];
-                return $data;
-            });
-
         $response = $this->controller()->createThread($req);
 
         $this->assertSame(201, $response->getStatusCode());
-        $this->assertSame([42, 7], $participantCalls);
+        $thread = DB::table('message_threads')->first();
+        $this->assertSame(42, (int) $thread->creator_id);
+        $this->assertSame(3, (int) $thread->store_id);
+        $this->assertSame([7, 42], DB::table('thread_participants')->orderBy('user_id')->pluck('user_id')->map(fn($u) => (int) $u)->all());
     }
 
     // ── getThread ─────────────────────────────────────────────────────────────
 
     public function testGetThreadReturns404ForNonParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '10']);
-
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10, 'store_id' => 3]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(null);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->getThread($req);
@@ -125,11 +107,8 @@ final class MessageControllerTest extends TestCase
 
     public function testGetThreadReturns404ForUnknownThread(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '999']);
-
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(999)->willReturn(null);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->getThread($req);
@@ -137,12 +116,10 @@ final class MessageControllerTest extends TestCase
 
     public function testGetThreadSucceedsForParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
+        $this->participant(10, 42);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '10']);
-
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10, 'store_id' => 3]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(['thread_id' => 10, 'user_id' => 42]);
 
         $response = $this->controller()->getThread($req);
         $this->assertSame(200, $response->getStatusCode());
@@ -152,28 +129,25 @@ final class MessageControllerTest extends TestCase
 
     public function testDeleteThreadRejectsNonParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '10']);
 
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(null);
-        $this->messages->expects($this->never())->method('deleteThread');
-
-        $this->expectException(NotFoundException::class);
-        $this->controller()->deleteThread($req);
+        try {
+            $this->controller()->deleteThread($req);
+            $this->fail('NotFoundException attendue');
+        } catch (NotFoundException) {
+            $this->assertSame(1, DB::table('message_threads')->count(), 'le fil est conservé');
+        }
     }
 
     // ── listMessages / addMessage ───────────────────────────────────────────
 
     public function testListMessagesRejectsNonParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '10']);
-
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(null);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->listMessages($req);
@@ -181,60 +155,56 @@ final class MessageControllerTest extends TestCase
 
     public function testAddMessageForcesSenderIdFromToken(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
+        $this->participant(10, 42);
         $req = $this->requestAs(42, ['body' => 'salut', 'sender_id' => 999]);
         $req->setRouteParams(['id' => '10']);
 
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(['thread_id' => 10, 'user_id' => 42]);
-
-        $this->messages->expects($this->once())
-            ->method('saveMessage')
-            ->with($this->callback(fn($data) => $data['sender_id'] === 42 && $data['thread_id'] === 10))
-            ->willReturn(['id' => 1]);
-
         $response = $this->controller()->addMessage($req);
+
         $this->assertSame(201, $response->getStatusCode());
+        $message = DB::table('thread_messages')->first();
+        $this->assertSame(42, (int) $message->sender_id);
+        $this->assertSame(10, (int) $message->thread_id);
     }
 
     // ── deleteMessage ────────────────────────────────────────────────────────
 
     public function testDeleteMessageRejectsNonSender(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
+        $this->message(7, 10, 999);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '7']);
 
-        $this->messages->expects($this->atLeastOnce())->method('findMessageById')->with(7)->willReturn(['id' => 7, 'sender_id' => 999]);
-        $this->messages->expects($this->never())->method('deleteMessage');
-
-        $this->expectException(ForbiddenException::class);
-        $this->controller()->deleteMessage($req);
+        try {
+            $this->controller()->deleteMessage($req);
+            $this->fail('ForbiddenException attendue');
+        } catch (ForbiddenException) {
+            $this->assertSame(1, DB::table('thread_messages')->count(), 'le message est conservé');
+        }
     }
 
     public function testDeleteMessageSucceedsForSender(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
+        $this->message(7, 10, 42);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '7']);
 
-        $this->messages->expects($this->atLeastOnce())->method('findMessageById')->with(7)->willReturn(['id' => 7, 'sender_id' => 42]);
-        $this->messages->expects($this->once())->method('deleteMessage')->with(7);
-
         $response = $this->controller()->deleteMessage($req);
+
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame(0, DB::table('thread_messages')->count());
     }
 
     // ── participants ─────────────────────────────────────────────────────────
 
     public function testListParticipantsRejectsNonParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '10']);
-
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(null);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->listParticipants($req);
@@ -242,26 +212,24 @@ final class MessageControllerTest extends TestCase
 
     public function testAddParticipantRejectsNonParticipant(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
         $req = $this->requestAs(42, ['user_id' => 7]);
         $req->setRouteParams(['id' => '10']);
 
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(null);
-        $this->messages->expects($this->never())->method('saveParticipant');
-
-        $this->expectException(NotFoundException::class);
-        $this->controller()->addParticipant($req);
+        try {
+            $this->controller()->addParticipant($req);
+            $this->fail('NotFoundException attendue');
+        } catch (NotFoundException) {
+            $this->assertSame(0, DB::table('thread_participants')->count(), 'personne n\'est ajouté');
+        }
     }
 
     public function testGetParticipantRejectsCallerNotInThread(): void
     {
-        $this->messages = $this->createMock(MessageRepositoryInterface::class);
+        $this->thread(10);
+        $this->participant(10, 7);
         $req = $this->requestAs(42);
         $req->setRouteParams(['id' => '10', 'user_id' => '7']);
-
-        $this->messages->expects($this->atLeastOnce())->method('findThreadById')->with(10)->willReturn(['id' => 10]);
-        $this->messages->expects($this->atLeastOnce())->method('findParticipant')->with(10, 42)->willReturn(null);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->getParticipant($req);

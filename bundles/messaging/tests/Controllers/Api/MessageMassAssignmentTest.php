@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Tests\Bundles\Messaging\Controllers\Api;
 
 use kintai\Bundles\Installed\Messaging\Controllers\Api\MessageController;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
+use Illuminate\Support\Facades\DB;
+use Tests\Support\MessagingRows;
 use App\Exceptions\ForbiddenException;
 use App\Models\StoreUser;
 use Illuminate\Http\Request;
@@ -20,13 +21,15 @@ use PHPUnit\Framework\TestCase;
  */
 final class MessageMassAssignmentTest extends TestCase
 {
+    use MessagingRows;
+
     private const ME       = 2;
     private const MY_STORE = 5;
     private const OTHER    = 6;
 
     protected function setUp(): void
     {
-        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && $userId === self::ME
+        kintai_test_store_users(findByUser: fn() => [['store_id' => self::MY_STORE]], findMembership: fn(int $storeId, int $userId): ?array => $storeId === self::MY_STORE && in_array($userId, [self::ME, 3], true)
                 ? ['store_id' => $storeId, 'user_id' => $userId]
                 : null);
     }
@@ -42,42 +45,47 @@ final class MessageMassAssignmentTest extends TestCase
 
     public function testMessageCreationIgnoresIdSoItCannotHijackAnotherThreadsMessage(): void
     {
-        $repo = $this->createMock(MessageRepositoryInterface::class);
-        $repo->method('findThreadById')->willReturn(['id' => 10]);
-        $repo->method('findParticipant')->willReturn(['thread_id' => 10, 'user_id' => self::ME]);
-        $repo->expects($this->once())->method('saveMessage')->with($this->callback(
-            fn(array $d): bool => !array_key_exists('id', $d)
-                && $d['thread_id'] === 10
-                && $d['sender_id'] === self::ME
-                && $d['body'] === 'bonjour'
-        ))->willReturn(['id' => 77]);
+        $this->resetMessaging();
+        $this->thread(10, self::MY_STORE);
+        $this->participant(10, self::ME);
+        $this->message(55, 10, 1, 'original');
+        $this->nextRowId(77);
 
-        (new MessageController($repo))
+        (new MessageController())
             ->addMessage($this->request(['id' => 55, 'thread_id' => 99, 'sender_id' => 1, 'body' => 'bonjour'], ['id' => '10']));
+
+        $this->assertSame('original', DB::table('thread_messages')->where('id', 55)->value('body'), 'le message 55 est intact');
+        $created = DB::table('thread_messages')->where('body', 'bonjour')->first();
+        $this->assertNotNull($created);
+        $this->assertSame(10, (int) $created->thread_id);
+        $this->assertSame(self::ME, (int) $created->sender_id);
     }
 
     public function testParticipantCreationIgnoresIdAndOtherFields(): void
     {
-        $repo = $this->createMock(MessageRepositoryInterface::class);
-        $repo->method('findThreadById')->willReturn(['id' => 10]);
-        $repo->method('findParticipant')->willReturn(['thread_id' => 10, 'user_id' => self::ME]);
-        $repo->expects($this->once())->method('saveParticipant')->with($this->callback(
-            fn(array $d): bool => !array_key_exists('id', $d)
-                && $d['thread_id'] === 10
-                && $d['user_id'] === self::ME
-                && $d['is_read'] === 0
-        ))->willReturn(['id' => 4]);
+        $this->resetMessaging();
+        $this->thread(10, self::MY_STORE);
+        $this->participant(10, self::ME);
 
-        (new MessageController($repo))
-            ->addParticipant($this->request(['id' => 9, 'thread_id' => 99, 'user_id' => self::ME, 'is_read' => 1], ['id' => '10']));
+        (new MessageController())
+            ->addParticipant($this->request(['id' => 9, 'thread_id' => 99, 'user_id' => 3, 'is_read' => 1], ['id' => '10']));
+
+        $rows = DB::table('thread_participants')->orderBy('id')->get();
+        $created = $rows->last();
+        $this->assertSame(10, (int) $created->thread_id);
+        $this->assertSame(0, (int) $created->is_read, 'is_read n\'est pas imposé par le client');
+        $this->assertNotSame(9, (int) $created->id);
     }
 
     public function testThreadCreationInAStoreTheCallerDoesNotBelongToIsForbidden(): void
     {
-        $repo = $this->createMock(MessageRepositoryInterface::class);
-        $repo->expects($this->never())->method('saveThread');
+        $this->resetMessaging();
 
-        $this->expectException(ForbiddenException::class);
-        (new MessageController($repo))->createThread($this->request(['store_id' => self::OTHER, 'subject' => 's']));
+        try {
+            (new MessageController())->createThread($this->request(['store_id' => self::OTHER, 'subject' => 's']));
+            $this->fail('ForbiddenException attendue');
+        } catch (ForbiddenException) {
+            $this->assertSame(0, DB::table('message_threads')->count());
+        }
     }
 }

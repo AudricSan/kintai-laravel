@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\Messaging\Controllers\Web;
 
 use kintai\Bundles\Installed\Messaging\Controllers\Web\MessageController;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
+use Tests\Support\MessagingRows;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\User;
@@ -18,7 +18,9 @@ use PHPUnit\Framework\TestCase;
 /** Ouvrir un fil marque comme lues les notifications « nouveau message » de ce fil, et seulement les siennes. */
 final class MessageThreadNotificationsTest extends TestCase
 {
-    private function controller(MessageRepositoryInterface $repo, NotificationService $notifs): MessageController
+    use MessagingRows;
+
+    private function controller(NotificationService $notifs): MessageController
     {
         $dir = sys_get_temp_dir() . '/kintai-messaging-views';
         if (!is_dir($dir)) {
@@ -36,7 +38,6 @@ final class MessageThreadNotificationsTest extends TestCase
         kintai_test_stores(findAll: fn() => []);
         return new MessageController(
             $view,
-            $repo,
             new AuditLogger(),
             $notifs,
         );
@@ -53,28 +54,25 @@ final class MessageThreadNotificationsTest extends TestCase
 
     public function testOpeningAThreadMarksItsNotificationsAsRead(): void
     {
-        $repo = $this->createStub(MessageRepositoryInterface::class);
-        $repo->method('findThreadById')->willReturn(['id' => 12, 'store_id' => 1, 'subject' => 'Planning']);
-        $repo->method('findParticipant')->willReturn(['thread_id' => 12, 'user_id' => 9, 'is_read' => 1]);
-        $repo->method('findMessagesByThread')->willReturn([]);
-        $repo->method('findParticipantsByThread')->willReturn([]);
+        $this->resetMessaging();
+        $this->thread(12, 1, 1, ['subject' => 'Planning']);
+        $this->participant(12, 9, ['is_read' => 1]);
 
         $notifs = $this->createMock(NotificationService::class);
         $notifs->expects($this->once())->method('markReadFor')->with(9, 'message_thread', 12);
 
-        $this->assertSame(200, $this->controller($repo, $notifs)->messagesThread($this->request(12))->getStatusCode());
+        $this->assertSame(200, $this->controller($notifs)->messagesThread($this->request(12))->getStatusCode());
     }
 
     public function testAThreadTheUserDoesNotBelongToMarksNothing(): void
     {
-        $repo = $this->createStub(MessageRepositoryInterface::class);
-        $repo->method('findThreadById')->willReturn(['id' => 12, 'store_id' => 1]);
-        $repo->method('findParticipant')->willReturn(null);
+        $this->resetMessaging();
+        $this->thread(12, 1);
 
         $notifs = $this->createMock(NotificationService::class);
         $notifs->expects($this->never())->method('markReadFor');
 
         $this->expectException(\kintai\Contract\Exceptions\ForbiddenException::class);
-        $this->controller($repo, $notifs)->messagesThread($this->request(12));
+        $this->controller($notifs)->messagesThread($this->request(12));
     }
 }

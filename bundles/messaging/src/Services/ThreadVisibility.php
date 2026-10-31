@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Messaging\Services;
 
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
+use kintai\Bundles\Installed\Messaging\Models\MessageThread;
+use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
+use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
+
 
 /**
  * Supprimer une conversation (web ou API) la masque pour soi seul (audit n°8 de Kintai, décision D5). Avant, n'importe
@@ -13,25 +16,23 @@ use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
  */
 final class ThreadVisibility
 {
-    public function __construct(private readonly MessageRepositoryInterface $messages) {}
-
     /** @return bool vrai si la conversation a été effacée (plus personne ne la voyait) */
     public function hideFor(int $threadId, int $userId): bool
     {
-        $part = $this->messages->findParticipant($threadId, $userId);
+        $part = ThreadParticipant::findByThreadAndUser($threadId, $userId);
         if ($part === null) {
             return false;
         }
-        $this->messages->saveParticipant(array_merge($part, ['hidden_at' => date('Y-m-d H:i:s'), 'is_read' => 1]));
+        ThreadParticipant::put(array_merge($part, ['hidden_at' => date('Y-m-d H:i:s'), 'is_read' => 1]));
 
-        foreach ($this->messages->findParticipantsByThread($threadId) as $p) {
+        foreach (ThreadParticipant::findByThread($threadId) as $p) {
             if (empty($p['hidden_at'])) {
                 return false;
             }
         }
-        $this->messages->deleteMessagesByThread($threadId);
-        $this->messages->deleteParticipantsByThread($threadId);
-        $this->messages->deleteThread($threadId);
+        ThreadMessage::removeByThread($threadId);
+        ThreadParticipant::removeByThread($threadId);
+        MessageThread::remove($threadId);
         return true;
     }
 

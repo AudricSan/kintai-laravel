@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Messaging\Controllers\Web;
 
+use kintai\Bundles\Installed\Messaging\Models\MessageThread;
+use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
+use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
+
 use kintai\Contract\Auth\AuthService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -20,7 +23,6 @@ final class MessageStreamController
 {
     public function __construct(
         private readonly AuthService $auth,
-        private readonly MessageRepositoryInterface $msgRepo,
     ) {}
 
     public function stream(Request $request): Response
@@ -29,12 +31,12 @@ final class MessageStreamController
         $userId   = (int) $user['id'];
         $threadId = (int) $request->route('id');
 
-        $thread = $this->msgRepo->findThreadById($threadId);
+        $thread = MessageThread::findById($threadId);
         if ($thread === null) {
             throw new NotFoundException(__('error_conversation_not_found'));
         }
 
-        $part = $this->msgRepo->findParticipant($threadId, $userId);
+        $part = ThreadParticipant::findByThreadAndUser($threadId, $userId);
         if ($part === null) {
             throw new ForbiddenException(__('error_access_denied'));
         }
@@ -67,7 +69,7 @@ final class MessageStreamController
 
         // ── Boucle de streaming ───────────────────────────────────────────────
         while (time() - $start < $maxAge) {
-            $msgs = $this->msgRepo->findMessagesByThread($threadId);
+            $msgs = ThreadMessage::findByThread($threadId);
             $new  = array_filter($msgs, fn($m) => (int) $m['id'] > $lastId);
 
             if (!empty($new)) {

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Messaging;
 
+use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
+
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
-use kintai\Bundles\Installed\Messaging\Repositories\DatabaseMessageRepository;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 
 final class MessagingBundle extends Bundle
 {
@@ -41,10 +41,6 @@ final class MessagingBundle extends Bundle
     {
         $container = $this->app;
 
-        $container->singleton(
-            MessageRepositoryInterface::class,
-            fn() => new DatabaseMessageRepository()
-        );
     }
 
     /**
@@ -84,7 +80,7 @@ final class MessagingBundle extends Bundle
             // Badge des messages non lus dans la navigation (NavItem::$badge).
             'unread_messages_count' => static function (array $user): int {
                 try {
-                    return Container::getInstance()->make(MessageRepositoryInterface::class)->countUnread((int) $user['id']);
+                    return ThreadParticipant::countUnread((int) $user['id']);
                 } catch (\Throwable) {
                     return 0; // table pas encore créée
                 }

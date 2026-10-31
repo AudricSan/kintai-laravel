@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\Messaging\Controllers\Web;
 
+use kintai\Bundles\Installed\Messaging\Models\MessageThread;
+use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
+use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
+
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\Messaging\Repositories\MessageRepositoryInterface;
 use kintai\Bundles\Installed\Messaging\Services\ThreadVisibility;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
@@ -27,7 +30,6 @@ final class MessageController
 {
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly MessageRepositoryInterface $msgRepo,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
     ) {}
@@ -44,7 +46,7 @@ final class MessageController
         $tab        = $request->query('tab', 'inbox');
         $managedIds = $this->managedIds($request);
 
-        $participations = $this->msgRepo->findParticipationsByUser($userId);
+        $participations = ThreadParticipant::findByUser($userId);
         $readMap        = [];
         foreach ($participations as $p) {
             $readMap[(int) $p['thread_id']] = (int) $p['is_read'];
@@ -57,14 +59,14 @@ final class MessageController
                 continue;
             }
             $tid    = (int) $p['thread_id'];
-            $thread = $this->msgRepo->findThreadById($tid);
+            $thread = MessageThread::findById($tid);
             if ($thread === null) {
                 continue;
             }
             if ($managedIds !== null && !in_array((int) $thread['store_id'], $managedIds, true)) {
                 continue;
             }
-            $msgs = $this->msgRepo->findMessagesByThread($tid);
+            $msgs = ThreadMessage::findByThread($tid);
             usort($msgs, fn($a, $b) => strcmp($a['sent_at'], $b['sent_at']));
             $last = count($msgs) > 0 ? end($msgs) : null;
 
@@ -151,7 +153,7 @@ final class MessageController
         $this->assertStoreAccess($request, $storeId);
 
         $now    = date('Y-m-d H:i:s');
-        $thread = $this->msgRepo->saveThread([
+        $thread = MessageThread::put([
             'store_id'   => $storeId,
             'creator_id' => $userId,
             'subject'    => $subject,
@@ -159,16 +161,16 @@ final class MessageController
         ]);
         $threadId = (int) $thread['id'];
 
-        $this->msgRepo->saveMessage([
+        ThreadMessage::put([
             'thread_id' => $threadId,
             'sender_id' => $userId,
             'body'      => $body,
             'sent_at'   => $now,
         ]);
 
-        $this->msgRepo->saveParticipant(['thread_id' => $threadId, 'user_id' => $userId, 'is_read' => 1]);
+        ThreadParticipant::put(['thread_id' => $threadId, 'user_id' => $userId, 'is_read' => 1]);
         foreach ($recipients as $rid) {
-            $this->msgRepo->saveParticipant(['thread_id' => $threadId, 'user_id' => $rid, 'is_read' => 0]);
+            ThreadParticipant::put(['thread_id' => $threadId, 'user_id' => $rid, 'is_read' => 0]);
         }
 
         $senderName = $authUser['display_name'] ?? $authUser['email'] ?? ('#' . $userId);
@@ -197,23 +199,23 @@ final class MessageController
         $userId    = (int) $authUser['id'];
         $threadId  = (int) $request->route('id');
 
-        $thread = $this->msgRepo->findThreadById($threadId);
+        $thread = MessageThread::findById($threadId);
         if ($thread === null) {
             throw new NotFoundException(__('error_conversation_not_found'));
         }
         $this->assertStoreAccess($request, (int) $thread['store_id']);
 
-        $part = $this->msgRepo->findParticipant($threadId, $userId);
+        $part = ThreadParticipant::findByThreadAndUser($threadId, $userId);
         if ($part === null) {
             throw new ForbiddenException(__('error_not_in_conversation'));
         }
         if (!(int) ($part['is_read'] ?? 0)) {
-            $this->msgRepo->saveParticipant(array_merge($part, ['is_read' => 1]));
+            ThreadParticipant::put(array_merge($part, ['is_read' => 1]));
         }
         // Le fil est ouvert : ses notifications de nouveau message sont lues.
         $this->notifs->markReadFor($userId, 'message_thread', $threadId);
 
-        $msgs = $this->msgRepo->findMessagesByThread($threadId);
+        $msgs = ThreadMessage::findByThread($threadId);
         usort($msgs, fn($a, $b) => strcmp($a['sent_at'], $b['sent_at']));
 
         $usersMap = $this->buildUsersMap();
@@ -222,7 +224,7 @@ final class MessageController
         return response($this->view->make('messaging::messages-thread', [
             'thread'       => $thread,
             'messages'     => $msgs,
-            'participants' => $this->msgRepo->findParticipantsByThread($threadId),
+            'participants' => ThreadParticipant::findByThread($threadId),
             'users_map'    => $usersMap,
             'stores_map'   => $storesMap,
             'user_id'      => $userId,
@@ -243,18 +245,18 @@ final class MessageController
             return redirect()->away($this->base() . $urlPrefix . '/' . $threadId);
         }
 
-        $thread = $this->msgRepo->findThreadById($threadId);
+        $thread = MessageThread::findById($threadId);
         if ($thread === null) {
             throw new NotFoundException(__('error_conversation_not_found'));
         }
         $this->assertStoreAccess($request, (int) $thread['store_id']);
 
-        $part = $this->msgRepo->findParticipant($threadId, $userId);
+        $part = ThreadParticipant::findByThreadAndUser($threadId, $userId);
         if ($part === null) {
             throw new ForbiddenException(__('error_not_in_conversation'));
         }
 
-        $this->msgRepo->saveMessage([
+        ThreadMessage::put([
             'thread_id' => $threadId,
             'sender_id' => $userId,
             'body'      => $body,
@@ -262,10 +264,10 @@ final class MessageController
         ]);
 
         $otherParticipants = [];
-        foreach ($this->msgRepo->findParticipantsByThread($threadId) as $p) {
+        foreach (ThreadParticipant::findByThread($threadId) as $p) {
             if ((int) $p['user_id'] !== $userId) {
                 // Non lue, et de retour dans la liste de ceux qui l'avaient masquée.
-                $this->msgRepo->saveParticipant(ThreadVisibility::reveal($p));
+                ThreadParticipant::put(ThreadVisibility::reveal($p));
                 $otherParticipants[] = (int) $p['user_id'];
             }
         }
@@ -299,20 +301,20 @@ final class MessageController
         $userId    = (int) $authUser['id'];
         $threadId  = (int) $request->route('id');
 
-        $thread = $this->msgRepo->findThreadById($threadId);
+        $thread = MessageThread::findById($threadId);
         if ($thread === null) {
             throw new NotFoundException(__('error_conversation_not_found'));
         }
         $this->assertStoreAccess($request, (int) $thread['store_id']);
 
-        $part = $this->msgRepo->findParticipant($threadId, $userId);
+        $part = ThreadParticipant::findByThreadAndUser($threadId, $userId);
         if ($part === null) {
             throw new ForbiddenException(__('error_not_in_conversation'));
         }
 
         // Masquée pour cet utilisateur seulement (avant : effacée pour tous les participants) ; effacée de la base
         // quand plus personne ne la voit.
-        $erased  = (new ThreadVisibility($this->msgRepo))->hideFor($threadId, $userId);
+        $erased  = (new ThreadVisibility())->hideFor($threadId, $userId);
         $storeId = (int) ($thread['store_id'] ?? 0);
         $this->auditLogger->log($request, $erased ? 'message.thread_deleted' : 'message.thread_hidden', 'message_thread', $threadId, [
             'store_id' => $storeId ?: null,
@@ -330,13 +332,13 @@ final class MessageController
         $threadId  = (int) $request->route('id');
         $mid       = (int) $request->route('mid');
 
-        $thread = $this->msgRepo->findThreadById($threadId);
+        $thread = MessageThread::findById($threadId);
         if ($thread === null) {
             throw new NotFoundException(__('error_conversation_not_found'));
         }
         $this->assertStoreAccess($request, (int) $thread['store_id']);
 
-        $message = $this->msgRepo->findMessageById($mid);
+        $message = ThreadMessage::findById($mid);
         if ($message === null || (int) $message['thread_id'] !== $threadId) {
             throw new NotFoundException(__('messaging_error_message_not_found'));
         }
@@ -344,7 +346,7 @@ final class MessageController
             throw new ForbiddenException(__('messaging_error_delete_own_messages_only'));
         }
 
-        $this->msgRepo->deleteMessage($mid);
+        ThreadMessage::remove($mid);
         $this->auditLogger->log($request, 'message.deleted', 'message', $mid, [
             'thread_id' => $threadId,
             'store_id'  => $thread['store_id'] ?? null,
