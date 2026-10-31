@@ -56,7 +56,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PushNotificationService::class, function (Container $c) {
             $path = dirname(dirname(__DIR__)) . '/config/push.php';
             $config = file_exists($path) ? require $path : [];
-            return new PushNotificationService($config, $c->make(DevicePushToken::class));
+            return new PushNotificationService($config);
         });
     }
 

@@ -12,7 +12,7 @@ return [
     'connections' => [
         'sqlite' => [
             'driver'   => 'sqlite',
-            'database' => env('DB_DATABASE', storage_path('app/database.sqlite')),
+            'database' => env('DB_DATABASE') ?: storage_path('app/database.sqlite'),
             'prefix'   => '',
             // Règles onDelete appliquées comme sous MySQL : sans cela, supprimer une ligne laissait ses dépendances
             // orphelines sous SQLite et les supprimait sous MySQL.

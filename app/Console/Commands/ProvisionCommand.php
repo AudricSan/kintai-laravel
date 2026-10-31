@@ -196,7 +196,7 @@ final class ProvisionCommand extends Command
     {
         $value = $this->option($option);
 
-        return is_string($value) && $value !== '' ? $value : (string) env($envKey, $default);
+        return is_string($value) && $value !== '' ? $value : ((string) env($envKey, '') ?: $default);
     }
 
     private function refuse(string $message): int
