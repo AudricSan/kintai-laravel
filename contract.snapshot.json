@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "surface": {
         "kintai\\Contract\\Auth\\AuthService": {
             "status": "provisoire",
@@ -137,17 +137,17 @@
             "status": "stable",
             "target": "App\\Extension\\Sales"
         },
-        "kintai\\Contract\\Services\\ShiftServiceInterface": {
+        "kintai\\Contract\\Services\\ShiftService": {
             "status": "provisoire",
-            "target": "App\\Services\\ShiftServiceInterface"
+            "target": "App\\Services\\ShiftService"
         },
         "kintai\\Contract\\Services\\ShiftWageCalculator": {
             "status": "stable",
             "target": "App\\Services\\ShiftWageCalculator"
         },
-        "kintai\\Contract\\Services\\StoreStatsServiceInterface": {
+        "kintai\\Contract\\Services\\StoreStatsService": {
             "status": "provisoire",
-            "target": "App\\Services\\StoreStatsServiceInterface"
+            "target": "App\\Services\\StoreStatsService"
         },
         "kintai\\Contract\\Services\\TranslationService": {
             "status": "stable",

@@ -18,7 +18,7 @@ namespace kintai\Contract;
 final class Contract
 {
     /** Version du contrat fournie par ce Core. */
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     /*
      * Historique :
