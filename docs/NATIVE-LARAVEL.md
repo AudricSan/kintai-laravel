@@ -63,7 +63,6 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 
 | Reste | Détail | Piste |
 | :--- | :--- | :--- |
-| Repositories des 12 bundles | `bundles/*/src/Repositories` (`Database*Repository` + interface, enveloppes de modèles Eloquent) | méthodes statiques sur le modèle du bundle, tests sur base réelle |
 | `AuthService` | enveloppe autour du garde `session` (`attempt`, `user`, `isAdmin`…) | appeler `Auth::guard()` / `Gate` directement |
 | `$_SERVER` / `$_COOKIE` / `setcookie` | URL de base (`base_url()`, SCRIPT_NAME), schéma/hôte des liens iCal et Google, `LocaleCookie`, `I18nMiddleware` | `request()->getSchemeAndHttpHost()`, `Cookie::queue()` ; une trentaine de tests posent ces variables |
 | Registre de routes maison | `App\Http\Routing\Routes` (nom → URI pour `route_url()`) | `route()` de Laravel sur les routes nommées |
@@ -71,6 +70,28 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 | Validation métier des contrôleurs | ~40 `throw new ValidationException` manuels | `FormRequest` (les tests appellent aujourd'hui les contrôleurs directement) |
 | `LaravelCapsule`, `RequestMemo` | pont base de données et mémo par requête | `DB` / cache de requête de Laravel |
 
+## Audit du 31/10/2026
+
+Le rapport `Audit_Kintai_Migration_Laravel_Securite_2026-10-31.md` est traité ainsi :
+
+| Constat | État |
+| :--- | :--- |
+| SEC-01 installateur sans CSRF | Corrigé : jeton en cookie `SameSite=Strict` + champ caché, installation exclusive (verrou de fichier) |
+| SEC-02 mot de passe `0000` | Corrigé : mot de passe temporaire aléatoire, colonne `users.must_change_password`, pages web renvoyées vers le profil tant qu'il n'est pas changé |
+| SEC-03 jeton iCal dans les journaux | Corrigé : jetons `/ical/…` et `/reset-password/…` masqués dans le journal d'accès |
+| SEC-04 bundles non épinglés | Corrigé : installation refusée sans commit épinglé (`KINTAI_ALLOW_UNPINNED_BUNDLES=true` pour l'autoriser) |
+| SEC-05 import par `require` | Corrigé : `LiteralConfig` lit la configuration comme des données ; sources limitées aux dossiers voisins ou à `KINTAI_IMPORT_ROOTS` |
+| SEC-06 `HTTP_HOST` à l'installation | Corrigé : adresse publique confirmée dans le formulaire |
+| SEC-07 cookie de session | Corrigé : `Secure` automatique en HTTPS |
+| SEC-08 SSRF (`HttpFetcher`) | Corrigé : `UrlGuard` (HTTPS, IP publiques, redirections revalidées et limitées, taille bornée) |
+| SEC-09 extraction ZIP | Corrigé : `SafeZip` (chemins, liens symboliques, taille, taux de compression) |
+| SEC-10 jeton cron en URL | Corrigé : en-tête `Authorization: Bearer` seulement (`CRON_ALLOW_QUERY_TOKEN=true` pour l'ancien comportement) |
+| SEC-11 verrouillage de compte | Accepté (compromis documenté) |
+| SEC-12 pile de middlewares | Partiel : `ValidatePostSize` rétabli ; ni CORS ni `TrimStrings`, volontairement |
+| SEC-13 CSP | Corrigé : `base-uri` et `connect-src` |
+| SEC-14 `$guarded = []` | À faire : liste blanche ajoutée aux entrées API des bundles touchés (timeclock) ; reste à passer chaque modèle en `$fillable` |
+| SEC-15 journaux | À faire |
+| Couche « DAO » (méthodes statiques `findBy…/put/remove` renvoyant des tableaux) | À faire : principal chantier restant ; les 30 modèles du Cœur et ceux des 12 bundles l'exposent encore |
 ## Reste à faire
 
 1. **Bundles** : les 13 bundles vivent dans `bundles/<slug>/` (monorepo, historique git conservé). Releases :
