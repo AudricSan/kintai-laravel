@@ -18,6 +18,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class TimeoffRequestsMigrationTest extends TestCase
 {
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private const MIGRATIONS = ['2026_10_14_000001_create_timeoff_requests_table', '2026_10_14_000002_align_timeoff_requests_table'];
 
     /** @return array{0: BundleMigrationHarness, 1: Capsule} */

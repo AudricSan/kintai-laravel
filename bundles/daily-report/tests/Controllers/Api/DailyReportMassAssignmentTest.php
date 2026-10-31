@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Bundles\DailyReport\Controllers\Api;
 
 use kintai\Bundles\Installed\DailyReport\Controllers\Api\DailyReportController;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
@@ -15,6 +14,7 @@ use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression (audit du 03/10/2026), reprise du Core à l'extraction : la création par l'API fusionnait le JSON brut du
@@ -25,6 +25,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportMassAssignmentTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private const ME       = 2;
     private const MY_STORE = 5;
 
@@ -56,21 +63,19 @@ final class DailyReportMassAssignmentTest extends TestCase
 
     public function testCreationForcesAuthorAndDraftAndIgnoresId(): void
     {
-        $repo   = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
+        $this->nextRowId(6); // le rapport créé prend 6 : jamais l'identifiant 1 envoyé par le client
         kintai_test_stores(findById: fn() => ['id' => self::MY_STORE, 'name' => 'A']);
-        $repo->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d): bool => !array_key_exists('id', $d)
-                && $d['author_id'] === self::ME
+        $this->expectSaved(fn(array $d): bool => (int) $d['id'] === 6
+                && (int) $d['author_id'] === self::ME
                 && $d['status'] === 'draft'
-                && $d['store_id'] === self::MY_STORE
-                && !array_key_exists('validated_by', $d)
-                && !array_key_exists('is_finalized', $d)
-                && $d['notes'] === 'RAS'
-        ))->willReturn(['id' => 6]);
-        $controller = new DailyReportController($repo, new DailyReportPermissionService($this->permissions));
+                && (int) $d['store_id'] === self::MY_STORE
+                && $d['validated_by'] === null
+                && $d['notes'] === 'RAS');
+        $controller = new DailyReportController(new DailyReportPermissionService($this->permissions));
 
         $controller->store($this->request([
-            'id' => 1, 'author_id' => 99, 'store_id' => self::MY_STORE, 'notes' => 'RAS',
+            'id' => 1, 'author_id' => 99, 'store_id' => self::MY_STORE, 'report_date' => '2026-10-01', 'notes' => 'RAS',
             'status' => 'validated', 'validated_by' => 99, 'is_finalized' => 1,
         ]));
     }

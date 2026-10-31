@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\DailyReport\Providers;
 
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
+use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportDataNormalizer;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\DailySales;
@@ -18,13 +18,12 @@ use kintai\Contract\Provider\SalesProvider;
 final class DailyReportSales implements SalesProvider
 {
     public function __construct(
-        private readonly DailyReportRepositoryInterface $reports,
     ) {}
 
     public function dailySales(int $storeId, string $from, string $to, ?array $statuses = null): array
     {
         $reports = array_values(array_filter(
-            $this->reports->findByStoreAndDateRange($storeId, $from, $to),
+            DailyReport::findByStoreAndDateRange($storeId, $from, $to),
             static fn(array $r): bool => empty($r['deleted_at']) && ($statuses === null || in_array($r['status'] ?? '', $statuses, true))
         ));
         usort($reports, static fn(array $a, array $b): int => strcmp((string) $a['report_date'], (string) $b['report_date']));

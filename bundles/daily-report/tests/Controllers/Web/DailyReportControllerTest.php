@@ -8,7 +8,6 @@ namespace Tests\Bundles\DailyReport\Controllers\Web;
 use kintai\Bundles\Installed\DailyReport\Controllers\Web\DailyReportController;
 use App\Auth\PermissionService;
 use App\Mail\MailerService;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
@@ -27,6 +26,7 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Deux employés de magasins différents peuvent partager le même nom de famille.
@@ -36,7 +36,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportControllerTest extends TestCase
 {
-    private DailyReportRepositoryInterface&Stub $reports;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private NotificationService&Stub $notifs;
     private ?DailyReportController $controller = null;
 
@@ -46,7 +52,7 @@ final class DailyReportControllerTest extends TestCase
         kintai_test_migrate();
         $this->notifs     = $this->createStub(NotificationService::class);
 
-        $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
+        $this->resetRows();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -68,7 +74,6 @@ final class DailyReportControllerTest extends TestCase
             );
             $this->controller = new DailyReportController(
                 kintai_test_views(sys_get_temp_dir()),
-                $this->reports,
                 $permissions,
                 $pdfService,
                 $mailService,
@@ -112,12 +117,11 @@ final class DailyReportControllerTest extends TestCase
     public function testSubmitNotifiesManagersWithApprovePermission(): void
     {
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
+        $this->seedRows([[
             'id' => 10, 'store_id' => 1, 'status' => 'draft', 'author_id' => 9, 'report_date' => '2026-08-05',
-        ]);
-        $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
+        ]]);
         kintai_test_store_users(findByStore: fn(int $id) => $id === 1 ? [['user_id' => 9], ['user_id' => 20]] : [], findMembership: fn(int $s, int $u) => $s === 1 && $u === 9 ? ['store_id' => 1, 'user_id' => 9] : null);
         kintai_test_users(findById: fn(int $id) => array_column([
             [9, ['id' => 9]],
@@ -151,12 +155,11 @@ final class DailyReportControllerTest extends TestCase
     public function testValidateNotifiesAuthorButNotSelf(): void
     {
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
+        $this->seedRows([[
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
-        ]);
-        $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 20 ? [
             ['id' => 1, 'user_id' => 20, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
@@ -178,11 +181,11 @@ final class DailyReportControllerTest extends TestCase
     {
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
-        $this->reports->method('findById')->willReturn([
+        $this->seedRows([[
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'validated_by' => null, 'deleted_at' => null, 'report_date' => '2026-08-05',
-        ]);
+        ]]);
         kintai_test_assignments(findByUser: fn() => [
             ['id' => 1, 'user_id' => 20, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
         ]);
@@ -206,11 +209,11 @@ final class DailyReportControllerTest extends TestCase
     {
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
-        $this->reports->method('findById')->willReturn([
+        $this->seedRows([[
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
-        ]);
+        ]]);
 
         $this->notifs->expects($this->never())->method('markReadFor');
 
@@ -226,12 +229,11 @@ final class DailyReportControllerTest extends TestCase
     public function testValidateBySelfDoesNotSelfNotify(): void
     {
         $this->notifs = $this->createMock(NotificationService::class);
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn([
+        $this->seedRows([[
             'id' => 10, 'store_id' => 1, 'status' => 'submitted', 'author_id' => 9, 'report_date' => '2026-08-05',
-        ]);
-        $this->reports->method('save')->willReturnCallback(fn(array $d) => $d);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 9]);
         kintai_test_assignments(findByUser: fn(int $id) => $id === 9 ? [
             ['id' => 1, 'user_id' => 9, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],

@@ -6,12 +6,12 @@ namespace Tests\Bundles\DailyReport;
 
 use kintai\Bundles\Installed\DailyReport\DailyReportBundle;
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
 use Tests\Support\TestContainer;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Ce que le bundle déclare au Core. Le Core n'a plus de repli pour daily-report (étape 4 du plan du contrat,
@@ -21,6 +21,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class ContractDeclarationsTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private function bundle(): DailyReportBundle
     {
         return (new \ReflectionClass(DailyReportBundle::class))->newInstanceWithoutConstructor();
@@ -105,7 +112,6 @@ final class ContractDeclarationsTest extends TestCase
     public function testSalesProvider(): void
     {
         $container = \Illuminate\Container\Container::getInstance();
-        $container->instance(DailyReportRepositoryInterface::class, $this->createStub(DailyReportRepositoryInterface::class));
 
         $providers = $this->bundle()->salesProviders();
 

@@ -130,10 +130,12 @@ trait RealTable
             }
             $type = strtolower((string) $column['type_name']);
             $row[$name] = match (true) {
+                // Colonne texte qui porte une date (shift_date, report_date…) : un jour différent par ligne.
+                str_ends_with($name, '_date') => date('Y-m-d', strtotime('2026-01-01 +' . (int) ($row['id'] ?? 0) . ' days')),
                 // Entier obligatoire omis : 1000 + l'identifiant de la ligne : unique (shift_id + user_id…) sans coïncider avec un utilisateur ou un magasin de test.
                 str_contains($type, 'int') || str_contains($type, 'bool') => 1000 + (int) ($row['id'] ?? 0),
-                str_contains($type, 'datetime') || str_contains($type, 'timestamp') => '2026-01-01 00:00:00',
-                str_contains($type, 'date') => '2026-01-01',
+                str_contains($type, 'datetime') || str_contains($type, 'timestamp') => date('Y-m-d H:i:s', strtotime('2026-01-01 00:00:00 +' . (int) ($row['id'] ?? 0) . ' days')),
+                str_contains($type, 'date') => date('Y-m-d', strtotime('2026-01-01 +' . (int) ($row['id'] ?? 0) . ' days')),
                 str_contains($type, 'time') => '00:00:00',
                 default => 'x',
             };

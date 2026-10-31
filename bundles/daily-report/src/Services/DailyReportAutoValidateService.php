@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\DailyReport\Services;
 
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
+use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\User;
 
@@ -22,7 +22,6 @@ use kintai\Contract\Data\User;
 final class DailyReportAutoValidateService
 {
     public function __construct(
-        private readonly DailyReportRepositoryInterface $reports,
         private readonly DailyReportPermissionService $permissions,
         private readonly DailyReportPdfService $pdfService,
         private readonly DailyReportMailService $mailService,
@@ -61,7 +60,7 @@ final class DailyReportAutoValidateService
             }
 
             try {
-                $report = $this->reports->findByStoreAndDate((int) $store['id'], $date);
+                $report = DailyReport::findByStoreAndDate((int) $store['id'], $date);
 
                 if ($report === null || $report['status'] === 'validated') {
                     $result['skipped']++;
@@ -89,14 +88,14 @@ final class DailyReportAutoValidateService
             'updated_at'   => $now,
         ]);
 
-        $this->reports->save($updated);
+        DailyReport::put($updated);
 
         if (!empty($settings['auto_send_on_validate']) && (!empty($settings['mail_recipient_ids']) || !empty($settings['mail_recipients']))) {
             $author   = User::findById((int) $report['author_id']) ?? [];
             $pdfBytes = $this->pdfService->generateBytes($updated, $store, $author);
             $sent     = $this->mailService->send($updated, $store, $pdfBytes, $author);
             if ($sent) {
-                $this->reports->save(array_merge($updated, ['mail_sent_at' => $now]));
+                DailyReport::put(array_merge($updated, ['mail_sent_at' => $now]));
             } else {
                 error_log('[Kintai][DailyReport] Auto-envoi mail échoué (store #' . ($store['id'] ?? '?') . ', rapport #' . ($report['id'] ?? '?') . ')');
             }

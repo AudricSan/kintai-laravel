@@ -8,7 +8,6 @@ namespace Tests\Bundles\DailyReport\Controllers\Api;
 use kintai\Bundles\Installed\DailyReport\Controllers\Api\DailyReportController;
 use App\Auth\PermissionService;
 use App\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -18,6 +17,7 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * ApiDailyReportController n'appelait jusqu'ici jamais DailyReportPermissionService :
@@ -29,13 +29,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportControllerTest extends TestCase
 {
-    private DailyReportRepositoryInterface&Stub $reports;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private ?DailyReportController $controller = null;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
-        $this->reports = $this->createStub(DailyReportRepositoryInterface::class);
+        $this->resetRows();
 
         kintai_test_stores(findById: fn($a0) => $a0 === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
     }
@@ -45,7 +51,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         if ($this->controller === null) {
             $this->controller = new DailyReportController(
-                $this->reports,
                 new DailyReportPermissionService(new PermissionService()),
             );
         }
@@ -81,13 +86,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMemberCannotUpdateColleaguesSubmittedReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 99, 'status' => 'submitted',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
-        $this->reports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $req = $this->requestWithJson(['sales_total' => 100], ['id' => '42']);
         $response = $this->controller()->update($req);
@@ -97,13 +102,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMemberCanUpdateOwnDraftReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 20, 'status' => 'draft',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
-        $this->reports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d);
+        $this->expectSaved(fn(array $row) => true);
 
         $req = $this->requestWithJson(['sales_total' => 100], ['id' => '42']);
         $response = $this->controller()->update($req);
@@ -113,13 +118,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testManagerWithPermissionCanUpdateAnyReportInStore(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->grant('daily_reports.update');
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 99, 'status' => 'submitted',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => null);
-        $this->reports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d);
+        $this->expectSaved(fn(array $row) => true);
 
         $req = $this->requestWithJson(['sales_total' => 100], ['id' => '42']);
         $response = $this->controller()->update($req);
@@ -133,13 +138,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMemberCannotDeleteOwnDraftWithoutDeletePermission(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 20, 'status' => 'draft', 'deleted_at' => null,
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
-        $this->reports->expects($this->never())->method('delete');
+        $this->expectNoChange();
 
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->destroy($req);
@@ -149,13 +154,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testManagerWithDeletePermissionCanDelete(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->grant('daily_reports.delete');
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 99, 'status' => 'submitted', 'deleted_at' => null,
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => null);
-        $this->reports->expects($this->once())->method('delete')->with(42);
+        $this->expectDeleted(42);
 
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->destroy($req);
@@ -170,13 +175,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testManagerWithApprovePermissionCanValidateAnySubmittedReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->grant('daily_reports.approve');
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 99, 'status' => 'submitted',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => null);
-        $this->reports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d);
+        $this->expectSaved(fn(array $row) => true);
 
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->validate($req);
@@ -188,13 +193,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMemberWithoutApprovePermissionCannotValidate(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 20, 'status' => 'submitted',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
-        $this->reports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->validate($req);
@@ -208,11 +213,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMemberCannotViewColleaguesReportWithoutPermission(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 99, 'status' => 'submitted',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->show($req);
@@ -222,11 +227,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testMemberCanViewOwnReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 1, 'author_id' => 20, 'status' => 'submitted',
-        ]);
+        ]]);
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
         $req = $this->requestWithJson([], ['id' => '42']);
         $response = $this->controller()->show($req);
@@ -236,9 +241,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testShowThrowsNotFoundForMissingReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
-        $this->reports->expects($this->atLeastOnce())->method('findById')->with(999)->willReturn(null);
+        $this->seedRows([]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->show($this->requestWithJson([], ['id' => '999']));
@@ -250,10 +255,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testNonMemberCannotCreateReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
         kintai_test_store_users(findMembership: fn() => null);
-        $this->reports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $req = $this->requestWithJson(['store_id' => 1, 'report_date' => '2026-08-05']);
         $response = $this->controller()->store($req);
@@ -268,10 +273,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testStoreMemberWithoutCreatePermissionCannotCreateReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->noPermissions();
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
-        $this->reports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $req = $this->requestWithJson(['store_id' => 1, 'report_date' => '2026-08-05']);
         $response = $this->controller()->store($req);
@@ -282,10 +287,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** daily_reports.create accordé seul (ex. à un employé spécifique) suffit à créer. */
     public function testMemberWithCreatePermissionCanCreateOwnReport(): void
     {
-        $this->reports = $this->createMock(DailyReportRepositoryInterface::class);
+        $this->resetRows();
         $this->grant('daily_reports.create');
         kintai_test_store_users(findMembership: fn() => ['store_id' => 1, 'user_id' => 20]);
-        $this->reports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 55]);
+        $this->expectSaved(fn(array $row) => true);
 
         $req = $this->requestWithJson(['store_id' => 1, 'report_date' => '2026-08-05']);
         $response = $this->controller()->store($req);

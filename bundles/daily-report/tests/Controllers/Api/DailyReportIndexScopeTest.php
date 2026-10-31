@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Bundles\DailyReport\Controllers\Api;
 
 use kintai\Bundles\Installed\DailyReport\Controllers\Api\DailyReportController;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
@@ -16,6 +15,7 @@ use Illuminate\Http\Request;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * GET /api/v1/daily-reports (audit n°8, B2) : sans store_id, ou avec author_id, la liste renvoyait les rapports de
@@ -23,7 +23,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportIndexScopeTest extends TestCase
 {
-    private DailyReportRepositoryInterface&Stub $reports;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private ?DailyReportController $controller = null;
 
     private const REPORTS = [
@@ -34,12 +40,9 @@ final class DailyReportIndexScopeTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->reports     = $this->createStub(DailyReportRepositoryInterface::class);
+        $this->resetRows();
 
-        $this->reports->method('findAllActive')->willReturn(self::REPORTS);
-        $this->reports->method('findByAuthor')->willReturnCallback(
-            fn(int $a) => array_values(array_filter(self::REPORTS, fn($r) => $r['author_id'] === $a))
-        );
+        $this->seedRows(self::REPORTS);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -48,7 +51,6 @@ final class DailyReportIndexScopeTest extends TestCase
         if ($this->controller === null) {
             kintai_test_stores(findById: fn(int $id) => in_array($id, [1, 2], true) ? ['id' => $id] : null);
             $this->controller = new DailyReportController(
-                $this->reports,
                 new DailyReportPermissionService(new PermissionService()),
             );
         }

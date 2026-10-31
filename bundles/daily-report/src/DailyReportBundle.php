@@ -7,8 +7,6 @@ namespace kintai\Bundles\Installed\DailyReport;
 use Illuminate\Console\Scheduling\Schedule;
 use kintai\Bundles\Installed\DailyReport\Console\AutoValidateCommand;
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
-use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
@@ -70,7 +68,6 @@ final class DailyReportBundle extends Bundle
     {
         $container = $this->app;
 
-        $container->singleton(DailyReportRepositoryInterface::class, fn() => new DatabaseDailyReportRepository());
         $container->singleton(DailyReportPermissionService::class, fn(Container $c) => new DailyReportPermissionService(
             $c->make(PermissionService::class),
         ));
@@ -85,7 +82,6 @@ final class DailyReportBundle extends Bundle
             $c->make(UserSelection::class),
         ));
         $container->singleton(DailyReportAutoValidateService::class, fn(Container $c) => new DailyReportAutoValidateService(
-            $c->make(DailyReportRepositoryInterface::class),
             $c->make(DailyReportPermissionService::class),
             $c->make(DailyReportPdfService::class),
             $c->make(DailyReportMailService::class),

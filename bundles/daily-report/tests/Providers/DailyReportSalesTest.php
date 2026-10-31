@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Tests\Bundles\DailyReport\Providers;
 
 use kintai\Bundles\Installed\DailyReport\Providers\DailyReportSales;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Provider\DailySales;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Ventes journalières fournies au Core et à salary-report (contrat 1.14) : rapports triés, supprimés exclus, statuts
@@ -16,12 +16,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportSalesTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private function sales(array $reports, ?string $mode = null): DailyReportSales
     {
-        $repo = $this->createStub(DailyReportRepositoryInterface::class);
-        $repo->method('findByStoreAndDateRange')->willReturn($reports);
+        $this->resetRows();
+        $this->seedRows(array_map(static fn(array $r): array => $r + ['store_id' => 4], $reports));
         kintai_test_stores(findById: fn() => ['id' => 4, 'daily_report_settings' => $mode === null ? null : json_encode(['cumulative_mode' => $mode])]);
-        return new DailyReportSales($repo);
+        return new DailyReportSales();
     }
 
     public function testDaysAreSortedWithoutDeletedReports(): void

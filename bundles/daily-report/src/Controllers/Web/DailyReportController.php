@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\DailyReport\Controllers\Web;
 
+use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
@@ -28,7 +28,6 @@ final class DailyReportController
 {
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly DailyReportRepositoryInterface $reports,
         private readonly DailyReportPermissionService $permissions,
         private readonly DailyReportPdfService $pdfService,
         private readonly DailyReportMailService $mailService,
@@ -61,11 +60,11 @@ final class DailyReportController
         $toDate    = $request->query('to', '');
 
         if ($fromDate && $toDate) {
-            $rows = $this->reports->findByStoreAndDateRange($storeId, $fromDate, $toDate);
+            $rows = DailyReport::findByStoreAndDateRange($storeId, $fromDate, $toDate);
         } elseif ($status) {
-            $rows = $this->reports->findByStoreAndStatus($storeId, $status);
+            $rows = DailyReport::findByStoreAndStatus($storeId, $status);
         } else {
-            $rows = $this->reports->findByStore($storeId);
+            $rows = DailyReport::findByStore($storeId);
         }
 
         // Enrichir avec le nom de l'auteur
@@ -159,7 +158,7 @@ final class DailyReportController
             $queryStoreIds = [$filterStoreId];
         }
 
-        $reports = $this->reports->findAllActive($queryStoreIds);
+        $reports = DailyReport::findAllActive($queryStoreIds);
 
         // Filtres en mémoire
         if ($filterStatus !== '') {
@@ -205,12 +204,12 @@ final class DailyReportController
         }
 
         // Années disponibles (pour le sélecteur)
-        $allForYears = $this->reports->findAllActive($storeIdsFilter);
+        $allForYears = DailyReport::findAllActive($storeIdsFilter);
         $years = array_unique(array_map(fn($r) => (int) substr($r['report_date'], 0, 4), $allForYears));
         rsort($years);
 
         // Données pour la vue V2 : tous les stores, filtrés uniquement par année
-        $reportsV2 = $this->reports->findAllActive($storeIdsFilter);
+        $reportsV2 = DailyReport::findAllActive($storeIdsFilter);
         if ($filterYear > 0) {
             $reportsV2 = array_values(array_filter($reportsV2, fn($r) => (int) substr($r['report_date'], 0, 4) === $filterYear));
         }
@@ -262,7 +261,7 @@ final class DailyReportController
 
         $today    = date('Y-m-d');
         $tomorrow = date('Y-m-d', strtotime('+1 day'));
-        $existing = $this->reports->findByStoreAndDate($storeId, $today);
+        $existing = DailyReport::findByStoreAndDate($storeId, $today);
 
         $settings = $this->permissions->getSettings($store);
 
@@ -340,7 +339,7 @@ final class DailyReportController
         }
 
         // Unicité : un seul rapport actif par store par jour
-        if ($this->reports->findByStoreAndDate($storeId, $reportDate) !== null) {
+        if (DailyReport::findByStoreAndDate($storeId, $reportDate) !== null) {
             $errors['report_date'] = 'Un rapport existe déjà pour cette date.';
             $html = $this->view->make('daily-report::daily-report-form', [
                 'store'      => $store,
@@ -356,7 +355,7 @@ final class DailyReportController
             return response($html, 422);
         }
 
-        $report = $this->reports->save([
+        $report = DailyReport::put([
             'store_id'       => $storeId,
             'author_id'      => (int) $authUser['id'],
             'report_date'    => $reportDate,
@@ -499,7 +498,7 @@ final class DailyReportController
             return response($html, 422);
         }
 
-        $updated = $this->reports->save(array_merge($report, [
+        $updated = DailyReport::put(array_merge($report, [
             'sales_total'    => (float) ($data['sales_total'] ?? 0),
             'customer_count' => (int) ($data['customer_count'] ?? 0),
             'labor_cost'     => (float) ($data['labor_cost'] ?? 0),
@@ -535,7 +534,7 @@ final class DailyReportController
             throw new ForbiddenException(__('daily_report_error_not_authorized_submit'));
         }
 
-        $submitted = $this->reports->save(array_merge($report, [
+        $submitted = DailyReport::put(array_merge($report, [
             'status'       => 'submitted',
             'submitted_at' => date('Y-m-d H:i:s'),
             'updated_at'   => date('Y-m-d H:i:s'),
@@ -586,7 +585,7 @@ final class DailyReportController
             'updated_at'   => $now,
         ]);
 
-        $validated = $this->reports->save($updated);
+        $validated = DailyReport::put($updated);
 
         $this->auditLogger->logUpdate($request, 'daily_report.validated', 'daily_report', $reportId, $report, $validated, [
             'store_id'    => $report['store_id'],
@@ -611,7 +610,7 @@ final class DailyReportController
             $author   = User::findById((int) $report['author_id']) ?? [];
             $pdfBytes = $this->pdfService->generateBytes($updated, $store, $author, $this->translations->getLocale());
             if ($this->mailService->send($updated, $store, $pdfBytes, $author, $this->translations->getLocale())) {
-                $this->reports->save(array_merge($updated, ['mail_sent_at' => $now]));
+                DailyReport::put(array_merge($updated, ['mail_sent_at' => $now]));
             } else {
                 error_log('[Kintai][DailyReport] Envoi automatique échoué — rapport #' . $reportId . ', store #' . $storeId);
             }
@@ -644,7 +643,7 @@ final class DailyReportController
         $sent       = $this->mailService->send($report, $store, $pdfBytes, $mailAuthor, $this->translations->getLocale());
 
         if ($sent) {
-            $this->reports->save(array_merge($report, [
+            DailyReport::put(array_merge($report, [
                 'mail_sent_at' => date('Y-m-d H:i:s'),
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]));
@@ -744,7 +743,7 @@ final class DailyReportController
             throw new ForbiddenException(__('daily_report_error_not_authorized_delete'));
         }
 
-        $this->reports->save(array_merge($report, [
+        DailyReport::put(array_merge($report, [
             'deleted_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]));
@@ -916,7 +915,7 @@ final class DailyReportController
 
     private function requireReport(int $id, int $storeId): array
     {
-        $report = $this->reports->findById($id);
+        $report = DailyReport::findById($id);
         if ($report === null || (int) $report['store_id'] !== $storeId) {
             throw new NotFoundException(__('daily_report_error_report_not_found'));
         }

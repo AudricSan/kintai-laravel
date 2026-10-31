@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\DailyReport\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;
+use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -15,6 +15,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class DailyReportsMigrationTest extends TestCase
 {
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private function migrationsPath(): string
     {
         return dirname(__DIR__, 2) . '/database/migrations';
@@ -45,9 +51,8 @@ final class DailyReportsMigrationTest extends TestCase
             $this->assertFalse($schema->hasColumn('daily_reports', $column), "colonne retirée par le Core : {$column}");
         }
 
-        $repo = new DatabaseDailyReportRepository();
-        $saved = $repo->save(['store_id' => 1, 'author_id' => 2, 'report_date' => '2026-10-13', 'sales_total' => 1200, 'status' => 'submitted']);
-        $this->assertSame('submitted', $repo->findById((int) $saved['id'])['status']);
+        $saved = DailyReport::put(['store_id' => 1, 'author_id' => 2, 'report_date' => '2026-10-13', 'sales_total' => 1200, 'status' => 'submitted']);
+        $this->assertSame('submitted', DailyReport::findById((int) $saved['id'])['status']);
         $this->assertSame([], $runner->runPendingFor('daily-report', $this->migrationsPath()), 'rejouée : rien');
     }
 

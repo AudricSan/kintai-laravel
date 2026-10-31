@@ -11,6 +11,12 @@ use PHPUnit\Framework\TestCase;
 /** Réglages, validations et historique contre le vrai schéma de la migration du bundle. */
 final class DatabasePlanningCheckRepositoryTest extends TestCase
 {
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private DatabasePlanningCheckRepository $repo;
 
     protected function setUp(): void

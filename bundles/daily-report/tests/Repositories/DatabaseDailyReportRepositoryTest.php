@@ -4,13 +4,18 @@ declare(strict_types=1);
 namespace Tests\Bundles\DailyReport\Repositories;
 
 use PHPUnit\Framework\TestCase;
-use kintai\Bundles\Installed\DailyReport\Repositories\DatabaseDailyReportRepository;
+use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\DailyReport\Models\DailyReport as EloquentDailyReport;
 
 final class DatabaseDailyReportRepositoryTest extends TestCase
 {
-    private DatabaseDailyReportRepository $repo;
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
 
     protected function setUp(): void
     {
@@ -42,7 +47,6 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
             $table->timestamp('updated_at')->nullable();
         });
 
-        $this->repo = new DatabaseDailyReportRepository();
     }
 
     private function report(int $storeId = 1, string $date = '2025-06-15', string $status = 'draft', ?string $deletedAt = null, int $authorId = 10): array
@@ -59,19 +63,19 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
     public function testFindByIdReturnsReport(): void
     {
         $r = EloquentDailyReport::create($this->report());
-        $found = $this->repo->findById($r->id);
+        $found = DailyReport::findById($r->id);
         $this->assertNotNull($found);
     }
 
     public function testFindByIdReturnsNullForDeletedReport(): void
     {
         $r = EloquentDailyReport::create($this->report(deletedAt: '2025-01-01 00:00:00'));
-        $this->assertNull($this->repo->findById($r->id));
+        $this->assertNull(DailyReport::findById($r->id));
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
-        $this->assertNull($this->repo->findById(999));
+        $this->assertNull(DailyReport::findById(999));
     }
 
     public function testFindByStoreReturnsSortedByDateDesc(): void
@@ -80,7 +84,7 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
         EloquentDailyReport::create($this->report(1, '2025-06-15'));
         EloquentDailyReport::create($this->report(1, '2025-06-12'));
 
-        $result = $this->repo->findByStore(1);
+        $result = DailyReport::findByStore(1);
         $dates = array_column($result, 'report_date');
         $this->assertSame(['2025-06-15', '2025-06-12', '2025-06-10'], $dates);
     }
@@ -88,20 +92,20 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
     public function testFindByStoreExcludesDeleted(): void
     {
         EloquentDailyReport::create($this->report(1, '2025-06-10', deletedAt: '2025-06-11 00:00:00'));
-        $this->assertSame([], $this->repo->findByStore(1));
+        $this->assertSame([], DailyReport::findByStore(1));
     }
 
     public function testFindByStoreAndDateReturnsReport(): void
     {
         EloquentDailyReport::create($this->report(1, '2025-06-15'));
-        $found = $this->repo->findByStoreAndDate(1, '2025-06-15');
+        $found = DailyReport::findByStoreAndDate(1, '2025-06-15');
         $this->assertNotNull($found);
     }
 
     public function testFindByStoreAndDateReturnsNullForDeleted(): void
     {
         EloquentDailyReport::create($this->report(1, '2025-06-15', deletedAt: '2025-06-16 00:00:00'));
-        $this->assertNull($this->repo->findByStoreAndDate(1, '2025-06-15'));
+        $this->assertNull(DailyReport::findByStoreAndDate(1, '2025-06-15'));
     }
 
     public function testFindByAuthorReturnsSortedDesc(): void
@@ -109,7 +113,7 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
         EloquentDailyReport::create($this->report(1, '2025-06-10', authorId: 5));
         EloquentDailyReport::create($this->report(1, '2025-06-15', authorId: 5));
 
-        $result = $this->repo->findByAuthor(5);
+        $result = DailyReport::findByAuthor(5);
         $this->assertSame('2025-06-15', $result[0]['report_date']);
     }
 
@@ -118,7 +122,7 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
         EloquentDailyReport::create($this->report(1, '2025-06-10', 'submitted'));
         EloquentDailyReport::create($this->report(1, '2025-06-15', 'draft'));
 
-        $result = $this->repo->findByStoreAndStatus(1, 'submitted');
+        $result = DailyReport::findByStoreAndStatus(1, 'submitted');
         $this->assertCount(1, $result);
     }
 
@@ -128,13 +132,13 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
         EloquentDailyReport::create($this->report(1, '2025-06-15'));
         EloquentDailyReport::create($this->report(1, '2025-07-01'));
 
-        $result = $this->repo->findByStoreAndDateRange(1, '2025-06-01', '2025-06-30');
+        $result = DailyReport::findByStoreAndDateRange(1, '2025-06-01', '2025-06-30');
         $this->assertCount(2, $result);
     }
 
     public function testSaveCreatesReport(): void
     {
-        $result = $this->repo->save($this->report());
+        $result = DailyReport::put($this->report());
         $this->assertArrayHasKey('id', $result);
         $this->assertCount(1, EloquentDailyReport::all());
     }
@@ -142,13 +146,13 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
     public function testDeleteDeletesReport(): void
     {
         $r = EloquentDailyReport::create($this->report());
-        $result = $this->repo->delete($r->id);
+        $result = DailyReport::remove($r->id);
         $this->assertSame(1, $result);
         $this->assertNull(EloquentDailyReport::find($r->id));
     }
 
     public function testDeleteReturnsZeroWhenNotFound(): void
     {
-        $this->assertSame(0, $this->repo->delete(999));
+        $this->assertSame(0, DailyReport::remove(999));
     }
 }

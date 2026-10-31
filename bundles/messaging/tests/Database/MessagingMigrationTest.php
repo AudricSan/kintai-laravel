@@ -18,6 +18,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class MessagingMigrationTest extends TestCase
 {
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private const MIGRATIONS = ['2026_10_14_000001_create_messaging_tables', '2026_10_14_000002_align_messaging_schema', '2026_10_15_000001_add_hidden_at_to_thread_participants'];
 
     private function migrationsPath(): string

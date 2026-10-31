@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\DailyReport\Console;
 
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 use App\Auth\PermissionService;
 use kintai\Bundles\Installed\DailyReport\Console\AutoValidateCommand;
 use App\Mail\MailerService;
@@ -13,7 +14,6 @@ use kintai\Bundles\Installed\DailyReport\Services\DailyReportAutoValidateService
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
@@ -24,12 +24,19 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AutoValidateCommandTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['daily_reports', 'daily-report'];
+    }
+
     private DailyReportAutoValidateService $autoValidate;
 
     protected function setUp(): void
     {
         kintai_test_stores(findActive: fn() => []);
-        $reports = $this->createStub(DailyReportRepositoryInterface::class);
+        $this->resetRows();
 
         $pdfService = new DailyReportPdfService(
             kintai_test_views(dirname(__DIR__, 2) . '/Views'),
@@ -47,7 +54,7 @@ final class AutoValidateCommandTest extends TestCase
             ),
         );
 
-        $autoValidate = new DailyReportAutoValidateService($reports, $permissions, $pdfService, $mailService);
+        $autoValidate = new DailyReportAutoValidateService($permissions, $pdfService, $mailService);
         $this->autoValidate = $autoValidate;
     }
 

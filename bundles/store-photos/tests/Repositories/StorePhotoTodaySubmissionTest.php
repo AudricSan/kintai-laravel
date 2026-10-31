@@ -17,6 +17,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class StorePhotoTodaySubmissionTest extends TestCase
 {
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private Capsule $capsule;
 
     protected function setUp(): void

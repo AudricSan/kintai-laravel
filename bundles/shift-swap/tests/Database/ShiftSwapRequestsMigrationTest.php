@@ -18,6 +18,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class ShiftSwapRequestsMigrationTest extends TestCase
 {
+    /** Ces tests créent des schémas de départ variés dans la base en mémoire : le test suivant repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private const MIGRATIONS = ['2026_10_14_000001_create_shift_swap_requests_table', '2026_10_14_000002_align_shift_swap_requests_table'];
 
     private function migrationsPath(): string

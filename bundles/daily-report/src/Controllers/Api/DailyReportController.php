@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\DailyReport\Controllers\Api;
 
+use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\DailyReport\Repositories\DailyReportRepositoryInterface;
+use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Http\Request;
@@ -26,7 +27,6 @@ final class DailyReportController
     private const CONTENT_FIELDS = ['report_date', 'sales_total', 'customer_count', 'labor_cost', 'waste_total', 'notes', 'data'];
 
     public function __construct(
-        private readonly DailyReportRepositoryInterface $reports,
         private readonly DailyReportPermissionService $permissions,
     ) {}
 
@@ -45,18 +45,18 @@ final class DailyReportController
         $authorId = $request->query('author_id');
 
         if ($storeId !== null && $from !== null && $to !== null) {
-            $items = $this->reports->findByStoreAndDateRange((int) $storeId, $from, $to);
+            $items = DailyReport::findByStoreAndDateRange((int) $storeId, $from, $to);
         } elseif ($storeId !== null && $date !== null) {
-            $report = $this->reports->findByStoreAndDate((int) $storeId, $date);
+            $report = DailyReport::findByStoreAndDate((int) $storeId, $date);
             $items  = $report !== null ? [$report] : [];
         } elseif ($storeId !== null && $status !== null) {
-            $items = $this->reports->findByStoreAndStatus((int) $storeId, $status);
+            $items = DailyReport::findByStoreAndStatus((int) $storeId, $status);
         } elseif ($storeId !== null) {
-            $items = $this->reports->findByStore((int) $storeId);
+            $items = DailyReport::findByStore((int) $storeId);
         } elseif ($authorId !== null) {
-            $items = $this->reports->findByAuthor((int) $authorId);
+            $items = DailyReport::findByAuthor((int) $authorId);
         } else {
-            $items = $this->reports->findAllActive();
+            $items = DailyReport::findAllActive();
         }
 
         return response()->json(Paginator::paginate($this->visibleTo($request, $items), $page, $limit));
@@ -115,6 +115,11 @@ final class DailyReportController
         if (!$this->permissions->canCreate($authUser, $store, $membership)) {
             return $this->forbidden();
         }
+        // La date du rapport est obligatoire (colonne NOT NULL) : sans elle, la base refusait l'insertion (erreur 500).
+        $date = $body['report_date'] ?? null;
+        if (!is_string($date) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) !== 1 || strtotime($date) === false) {
+            throw new ValidationException(['report_date' => 'report_date (YYYY-MM-DD) est obligatoire.']);
+        }
 
         $data = array_intersect_key($body, array_flip(self::CONTENT_FIELDS)) + [
             'store_id'   => $storeId,
@@ -122,7 +127,7 @@ final class DailyReportController
             'author_id'  => (int) ($authUser['id'] ?? 0),
             'created_at' => date('Y-m-d H:i:s'),
         ];
-        return response()->json($this->reports->save($data), 201);
+        return response()->json(DailyReport::put($data), 201);
     }
 
     /** PUT /api/v1/daily-reports/{id} */
@@ -136,7 +141,7 @@ final class DailyReportController
             return $this->forbidden();
         }
 
-        return response()->json($this->reports->save(array_intersect_key($request->json()->all() ?? [], array_flip(self::CONTENT_FIELDS)) + [
+        return response()->json(DailyReport::put(array_intersect_key($request->json()->all() ?? [], array_flip(self::CONTENT_FIELDS)) + [
             'id'         => (int) $report['id'],
             'updated_at' => date('Y-m-d H:i:s'),
         ]));
@@ -153,7 +158,7 @@ final class DailyReportController
             return $this->forbidden();
         }
 
-        $this->reports->delete((int) $report['id']);
+        DailyReport::remove((int) $report['id']);
         return response()->noContent();
     }
 
@@ -168,7 +173,7 @@ final class DailyReportController
             return $this->forbidden();
         }
 
-        return response()->json($this->reports->save(array_merge($report, [
+        return response()->json(DailyReport::put(array_merge($report, [
             'status'       => 'submitted',
             'submitted_at' => date('Y-m-d H:i:s'),
             'updated_at'   => date('Y-m-d H:i:s'),
@@ -188,7 +193,7 @@ final class DailyReportController
 
         $now = date('Y-m-d H:i:s');
 
-        return response()->json($this->reports->save(array_merge($report, [
+        return response()->json(DailyReport::put(array_merge($report, [
             'status'       => 'validated',
             'validated_by' => (int) ($authUser['id'] ?? 0),
             'validated_at' => $now,
@@ -198,7 +203,7 @@ final class DailyReportController
 
     private function requireReport(Request $request): array
     {
-        $report = $this->reports->findById((int) $request->route('id'));
+        $report = DailyReport::findById((int) $request->route('id'));
         if ($report === null) {
             throw new NotFoundException(__('daily_report_error_report_not_found'));
         }
