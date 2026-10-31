@@ -169,7 +169,7 @@ final class AuthServiceTest extends TestCase
     {
         // Code en minuscules doit être normalisé en majuscules
         kintai_test_stores(findByCode: fn() => null);
-        $this->auth()->attemptByCode('EMP', 'store01', 'pass');
+        $this->assertFalse($this->auth()->attemptByCode('EMP', 'store01', 'pass'));
     }
 
     // -------------------------------------------------------------------------

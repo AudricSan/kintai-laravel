@@ -31,7 +31,7 @@ final class HasStaffReportCrudTest extends TestCase
             use HasAdminAccess;
             use HasStaffReportCrud;
 
-            protected function reportRepo(): object { return new \stdClass(); }
+            protected function reportModel(): string { return stdClass::class; }
             protected function reportConfig(): array { return []; }
             protected function reportShowTitle(array $report): string { return ''; }
             protected function reportEditTitle(): string { return ''; }
