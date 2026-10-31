@@ -2003,5 +2003,11 @@
     "timesheet_no_attendance": "Aucun bundle de pointage n'est actif : les shifts passés apparaissent comme des absences. Activez le bundle Pointage pour comparer les pointages au planning.",
     "audit_timesheet_approved": "Feuille de temps validée",
     "audit_timesheet_reopened": "Validation de feuille de temps annulée",
-    "temporary_password_notice": "Mot de passe temporaire (affiché une seule fois, à transmettre à la personne ; elle devra le changer à sa première connexion) :"
+    "temporary_password_notice": "Mot de passe temporaire (affiché une seule fois, à transmettre à la personne ; elle devra le changer à sa première connexion) :",
+    "install_error_csrf": "Le formulaire a expiré ou vient d'un autre site. Rechargez la page et recommencez.",
+    "install_error_public_url": "L'adresse publique doit être une adresse http(s) complète, sans paramètres ni identifiants.",
+    "install_error_busy": "Une installation est déjà en cours ou vient de se terminer. Rechargez la page.",
+    "install_public_url_label": "Adresse publique de l'application",
+    "install_public_url_hint": "Utilisée dans les liens des e-mails (réinitialisation du mot de passe…). Vérifiez-la : elle ne doit pas pointer vers un autre site.",
+    "install_import_error_not_allowed": "Le dossier « :name » n'est pas autorisé : seules les instances voisines de celle-ci (même dossier parent) ou situées sous un dossier de KINTAI_IMPORT_ROOTS peuvent être importées."
 }

@@ -30,8 +30,8 @@ return [
 
     'domain' => env('SESSION_DOMAIN'),
 
-    // null : Laravel suit alors le schéma de la requête (HTTPS ou non), comme le faisait Kintai.
-    'secure' => env('SESSION_SECURE'),
+    // null : le cookie est « Secure » dès que la requête est en HTTPS (KintaiServiceProvider::boot) ; false le désactive.
+    'secure' => env('SESSION_SECURE') === null ? null : filter_var(env('SESSION_SECURE'), FILTER_VALIDATE_BOOL),
 
     'http_only' => true,
 

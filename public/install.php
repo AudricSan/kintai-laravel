@@ -75,17 +75,43 @@ $result       = null;
 $scheme       = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $installBase  = base_url();
 
+// Audit SEC-01 : jeton anti-CSRF sans session (double envoi) : un cookie SameSite=Strict et le même jeton dans le formulaire.
+// Un POST venu d'un autre site ne porte pas le cookie ; sans lui, rien n'est installé.
+$csrfCookie  = 'kintai_install_csrf';
+$csrfInCookie = is_string($_COOKIE[$csrfCookie] ?? null) && preg_match('/^[a-f0-9]{64}$/', $_COOKIE[$csrfCookie]) === 1;
+$csrfToken   = $csrfInCookie ? $_COOKIE[$csrfCookie] : bin2hex(random_bytes(32));
+setcookie($csrfCookie, $csrfToken, ['expires' => 0, 'path' => '/', 'secure' => $scheme === 'https', 'httponly' => true, 'samesite' => 'Strict']);
+
+// Audit SEC-06 : l'adresse publique est confirmée par l'administrateur (préremplie), jamais prise telle quelle du Host.
+$defaultPublicUrl = (string) (PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase) ?? '');
+$publicUrlInput   = is_string($_POST['public_url'] ?? null) ? trim($_POST['public_url']) : '';
+
 // Changement de langue (sélecteur du formulaire) : la page est seulement réaffichée, rien n'est installé.
 $switchingLanguage = isset($_POST['switch_language']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
+$csrfOk = $csrfInCookie && is_string($_POST['_install_token'] ?? null) && hash_equals($csrfToken, $_POST['_install_token']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage && !$csrfOk) {
+    $errors[] = __('install_error_csrf');
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
     $input = InstallInput::fromPost($_POST, $defaultLocale);
     $errors = array_map(static fn (string $key): string => __($key), $input->errors($languageCodes, $requirements));
+    $confirmedUrl = PublicUrlResolver::normalize($publicUrlInput);
+    if ($confirmedUrl === null) {
+        $errors[] = __('install_error_public_url');
+    }
+
+    // Une seule installation à la fois (deux POST simultanés ne doivent pas écrire en même temps la base et le .env),
+    // et jamais sur une instance que l'autre requête vient d'installer.
+    $runLock = @fopen(BASE_PATH . '/storage/install.running', 'c');
+    if ($runLock !== false && (!flock($runLock, LOCK_EX | LOCK_NB) || file_exists($installedLockFile))) {
+        $errors[] = __('install_error_busy');
+    }
 
     if ($errors === [] && $input->mode === InstallInput::MODE_IMPORT) {
         try {
             // Les comptes et leurs mots de passe viennent de l'instance importée : connexion habituelle ensuite.
-            $publicUrl = PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase);
+            $publicUrl = $confirmedUrl;
             $result = ['mode' => InstallInput::MODE_IMPORT] + (new WebInstaller(BASE_PATH))->import($input->importPath, $input->locale, $publicUrl);
             $registerTranslations($pageLocale);
         } catch (InstallFailure $e) {
@@ -94,8 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
         }
     } elseif ($errors === []) {
         try {
-            // Adresse par laquelle l'administrateur installe : la bonne dans l'immense majorité des cas.
-            $publicUrl = PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase);
+            $publicUrl = $confirmedUrl;
             $result = ['mode' => InstallInput::MODE_FRESH] + (new WebInstaller(BASE_PATH))->install($input, $publicUrl);
 
             // Le démarrage de l'application a remplacé les traductions : celles de la page sont reprises.
@@ -129,6 +154,8 @@ $view = [
     'drivers'          => $requirements->availableDrivers(),
     'errors'           => $errors,
     'result'           => $result,
+    'csrf_token'       => $csrfToken,
+    'default_public_url' => $defaultPublicUrl,
     'setup_url'        => $installBase . '/admin/setup',
     'login_url'        => $installBase . '/login',
     'demo_password'    => \App\Database\DemoDataSeeder::PASSWORD,

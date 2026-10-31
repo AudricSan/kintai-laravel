@@ -19,11 +19,14 @@ $app = Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Aucun middleware global de Laravel (CORS, taille des POST, TrimStrings…) : Kintai a les siens. use([]) ne
+        // Pas de middleware global de Laravel hormis ValidatePostSize (audit SEC-12 : requête plus grosse que post_max_size
+        // refusée en 413 avant tout traitement). Ni CORS (l'API n'est pas appelée depuis un autre site) ni TrimStrings
+        // (les mots de passe et textes saisis ne doivent pas être modifiés). use([]) ne
         // suffit pas (une liste vide rend celle par défaut de Laravel) : on garde InvokeDeferredCallbacks, sans effet
         // sur la requête, qui exécute les defer() en fin de réponse.
         $middleware->use([
             \Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks::class,
+            \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
             \App\Http\Middleware\AccessLog::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,

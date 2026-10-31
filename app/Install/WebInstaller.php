@@ -361,6 +361,11 @@ final class WebInstaller
         if ($source === realpath($this->basePath)) {
             throw new InstallFailure('install_import_error_same_folder');
         }
+        // Audit SEC-05 : seules les instances voisines de celle-ci (même dossier parent), ou celles d'un dossier listé dans
+        // KINTAI_IMPORT_ROOTS (séparés par « ; »), peuvent être importées.
+        if (!self::isAllowedImportSource($source, $this->basePath)) {
+            throw new InstallFailure('install_import_error_not_allowed', ['name' => $source]);
+        }
         $kintai = is_file($source . '/src/Core/Application.php') || is_file($source . '/app/Core/Application.php');
         if (!$kintai || !is_file($source . '/config/database.local.php')) {
             throw new InstallFailure('install_import_error_not_kintai', ['name' => $source]);
@@ -368,10 +373,30 @@ final class WebInstaller
         return $source;
     }
 
+    private static function isAllowedImportSource(string $source, string $basePath): bool
+    {
+        $roots = [dirname((string) realpath($basePath))];
+        foreach (explode(';', (string) env('KINTAI_IMPORT_ROOTS', '')) as $root) {
+            $real = $root !== '' ? realpath(trim($root)) : false;
+            if ($real !== false) {
+                $roots[] = $real;
+            }
+        }
+        $normalize = static fn (string $p): string => rtrim(str_replace('\\', '/', $p), '/');
+        foreach ($roots as $root) {
+            if (str_starts_with($normalize($source) . '/', $normalize($root) . '/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return array{driver:string, connections:array<string, mixed>} config/database.local.php de l'instance importée */
     private function importDatabaseConfig(string $source): array
     {
-        $config = (static fn (string $file): mixed => require $file)($source . '/config/database.local.php');
+        // Audit SEC-05 : fichier lu comme des données (jamais exécuté), même s'il vient d'un dossier choisi dans le formulaire.
+        $config = \App\Support\LiteralConfig::parse((string) file_get_contents($source . '/config/database.local.php'));
         if (!is_array($config) || !in_array($config['driver'] ?? null, ['sqlite', 'mysql'], true)) {
             throw new InstallFailure('install_import_error_not_kintai', ['name' => $source]);
         }

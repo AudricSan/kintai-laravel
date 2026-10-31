@@ -2003,5 +2003,11 @@
     "timesheet_no_attendance": "打刻バンドルが有効ではないため、過去のシフトは欠勤として表示されます。打刻を予定と比較するには打刻バンドルを有効にしてください。",
     "audit_timesheet_approved": "勤務表を承認",
     "audit_timesheet_reopened": "勤務表の承認を取り消し",
-    "temporary_password_notice": "一時パスワード（一度だけ表示されます。本人に伝えてください。初回ログイン時に変更が必要です）："
+    "temporary_password_notice": "一時パスワード（一度だけ表示されます。本人に伝えてください。初回ログイン時に変更が必要です）：",
+    "install_error_csrf": "フォームの有効期限が切れたか、別のサイトから送信されました。ページを再読み込みしてやり直してください。",
+    "install_error_public_url": "公開URLは、パラメータや認証情報を含まない完全なhttp(s)アドレスにしてください。",
+    "install_error_busy": "インストールが実行中か、すでに完了しました。ページを再読み込みしてください。",
+    "install_public_url_label": "アプリケーションの公開URL",
+    "install_public_url_hint": "メールのリンク（パスワード再設定など）に使われます。別のサイトを指していないか確認してください。",
+    "install_import_error_not_allowed": "フォルダ「:name」は許可されていません。このインスタンスと同じ親フォルダにあるもの、または KINTAI_IMPORT_ROOTS に列挙したフォルダ配下のものだけをインポートできます。"
 }

@@ -2003,5 +2003,11 @@
     "timesheet_no_attendance": "No time clock bundle is active: past shifts show as no-shows. Enable the Time clock bundle to compare clock-ins with the schedule.",
     "audit_timesheet_approved": "Timesheet approved",
     "audit_timesheet_reopened": "Timesheet approval cancelled",
-    "temporary_password_notice": "Temporary password (shown once; give it to the person, who must change it at first sign-in):"
+    "temporary_password_notice": "Temporary password (shown once; give it to the person, who must change it at first sign-in):",
+    "install_error_csrf": "The form expired or comes from another site. Reload the page and try again.",
+    "install_error_public_url": "The public address must be a complete http(s) address, without parameters or credentials.",
+    "install_error_busy": "An installation is already running or has just finished. Reload the page.",
+    "install_public_url_label": "Public address of the application",
+    "install_public_url_hint": "Used in e-mail links (password reset…). Check it: it must not point to another site.",
+    "install_import_error_not_allowed": "The folder \":name\" is not allowed: only instances next to this one (same parent folder) or under a folder listed in KINTAI_IMPORT_ROOTS can be imported."
 }

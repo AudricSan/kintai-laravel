@@ -1,7 +1,7 @@
 <?php
 /**
  * Page de l'installateur web (public/install.php). Autonome : l'application n'est pas démarrée, pas de layout ni de
- * jeton CSRF (aucune session avant l'installation). Aucun style ni script en ligne : public/assets/css/src/features/install.css
+ * session ; le jeton anti-CSRF est un cookie SameSite=Strict doublé d'un champ caché (audit SEC-01). Aucun style ni script en ligne : public/assets/css/src/features/install.css
  * et public/assets/js/modules/install.js. Reste en PHP simple, hors Blade : elle doit s'afficher même quand un prérequis
  * manque (extension, dossier storage/ non inscriptible), puisque c'est elle qui le signale.
  *
@@ -16,6 +16,8 @@
  * @var string                $setup_url
  * @var string                $login_url
  * @var string                $demo_password
+ * @var string                $csrf_token
+ * @var string                $default_public_url
  * @var array<string, mixed>  $old          valeurs envoyées ($_POST), jamais les mots de passe
  */
 use App\View\Components\Alert;
@@ -116,6 +118,12 @@ $blocking = array_values(array_filter($failed, static fn (array $c): bool => $c[
             </details>
 
             <form method="POST" action="" class="form-stack" data-install-form data-import-label="<?= $e(__('install_import_submit')) ?>">
+                <input type="hidden" name="_install_token" value="<?= $e($csrf_token) ?>">
+                <div class="form-group">
+                    <label class="form-label form-label--required" for="public_url"><?= $e(__('install_public_url_label')) ?></label>
+                    <input type="url" id="public_url" name="public_url" class="form-control" value="<?= $e($field('public_url') !== '' ? $field('public_url') : $default_public_url) ?>" required>
+                    <p class="form-hint"><?= $e(__('install_public_url_hint')) ?></p>
+                </div>
 
                 <?php if ($languages !== []): ?>
                 <section class="install-section">

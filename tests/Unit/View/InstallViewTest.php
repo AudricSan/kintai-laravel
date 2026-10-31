@@ -29,6 +29,7 @@ final class InstallViewTest extends TestCase
                 'drivers' => ['sqlite'], 'errors' => [], 'result' => null, 'setup_url' => '/admin/setup',
                 'demo_password' => 'x', 'old' => [], 'default_host' => '127.0.0.1', 'default_port' => '3306',
                 'default_database' => 'kintai', 'default_username' => 'root',
+                'csrf_token' => str_repeat('a', 64), 'default_public_url' => 'https://kintai.example',
             ]);
             ob_start();
             try {
@@ -41,5 +42,8 @@ final class InstallViewTest extends TestCase
 
         $this->assertStringContainsString('<form', $html);
         $this->assertStringContainsString('name="db_driver"', $html);
+        $this->assertStringContainsString('name="_install_token" value="' . str_repeat('a', 64) . '"', $html, 'SEC-01 : jeton anti-CSRF');
+        $this->assertStringContainsString('name="public_url"', $html);
+        $this->assertStringContainsString('value="https://kintai.example"', $html, 'SEC-06 : adresse publique à confirmer');
     }
 }

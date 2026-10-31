@@ -75,6 +75,12 @@ final class KintaiServiceProvider extends ServiceProvider
         // Racine de l'application (sous-dossier compris), pour les liens des vues.
         \Illuminate\Support\Facades\View::share('BASE_URL', base_url());
 
+        // Audit SEC-07 : cookie de session « Secure » dès que la requête est en HTTPS (y compris derrière un proxy de confiance),
+        // sans attendre que SESSION_SECURE soit renseigné. SESSION_SECURE=false le désactive explicitement.
+        if (config('session.secure') === null && !$this->app->runningInConsole() && request()->isSecure()) {
+            config(['session.secure' => true]);
+        }
+
         if (config('session.driver') === 'file') {
             \Illuminate\Support\Facades\File::ensureDirectoryExists((string) config('session.files'));
         }

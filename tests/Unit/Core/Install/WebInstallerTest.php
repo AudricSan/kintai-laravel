@@ -198,6 +198,22 @@ APP_LOCALE=fr
         $this->assertSame('install_import_error_same_folder', $failure->messageKey);
     }
 
+    /** SEC-05 : seules les instances voisines (même dossier parent) ou listées dans KINTAI_IMPORT_ROOTS sont importables. */
+    public function testImportRefusesAFolderThatIsNotNextToThisInstance(): void
+    {
+        $source = $this->legacySource();
+        $deep   = $this->base . '/deep/app';
+        mkdir($deep . '/config', 0777, true);
+        mkdir($deep . '/storage/app', 0777, true);
+
+        try {
+            (new WebInstaller($deep))->import($source, 'en');
+            $this->fail('L\'importation aurait dû être refusée');
+        } catch (InstallFailure $e) {
+            $this->assertSame('install_import_error_not_allowed', $e->messageKey);
+        }
+    }
+
     public function testImportRefusesAFolderWithoutAnInstalledKintai(): void
     {
         $source = $this->legacySource();
