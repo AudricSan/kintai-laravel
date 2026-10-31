@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\HiringReport\Services;
 
-use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
+use kintai\Bundles\Installed\HiringReport\Models\HiringReport;
 use kintai\Contract\Event\EmployeeCreated;
 
 /**
@@ -22,8 +22,6 @@ final class HiringReportOnEmployeeCreated
         'furigana_last_name', 'furigana_first_name', 'gender', 'tax_classification', 'birth_date', 'education',
         'postal_code', 'address', 'phone', 'mobile_phone', 'email', 'guarantor_name', 'guarantor_phone',
     ];
-
-    public function __construct(private readonly HiringReportRepositoryInterface $reports) {}
 
     public function __invoke(EmployeeCreated $event): void
     {
@@ -47,6 +45,6 @@ final class HiringReportOnEmployeeCreated
             $report[$field] = ($user[$field] ?? null) ?: null;
         }
 
-        $this->reports->save($report);
+        HiringReport::put($report);
     }
 }

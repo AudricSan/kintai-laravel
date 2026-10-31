@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ResignationReport\Controllers\Web;
 
+use kintai\Bundles\Installed\ResignationReport\Models\ResignationReport;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Auth\UserAnonymizer;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
@@ -43,7 +43,6 @@ final class AdminResignationReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly ResignationReportRepositoryInterface $resignationReports,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
         private readonly ResignationDeactivation $deactivation,
@@ -73,7 +72,7 @@ final class AdminResignationReportController
             $filters['person_in_charge'] = $filterPerson;
         }
 
-        $reports = $this->resignationReports->findAll($queryStoreIds, $filters);
+        $reports = ResignationReport::findAll($queryStoreIds, $filters);
 
         return response($this->view->make('resignation-report::reports-resignation', [
             'title'          => __('resignation_report_resignation_reports'),
@@ -116,7 +115,7 @@ final class AdminResignationReportController
     public function exportResignationReportsJson(Request $request): Response
     {
         [, $queryStoreIds] = $this->storesAndFilter($request);
-        $reports = $this->resignationReports->findAll($queryStoreIds, $this->exportFilters($request));
+        $reports = ResignationReport::findAll($queryStoreIds, $this->exportFilters($request));
 
         $this->auditLogger->log($request, 'export.resignation_reports_json', 'resignation_report', 0, [
             'count' => count($reports),
@@ -133,7 +132,7 @@ final class AdminResignationReportController
     public function exportResignationReportsPdf(Request $request): Response
     {
         [$allStores, $queryStoreIds] = $this->storesAndFilter($request);
-        $reports = $this->resignationReports->findAll($queryStoreIds, $this->exportFilters($request));
+        $reports = ResignationReport::findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
         $html = $this->view->make('resignation-report::reports-resignation-export-pdf', [
@@ -149,7 +148,7 @@ final class AdminResignationReportController
     public function exportResignationReportsPdfDownload(Request $request): Response
     {
         [$allStores, $queryStoreIds] = $this->storesAndFilter($request);
-        $reports = $this->resignationReports->findAll($queryStoreIds, $this->exportFilters($request));
+        $reports = ResignationReport::findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
         $html = $this->view->make('resignation-report::reports-resignation-export-pdf', [
@@ -240,7 +239,7 @@ final class AdminResignationReportController
             'created_by' => $request->attributes->get('auth_user')['id'] ?? 0,
         ]);
 
-        $saved = $this->resignationReports->save($data);
+        $saved = ResignationReport::put($data);
 
         // Compte désactivé à la date de démission (aujourd'hui ou passée : tout de suite ; sinon par la tâche planifiée
         // resignation-deactivate), pas à la création : l'employé garde son planning pendant son préavis.
@@ -267,7 +266,7 @@ final class AdminResignationReportController
     /** Date de démission modifiée : le compte suit (désactivé si elle est atteinte, réactivé si elle est repoussée). */
     public function updateResignationReport(Request $request): Response
     {
-        $before = $this->resignationReports->findById((int) $request->route('rid'));
+        $before = ResignationReport::findById((int) $request->route('rid'));
         $newUserId = (int) $request->post('user_id', 0);
         if ($newUserId > 0 && $newUserId !== (int) ($before['user_id'] ?? 0)) {
             $this->assertNotOwnerAccount($request, $newUserId);
@@ -276,7 +275,7 @@ final class AdminResignationReportController
 
         $response = $this->updateReport($request);
 
-        $report = $this->resignationReports->findById((int) $request->route('rid'));
+        $report = ResignationReport::findById((int) $request->route('rid'));
         if ($report === null) {
             return $response;
         }
@@ -288,7 +287,7 @@ final class AdminResignationReportController
                 $old['is_active'] = 1;
                 User::put($old);
             }
-            $report = $this->resignationReports->save(['id' => (int) $report['id'], 'deactivated_at' => null]);
+            $report = ResignationReport::put(['id' => (int) $report['id'], 'deactivated_at' => null]);
         }
         $this->deactivation->sync($report);
         return $response;
@@ -332,7 +331,7 @@ final class AdminResignationReportController
             $this->assertUserOnlyInManagedStores($request, $userId);
         }
 
-        $this->resignationReports->delete($reportId);
+        ResignationReport::remove($reportId);
         $this->auditLogger->log($request, 'resignation_report.deleted', 'resignation_report', $reportId, [
             'store_id' => $storeId,
         ]);
@@ -429,9 +428,9 @@ final class AdminResignationReportController
         return $this->redirectToList($storeId, 'resignation', 'reactivated');
     }
 
-    protected function reportRepo(): object
+    protected function reportModel(): string
     {
-        return $this->resignationReports;
+        return ResignationReport::class;
     }
 
     protected function reportConfig(): array

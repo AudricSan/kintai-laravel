@@ -7,8 +7,6 @@ namespace kintai\Bundles\Installed\SalaryReport;
 use kintai\Contract\Bundle;
 use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\NavItem;
-use kintai\Bundles\Installed\SalaryReport\Repositories\DatabaseSalaryReportRepository;
-use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 
 /**
  * Le bundle possède son modèle, son dépôt et sa table (salary_reports) ; aucun composant du Core n'en dépend.
@@ -47,10 +45,6 @@ final class SalaryReportBundle extends Bundle
     {
         $container = $this->app;
 
-        $container->singleton(
-            SalaryReportRepositoryInterface::class,
-            fn() => new DatabaseSalaryReportRepository()
-        );
     }
 
     /**

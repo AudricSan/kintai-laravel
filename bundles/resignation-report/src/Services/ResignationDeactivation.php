@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\ResignationReport\Services;
 
-use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
+use kintai\Bundles\Installed\ResignationReport\Models\ResignationReport;
 use kintai\Contract\Data\User;
 
 /**
@@ -17,7 +17,6 @@ use kintai\Contract\Data\User;
 final class ResignationDeactivation
 {
     public function __construct(
-        private readonly ResignationReportRepositoryInterface $reports,
     ) {}
 
     /** Date du jour dans le fuseau de l'instance. */
@@ -45,12 +44,12 @@ final class ResignationDeactivation
 
         if ($due && !$applied) {
             $this->setActive($userId, false);
-            $this->reports->save(['id' => (int) $report['id'], 'deactivated_at' => date('Y-m-d H:i:s')]);
+            ResignationReport::put(['id' => (int) $report['id'], 'deactivated_at' => date('Y-m-d H:i:s')]);
             return 'deactivated';
         }
         if (!$due && $applied) {
             $this->setActive($userId, true);
-            $this->reports->save(['id' => (int) $report['id'], 'deactivated_at' => null]);
+            ResignationReport::put(['id' => (int) $report['id'], 'deactivated_at' => null]);
             return 'reactivated';
         }
         return null;
@@ -64,7 +63,7 @@ final class ResignationDeactivation
     public function applyDue(?string $today = null): array
     {
         $applied = [];
-        foreach ($this->reports->findDueForDeactivation($today ?? self::today()) as $report) {
+        foreach (ResignationReport::findDueForDeactivation($today ?? self::today()) as $report) {
             if ($this->sync($report, $today) === 'deactivated') {
                 $applied[] = (int) $report['id'];
             }

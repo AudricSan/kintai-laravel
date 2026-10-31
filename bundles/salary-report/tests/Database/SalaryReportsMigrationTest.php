@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\SalaryReport\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\SalaryReport\Repositories\DatabaseSalaryReportRepository;
+use kintai\Bundles\Installed\SalaryReport\Models\SalaryReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -45,14 +45,13 @@ final class SalaryReportsMigrationTest extends TestCase
         }
 
         // Rapport global du magasin et rapport d'un employé pour le même mois : permis.
-        $repo = new DatabaseSalaryReportRepository();
-        $repo->save(['store_id' => 1, 'target_month' => '2026-10', 'total_payment' => 1000]);
-        $mine = $repo->save(['store_id' => 1, 'target_month' => '2026-10', 'user_id' => 7, 'employee_name' => 'Sato', 'bank_transfer_salary' => 250]);
-        $this->assertEquals(250, $repo->findById((int) $mine['id'])['bank_transfer_salary']);
+        SalaryReport::put(['store_id' => 1, 'target_month' => '2026-10', 'total_payment' => 1000]);
+        $mine = SalaryReport::put(['store_id' => 1, 'target_month' => '2026-10', 'user_id' => 7, 'employee_name' => 'Sato', 'bank_transfer_salary' => 250]);
+        $this->assertEquals(250, SalaryReport::findById((int) $mine['id'])['bank_transfer_salary']);
 
         // Deux rapports du même employé pour le même mois : refusés.
         $this->expectException(\Throwable::class);
-        $repo->save(['store_id' => 1, 'target_month' => '2026-10', 'user_id' => 7]);
+        SalaryReport::put(['store_id' => 1, 'target_month' => '2026-10', 'user_id' => 7]);
     }
 
     /** Instance existante : la table créée par le Core et ses données restent telles quelles. */

@@ -30,8 +30,8 @@ use App\Services\PdfCjkFontResolver;
  */
 trait HasStaffReportCrud
 {
-    /** Le repository du rapport (findById/findByStore/findAll/save/delete). */
-    abstract protected function reportRepo(): object;
+    /** @return class-string le modèle Eloquent du rapport (méthodes statiques findById/findByStore/put/remove) */
+    abstract protected function reportModel(): string;
 
     /**
      * @return array{entity: string, slug: string, view: string, not_found: string, fields: array<string, string>}
@@ -57,7 +57,7 @@ trait HasStaffReportCrud
         $reportId = (int) $request->route('rid');
         $this->assertStoreAccess($request, $storeId);
 
-        $report = $this->reportRepo()->findById($reportId);
+        $report = ($this->reportModel())::findById($reportId);
         if ($report === null || (int) $report['store_id'] !== $storeId) {
             throw new NotFoundException(__($this->reportConfig()['not_found']));
         }
@@ -91,7 +91,7 @@ trait HasStaffReportCrud
         return response($this->view->make($this->reportConfig()['view'], array_merge([
             'title'   => $titlePrefix . ' — ' . ($store['name'] ?? ''),
             'store'   => $store,
-            'reports' => $this->reportRepo()->findByStore($storeId),
+            'reports' => ($this->reportModel())::findByStore($storeId),
         ], $this->reportListExtras($storeId)))->render());
     }
 
@@ -175,7 +175,7 @@ trait HasStaffReportCrud
         $changes = ['user_id' => $userId > 0 ? $userId : null] + $changes;
         $data = array_merge($report, $changes);
 
-        $this->reportRepo()->save($data);
+        ($this->reportModel())::put($data);
         $this->auditLogger->logUpdate($request, $cfg['entity'] . '.updated', $cfg['entity'], $reportId, $report, $data, [
             'store_id' => $storeId,
         ]);
@@ -206,7 +206,7 @@ trait HasStaffReportCrud
         [, $storeId, $reportId] = $this->findReportOrFail($request);
         $entity = $this->reportConfig()['entity'];
 
-        $this->reportRepo()->delete($reportId);
+        ($this->reportModel())::remove($reportId);
         $this->auditLogger->log($request, $entity . '.deleted', $entity, $reportId, [
             'store_id' => $storeId,
         ]);

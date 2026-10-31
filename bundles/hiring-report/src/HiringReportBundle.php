@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\HiringReport;
 
-use kintai\Bundles\Installed\HiringReport\Repositories\DatabaseHiringReportRepository;
-use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use kintai\Bundles\Installed\HiringReport\Services\HiringReportOnEmployeeCreated;
 use kintai\Contract\Bundle;
 use kintai\Contract\Event\EmployeeCreated;
@@ -37,7 +35,6 @@ final class HiringReportBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->singleton(HiringReportRepositoryInterface::class, fn() => new DatabaseHiringReportRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'hiring-report');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

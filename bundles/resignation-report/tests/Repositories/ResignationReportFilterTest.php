@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ResignationReport\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
+use kintai\Bundles\Installed\ResignationReport\Models\ResignationReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -36,27 +36,24 @@ final class ResignationReportFilterTest extends TestCase
 
     public function testFiltersByYearAndMonth(): void
     {
-        $repo = new DatabaseResignationReportRepository();
 
-        $this->assertCount(1, $repo->findAll(null, ['year' => '2026', 'month' => '07']));
-        $this->assertCount(1, $repo->findAll(null, ['year' => '2026', 'month' => '08']));
-        $this->assertCount(0, $repo->findAll(null, ['year' => '2025']));
-        $this->assertCount(2, $repo->findAll(null, ['year' => '2026']));
+        $this->assertCount(1, ResignationReport::findAll(null, ['year' => '2026', 'month' => '07']));
+        $this->assertCount(1, ResignationReport::findAll(null, ['year' => '2026', 'month' => '08']));
+        $this->assertCount(0, ResignationReport::findAll(null, ['year' => '2025']));
+        $this->assertCount(2, ResignationReport::findAll(null, ['year' => '2026']));
     }
 
     public function testFiltersByPersonInChargeSubstring(): void
     {
-        $repo = new DatabaseResignationReportRepository();
 
-        $this->assertCount(1, $repo->findAll(null, ['person_in_charge' => 'Dupont']));
-        $this->assertCount(1, $repo->findAll(null, ['person_in_charge' => 'Sato']));
-        $this->assertCount(0, $repo->findAll(null, ['person_in_charge' => 'Nobody']));
+        $this->assertCount(1, ResignationReport::findAll(null, ['person_in_charge' => 'Dupont']));
+        $this->assertCount(1, ResignationReport::findAll(null, ['person_in_charge' => 'Sato']));
+        $this->assertCount(0, ResignationReport::findAll(null, ['person_in_charge' => 'Nobody']));
     }
 
     public function testNoFiltersReturnsEverything(): void
     {
-        $repo = new DatabaseResignationReportRepository();
 
-        $this->assertCount(2, $repo->findAll());
+        $this->assertCount(2, ResignationReport::findAll());
     }
 }

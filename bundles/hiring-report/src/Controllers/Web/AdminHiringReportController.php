@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\HiringReport\Controllers\Web;
 
+use kintai\Bundles\Installed\HiringReport\Models\HiringReport;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
 use kintai\Contract\Data\User;
@@ -51,7 +51,6 @@ final class AdminHiringReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly HiringReportRepositoryInterface $hiringReports,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -81,7 +80,7 @@ final class AdminHiringReportController
             $filters['month'] = $filterMonth;
         }
 
-        $reports = $this->hiringReports->findAll($queryStoreIds, $filters);
+        $reports = HiringReport::findAll($queryStoreIds, $filters);
 
         return response($this->view->make('hiring-report::reports-hiring', [
             'title'        => __('hiring_report_hiring_reports'),
@@ -126,7 +125,7 @@ final class AdminHiringReportController
             'created_by' => $request->attributes->get('auth_user')['id'] ?? 0,
         ]);
 
-        $saved = $this->hiringReports->save($data);
+        $saved = HiringReport::put($data);
 
         $this->auditLogger->log($request, 'hiring_report.created', 'hiring_report', (int) ($saved['id'] ?? 0), [
             'store_id' => $storeId,
@@ -166,9 +165,9 @@ final class AdminHiringReportController
         return $this->reportPdfDownload($request);
     }
 
-    protected function reportRepo(): object
+    protected function reportModel(): string
     {
-        return $this->hiringReports;
+        return HiringReport::class;
     }
 
     protected function reportConfig(): array

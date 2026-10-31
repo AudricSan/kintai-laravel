@@ -9,8 +9,6 @@ use kintai\Contract\Extension\Action;
 use kintai\Contract\Extension\NavItem;
 use Illuminate\Console\Scheduling\Schedule;
 use kintai\Bundles\Installed\ResignationReport\Console\DeactivateCommand;
-use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
-use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 
 /**
  * Le bundle possède son modèle, son dépôt et sa table (resignation_reports) ; aucun composant du Core n'en dépend.
@@ -50,10 +48,6 @@ final class ResignationReportBundle extends Bundle
     {
         $container = $this->app;
 
-        $container->singleton(
-            ResignationReportRepositoryInterface::class,
-            fn() => new DatabaseResignationReportRepository()
-        );
     }
 
     /**

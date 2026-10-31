@@ -14,7 +14,6 @@ use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use App\Auth\PermissionService;
 use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\ResignationReport\Repositories\ResignationReportRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -27,10 +26,17 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 final class AdminResignationReportControllerTest extends TestCase
 {
-    private ResignationReportRepositoryInterface&Stub $resignationReports;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['resignation_reports', 'resignation-report'];
+    }
+
     private ?AdminResignationReportController $controller = null;
 
     protected function setUp(): void
@@ -44,7 +50,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'reports-resignation-export-pdf');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $this->resignationReports = $this->createStub(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -56,10 +62,9 @@ final class AdminResignationReportControllerTest extends TestCase
             $view->addNamespace('resignation-report', $viewDir);
             $this->controller = new AdminResignationReportController(
                 $view,
-                $this->resignationReports,
                 new AuditLogger(),
                 new PermissionService(),
-                new ResignationDeactivation($this->resignationReports),
+                new ResignationDeactivation(),
                 new \App\Auth\UserAnonymizer(
                     new \App\Auth\CredentialRevoker(),
                     sys_get_temp_dir(),
@@ -87,7 +92,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->resignationReports->method('findAll')->willReturn([
+        $this->seedRows([
             ['id' => 10, 'store_id' => 1, 'employee_name' => 'Jean Dupont'],
         ]);
 
@@ -107,7 +112,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->resignationReports->method('findAll')->willReturn([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->exportResignationReportsPdf($req);
 
@@ -123,7 +128,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->resignationReports->method('findAll')->willReturn([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->exportResignationReportsPdfDownload($req);
 
@@ -133,16 +138,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testAllResignationReportsPassesYearMonthPersonFiltersToRepository(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $_GET = ['year' => '2026', 'month' => '07', 'person' => 'Dupont', 'store_id' => '1'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->resignationReports->expects($this->once())->method('findAll')->with(
-            [1],
-            ['store_id' => 1, 'year' => '2026', 'month' => '07', 'person_in_charge' => 'Dupont']
-        )->willReturn([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->allResignationReports($req);
 
@@ -151,12 +153,12 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testAllResignationReportsWithoutFiltersPassesEmptyFilters(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->resignationReports->expects($this->once())->method('findAll')->with([], [])->willReturn([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->allResignationReports($req);
 
@@ -256,13 +258,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testShowResignationReportLogsConsultation(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '20']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20, 'store_id' => 1, 'employee_name' => 'Bob']);
+        $this->seedRows([['id' => 20, 'store_id' => 1, 'employee_name' => 'Bob']]);
         kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
         $response = $this->controller()->showResignationReport($req);
 
@@ -276,13 +278,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testShowResignationReportOfAnotherStoreThrowsNotFound(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '20']);
 
         // Le rapport existe mais appartient au store 2, pas au store 1 de l'URL
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(20)->willReturn(['id' => 20, 'store_id' => 2]);
+        $this->seedRows([['id' => 20, 'store_id' => 2]]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->showResignationReport($req);
@@ -307,7 +309,6 @@ final class AdminResignationReportControllerTest extends TestCase
 
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         kintai_test_store_users(findMembership: fn() => ['id' => 3]);
-        $this->resignationReports->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 99]);
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_active' => 1] : null);
         $response = $this->controller()->storeResignationReport($req);
         $captured = \App\Models\User::findById(5);
@@ -320,7 +321,7 @@ final class AdminResignationReportControllerTest extends TestCase
     /** Audit du 13/10/2026 : la création désactivait n'importe quel compte, y compris hors du magasin. */
     public function testStoreResignationReportRefusesUserOutsideTheStore(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $_POST = ['employee_name' => 'X', 'user_id' => '77'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
@@ -328,7 +329,7 @@ final class AdminResignationReportControllerTest extends TestCase
         $req->setRouteParams(['id' => '1']);
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         kintai_test_store_users(findMembership: fn() => null);
-        $this->resignationReports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeResignationReport($req);
@@ -353,15 +354,15 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testDeletePermanentlyRefusesUserWhoBelongsToAnUnmanagedStore(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [1]);
         $req->attributes->set('auth_user', ['id' => 2]);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'user_id' => 5]);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'user_id' => 5]]);
         kintai_test_assignments(findByScope: fn() => []);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 5 ? [['store_id' => 1], ['store_id' => 4]] : []);
-        $this->resignationReports->expects($this->never())->method('delete');
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->deleteResignationReportPermanently($req);
@@ -369,7 +370,7 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testUpdateResignationReportMergesPostFieldsAndRedirects(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $_POST = [
             'user_id'            => '5',
             'employee_number'    => 'E-42',
@@ -386,15 +387,12 @@ final class AdminResignationReportControllerTest extends TestCase
         kintai_test_store_users(findMembership: fn() => ['id' => 3]);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)
-            ->willReturn(['id' => 10, 'store_id' => 1, 'employee_name' => 'Ancien nom']);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'employee_name' => 'Ancien nom']]);
 
-        $this->resignationReports->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) =>
+        $this->expectSaved(fn(array $data) =>
                 $data['id'] === 10
                 && $data['user_id'] === 5
-                && $data['employee_name'] === 'Alice Martin'
-        ));
+                && $data['employee_name'] === 'Alice Martin');
 
         $response = $this->controller()->updateResignationReport($req);
 
@@ -404,16 +402,16 @@ final class AdminResignationReportControllerTest extends TestCase
     /** Audit du 13/10/2026 : un rapport ne peut pas être lié à un compte étranger au magasin. */
     public function testUpdateResignationReportRejectsUserOutsideTheStore(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $_POST = ['user_id' => '99', 'employee_name' => 'X'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
+        $this->seedRows([['id' => 10, 'store_id' => 1]]);
         kintai_test_store_users(findMembership: fn() => null);
-        $this->resignationReports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->updateResignationReport($req);
@@ -421,13 +419,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testDeleteResignationReportDeletesAndLogs(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->resignationReports->expects($this->once())->method('delete')->with(10);
+        $this->seedRows([['id' => 10, 'store_id' => 1]]);
+        $this->expectDeleted(10);
 
         $response = $this->controller()->deleteResignationReport($req);
 
@@ -436,14 +434,14 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testDeleteResignationReportReactivatesTheAssociatedAccount(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         // Rapport appliqué (deactivated_at renseigné) : sa suppression rend l'accès.
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'user_id' => 5, 'deactivated_at' => '2026-08-01 09:00:00']);
-        $this->resignationReports->expects($this->once())->method('delete')->with(10);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'user_id' => 5, 'deactivated_at' => '2026-08-01 09:00:00']]);
+        $this->expectDeleted(10);
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_active' => 0] : null);
         $response = $this->controller()->deleteResignationReport($req);
         $captured = \App\Models\User::findById(5);
@@ -454,13 +452,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testDeleteResignationReportWithoutLinkedUserDoesNotTouchUsers(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->resignationReports->expects($this->once())->method('delete')->with(10);
+        $this->seedRows([['id' => 10, 'store_id' => 1]]);
+        $this->expectDeleted(10);
         $response = $this->controller()->deleteResignationReport($req);
 
         $this->assertSame(302, $response->getStatusCode());
@@ -469,13 +467,13 @@ final class AdminResignationReportControllerTest extends TestCase
     /** Audit n°8 : le compte est anonymisé (contrat 1.21), plus seulement supprimé en douceur avec ses données. */
     public function testDeleteResignationReportPermanentlyDeletesReportAndAnonymizesUser(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'user_id' => 5]);
-        $this->resignationReports->expects($this->once())->method('delete')->with(10);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'user_id' => 5]]);
+        $this->expectDeleted(10);
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'email' => 'alice@example.test', 'phone' => '0600000000'] : null);
         $response = $this->controller()->deleteResignationReportPermanently($req);
 
@@ -484,13 +482,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testDeleteResignationReportPermanentlyWithoutLinkedUserOnlyDeletesReport(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->resignationReports->expects($this->once())->method('delete')->with(10);
+        $this->seedRows([['id' => 10, 'store_id' => 1]]);
+        $this->expectDeleted(10);
         $response = $this->controller()->deleteResignationReportPermanently($req);
 
         $this->assertSame(302, $response->getStatusCode());
@@ -498,13 +496,13 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testReactivateUserReactivatesTheAssociatedAccount(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'user_id' => 5]);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'user_id' => 5]]);
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_active' => 0] : null);
         $response = $this->controller()->reactivateUser($req);
         $captured = \App\Models\User::findById(5);
@@ -541,44 +539,42 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testAFutureResignationDateDoesNotDeactivateTheAccountYet(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = $this->storeRequest(2, date('Y-m-d', strtotime('+20 days')));
-        $this->resignationReports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 99]);
+        $this->expectSaved(fn(array $row) => true);
         $this->assertSame(302, $this->controller()->storeResignationReport($req)->getStatusCode());
     }
 
     public function testTodaysResignationDeactivatesNowAndMarksTheReport(): void
     {
+        $this->resetRows();
         $req = $this->storeRequest(2, date('Y-m-d'));
-        $saved = [];
-        $this->resignationReports->method('save')->willReturnCallback(function (array $d) use (&$saved) {
-            $saved[] = $d;
-            return $d + ['id' => 99];
-        });
+        $this->startCapture();
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'is_active' => 1] : null);
         $this->controller()->storeResignationReport($req);
+        $saved = $this->capturedRow();
 
-        $this->assertNotEmpty($saved[1]['deactivated_at'] ?? null, 'rapport marqué appliqué');
+        $this->assertNotEmpty($saved['deactivated_at'] ?? null, 'rapport marqué appliqué');
     }
 
     public function testAManagerCannotFileTheirOwnResignation(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = $this->storeRequest(5, date('Y-m-d'));
-        $this->resignationReports->expects($this->never())->method('save');
+        $this->expectNoChange();
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->storeResignationReport($req);
     }
 
     public function testAManagerCannotFileAnotherManagersResignation(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = $this->storeRequest(2, date('Y-m-d'));
         kintai_test_assignments(findByUser: fn(int $u) => $u === 5
             ? [['id' => 4, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : [], findByScope: fn() => []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['shifts.view']);
-        $this->resignationReports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ForbiddenException::class);
         $this->controller()->storeResignationReport($req);
@@ -586,7 +582,7 @@ final class AdminResignationReportControllerTest extends TestCase
 
     public function testAnOwnerCanFileAManagersResignation(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = $this->storeRequest(7, date('Y-m-d', strtotime('+3 days')));
         kintai_test_assignments(findByUser: fn() => [
             ['id' => 4, 'user_id' => 5, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1],
@@ -594,18 +590,20 @@ final class AdminResignationReportControllerTest extends TestCase
             ['id' => 1, 'user_id' => 7, 'role_id' => 10, 'scope_type' => 'global', 'scope_id' => null],
         ]);
         kintai_test_roles(findById: fn(int $id) => ['id' => $id, 'is_system' => $id === 10 ? 1 : 0], getPermissions: fn() => ['shifts.view']);
-        $this->resignationReports->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d + ['id' => 99]);
+        $this->expectSaved(fn(array $row) => true);
 
         $this->assertSame(302, $this->controller()->storeResignationReport($req)->getStatusCode());
     }
 
     public function testDeletingAReportNotYetAppliedLeavesTheAccountAlone(): void
     {
-        $this->resignationReports = $this->createMock(ResignationReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
-        $this->resignationReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'user_id' => 5, 'deactivated_at' => null]);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'user_id' => 5, 'deactivated_at' => null]]);
         $this->controller()->deleteResignationReport($req);
+
+        $this->assertSame(0, count($this->rowsInTable()), 'le rapport est supprimé');
     }
 }

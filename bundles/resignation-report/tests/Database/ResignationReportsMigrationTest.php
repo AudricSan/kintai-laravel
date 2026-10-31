@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\ResignationReport\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
+use kintai\Bundles\Installed\ResignationReport\Models\ResignationReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -40,9 +40,8 @@ final class ResignationReportsMigrationTest extends TestCase
             $this->assertTrue($schema->hasColumn('resignation_reports', $column), "resignation_reports.{$column}");
         }
 
-        $repo = new DatabaseResignationReportRepository();
-        $saved = $repo->save(['store_id' => 1, 'user_id' => 2, 'employee_name' => 'Sato', 'resignation_date' => '2026-10-31', 'created_by' => 1]);
-        $this->assertSame('Sato', $repo->findById((int) $saved['id'])['employee_name']);
+        $saved = ResignationReport::put(['store_id' => 1, 'user_id' => 2, 'employee_name' => 'Sato', 'resignation_date' => '2026-10-31', 'created_by' => 1]);
+        $this->assertSame('Sato', ResignationReport::findById((int) $saved['id'])['employee_name']);
         $this->assertSame([], $runner->runPendingFor('resignation-report', $this->migrationsPath()), 'rejouée : rien');
     }
 

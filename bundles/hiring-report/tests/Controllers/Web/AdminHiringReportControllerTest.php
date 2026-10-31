@@ -8,7 +8,6 @@ namespace Tests\Bundles\HiringReport\Controllers\Web;
 use kintai\Bundles\Installed\HiringReport\Controllers\Web\AdminHiringReportController;
 use Tests\Support\TestContainer;
 use App\Exceptions\NotFoundException;
-use kintai\Bundles\Installed\HiringReport\Repositories\HiringReportRepositoryInterface;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\User;
@@ -19,10 +18,17 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 final class AdminHiringReportControllerTest extends TestCase
 {
-    private HiringReportRepositoryInterface&Stub $hiringReports;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['hiring_reports', 'hiring-report'];
+    }
+
     private ?AdminHiringReportController $controller = null;
 
     protected function setUp(): void
@@ -34,7 +40,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile($viewDir, 'reports-hiring-form');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $this->hiringReports = $this->createStub(HiringReportRepositoryInterface::class);
+        $this->resetRows();
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -46,7 +52,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view->addNamespace('hiring-report', $viewDir);
             $this->controller = new AdminHiringReportController(
                 $view,
-                $this->hiringReports,
                 new AuditLogger(),
             );
         }
@@ -63,7 +68,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testAllHiringReportsListsAcrossStoresForAdmin(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->attributes->set('managed_store_ids', null);
@@ -72,9 +77,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
-        $this->hiringReports->expects($this->once())->method('findAll')
-            ->with([], [])
-            ->willReturn([
+        $this->seedRows([
                 ['id' => 10, 'store_id' => 1, 'employee_name' => 'Alice'],
                 ['id' => 11, 'store_id' => 2, 'employee_name' => 'Bob'],
             ]);
@@ -86,7 +89,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testAllHiringReportsAppliesStoreYearMonthFilters(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $_GET = ['store_id' => '2', 'year' => '2026', 'month' => '08'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
@@ -96,9 +99,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
-        $this->hiringReports->expects($this->once())->method('findAll')
-            ->with([2], ['store_id' => 2, 'year' => '2026', 'month' => '08'])
-            ->willReturn([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->allHiringReports($req);
 
@@ -107,15 +108,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testAllHiringReportsScopesNonAdminToManagedStores(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1]);
         $req->attributes->set('managed_store_ids', [3]);
 
         kintai_test_stores(findById: fn(int $id) => $id === 3 ? ['id' => 3, 'name' => 'Store C'] : null);
-        $this->hiringReports->expects($this->once())->method('findAll')
-            ->with([3], [])
-            ->willReturn([]);
+        $this->seedRows([]);
 
         $response = $this->controller()->allHiringReports($req);
 
@@ -124,13 +123,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testShowHiringReportLogsConsultation(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $log = kintai_test_log();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1, 'employee_name' => 'Alice']);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'employee_name' => 'Alice']]);
         kintai_test_stores(findById: fn() => ['id' => 1, 'name' => 'Store A']);
         $response = $this->controller()->showHiringReport($req);
 
@@ -144,13 +143,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testShowHiringReportOfAnotherStoreThrowsNotFound(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         // Le rapport existe mais appartient au store 2, pas au store 1 de l'URL
-        $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 2]);
+        $this->seedRows([['id' => 10, 'store_id' => 2]]);
 
         $this->expectException(NotFoundException::class);
         $this->controller()->showHiringReport($req);
@@ -159,7 +158,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Audit du 13/10/2026 : un rapport d'embauche ne peut pas être lié à un compte étranger au magasin. */
     public function testStoreHiringReportRefusesUserOutsideTheStore(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $_POST = ['user_id' => '77', 'employee_name' => 'X'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
@@ -167,7 +166,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $req->setRouteParams(['id' => '1']);
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         kintai_test_store_users(findMembership: fn() => null);
-        $this->hiringReports->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeHiringReport($req);
@@ -188,7 +187,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreHiringReportSavesAndRedirects(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $_POST = [
             'user_id'             => '5',
             'employee_number'     => 'E-1',
@@ -218,12 +217,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1] : null);
         kintai_test_store_users(findMembership: fn() => ['id' => 3]);
-        $this->hiringReports->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) =>
+        $this->expectSaved(fn(array $data) =>
                 $data['store_id'] === 1
                 && $data['user_id'] === 5
-                && $data['employee_name'] === 'Alice Martin'
-        ))->willReturn(['id' => 99]);
+                && $data['employee_name'] === 'Alice Martin');
 
         $response = $this->controller()->storeHiringReport($req);
 
@@ -232,7 +229,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testUpdateHiringReportMergesPostFieldsAndRedirects(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $_POST = [
             'user_id'         => '5',
             'employee_number' => 'E-42',
@@ -245,17 +242,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
         kintai_test_store_users(findMembership: fn() => ['id' => 3]);
-        $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)
-            ->willReturn(['id' => 10, 'store_id' => 1, 'employee_name' => 'Ancien nom']);
+        $this->seedRows([['id' => 10, 'store_id' => 1, 'employee_name' => 'Ancien nom']]);
 
-        $this->hiringReports->expects($this->once())->method('save')->with($this->callback(
-            fn(array $data) =>
+        $this->expectSaved(fn(array $data) =>
                 $data['id'] === 10
                 && $data['user_id'] === 5
                 && $data['employee_number'] === 'E-42'
                 && $data['employee_name'] === 'Alice Martin'
                 && $data['notes'] === null // champ vide → null
-        ));
+        );
 
         $response = $this->controller()->updateHiringReport($req);
 
@@ -264,13 +259,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDeleteHiringReportDeletesAndLogs(): void
     {
-        $this->hiringReports = $this->createMock(HiringReportRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '10']);
 
-        $this->hiringReports->expects($this->atLeastOnce())->method('findById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->hiringReports->expects($this->once())->method('delete')->with(10);
+        $this->seedRows([['id' => 10, 'store_id' => 1]]);
+        $this->expectDeleted(10);
 
         $response = $this->controller()->deleteHiringReport($req);
 

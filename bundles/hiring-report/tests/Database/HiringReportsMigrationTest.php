@@ -6,7 +6,7 @@ namespace Tests\Bundles\HiringReport\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\HiringReport\Controllers\Web\AdminHiringReportController;
-use kintai\Bundles\Installed\HiringReport\Repositories\DatabaseHiringReportRepository;
+use kintai\Bundles\Installed\HiringReport\Models\HiringReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -16,6 +16,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class HiringReportsMigrationTest extends TestCase
 {
+    /** Les tests créent des schémas anciens dans la base en mémoire : la suite repart d'une base neuve. */
+    protected function tearDown(): void
+    {
+        kintai_test_database();
+    }
+
     private function migrationsPath(): string
     {
         return dirname(__DIR__, 2) . '/database/migrations';
@@ -45,9 +51,8 @@ final class HiringReportsMigrationTest extends TestCase
         }
         $this->assertFalse($schema->hasColumn('hiring_reports', 'furigana'), 'colonne combinée retirée par le Core');
 
-        $repo = new DatabaseHiringReportRepository();
-        $saved = $repo->save(['store_id' => 1, 'user_id' => 2, 'employee_name' => 'Sato', 'furigana_last_name' => 'サトウ', 'created_by' => 1]);
-        $this->assertSame('サトウ', $repo->findById((int) $saved['id'])['furigana_last_name']);
+        $saved = HiringReport::put(['store_id' => 1, 'user_id' => 2, 'employee_name' => 'Sato', 'furigana_last_name' => 'サトウ', 'created_by' => 1]);
+        $this->assertSame('サトウ', HiringReport::findById((int) $saved['id'])['furigana_last_name']);
         $this->assertSame([], $runner->runPendingFor('hiring-report', $this->migrationsPath()), 'rejouée : rien');
     }
 
@@ -69,7 +74,7 @@ final class HiringReportsMigrationTest extends TestCase
         }
 
         $row = array_fill_keys(array_keys($type['fields']), null) + ['store_id' => 1, 'created_by' => 1];
-        $saved = (new DatabaseHiringReportRepository())->save($row);
+        $saved = HiringReport::put($row);
         $this->assertGreaterThan(0, (int) $saved['id'], 'un rapport avec tous les champs du formulaire s\'enregistre');
     }
 

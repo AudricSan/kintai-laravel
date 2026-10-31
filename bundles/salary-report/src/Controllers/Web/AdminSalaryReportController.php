@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\SalaryReport\Controllers\Web;
 
+use kintai\Bundles\Installed\SalaryReport\Models\SalaryReport;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ValidationException;
-use kintai\Bundles\Installed\SalaryReport\Repositories\SalaryReportRepositoryInterface;
 use kintai\Contract\Data\Shift;
 use kintai\Contract\Data\ShiftType;
 use kintai\Contract\Data\Store;
@@ -61,7 +61,6 @@ final class AdminSalaryReportController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly SalaryReportRepositoryInterface $salaryReports,
         private readonly Sales $sales,
         private readonly AuditLogger $auditLogger,
         private readonly StoreStatsService $storeStatsService,
@@ -89,7 +88,7 @@ final class AdminSalaryReportController
             $filters['person_in_charge'] = $filterPerson;
         }
 
-        $reports = $this->salaryReports->findAll($queryStoreIds, $filters);
+        $reports = SalaryReport::findAll($queryStoreIds, $filters);
 
         $membersByStore = [];
         foreach ($allStores as $s) {
@@ -142,7 +141,7 @@ final class AdminSalaryReportController
     public function exportSalaryReportsJson(Request $request): Response
     {
         [, $queryStoreIds] = $this->storesAndFilter($request);
-        $reports = $this->salaryReports->findAll($queryStoreIds, $this->exportFilters($request));
+        $reports = SalaryReport::findAll($queryStoreIds, $this->exportFilters($request));
 
         $this->auditLogger->log($request, 'export.salary_reports_json', 'salary_report', 0, [
             'count' => count($reports),
@@ -159,7 +158,7 @@ final class AdminSalaryReportController
     public function exportSalaryReportsPdf(Request $request): Response
     {
         [$allStores, $queryStoreIds] = $this->storesAndFilter($request);
-        $reports = $this->salaryReports->findAll($queryStoreIds, $this->exportFilters($request));
+        $reports = SalaryReport::findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
         $html = $this->view->make('salary-report::reports-salary-export-pdf', [
@@ -175,7 +174,7 @@ final class AdminSalaryReportController
     public function exportSalaryReportsPdfDownload(Request $request): Response
     {
         [$allStores, $queryStoreIds] = $this->storesAndFilter($request);
-        $reports = $this->salaryReports->findAll($queryStoreIds, $this->exportFilters($request));
+        $reports = SalaryReport::findAll($queryStoreIds, $this->exportFilters($request));
         $storeNames = array_column($allStores, 'name', 'id');
 
         $html = $this->view->make('salary-report::reports-salary-export-pdf', [
@@ -285,7 +284,7 @@ final class AdminSalaryReportController
             throw new ValidationException(['user_id' => __('salary_report_error_salary_user_not_in_store')]);
         }
 
-        $existing = $this->salaryReports->findByStoreAndMonth($storeId, $targetMonth, $userId ?: null);
+        $existing = SalaryReport::findByStoreAndMonth($storeId, $targetMonth, $userId ?: null);
         if ($existing !== null) {
             return redirect()->away($this->base() . '/admin/stores/' . $storeId . '/reports/salary/' . $existing['id'] . '/edit')->with('error', 'already_exists');
         }
@@ -298,7 +297,7 @@ final class AdminSalaryReportController
             'created_by' => $request->attributes->get('auth_user')['id'] ?? 0,
         ]);
 
-        $saved = $this->salaryReports->save($data);
+        $saved = SalaryReport::put($data);
 
         $this->auditLogger->log($request, 'salary_report.created', 'salary_report', (int) ($saved['id'] ?? 0), [
             'store_id'     => $storeId,
@@ -338,9 +337,9 @@ final class AdminSalaryReportController
         return $this->reportPdfDownload($request);
     }
 
-    protected function reportRepo(): object
+    protected function reportModel(): string
     {
-        return $this->salaryReports;
+        return SalaryReport::class;
     }
 
     protected function reportConfig(): array

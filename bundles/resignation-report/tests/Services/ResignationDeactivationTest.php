@@ -6,7 +6,7 @@ namespace Tests\Bundles\ResignationReport\Services;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use kintai\Bundles\Installed\ResignationReport\Console\DeactivateCommand;
-use kintai\Bundles\Installed\ResignationReport\Repositories\DatabaseResignationReportRepository;
+use kintai\Bundles\Installed\ResignationReport\Models\ResignationReport;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;
 use Tests\Support\BundleMigrationHarness;
 use App\Models\User;
@@ -22,7 +22,6 @@ final class ResignationDeactivationTest extends TestCase
 {
     /** @var array<int, array<string, mixed>> */
     private array $accounts = [];
-    private DatabaseResignationReportRepository $reports;
     private ResignationDeactivation $deactivation;
 
     protected function setUp(): void
@@ -33,15 +32,14 @@ final class ResignationDeactivationTest extends TestCase
 
         $this->accounts = [5 => ['id' => 5, 'is_active' => 1], 6 => ['id' => 6, 'is_active' => 1], 7 => ['id' => 7, 'is_active' => 1]];
         kintai_test_users(findById: fn(int $id) => $this->accounts[$id] ?? null);
-        $this->reports = new DatabaseResignationReportRepository();
-        $this->deactivation = new ResignationDeactivation($this->reports);
+        $this->deactivation = new ResignationDeactivation();
     }
 
     public function testTheDailyJobOnlyAppliesDueReportsAndOnlyOnce(): void
     {
-        $this->reports->save(['store_id' => 1, 'user_id' => 5, 'resignation_date' => '2026-10-10']);
-        $this->reports->save(['store_id' => 1, 'user_id' => 6, 'resignation_date' => '2026-11-30']);
-        $this->reports->save(['store_id' => 1, 'user_id' => null, 'resignation_date' => '2026-10-01']);
+        ResignationReport::put(['store_id' => 1, 'user_id' => 5, 'resignation_date' => '2026-10-10']);
+        ResignationReport::put(['store_id' => 1, 'user_id' => 6, 'resignation_date' => '2026-11-30']);
+        ResignationReport::put(['store_id' => 1, 'user_id' => null, 'resignation_date' => '2026-10-01']);
 
         $this->assertCount(1, $this->deactivation->applyDue('2026-10-15'));
         $this->assertSame(0, \App\Models\User::findById(5)['is_active']);
@@ -59,18 +57,18 @@ final class ResignationDeactivationTest extends TestCase
 
     public function testAReportPushedBackToTheFutureGivesAccessBack(): void
     {
-        $report = $this->reports->save(['store_id' => 1, 'user_id' => 7, 'resignation_date' => '2026-10-01']);
+        $report = ResignationReport::put(['store_id' => 1, 'user_id' => 7, 'resignation_date' => '2026-10-01']);
         $this->assertSame('deactivated', $this->deactivation->sync($report, '2026-10-15'));
 
-        $moved = $this->reports->save(['id' => (int) $report['id'], 'resignation_date' => '2026-12-31']);
+        $moved = ResignationReport::put(['id' => (int) $report['id'], 'resignation_date' => '2026-12-31']);
         $this->assertSame('reactivated', $this->deactivation->sync($moved, '2026-10-15'));
         $this->assertSame(1, \App\Models\User::findById(7)['is_active']);
-        $this->assertNull($this->reports->findById((int) $report['id'])['deactivated_at']);
+        $this->assertNull(ResignationReport::findById((int) $report['id'])['deactivated_at']);
     }
 
     public function testTheCommandReportsWhatItDid(): void
     {
-        $this->reports->save(['store_id' => 1, 'user_id' => 5, 'resignation_date' => date('Y-m-d', strtotime('-1 day'))]);
+        ResignationReport::put(['store_id' => 1, 'user_id' => 5, 'resignation_date' => date('Y-m-d', strtotime('-1 day'))]);
         app()->instance(ResignationDeactivation::class, $this->deactivation);
         app()->instance(\kintai\Contract\Services\AuditLogger::class, new AuditLogger());
         [, $output] = kintai_test_command(new DeactivateCommand());
