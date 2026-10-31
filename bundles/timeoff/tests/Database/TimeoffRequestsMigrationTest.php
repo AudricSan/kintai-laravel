@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\TimeOff\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\TimeOff\Repositories\DatabaseTimeoffRequestRepository;
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -92,14 +92,13 @@ final class TimeoffRequestsMigrationTest extends TestCase
         }
 
         // Écriture du code (« Ajouter un congé » du gérant, traitement par l'API) : ce qui échouait selon le schéma.
-        $repo = new DatabaseTimeoffRequestRepository();
-        $saved = $repo->save(['store_id' => 1, 'user_id' => 3, 'type' => 'vacation', 'start_date' => '2026-10-20', 'end_date' => '2026-10-21',
+        $saved = TimeoffRequest::put(['store_id' => 1, 'user_id' => 3, 'type' => 'vacation', 'start_date' => '2026-10-20', 'end_date' => '2026-10-21',
             'status' => 'approved', 'processed_by' => 4, 'processed_at' => '2026-10-14 09:00:00', 'admin_note' => 'vu',
             'created_at' => '2026-10-14 09:00:00']);
-        $this->assertSame([4, 'vu'], [(int) $repo->findById((int) $saved['id'])['processed_by'], $repo->findById((int) $saved['id'])['admin_note']]);
+        $this->assertSame([4, 'vu'], [(int) TimeoffRequest::findById((int) $saved['id'])['processed_by'], TimeoffRequest::findById((int) $saved['id'])['admin_note']]);
 
         if ($existing === 'legacySqlSchema') {
-            $old = $repo->findById(7);
+            $old = TimeoffRequest::findById(7);
             $this->assertSame([9, '2026-08-30 10:00:00', 'ok', 'sick'], [(int) $old['processed_by'], $old['processed_at'], $old['admin_note'], $old['type']]);
         }
         $this->assertSame([], $runner->runPendingFor('timeoff', dirname(__DIR__, 2) . '/database/migrations'), 'rejouées : rien');

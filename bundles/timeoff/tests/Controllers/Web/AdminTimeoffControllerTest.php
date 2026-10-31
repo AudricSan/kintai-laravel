@@ -9,7 +9,6 @@ use kintai\Bundles\Installed\TimeOff\Controllers\Web\AdminTimeoffController;
 use App\Exceptions\ForbiddenException;
 use App\Models\Store;
 use App\Models\StoreUser;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
@@ -18,10 +17,17 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 final class AdminTimeoffControllerTest extends TestCase
 {
-    private TimeoffRequestRepositoryInterface&Stub $timeoffRequests;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeoff_requests', 'timeoff'];
+    }
+
     private NotificationService&Stub $notifs;
     private ?AdminTimeoffController $controller = null;
 
@@ -32,7 +38,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile($viewDir, 'timeoff-form');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $this->timeoffRequests = $this->createStub(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -45,7 +51,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view->addNamespace('timeoff', $viewDir);
             $this->controller = new AdminTimeoffController(
                 $view,
-                $this->timeoffRequests,
                 new AuditLogger(),
                 $this->notifs,
             );
@@ -91,15 +96,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5, 'display_name' => 'Alice'] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 5 ? [['store_id' => 3, 'user_id' => 5]] : []);
         $captured = null;
-        $this->timeoffRequests->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d + ['id' => 99];
-        });
+        $this->startCapture();
 
         $this->notifs->expects($this->once())->method('notify')
-            ->with(5, 'timeoff_approved', $this->isString(), $this->anything(), 99, '/employee/timeoff?highlight=99');
+            ->with(5, 'timeoff_approved', $this->isString(), $this->anything(), 1, '/employee/timeoff?highlight=1');
 
         $response = $this->controller()->storeTimeoffForEmployee($req);
+        $captured = $this->capturedRow();
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
@@ -135,13 +138,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Audit du 13/10/2026 : approuver/refuser ne doit agir que sur une demande en attente. */
     public function testApproveTimeoffIgnoresARequestThatIsNotPending(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'cancelled']);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->seedRows([['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'cancelled']]);
+        $this->expectNoChange();
         $this->notifs->expects($this->never())->method('notify');
 
         $response = $this->controller()->approveTimeoff($req);
@@ -152,12 +155,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testRefuseTimeoffIgnoresARequestThatIsNotPending(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'approved']);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->seedRows([['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'approved']]);
+        $this->expectNoChange();
 
         $this->location($this->controller()->refuseTimeoff($req));
         $this->assertStringContainsString('invalid_state', (string) session('error'));
@@ -165,13 +168,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testApproveTimeoffStillWorksOnAPendingRequest(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(NotificationService::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '5']);
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'pending', 'type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-01']);
-        $this->timeoffRequests->expects($this->once())->method('save')->with($this->callback(fn(array $d) => $d['status'] === 'approved'));
+        $this->seedRows([['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'pending', 'type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-01']]);
+        $this->expectSaved(fn(array $d) => $d['status'] === 'approved');
         $this->notifs->expects($this->once())->method('notify');
 
         $this->location($this->controller()->approveTimeoff($req));
@@ -180,14 +183,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreTimeoffForEmployeeRejectsEndBeforeStart(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $_POST = ['user_id' => '5', 'type' => 'vacation', 'start_date' => '2026-08-05', 'end_date' => '2026-08-01'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 1]);
         kintai_test_users(findById: fn(int $id) => $id === 5 ? ['id' => 5] : null);
         kintai_test_store_users(findByUser: fn(int $id) => $id === 5 ? [['store_id' => 3, 'user_id' => 5]] : []);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $this->expectException(\App\Exceptions\ValidationException::class);
         $this->controller()->storeTimeoffForEmployee($req);
@@ -196,7 +199,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Avant : toujours la première adhésion, donc 403 pour le gérant du second magasin. */
     public function testStoreTimeoffForEmployeePicksTheStoreTheManagerManages(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $_POST = ['user_id' => '5', 'type' => 'vacation', 'start_date' => '2026-08-01'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [4]);
@@ -205,9 +208,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         kintai_test_store_users(findByStore: fn() => [['user_id' => 5]], findByUser: fn(int $id) => $id === 5 ? [
             ['store_id' => 3, 'user_id' => 5], ['store_id' => 4, 'user_id' => 5],
         ] : []);
-        $this->timeoffRequests->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d) => $d['store_id'] === 4
-        ))->willReturn(['id' => 12]);
+        $this->expectSaved(fn(array $d) => $d['store_id'] === 4);
 
         $this->assertSame(302, $this->controller()->storeTimeoffForEmployee($req)->getStatusCode());
     }
@@ -219,15 +220,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDeleteTimeoffRemovesRecordRegardlessOfStatus(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '42']);
 
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(42)->willReturn([
+        $this->seedRows([[
             'id' => 42, 'store_id' => 3, 'user_id' => 5, 'status' => 'approved',
-        ]);
-        $this->timeoffRequests->expects($this->once())->method('delete')->with(42);
+        ]]);
+        $this->expectDeleted(42);
 
         $response = $this->controller()->deleteTimeoff($req);
 
@@ -240,7 +241,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->writeViewContent($viewDir, 'timeoff', "<?php echo json_encode(array_map(fn(\$r) => \$r['id'], \$requests));");
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
-        $this->timeoffRequests->method('findAll')->willReturn([
+        $this->seedRows([
             ['id' => 1, 'store_id' => 1, 'user_id' => 1, 'type' => 'vacation', 'status' => 'pending', 'start_date' => '2026-08-01'],
             ['id' => 2, 'store_id' => 1, 'user_id' => 1, 'type' => 'sick', 'status' => 'approved', 'start_date' => '2026-08-02'],
             ['id' => 3, 'store_id' => 1, 'user_id' => 1, 'type' => 'vacation', 'status' => 'approved', 'start_date' => '2026-08-03'],
@@ -262,7 +263,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->writeViewContent($viewDir, 'timeoff', "<?php echo json_encode(array_map(fn(\$r) => \$r['id'], \$requests));");
         $this->writeViewContent(sys_get_temp_dir(), 'layout.app', "<?php echo \$content ?? '';");
 
-        $this->timeoffRequests->method('findAll')->willReturn([
+        $this->seedRows([
             ['id' => 1, 'store_id' => 1, 'user_id' => 1, 'type' => 'vacation', 'status' => 'pending', 'start_date' => '2026-08-01'],
             ['id' => 2, 'store_id' => 1, 'user_id' => 1, 'type' => 'sick', 'status' => 'approved', 'start_date' => '2026-08-02'],
         ]);
@@ -286,7 +287,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['id' => 1, 'name' => 'Zoo Store'],
             ['id' => 2, 'name' => 'Alpha Store'],
         ]);
-        $this->timeoffRequests->method('findAll')->willReturn([
+        $this->seedRows([
             ['id' => 1, 'store_id' => 1, 'user_id' => 1, 'type' => 'vacation', 'status' => 'pending', 'start_date' => '2026-08-01'],
             ['id' => 2, 'store_id' => 2, 'user_id' => 1, 'type' => 'vacation', 'status' => 'pending', 'start_date' => '2026-08-02'],
         ]);
@@ -325,19 +326,17 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** @return array<string, mixed>|null Demande enregistrée par la décision */
     private function decide(string $action): ?array
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 3]);
         $req->setRouteParams(['id' => '5']);
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'pending', 'type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-01']);
+        $this->seedRows([['id' => 5, 'store_id' => 1, 'user_id' => 9, 'status' => 'pending', 'type' => 'sick', 'start_date' => '2026-08-01', 'end_date' => '2026-08-01']]);
         $saved = null;
-        $this->timeoffRequests->method('save')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved = $d;
-            return $d;
-        });
+        $this->startCapture();
 
         $this->controller()->{$action}($req);
+        $saved = $this->capturedRow();
         return $saved;
     }
 

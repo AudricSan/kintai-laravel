@@ -9,17 +9,23 @@ use kintai\Bundles\Installed\TimeOff\Controllers\Web\EmployeeTimeoffController;
 use App\Exceptions\ForbiddenException;
 use App\Models\Store;
 use App\Models\StoreUser;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 final class EmployeeTimeoffControllerTest extends TestCase
 {
-    private TimeoffRequestRepositoryInterface&Stub $timeoffRequests;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeoff_requests', 'timeoff'];
+    }
+
     private \App\Services\NotificationService $notifs;
     private ?EmployeeTimeoffController $controller = null;
 
@@ -30,7 +36,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile($viewDir, 'employee-timeoff');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $this->timeoffRequests = $this->createStub(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createStub(\App\Services\NotificationService::class);
     }
 
@@ -43,7 +49,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view->addNamespace('timeoff', $viewDir);
             $this->controller = new EmployeeTimeoffController(
                 $view,
-                $this->timeoffRequests,
                 new AuditLogger(),
                 $this->notifs,
                 new \App\Auth\PermissionService(
@@ -62,10 +67,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testTimeoffRendersListForEmployee(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_store_users(findByUser: fn(int $id) => $id === 9 ? [['store_id' => 1, 'user_id' => 9]] : []);
         kintai_test_store_features(1, []);
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findByUser')->with(9)->willReturn([]);
+        $this->seedRows([]);
 
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
@@ -78,12 +83,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Ouvrir la liste marque comme lues les notifications des demandes affichées. */
     public function testTimeoffMarksTheNotificationsOfTheDisplayedRequestsAsRead(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->notifs = $this->createMock(\App\Services\NotificationService::class);
         kintai_test_store_users(findByUser: fn() => [['store_id' => 1, 'user_id' => 9]]);
         kintai_test_store_features(null, []);
-        $this->timeoffRequests->method('findByUser')->with(9)->willReturn([
-            ['id' => 4, 'created_at' => '2026-01-01'], ['id' => 7, 'created_at' => '2026-02-01'],
+        $this->seedRows([
+            ['id' => 4, 'user_id' => 9, 'created_at' => '2026-01-01'], ['id' => 7, 'user_id' => 9, 'created_at' => '2026-02-01'],
         ]);
         $this->notifs->expects($this->once())->method('markReadFor')->with(9, 'timeoff', [7, 4]);
 
@@ -116,12 +121,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $req->attributes->set('auth_user', ['id' => 9]);
 
         $captured = null;
-        $this->timeoffRequests->method('save')->willReturnCallback(function (array $d) use (&$captured) {
-            $captured = $d;
-            return $d + ['id' => 7];
-        });
+        $this->startCapture();
 
         $response = $this->controller()->storeTimeoff($req);
+        $captured = $this->capturedRow();
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertNotNull($captured);
@@ -133,10 +136,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Audit du 13/10/2026 : les dates étaient enregistrées telles quelles, sans aucun contrôle. */
     public function testStoreTimeoffRejectsInvalidDates(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_store_users(findByUser: fn(int $id) => $id === 9 ? [['store_id' => 1, 'user_id' => 9]] : []);
         kintai_test_store_features(1, []);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $_POST = ['type' => 'sick', 'start_date' => 'pas-une-date', 'end_date' => ''];
         $req = Request::capture();
@@ -148,10 +151,10 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreTimeoffRejectsEndBeforeStart(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_store_users(findByUser: fn(int $id) => $id === 9 ? [['store_id' => 1, 'user_id' => 9]] : []);
         kintai_test_store_features(1, []);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $_POST = ['type' => 'sick', 'start_date' => '2026-08-05', 'end_date' => '2026-08-01'];
         $req = Request::capture();
@@ -163,7 +166,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testStoreTimeoffUsesTheChosenStoreWhenMember(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_store_users(findByUser: fn(int $id) => $id === 9 ? [
             ['store_id' => 1, 'user_id' => 9], ['store_id' => 4, 'user_id' => 9],
         ] : []);
@@ -173,19 +176,17 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
 
-        $this->timeoffRequests->expects($this->once())->method('save')->with($this->callback(
-            fn(array $d) => $d['store_id'] === 4 && $d['end_date'] === '2026-08-01'
-        ))->willReturn(['id' => 7]);
+        $this->expectSaved(fn(array $d) => $d['store_id'] === 4 && $d['end_date'] === '2026-08-01');
 
         $this->assertSame(302, $this->controller()->storeTimeoff($req)->getStatusCode());
     }
 
     public function testStoreTimeoffRefusesAStoreTheEmployeeDoesNotBelongTo(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         kintai_test_store_users(findByUser: fn(int $id) => $id === 9 ? [['store_id' => 1, 'user_id' => 9]] : []);
         kintai_test_store_features(null, []);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->expectNoChange();
 
         $_POST = ['type' => 'sick', 'start_date' => '2026-08-01', 'store_id' => '99'];
         $req = Request::capture();
@@ -197,15 +198,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testCancelTimeoffOnlyAllowsOwnerOfPendingRequest(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '5']);
 
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn([
+        $this->seedRows([[
             'id' => 5, 'user_id' => 9, 'status' => 'pending',
-        ]);
-        $this->timeoffRequests->expects($this->once())->method('save')->willReturnCallback(fn(array $d) => $d);
+        ]]);
+        $this->expectSaved(fn(array $row) => true);
 
         $response = $this->controller()->cancelTimeoff($req);
 
@@ -214,14 +215,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testCancelTimeoffForbiddenForAnotherUsersRequest(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 9]);
         $req->setRouteParams(['id' => '5']);
 
-        $this->timeoffRequests->expects($this->atLeastOnce())->method('findById')->with(5)->willReturn([
+        $this->seedRows([[
             'id' => 5, 'user_id' => 42, 'status' => 'pending',
-        ]);
+        ]]);
 
         $this->expectException(ForbiddenException::class);
         $this->controller()->cancelTimeoff($req);

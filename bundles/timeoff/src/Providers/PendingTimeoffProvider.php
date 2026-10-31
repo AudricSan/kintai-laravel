@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Providers;
 
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use kintai\Contract\Container;
 use kintai\Contract\Provider\PendingRequest;
 use kintai\Contract\Provider\PendingRequestsProvider;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 
 /**
  * Demandes de congé en attente, pour la page « Demandes » et le compteur du tableau de bord du Core (contrat 1.9).
@@ -28,7 +28,7 @@ final class PendingTimeoffProvider implements PendingRequestsProvider
     public function pending(?array $storeIds): array
     {
         $requests = [];
-        foreach ($this->container->make(TimeoffRequestRepositoryInterface::class)->findAll() as $r) {
+        foreach (TimeoffRequest::findAll() as $r) {
             $storeId = (int) ($r['store_id'] ?? 0);
             if (($r['status'] ?? '') !== 'pending' || ($storeIds !== null && !in_array($storeId, $storeIds, true))) {
                 continue;

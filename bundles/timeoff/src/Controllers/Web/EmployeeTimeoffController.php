@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Controllers\Web;
 
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -26,7 +26,6 @@ final class EmployeeTimeoffController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
         private readonly PermissionService $permissions,
@@ -40,7 +39,7 @@ final class EmployeeTimeoffController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $requests = $this->timeoffRequests->findByUser($userId);
+        $requests = TimeoffRequest::findByUser($userId);
         usort($requests, fn($a, $b) => strcmp($b['created_at'] ?? '', $a['created_at'] ?? ''));
 
         $stores = [];
@@ -82,7 +81,7 @@ final class EmployeeTimeoffController
         [$startDate, $endDate] = $this->validDates($request->post('start_date', ''), $request->post('end_date', ''));
         $reason = $request->post('reason', '') ?: null;
 
-        $savedTimeoff = $this->timeoffRequests->save([
+        $savedTimeoff = TimeoffRequest::put([
             'store_id'   => $storeId,
             'user_id'    => $userId,
             'type'       => $type,
@@ -196,7 +195,7 @@ final class EmployeeTimeoffController
         $user   = $request->attributes->get('auth_user');
         $userId = (int) ($user['id'] ?? 0);
 
-        $req = $this->timeoffRequests->findById((int) $request->route('id'));
+        $req = TimeoffRequest::findById((int) $request->route('id'));
         if ($req === null || (int) $req['user_id'] !== $userId) {
             throw new ForbiddenException(__('timeoff_error_request_not_found'));
         }
@@ -205,7 +204,7 @@ final class EmployeeTimeoffController
         }
 
         $cancelledReq = array_merge($req, ['status' => 'cancelled']);
-        $this->timeoffRequests->save($cancelledReq);
+        TimeoffRequest::put($cancelledReq);
         $this->auditLogger->logUpdate($request, 'timeoff.cancelled', 'timeoff_request', (int) $req['id'], $req, $cancelledReq, []);
         return redirect()->away($this->base() . '/employee/timeoff')->with('success', 'cancelled');
     }

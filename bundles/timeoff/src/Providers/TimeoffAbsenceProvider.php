@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Providers;
 
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use kintai\Contract\Container;
 use kintai\Contract\Provider\Absence;
 use kintai\Contract\Provider\AbsenceProvider;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 
 /**
  * Absences (demandes de congé, tous statuts) pour le planning, l'export iCal et les statistiques du Core
@@ -19,19 +19,18 @@ final class TimeoffAbsenceProvider implements AbsenceProvider
 
     public function absences(?array $userIds, ?array $storeIds): array
     {
-        $repo = $this->container->make(TimeoffRequestRepositoryInterface::class);
         if ($userIds !== null) {
             $rows = [];
             foreach ($userIds as $userId) {
-                array_push($rows, ...$repo->findByUser((int) $userId));
+                array_push($rows, ...TimeoffRequest::findByUser((int) $userId));
             }
         } elseif ($storeIds !== null) {
             $rows = [];
             foreach ($storeIds as $storeId) {
-                array_push($rows, ...$repo->findByStore((int) $storeId));
+                array_push($rows, ...TimeoffRequest::findByStore((int) $storeId));
             }
         } else {
-            $rows = $repo->findAll();
+            $rows = TimeoffRequest::findAll();
         }
 
         $absences = [];

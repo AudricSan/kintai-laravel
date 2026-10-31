@@ -6,12 +6,19 @@ namespace Tests\Bundles\TimeOff;
 
 use kintai\Bundles\Installed\TimeOff\Providers\TimeoffAbsenceProvider;
 use Tests\Support\TestContainer;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /** Fournisseur d'absences du bundle (contrat 1.10) : mêmes lignes que la lecture historique de la table par le Core. */
 final class TimeoffAbsenceProviderTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeoff_requests', 'timeoff'];
+    }
+
     private function provider(): TimeoffAbsenceProvider
     {
         $rows = [
@@ -19,12 +26,9 @@ final class TimeoffAbsenceProviderTest extends TestCase
             ['id' => 2, 'user_id' => 5, 'store_id' => 2, 'start_date' => '2026-10-03', 'end_date' => '2026-10-03', 'type' => 'sick', 'status' => 'pending'],
             ['id' => 3, 'user_id' => 4, 'store_id' => 2, 'start_date' => '2026-10-09', 'end_date' => '2026-10-08', 'type' => 'sick', 'status' => 'pending'],
         ];
-        $repo = $this->createStub(TimeoffRequestRepositoryInterface::class);
-        $repo->method('findByUser')->willReturnCallback(fn(int $u) => array_values(array_filter($rows, fn($r) => $r['user_id'] === $u)));
-        $repo->method('findByStore')->willReturnCallback(fn(int $s) => array_values(array_filter($rows, fn($r) => $r['store_id'] === $s)));
-        $repo->method('findAll')->willReturn($rows);
+        $this->resetRows();
+        $this->seedRows($rows);
         $container = new TestContainer();
-        $container->instance(TimeoffRequestRepositoryInterface::class, $repo);
         return new TimeoffAbsenceProvider($container);
     }
 

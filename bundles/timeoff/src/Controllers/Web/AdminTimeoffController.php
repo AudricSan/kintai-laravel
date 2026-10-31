@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Controllers\Web;
 
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\NotFoundException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Data\User;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
@@ -23,7 +23,6 @@ final class AdminTimeoffController
     use HasAdminAccess;
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
     ) {}
@@ -34,7 +33,7 @@ final class AdminTimeoffController
 
         $usersMap  = $this->buildUsersMap();
         $storesMap = $this->buildStoresMap($managedIds);
-        $requests  = $this->filterByStore($this->timeoffRequests->findAll(), $managedIds);
+        $requests  = $this->filterByStore(TimeoffRequest::findAll(), $managedIds);
 
         $typeFilter   = (string) ($request->query('type') ?? '');
         $statusFilter = (string) ($request->query('status') ?? '');
@@ -142,7 +141,7 @@ final class AdminTimeoffController
         $reason   = $request->post('reason', '') ?: null;
         $authUser = $request->attributes->get('auth_user');
 
-        $saved = $this->timeoffRequests->save([
+        $saved = TimeoffRequest::put([
             'store_id'    => $storeId,
             'user_id'     => $userId,
             'type'        => $type,
@@ -172,7 +171,7 @@ final class AdminTimeoffController
 
     public function approveTimeoff(Request $request): Response
     {
-        $req = $this->timeoffRequests->findById((int) $request->route('id'));
+        $req = TimeoffRequest::findById((int) $request->route('id'));
         if ($req === null) {
             throw new NotFoundException(__('timeoff_error_request_not_found'));
         }
@@ -183,7 +182,7 @@ final class AdminTimeoffController
             return redirect()->away($this->base() . '/admin/timeoff')->with('error', 'invalid_state');
         }
         $decided = $this->decision($request, $req, 'approved');
-        $this->timeoffRequests->save($decided);
+        TimeoffRequest::put($decided);
         $this->auditLogger->logUpdate($request, 'timeoff.approved', 'timeoff_request', (int) $req['id'], $req, $decided, [], (int) ($req['store_id'] ?? 0) ?: null);
         $this->notifs->notify(
             (int) $req['user_id'],
@@ -198,7 +197,7 @@ final class AdminTimeoffController
 
     public function refuseTimeoff(Request $request): Response
     {
-        $req = $this->timeoffRequests->findById((int) $request->route('id'));
+        $req = TimeoffRequest::findById((int) $request->route('id'));
         if ($req === null) {
             throw new NotFoundException(__('timeoff_error_request_not_found'));
         }
@@ -207,7 +206,7 @@ final class AdminTimeoffController
             return redirect()->away($this->base() . '/admin/timeoff')->with('error', 'invalid_state');
         }
         $decided = $this->decision($request, $req, 'refused');
-        $this->timeoffRequests->save($decided);
+        TimeoffRequest::put($decided);
         $this->auditLogger->logUpdate($request, 'timeoff.refused', 'timeoff_request', (int) $req['id'], $req, $decided, [], (int) ($req['store_id'] ?? 0) ?: null);
         $this->notifs->notify(
             (int) $req['user_id'],
@@ -242,7 +241,7 @@ final class AdminTimeoffController
      */
     public function deleteTimeoff(Request $request): Response
     {
-        $req = $this->timeoffRequests->findById((int) $request->route('id'));
+        $req = TimeoffRequest::findById((int) $request->route('id'));
         if ($req === null) {
             throw new NotFoundException(__('timeoff_error_request_not_found'));
         }
@@ -256,7 +255,7 @@ final class AdminTimeoffController
             'was_status' => $req['status'] ?? null,
         ], (int) ($req['store_id'] ?? 0) ?: null);
 
-        $this->timeoffRequests->delete((int) $req['id']);
+        TimeoffRequest::remove((int) $req['id']);
 
         return redirect()->away($this->base() . '/admin/timeoff')->with('success', 'deleted');
     }

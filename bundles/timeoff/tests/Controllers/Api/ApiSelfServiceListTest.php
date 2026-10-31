@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Bundles\TimeOff\Controllers\Api;
 
 use kintai\Bundles\Installed\TimeOff\Controllers\Api\TimeoffRequestController;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use App\Auth\PermissionService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
@@ -13,6 +12,7 @@ use App\Models\StoreUser;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Libre-service de l'API (audit n°8 de Kintai, I3/D3) : un employé sans permission lit ses propres éléments avec
@@ -21,6 +21,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class ApiSelfServiceListTest extends TestCase
 {
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeoff_requests', 'timeoff'];
+    }
+
     private const EMPLOYEE = 3;
     private const MANAGER  = 1;
 
@@ -31,16 +38,15 @@ final class ApiSelfServiceListTest extends TestCase
             ['id' => 2, 'store_id' => 1, 'user_id' => 4],
             ['id' => 3, 'store_id' => 2, 'user_id' => self::EMPLOYEE],
         ];
-        $repo = $this->createStub(TimeoffRequestRepositoryInterface::class);
-        $repo->method('findByUser')->willReturnCallback(fn(int $u) => array_values(array_filter($items, fn($i) => $i['user_id'] === $u)));
-        $repo->method('findByStore')->willReturnCallback(fn(int $s) => array_values(array_filter($items, fn($i) => $i['store_id'] === $s)));
+        $this->resetRows();
+        $this->seedRows($items);
         kintai_test_assignments(findByUser: fn(int $u) => $u === self::MANAGER
             ? [['id' => 1, 'user_id' => self::MANAGER, 'role_id' => 2, 'scope_type' => 'store', 'scope_id' => 1]]
             : []);
         kintai_test_roles(findById: fn() => ['id' => 2, 'is_system' => 0], getPermissions: fn() => ['timeoff.view'], getGlobalPermissionKeys: fn() => []);
         $permissions = new PermissionService();
 
-        return new TimeoffRequestController($repo, new AuditLogger(), $permissions);
+        return new TimeoffRequestController(new AuditLogger(), $permissions);
     }
 
     /** @return list<int> */

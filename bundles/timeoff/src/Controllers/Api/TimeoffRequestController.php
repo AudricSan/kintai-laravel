@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Controllers\Api;
 
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use kintai\Contract\Http\Paginator;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Exceptions\ForbiddenException;
 use kintai\Contract\Exceptions\ValidationException;
 use kintai\Contract\Data\StoreUser;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
@@ -34,7 +34,6 @@ final class TimeoffRequestController
     private const UPDATE_FIELDS = ['start_date', 'end_date', 'type', 'reason', 'status', 'admin_note'];
 
     public function __construct(
-        private readonly TimeoffRequestRepositoryInterface $timeoffRequests,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
     ) {}
@@ -48,11 +47,11 @@ final class TimeoffRequestController
         $status  = $request->query('status');
 
         if ($storeId !== null && $status !== null) {
-            $items = $this->timeoffRequests->findByStatus((int) $storeId, $status);
+            $items = TimeoffRequest::findByStatus((int) $storeId, $status);
         } elseif ($storeId !== null) {
-            $items = $this->timeoffRequests->findByStore((int) $storeId);
+            $items = TimeoffRequest::findByStore((int) $storeId);
         } elseif ($userId !== null) {
-            $items = $this->timeoffRequests->findByUser((int) $userId);
+            $items = TimeoffRequest::findByUser((int) $userId);
         } else {
             $items = [];
         }
@@ -102,7 +101,7 @@ final class TimeoffRequestController
             'status'     => 'pending',
             'created_at' => date('Y-m-d H:i:s'),
         ];
-        $saved = $this->timeoffRequests->save($data);
+        $saved = TimeoffRequest::put($data);
         $this->auditLogger->log($request, 'timeoff_request.created', 'timeoff_request', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeId);
         return response()->json($saved, 201);
     }
@@ -119,7 +118,7 @@ final class TimeoffRequestController
             $data['processed_at'] = date('Y-m-d H:i:s');
         }
         $data['updated_at'] = date('Y-m-d H:i:s');
-        $saved = $this->timeoffRequests->save($data);
+        $saved = TimeoffRequest::put($data);
         $this->auditLogger->logUpdate($request, 'timeoff_request.updated', 'timeoff_request', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: (int) ($old['store_id'] ?? 0) ?: null);
         return response()->json($saved);
     }
@@ -129,7 +128,7 @@ final class TimeoffRequestController
     {
         $item = $this->requireTimeoff($request, 'timeoff.delete');
         $id   = (int) $item['id'];
-        $this->timeoffRequests->delete($id);
+        TimeoffRequest::remove($id);
         $this->auditLogger->log($request, 'timeoff_request.deleted', 'timeoff_request', resourceId: $id);
         return response()->noContent();
     }
@@ -144,7 +143,7 @@ final class TimeoffRequestController
     {
         return $this->permissions->requireOwnedResource(
             $this->authUser($request),
-            fn(int $id) => $this->timeoffRequests->findById($id),
+            fn(int $id) => TimeoffRequest::findById($id),
             (int) $request->route('id'),
             $permissionKey,
             notFoundMessage: 'Demande de congé introuvable.',

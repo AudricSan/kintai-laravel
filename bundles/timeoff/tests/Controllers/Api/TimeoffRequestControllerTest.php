@@ -12,12 +12,12 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\RealTable;
 
 /**
  * Régression (audit RBAC du 11/09/2026) : show/update/destroy ne re-vérifiaient
@@ -26,14 +26,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class TimeoffRequestControllerTest extends TestCase
 {
-    private TimeoffRequestRepositoryInterface&MockObject $timeoffRequests;
+    use RealTable;
+
+    private function realTable(): array
+    {
+        return ['timeoff_requests', 'timeoff'];
+    }
+
     private TimeoffRequestController $controller;
 
     protected function setUp(): void
     {
-        $this->timeoffRequests = $this->createMock(TimeoffRequestRepositoryInterface::class);
+        $this->resetRows();
         $this->controller      = new TimeoffRequestController(
-            $this->timeoffRequests,
             new AuditLogger(),
             new PermissionService()
         );
@@ -61,9 +66,9 @@ final class TimeoffRequestControllerTest extends TestCase
     {
         $_GET = ['user_id' => '99'];
 
-        $this->timeoffRequests->method('findByUser')->with(99)->willReturn([
-            ['id' => 1, 'store_id' => 5],
-            ['id' => 2, 'store_id' => 9],
+        $this->seedRows([
+            ['id' => 1, 'store_id' => 5, 'user_id' => 99],
+            ['id' => 2, 'store_id' => 9, 'user_id' => 99],
         ]);
 
         $response = $this->controller->index($this->requestAsStoreManager(2, 5));
@@ -75,7 +80,7 @@ final class TimeoffRequestControllerTest extends TestCase
 
     public function testShowThrowsNotFoundForMissingRequest(): void
     {
-        $this->timeoffRequests->method('findById')->with(99)->willReturn(null);
+        $this->seedRows([]);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '99']);
@@ -86,7 +91,7 @@ final class TimeoffRequestControllerTest extends TestCase
 
     public function testShowRejectsRequestFromAnotherStore(): void
     {
-        $this->timeoffRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -97,8 +102,8 @@ final class TimeoffRequestControllerTest extends TestCase
 
     public function testUpdateRejectsRequestFromAnotherStore(): void
     {
-        $this->timeoffRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
-        $this->timeoffRequests->expects($this->never())->method('save');
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -109,8 +114,8 @@ final class TimeoffRequestControllerTest extends TestCase
 
     public function testDestroyAllowsRequestInManagedStore(): void
     {
-        $this->timeoffRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 5]);
-        $this->timeoffRequests->expects($this->once())->method('delete')->with(5);
+        $this->seedRows([['id' => 5, 'store_id' => 5]]);
+        $this->expectDeleted(5);
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);
@@ -122,8 +127,8 @@ final class TimeoffRequestControllerTest extends TestCase
 
     public function testDestroyRejectsRequestFromAnotherStore(): void
     {
-        $this->timeoffRequests->method('findById')->with(5)->willReturn(['id' => 5, 'store_id' => 9]);
-        $this->timeoffRequests->expects($this->never())->method('delete');
+        $this->seedRows([['id' => 5, 'store_id' => 9]]);
+        $this->expectNoChange();
 
         $req = $this->requestAsStoreManager(2, 5);
         $req->setRouteParams(['id' => '5']);

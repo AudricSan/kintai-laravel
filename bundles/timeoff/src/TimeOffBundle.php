@@ -6,8 +6,6 @@ namespace kintai\Bundles\Installed\TimeOff;
 
 use kintai\Bundles\Installed\TimeOff\Providers\PendingTimeoffProvider;
 use kintai\Bundles\Installed\TimeOff\Providers\TimeoffAbsenceProvider;
-use kintai\Bundles\Installed\TimeOff\Repositories\DatabaseTimeoffRequestRepository;
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
 use kintai\Bundles\Installed\TimeOff\Services\PendingTimeoffWidget;
 use kintai\Contract\Bundle;
 use kintai\Contract\Container;
@@ -43,7 +41,6 @@ final class TimeOffBundle extends Bundle
 
     public function register(): void
     {
-        $this->app->singleton(TimeoffRequestRepositoryInterface::class, fn() => new DatabaseTimeoffRequestRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'timeoff');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');

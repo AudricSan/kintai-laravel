@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\TimeOff\Services;
 
-use kintai\Bundles\Installed\TimeOff\Repositories\TimeoffRequestRepositoryInterface;
+use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use kintai\Contract\Data\User;
 
 /**
@@ -14,7 +14,6 @@ use kintai\Contract\Data\User;
 final class PendingTimeoffWidget
 {
     public function __construct(
-        private readonly TimeoffRequestRepositoryInterface $timeoff,
     ) {}
 
     /**
@@ -26,7 +25,7 @@ final class PendingTimeoffWidget
     public function forManager(array $storeIds): array
     {
         $pending = array_values(array_filter(
-            $this->timeoff->findAll(),
+            TimeoffRequest::findAll(),
             static fn(array $r): bool => in_array((int) ($r['store_id'] ?? 0), $storeIds, true) && ($r['status'] ?? '') === 'pending'
         ));
         $usersMap = [];
@@ -44,7 +43,7 @@ final class PendingTimeoffWidget
     public function forEmployee(int $userId): array
     {
         return array_values(array_filter(
-            $this->timeoff->findByUser($userId),
+            TimeoffRequest::findByUser($userId),
             static fn(array $r): bool => ($r['status'] ?? '') === 'pending'
         ));
     }
