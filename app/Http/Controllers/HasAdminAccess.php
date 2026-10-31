@@ -94,9 +94,7 @@ trait HasAdminAccess
 
     protected function base(): string
     {
-        $sn   = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
-        $base = rtrim(str_replace('\\', '/', dirname($sn)), '/');
-        return ($base === '.' || $base === '/') ? '' : $base;
+        return base_url();
     }
 
     protected function filterByStore(array $items, ?array $managedIds, string $key = 'store_id'): array

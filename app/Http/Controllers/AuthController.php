@@ -111,7 +111,7 @@ final class AuthController
             'error'      => !empty(session('error')) && session('error') !== 'expired',
             // Formulaire validé après expiration de la session (jeton CSRF refusé, voir CsrfMiddleware).
             'expired'    => (session('error', '')) === 'expired',
-            'login_mode' => $_GET['mode'] ?? 'code',
+            'login_mode' => (string) request()->query('mode', 'code'),
             // Sélecteur de langue de la page de connexion (pour la session ; voir switchLanguage()).
             'login_languages' => $this->languages->findAllActive(),
             'current_locale'  => app()->getLocale(),

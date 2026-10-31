@@ -57,6 +57,21 @@ Règle de travail : chaque étape laisse la suite PHPUnit au niveau de la réfé
 - **`base_url()`, `route_url()`, `kintai_normalize_script_name()`** : glue de sous-dossier (XAMPP, OVH mutualisé) ; la
   racine web peut être `public/` sur un serveur dédié.
 
+## Ce qui n'est pas encore natif
+
+Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « en cours » : les 30 repositories à table sont des modèles.
+
+| Reste | Détail | Piste |
+| :--- | :--- | :--- |
+| Dépôts JSON de langues | `JsonLanguageRepository`, `JsonTranslationRepository` (pas de table) | `lang/languages.json` lu par un service, ou table `languages` |
+| Interfaces maison | une quinzaine d'`*Interface` à implémentation unique (`StoreStatsServiceInterface`, `LanguageRepositoryInterface`…) | supprimer l'interface, injecter la classe |
+| `AuthService` | enveloppe autour du garde `session` (`attempt`, `user`, `isAdmin`…) | appeler `Auth::guard()` / `Gate` directement |
+| `$_SERVER` / `$_COOKIE` / `setcookie` | URL de base (`base_url()`, SCRIPT_NAME), schéma/hôte des liens iCal et Google, `LocaleCookie`, `I18nMiddleware` | `request()->getSchemeAndHttpHost()`, `Cookie::queue()` ; une trentaine de tests posent ces variables |
+| Registre de routes maison | `App\Http\Routing\Routes` (nom → URI pour `route_url()`) | `route()` de Laravel sur les routes nommées |
+| Macros de réponse | `response()->ical()`, `FileStreamResponse`, `ErrorResponder` | `response()->download()` / `streamDownload()`, gestionnaire d'exceptions |
+| Validation métier des contrôleurs | ~40 `throw new ValidationException` manuels | `FormRequest` (les tests appellent aujourd'hui les contrôleurs directement) |
+| `LaravelCapsule`, `RequestMemo` | pont base de données et mémo par requête | `DB` / cache de requête de Laravel |
+
 ## Reste à faire
 
 1. **Bundles** : les 13 bundles vivent dans `bundles/<slug>/` (monorepo, historique git conservé). Releases :
