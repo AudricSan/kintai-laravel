@@ -7,7 +7,6 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -46,7 +45,6 @@ final class AuthControllerLogoutPushTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             null,
             null,

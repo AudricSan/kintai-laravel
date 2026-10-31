@@ -646,3 +646,12 @@ function kintai_test_views(string $path, bool $withLayout = false): Illuminate\V
 
     return $views;
 }
+// Aide des tests : langues actives de l'instance (table languages) ; chaque code reçoit pour nom son code.
+function kintai_test_languages(array $codes): void
+{
+    kintai_test_ready('languages');
+    Illuminate\Support\Facades\DB::table('languages')->delete();
+    foreach (array_values($codes) as $i => $code) {
+        Illuminate\Support\Facades\DB::table('languages')->insert(['code' => $code, 'name' => $code, 'is_active' => 1, 'sort_order' => $i]);
+    }
+}

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Models\DevicePushToken;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\PushNotificationService;

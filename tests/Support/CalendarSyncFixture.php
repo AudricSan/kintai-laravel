@@ -10,8 +10,6 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\User;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Services\AppSettingsService;
 use App\Services\Calendar\CalendarEventBuilder;
 use App\Services\Calendar\GoogleCalendarClient;

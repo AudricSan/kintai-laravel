@@ -16,6 +16,8 @@ final class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
+            LanguageSeeder::class,
+            LanguageSeeder::class,
             BundleRegistrySeeder::class,
             WebPushKeySeeder::class,
         ]);

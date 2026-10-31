@@ -29,9 +29,6 @@ final class CoreTranslationsCompletenessTest extends TestCase
     {
         $out = [];
         foreach (glob(self::LANG_DIR . '/*.json') ?: [] as $file) {
-            if (basename($file) === 'languages.json') {
-                continue;
-            }
             $out[basename($file, '.json')] = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
         }
         return $out;

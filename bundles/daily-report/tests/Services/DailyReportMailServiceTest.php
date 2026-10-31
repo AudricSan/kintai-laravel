@@ -10,10 +10,8 @@ use App\Mail\MailerService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportMailService;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPermissionService;
 use App\Services\TranslationService;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Repositories\TranslationRepositoryInterface;
 
 final class DailyReportMailServiceTest extends TestCase
 {

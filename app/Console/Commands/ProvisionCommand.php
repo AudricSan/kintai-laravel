@@ -11,7 +11,7 @@ use App\Models\AppSetting;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\User;
-use App\Repositories\JsonLanguageRepository;
+use App\Models\Language;
 use App\Services\AppSettingsService;
 use App\Services\EnvFileWriter;
 use App\Services\InstanceLocale;
@@ -95,11 +95,10 @@ final class ProvisionCommand extends Command
             }
         }
         // Langue de l'instance : celle de tous les textes tant qu'un utilisateur n'a pas choisi la sienne. Sans --locale,
-        // la même que propose l'installateur web (anglais) ; jamais le repli « is_default » de lang/languages.json.
-        $languages     = new JsonLanguageRepository(base_path('lang'));
-        $activeLocales = array_column($languages->findAllActive(), 'code');
+        // la même que propose l'installateur web (anglais).
+        $activeLocales = array_column(Language::installable(), 'code');
         if ($appLocale === '') {
-            $appLocale = InstanceLocale::defaultForNewInstance($languages);
+            $appLocale = InstanceLocale::defaultForNewInstance($activeLocales);
         } elseif (!in_array($appLocale, $activeLocales, true)) {
             return $this->refuse('--locale doit être une langue active (' . implode(', ', $activeLocales) . "), reçu : {$appLocale}.");
         }

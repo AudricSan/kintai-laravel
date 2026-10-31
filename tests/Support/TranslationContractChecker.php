@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
-use App\Repositories\JsonTranslationRepository;
 
 /**
  * Contrôle les traductions d'un bundle contre le contrat (app/Contract/translation-keys.php) : utilisé par la CI de
@@ -54,7 +53,7 @@ final class TranslationContractChecker
                 if (!isset($own[$locale][$key])) {
                     continue;
                 }
-                $found = JsonTranslationRepository::placeholders((string) $own[$locale][$key]);
+                $found = \App\Services\TranslationManagementService::placeholders((string) $own[$locale][$key]);
                 if ($reference !== null && $reference !== $found) {
                     $report['placeholders'][] = "$key : paramètres différents selon la langue ($locale)";
                     break;

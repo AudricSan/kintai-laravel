@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Illuminate\Container\Container;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 

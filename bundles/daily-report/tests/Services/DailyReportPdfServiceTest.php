@@ -9,10 +9,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use kintai\Bundles\Installed\DailyReport\Services\DailyReportPdfService;
 use App\Services\TranslationService;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Shift;
 use App\Models\ShiftType;
-use App\Repositories\TranslationRepositoryInterface;
 use App\Models\User;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 

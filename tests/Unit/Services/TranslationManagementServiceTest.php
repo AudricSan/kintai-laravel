@@ -4,49 +4,37 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Translation\FileLoader;
+use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 use App\Services\TranslationManagementService;
-use App\Repositories\TranslationRepositoryInterface;
 
 final class TranslationManagementServiceTest extends TestCase
 {
-    public array $data = [];
+    private string $dir;
+
+    protected function setUp(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/kintai-lang-' . uniqid();
+        mkdir($this->dir);
+    }
 
     protected function tearDown(): void
     {
-        $this->data = [];
+        foreach (glob($this->dir . '/*') ?: [] as $file) {
+            unlink($file);
+        }
+        rmdir($this->dir);
     }
 
+    /** Service réel sur un dossier de traductions temporaire (jamais le lang/ de l'application). */
     private function makeService(): TranslationManagementService
     {
-        $repo = new class($this) implements TranslationRepositoryInterface {
-            public function __construct(private TranslationManagementServiceTest $test) {}
-            public function findByLocale(string $locale): array { return $this->test->data[$locale] ?? []; }
-            public function findValue(string $locale, string $key): ?string { return $this->test->data[$locale][$key] ?? null; }
-            public function findAllKeys(): array
-            {
-                $keys = [];
-                foreach ($this->test->data as $values) {
-                    $keys = array_merge($keys, array_keys($values));
-                }
-                return array_values(array_unique($keys));
-            }
-            public function save(string $locale, string $key, string $value): void
-            {
-                $this->test->data[$locale][$key] = $value;
-            }
-            public function delete(string $locale, string $key): int
-            {
-                if (!isset($this->test->data[$locale][$key])) return 0;
-                unset($this->test->data[$locale][$key]);
-                return 1;
-            }
-            public function countByLocale(string $locale): int { return count($this->test->data[$locale] ?? []); }
-        };
+        $translator = new Translator(new FileLoader(new Filesystem(), $this->dir), 'en');
 
-        return new TranslationManagementService($repo);
+        return new TranslationManagementService($translator, $this->dir);
     }
-
     public function testBrowseKeysReturnsValueAndReference(): void
     {
         $svc = $this->makeService();

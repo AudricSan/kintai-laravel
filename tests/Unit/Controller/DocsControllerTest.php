@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Controller;
 
 use Illuminate\Container\Container;
-use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Translation\Translator;
 use App\Services\WikiContentService;

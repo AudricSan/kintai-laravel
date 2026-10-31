@@ -21,7 +21,7 @@ use App\Services\AvatarImageOptimizer;
 use App\Models\Availability;
 use App\Services\Calendar\GoogleCalendarSettings;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\User;
@@ -43,7 +43,6 @@ final class AuthController
         private readonly ViewFactory $view,
         private readonly AuthService $auth,
         private readonly AuditLogger $auditLogger,
-        private readonly LanguageRepositoryInterface $languages,
         private readonly AvatarImageOptimizer $avatarOptimizer,
         // Optionnel pour ne pas casser les tests qui construisent le contrôleur à la main ;
         // le conteneur l'injecte toujours en production.
@@ -113,7 +112,7 @@ final class AuthController
             'expired'    => (session('error', '')) === 'expired',
             'login_mode' => (string) request()->query('mode', 'code'),
             // Sélecteur de langue de la page de connexion (pour la session ; voir switchLanguage()).
-            'login_languages' => $this->languages->findAllActive(),
+            'login_languages' => Language::findAllActive(),
             'current_locale'  => app()->getLocale(),
         ])->render());
     }
@@ -188,7 +187,7 @@ final class AuthController
     public function switchLanguage(Request $request): Response
     {
         $locale = $request->route('locale');
-        $activeCodes = array_column($this->languages->findAllActive(), 'code');
+        $activeCodes = array_column(Language::findAllActive(), 'code');
         if (!in_array($locale, $activeCodes, true)) {
             return redirect()->away(back_url($this->base() . '/'));
         }
@@ -360,7 +359,7 @@ final class AuthController
         }
 
         $userId      = (int) $user['id'];
-        $activeCodes = array_column($this->languages->findAllActive(), 'code');
+        $activeCodes = array_column(Language::findAllActive(), 'code');
         // Champ absent : la langue actuelle est conservée (voir le commentaire plus bas). Vide : le compte suit la
         // langue de l'instance ; une langue inconnue ou désactivée revient aussi à la langue de l'instance.
         $language    = (string) $request->post('language', (string) ($user['language'] ?? ''));

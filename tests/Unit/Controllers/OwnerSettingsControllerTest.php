@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 use App\Services\PublicUrlResolver;
 use App\Services\EnvFileWriter;
 use App\Services\InstanceLocale;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Http\Controllers\System\OwnerSettingsController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
@@ -268,14 +267,12 @@ final class OwnerSettingsControllerTest extends TestCase
     private function makeControllerWithLocale(string $envDir): OwnerSettingsController
     {
         $base = $this->makeController();
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findAllActive')->willReturn([['code' => 'fr', 'name' => 'Français'], ['code' => 'ja', 'name' => '日本語']]);
-        $languages->method('findDefault')->willReturn(['code' => 'fr']);
+        kintai_test_languages(['fr', 'ja']);
         $settings = (new \ReflectionProperty($base, 'settings'))->getValue($base);
 
         return new OwnerSettingsController(
             kintai_test_views(sys_get_temp_dir()), $settings, new AuditLogger(), new PublicUrlResolver($settings, ''),
-            new InstanceLocale($languages, new EnvFileWriter($envDir)), $languages,
+            new InstanceLocale(new EnvFileWriter($envDir)),
         );
     }
 

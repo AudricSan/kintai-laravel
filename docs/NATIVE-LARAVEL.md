@@ -63,7 +63,6 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 
 | Reste | Détail | Piste |
 | :--- | :--- | :--- |
-| Dépôts JSON de langues | `JsonLanguageRepository`, `JsonTranslationRepository` (pas de table) | `lang/languages.json` lu par un service, ou table `languages` |
 | Interfaces maison | une quinzaine d'`*Interface` à implémentation unique (`StoreStatsServiceInterface`, `LanguageRepositoryInterface`…) | supprimer l'interface, injecter la classe |
 | `AuthService` | enveloppe autour du garde `session` (`attempt`, `user`, `isAdmin`…) | appeler `Auth::guard()` / `Gate` directement |
 | `$_SERVER` / `$_COOKIE` / `setcookie` | URL de base (`base_url()`, SCRIPT_NAME), schéma/hôte des liens iCal et Google, `LocaleCookie`, `I18nMiddleware` | `request()->getSchemeAndHttpHost()`, `Cookie::queue()` ; une trentaine de tests posent ces variables |

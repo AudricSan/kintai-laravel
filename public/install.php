@@ -14,7 +14,7 @@ use App\Install\InstallFailure;
 use App\Install\InstallInput;
 use App\Install\InstallRequirements;
 use App\Install\WebInstaller;
-use App\Repositories\JsonLanguageRepository;
+use App\Models\Language;
 use App\Services\InstanceLocale;
 use App\Services\PublicUrlResolver;
 use Illuminate\Filesystem\Filesystem;
@@ -37,12 +37,11 @@ if (file_exists($installedLockFile) || kintai_installed_via_database(BASE_PATH))
 
 // ─── Langue de la page ────────────────────────────────────────────────────────
 
-// Langues actives de lang/languages.json, lues avant le démarrage de l'application : l'une devient la langue de
+// Langues livrées dont le fichier de traductions existe, lues avant le démarrage de l'application : l'une devient la langue de
 // l'instance (APP_LOCALE, voir InstanceLocale), celle de tous les textes tant qu'un utilisateur n'a pas choisi la sienne.
-$languageRepository = new JsonLanguageRepository(BASE_PATH . '/lang');
-$installLanguages   = $languageRepository->findAllActive();
+$installLanguages   = Language::installable();
 $languageCodes      = array_column($installLanguages, 'code');
-$defaultLocale      = InstanceLocale::defaultForNewInstance($languageRepository);
+$defaultLocale      = InstanceLocale::defaultForNewInstance($languageCodes);
 
 /** Langue de la page : celle choisie dans le formulaire, sinon la préférée du navigateur parmi les langues actives. */
 $pageLocale = (static function () use ($languageCodes, $defaultLocale): string {

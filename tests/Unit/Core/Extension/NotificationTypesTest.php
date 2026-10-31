@@ -8,8 +8,6 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
-use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\TranslationRepositoryInterface;
 use Illuminate\Translation\Translator;
 use PHPUnit\Framework\TestCase;
 

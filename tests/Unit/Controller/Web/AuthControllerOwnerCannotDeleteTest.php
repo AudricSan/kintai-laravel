@@ -10,7 +10,6 @@ use App\Auth\UserAnonymizer;
 use App\Models\ApiToken;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -65,7 +64,6 @@ final class AuthControllerOwnerCannotDeleteTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker(),
             new UserAnonymizer(

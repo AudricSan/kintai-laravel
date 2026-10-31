@@ -10,7 +10,6 @@ use App\Auth\UserAnonymizer;
 use App\Models\ApiToken;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -75,7 +74,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             kintai_test_views(sys_get_temp_dir()),
             $this->auth,
             new AuditLogger(),
-            $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             new CredentialRevoker(),
             new UserAnonymizer(new CredentialRevoker(), sys_get_temp_dir()),

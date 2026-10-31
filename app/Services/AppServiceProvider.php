@@ -18,7 +18,6 @@ use App\Models\Notification;
 use App\Models\WebPushSubscription;
 use App\Models\UserShiftTypeRate;
 use App\Models\AppSetting;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Repositories\TranslationRepositoryInterface;
 use App\Models\DevicePushToken;
 use App\Services\BundleInstaller\BundleInstallerService;
@@ -178,7 +177,6 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Extension\Sales::class, fn() => \App\Extension\Sales::current());
 
         $this->app->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
-            $c->make(LanguageRepositoryInterface::class),
             $c->make(PlanLimitService::class),
             $c->make(\App\Routing\RouteSlugService::class),
         ));
@@ -256,7 +254,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->singleton(WikiSyncService::class, fn() => new WikiSyncService());
 
         $this->app->singleton(TranslationManagementService::class, fn(Container $c) => new TranslationManagementService(
-            $c->make(TranslationRepositoryInterface::class),
+            $c->make('translator'),
         ));
 
         // Détecteurs des notifications système (Owners) ; le service lui-même s'auto-résout.

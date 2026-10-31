@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Services\IcalService;
 use App\Services\StoreTimezone;
 use Illuminate\Translation\Translator;

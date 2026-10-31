@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Auth\PasswordHasher;
 use App\Models\AppSetting;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -385,7 +386,7 @@ final class SeedDemoDataCommand extends Command
                     'last_name'     => $person['last_name'],
                     'display_name'  => $displayName,
                     'email'         => $person['email'],
-                    'password_hash' => password_hash(bin2hex(random_bytes(8)), PASSWORD_BCRYPT, ['cost' => 12]),
+                    'password_hash' => PasswordHasher::hash(bin2hex(random_bytes(8))),
                     'is_active'     => 0,
                     'created_at'    => $now,
                     'updated_at'    => $now,

@@ -12,7 +12,6 @@ use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -95,15 +94,12 @@ final class AuthControllerProfileFieldsTest extends TestCase
 
         $auth = new AuthService();
 
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findAllActive')->willReturn([['code' => 'fr']]);
-        $languages->method('findDefault')->willReturn(['code' => 'fr']);
+        kintai_test_languages(['fr']);
 
         $this->controller = new AuthController(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $languages,
             new AvatarImageOptimizer(),
         );
     }

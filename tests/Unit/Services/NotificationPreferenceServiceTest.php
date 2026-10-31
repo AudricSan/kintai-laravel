@@ -9,8 +9,6 @@ use App\Bundles\Bundle;
 use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Models\DevicePushToken;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Models\User;
 use App\Services\NotificationPreferenceService;
 use App\Services\NotificationService;

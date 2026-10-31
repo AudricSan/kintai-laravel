@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\System;
 
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
@@ -19,7 +19,6 @@ final class LanguageController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly LanguageRepositoryInterface $languages,
         private readonly TranslationManagementService $translationManagement,
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -30,9 +29,9 @@ final class LanguageController
 
         return response($this->view->make('system.languages', [
             'title'     => __('languages'),
-            'languages' => $this->languages->findAll(),
+            'languages' => Language::findAll(),
             // Langue de l'instance (APP_LOCALE) : choisie dans les paramètres de l'instance, plus ici.
-            'instance_locale' => InstanceLocale::resolve($this->languages),
+            'instance_locale' => InstanceLocale::resolve(),
             'error'     => session('error'),
             'success'   => session('success'),
         ])->render());
@@ -49,8 +48,8 @@ final class LanguageController
             return redirect()->away($this->base() . '/admin/languages')->with('error', 'invalid');
         }
 
-        $existing = $this->languages->findByCode($code);
-        $this->languages->save([
+        $existing = Language::findByCode($code);
+        Language::put([
             'code'      => $code,
             'name'      => $name,
             'is_active' => $request->post('is_active', '1') === '1',
@@ -72,16 +71,16 @@ final class LanguageController
     {
 
         $code = (string) $request->route('code');
-        $lang = $this->languages->findByCode($code);
+        $lang = Language::findByCode($code);
         if (!$lang) {
             return redirect()->away($this->base() . '/admin/languages')->with('error', 'not_found');
         }
         // La langue de l'instance ne peut être ni désactivée ni supprimée.
-        if ($code === InstanceLocale::resolve($this->languages) && !empty($lang['is_active'])) {
+        if ($code === InstanceLocale::resolve() && !empty($lang['is_active'])) {
             return redirect()->away($this->base() . '/admin/languages')->with('error', 'default_forbidden');
         }
 
-        $this->languages->toggleActive($code, empty($lang['is_active']));
+        Language::toggleActive($code, empty($lang['is_active']));
 
         $this->auditLogger->log($request, 'language.toggle_active', 'language', null, ['code' => $code]);
 
@@ -93,18 +92,18 @@ final class LanguageController
     {
 
         $code = (string) $request->route('code');
-        $lang = $this->languages->findByCode($code);
+        $lang = Language::findByCode($code);
         if (!$lang) {
             return redirect()->away($this->base() . '/admin/languages');
         }
-        if ($code === InstanceLocale::resolve($this->languages)) {
+        if ($code === InstanceLocale::resolve()) {
             return redirect()->away($this->base() . '/admin/languages')->with('error', 'delete_default_forbidden');
         }
-        if (!empty($lang['is_active']) && count($this->languages->findAllActive()) <= 1) {
+        if (!empty($lang['is_active']) && count(Language::findAllActive()) <= 1) {
             return redirect()->away($this->base() . '/admin/languages')->with('error', 'delete_last_active_forbidden');
         }
 
-        $this->languages->delete($code);
+        Language::remove($code);
 
         $this->auditLogger->log($request, 'language.deleted', 'language', null, [
             'code' => $code,
@@ -119,7 +118,7 @@ final class LanguageController
     {
 
         $code = (string) $request->route('code');
-        $lang = $this->languages->findByCode($code);
+        $lang = Language::findByCode($code);
         if (!$lang) {
             return response($this->view->make('errors.404', ['title' => '404'])->render(), 404);
         }
@@ -148,7 +147,7 @@ final class LanguageController
     {
 
         $code = (string) $request->route('code');
-        if (!$this->languages->findByCode($code)) {
+        if (!Language::findByCode($code)) {
             return response()->json(['error' => __('error_unknown_language')], 404);
         }
 

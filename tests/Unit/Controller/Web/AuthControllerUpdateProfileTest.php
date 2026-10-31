@@ -7,7 +7,6 @@ namespace Tests\Unit\Controller\Web;
 use App\Auth\AuthService;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -53,11 +52,10 @@ final class AuthControllerUpdateProfileTest extends TestCase
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService();
 
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
+        kintai_test_languages(['fr', 'en']);
 
         $controller = new AuthController(
-            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), $languages, new AvatarImageOptimizer(),
+            kintai_test_views(sys_get_temp_dir()), $auth, new AuditLogger(), new AvatarImageOptimizer(),
         );
 
         foreach (['', 'de', 'en'] as $choice) {

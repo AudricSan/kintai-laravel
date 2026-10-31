@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
-use App\Repositories\JsonTranslationRepository;
+use App\Services\TranslationManagementService;
 use PHPUnit\Framework\TestCase;
 
 if (!defined('BASE_PATH')) {
@@ -20,11 +20,11 @@ if (!defined('BASE_PATH')) {
  */
 final class BundleTranslationsRealFilesTest extends TestCase
 {
-    private JsonTranslationRepository $repo;
+    private TranslationManagementService $repo;
 
     protected function setUp(): void
     {
-        $this->repo = new JsonTranslationRepository(BASE_PATH . '/lang', kintai_test_real_translator('en', false));
+        $this->repo = new TranslationManagementService(kintai_test_real_translator('en', false));
     }
 
     /** Libellé de chaque bundle extrait du Core : fourni par le bundle lui-même (et vérifié dans son dépôt). */
@@ -48,7 +48,7 @@ final class BundleTranslationsRealFilesTest extends TestCase
     {
         // 'save' est une chaîne Core partagée par toute l'appli, y compris les bundles
         // (aucun ne la redéfinit) : elle doit rester accessible en fallback.
-        $this->assertSame('Enregistrer', $this->repo->findValue('fr', 'save'));
-        $this->assertSame('Save', $this->repo->findValue('en', 'save'));
+        $this->assertSame('Enregistrer', ($this->repo->forLocale('fr')['save'] ?? null));
+        $this->assertSame('Save', ($this->repo->forLocale('en')['save'] ?? null));
     }
 }

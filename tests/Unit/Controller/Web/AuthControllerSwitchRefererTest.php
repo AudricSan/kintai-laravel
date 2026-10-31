@@ -8,7 +8,6 @@ use App\Auth\AuthService;
 use Illuminate\Container\Container;
 use App\Models\Availability;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -37,8 +36,7 @@ final class AuthControllerSwitchRefererTest extends TestCase
     {
         $this->previous = self::swapContainer(new \Tests\Support\TestContainer());
 
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findAllActive')->willReturn([['code' => 'en'], ['code' => 'ja']]);
+        kintai_test_languages(['en', 'ja']);
         kintai_test_assignments(findByUser: fn() => []);
         $auth = new AuthService(
         );
@@ -47,7 +45,6 @@ final class AuthControllerSwitchRefererTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $languages,
             new AvatarImageOptimizer(),
         );
     }

@@ -8,7 +8,7 @@ use Closure;
 use App\Auth\AuthService;
 use App\Auth\PermissionService;
 use Illuminate\Container\Container;
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\UserNavPref;
@@ -87,10 +87,10 @@ final class AuthMiddleware
 
         // Langue courante
         $view->share('locale', app()->getLocale());
-        $activeLanguages = $this->container->make(LanguageRepositoryInterface::class)->findAllActive();
+        $activeLanguages = Language::findAllActive();
         $view->share('active_languages', $activeLanguages);
         // Langue de l'instance, proposée dans le profil (« suivre la langue de l'instance »).
-        $instanceCode = \App\Services\InstanceLocale::resolve($this->container->make(LanguageRepositoryInterface::class));
+        $instanceCode = \App\Services\InstanceLocale::resolve();
         $view->share('instance_language_name', (string) (array_column($activeLanguages, 'name', 'code')[$instanceCode] ?? $instanceCode));
 
         // Fonctionnalités activées pour le store de l'utilisateur (null = tout activé)

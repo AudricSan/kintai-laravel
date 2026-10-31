@@ -10,8 +10,6 @@ use Illuminate\Container\Container;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
 use App\Models\DevicePushToken;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;

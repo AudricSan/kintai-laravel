@@ -10,14 +10,12 @@ use App\BundleManager;
 use Illuminate\Container\Container;
 use App\FeatureManager;
 use App\Http\Middleware\AuthMiddleware;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreUser;
-use App\Repositories\TranslationRepositoryInterface;
 use App\Models\UserNavPref;
 use App\Models\User;
 use App\Models\UserShiftTypeRate;
@@ -53,10 +51,6 @@ final class AuthMiddlewareTest extends TestCase
         $this->container->instance(BundleManager::class, (new \ReflectionClass(BundleManager::class))->newInstanceWithoutConstructor());
 
         kintai_test_translator();
-        $this->container->instance(
-            LanguageRepositoryInterface::class,
-            $this->createStub(LanguageRepositoryInterface::class),
-        );
         $this->container->instance(EmployeeStatsService::class, new EmployeeStatsService(
         ));
     }

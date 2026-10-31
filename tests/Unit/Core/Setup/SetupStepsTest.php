@@ -8,7 +8,6 @@ use App\Exceptions\PlanLimitExceededException;
 use App\Exceptions\ValidationException;
 use App\Mail\MailerService;
 use App\Models\DevicePushToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -216,9 +215,8 @@ final class SetupStepsTest extends TestCase
     {
         \Illuminate\Support\Facades\DB::table('stores')->delete();
         kintai_test_stores(findAll: fn() => array_map(fn(array $row, int $i) => ['id' => $i + 1] + $row, $existing, array_keys($existing)));
-        $languages = $this->createStub(LanguageRepositoryInterface::class);
-        $languages->method('findAllActive')->willReturn([['code' => 'fr']]);
-        return new StoreStep($service, new InstanceLocale($languages));
+        kintai_test_languages(['fr']);
+        return new StoreStep($service, new InstanceLocale());
     }
 
     public function testTheFirstStoreIsCreatedWithACodeDerivedFromItsNameAndTheOwnerIsAttached(): void

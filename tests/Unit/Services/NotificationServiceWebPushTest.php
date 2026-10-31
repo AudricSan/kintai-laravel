@@ -8,8 +8,6 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Models\AppSetting;
 use App\Models\DevicePushToken;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Models\User;
 use App\Models\WebPushSubscription;
 use App\Services\NotificationPreferenceService;

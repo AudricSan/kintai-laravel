@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use App\Console\KintaiScriptCommand;
 use App\BundleManager;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Routing\EmployeeRouteBinder;
 use App\Routing\RouteSegments;
 use App\Routing\StoreRouteBinder;

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use App\Http\Middleware\I18nMiddleware;
-use App\Repositories\LanguageRepositoryInterface;
-use App\Repositories\TranslationRepositoryInterface;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,19 +15,17 @@ use PHPUnit\Framework\TestCase;
 
 final class I18nMiddlewareTest extends TestCase
 {
-    private LanguageRepositoryInterface&Stub $languages;
     private ?I18nMiddleware $middleware = null;
 
     protected function setUp(): void
     {
-        $this->languages = $this->createStub(LanguageRepositoryInterface::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
     private function middleware(): I18nMiddleware
     {
         if ($this->middleware === null) {
-            $this->middleware = new I18nMiddleware($this->languages);
+            $this->middleware = new I18nMiddleware();
         }
 
         return $this->middleware;
@@ -64,7 +60,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testNoActiveLanguagesFallsBackToEnglish(): void
     {
-        $this->languages->method('findAllActive')->willReturn([]);
+        kintai_test_languages([]);
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
 
@@ -73,7 +69,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testSessionLocaleUsedWhenActive(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
+        kintai_test_languages(['fr', 'en']);
         session()->put('locale', 'fr');
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
@@ -83,8 +79,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testSessionLocaleIgnoredWhenLanguageInactive(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'en']]);
-        $this->languages->method('findDefault')->willReturn(['code' => 'en']);
+        kintai_test_languages(['en']);
         session()->put('locale', 'fr'); // fr désactivée entre-temps par l'Owner
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
@@ -94,7 +89,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testLoggedInUserGetsTheProfileLanguageBeforeSessionCookieAndBrowser(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'ja'], ['code' => 'en']]);
+        kintai_test_languages(['fr', 'ja', 'en']);
         kintai_test_users(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'language' => 'ja'] : null);
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
         session()->put(auth()->getName(), 1);
@@ -108,7 +103,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testLoggedInUserWithoutLanguageFollowsTheInstanceNotTheBrowser(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'ja'], ['code' => 'en']]);
+        kintai_test_languages(['fr', 'ja', 'en']);
         kintai_test_users(findById: fn() => ['id' => 1, 'language' => '']);
         $_ENV['APP_LOCALE'] = 'ja';
 
@@ -122,7 +117,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testLastAccountLanguageCookieComesBeforeTheBrowserOnTheLoginPage(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'ja'], ['code' => 'en']]);
+        kintai_test_languages(['fr', 'ja', 'en']);
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
         $_COOKIE['kintai_locale'] = 'ja';
@@ -134,7 +129,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testBrowserLanguageUsedWhenActive(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'ja']]);
+        kintai_test_languages(['fr', 'ja']);
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'ja-JP,ja;q=0.9']);
 
@@ -145,8 +140,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testInstanceLanguageWinsOverTheLegacyDefault(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
-        $this->languages->method('findDefault')->willReturn(['code' => 'fr']);
+        kintai_test_languages(['fr', 'en']);
         $_ENV['APP_LOCALE'] = 'en';
 
         $this->middleware()->handle($this->makeRequest(), $this->noop());
@@ -156,8 +150,7 @@ final class I18nMiddlewareTest extends TestCase
 
     public function testDefaultLocaleUsedAsUltimateFallback(): void
     {
-        $this->languages->method('findAllActive')->willReturn([['code' => 'fr'], ['code' => 'en']]);
-        $this->languages->method('findDefault')->willReturn(['code' => 'fr']);
+        kintai_test_languages(['fr', 'en']);
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'de-DE,de;q=0.9']); // 'de' non actif
 

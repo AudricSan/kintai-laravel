@@ -6,7 +6,6 @@ declare(strict_types=1);
 return [
     App\Providers\KintaiServiceProvider::class,
     App\Database\DatabaseServiceProvider::class,
-    App\Repositories\RepositoryServiceProvider::class,
     App\Auth\AuthServiceProvider::class,
     App\Services\AppServiceProvider::class,
     App\LicenseServiceProvider::class,

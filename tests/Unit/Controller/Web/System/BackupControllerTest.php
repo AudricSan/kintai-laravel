@@ -7,8 +7,6 @@ namespace Tests\Unit\Controller\Web\System;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Container\Container;
 use App\Models\AppSetting;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use Illuminate\Http\Request;
 use App\Services\AppSettingsService;
 use App\Services\AuditLogger;

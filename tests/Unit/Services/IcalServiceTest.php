@@ -6,8 +6,6 @@ namespace Tests\Unit\Services;
 
 use PHPUnit\Framework\TestCase;
 use Illuminate\Container\Container;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Services\IcalService;
 use Illuminate\Translation\Translator;
 

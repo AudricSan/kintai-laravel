@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\System;
 
 use App\Http\Middleware\ApiRateLimitMiddleware;
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AppSettingsService;
@@ -26,7 +26,6 @@ final class OwnerSettingsController
         private readonly PublicUrlResolver $publicUrl,
         // Langue de l'instance (APP_LOCALE) ; le conteneur les injecte toujours.
         private readonly ?InstanceLocale $instanceLocale = null,
-        private readonly ?LanguageRepositoryInterface $languages = null,
     ) {}
 
     /** GET /admin/owner-settings */
@@ -72,7 +71,7 @@ final class OwnerSettingsController
             'theme_colors_dark' => $themeColorsDark,
             'theme_dark_mode'   => $this->settings->themeDarkMode(),
             'instance_locale'   => $this->instanceLocale?->code(),
-            'instance_languages' => $this->languages?->findAllActive() ?? [],
+            'instance_languages' => Language::findAllActive(),
             'success' => session()->has('success'),
             'error'   => in_array(session('error'), ['public_url_invalid', 'instance_locale_not_saved', 'mail_from_invalid'], true) ? session('error') : null,
         ])->render());

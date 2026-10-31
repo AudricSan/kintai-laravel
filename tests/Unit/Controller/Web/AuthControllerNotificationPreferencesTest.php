@@ -11,7 +11,6 @@ use App\Extension\ExtensionRegistry;
 use App\Models\Availability;
 use App\Repositories\DatabaseNotificationPreferenceRepository;
 use App\Models\IcalToken;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\RoleAssignment;
 use App\Models\Role;
 use App\Models\Store;
@@ -70,7 +69,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             kintai_test_views(sys_get_temp_dir()),
             $auth,
             new AuditLogger(),
-            $this->createStub(LanguageRepositoryInterface::class),
             new AvatarImageOptimizer(),
             null,
             null,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Validation;
 
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use App\Services\StoreTimezone;
 use Closure;
 use Illuminate\Support\Facades\Validator;
@@ -23,14 +23,10 @@ final class StoreValidator
 
     private const TYPES = ['retail', 'restaurant', 'office', 'warehouse', 'other'];
 
-    public function __construct(
-        private readonly LanguageRepositoryInterface $languages,
-    ) {}
-
     /** Validation d'un nouveau magasin : $validator->validate() lève l'exception de Laravel au premier refus. */
-    public function make(array $data): \Illuminate\Validation\Validator
+    public static function make(array $data): \Illuminate\Validation\Validator
     {
-        $activeCodes = array_column($this->languages->findAllActive(), 'code');
+        $activeCodes = array_column(Language::findAllActive(), 'code');
 
         $input = [
             'code'                  => trim((string) ($data['code'] ?? '')),

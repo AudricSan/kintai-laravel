@@ -10,8 +10,6 @@ use App\BundleManager;
 use App\Extension\ExtensionRegistry;
 use App\Mail\MailerService;
 use App\Models\DevicePushToken;
-use App\Repositories\JsonLanguageRepository;
-use App\Repositories\JsonTranslationRepository;
 use App\Models\User;
 use App\Services\AppSettingsService;
 use App\Services\NotificationMailer;

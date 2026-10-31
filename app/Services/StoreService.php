@@ -6,7 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use App\Models\RoleAssignment;
 use App\Models\Store;
 use App\Models\StoreUser;
@@ -17,7 +17,6 @@ use App\Validation\StoreValidator;
 final class StoreService implements StoreServiceInterface
 {
     public function __construct(
-        private readonly LanguageRepositoryInterface $languages,
         private readonly PlanLimitService $planLimits,
         private readonly ?RouteSlugService $routeSlugs = null,
         // Facultatif pour les tests qui construisent le service à la main.
@@ -78,7 +77,7 @@ final class StoreService implements StoreServiceInterface
     {
         $this->planLimits->assertCanCreateStore();
 
-        ValidationException::check((new StoreValidator($this->languages))->make($data));
+        ValidationException::check(StoreValidator::make($data));
         $this->assertCodeAvailable(strtoupper(trim((string) ($data['code'] ?? ''))), 0);
         $manualSlug = $this->validatedManualSlug($data, 0);
 

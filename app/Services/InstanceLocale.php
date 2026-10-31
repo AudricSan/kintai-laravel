@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 
 /**
  * Langue de l'instance : celle de tous les textes pour un utilisateur qui n'a pas choisi la sienne dans son profil.
@@ -20,46 +20,39 @@ final class InstanceLocale
 {
     public const ENV_KEY = 'APP_LOCALE';
 
+    /** Langue proposée à l'installation d'une nouvelle instance quand elle est disponible. */
+    public const NEW_INSTANCE_DEFAULT = 'en';
+
     public function __construct(
-        private readonly LanguageRepositoryInterface $languages,
         private readonly ?EnvFileWriter $envFile = null,
     ) {}
 
     public function code(): string
     {
-        return self::resolve($this->languages);
+        return self::resolve();
     }
 
-    /**
-     * APP_LOCALE si c'est une langue active ; à défaut (instance installée avant ce réglage) la langue marquée par
-     * défaut dans lang/languages.json ; sinon la première langue active, ou l'anglais.
-     */
-    public static function resolve(LanguageRepositoryInterface $languages): string
+    /** APP_LOCALE si c'est une langue active ; sinon la première langue active, ou l'anglais. */
+    public static function resolve(): string
     {
-        $active = array_column($languages->findAllActive(), 'code');
+        $active     = array_column(Language::findAllActive(), 'code');
         $configured = (string) env(self::ENV_KEY, '');
         if ($configured !== '' && in_array($configured, $active, true)) {
             return $configured;
         }
-        $legacy = $languages->findDefault()['code'] ?? null;
-        if (is_string($legacy) && in_array($legacy, $active, true)) {
-            return $legacy;
-        }
-        return $active[0] ?? 'en';
+
+        return $active[0] ?? self::NEW_INSTANCE_DEFAULT;
     }
 
     /**
-     * Langue proposée à l'installation d'une nouvelle instance (installateur web, scripts/provision.php) : l'anglais
-     * s'il est actif, sinon la première langue active. Volontairement indépendante du is_default de
-     * lang/languages.json : celui-ci reste le repli des instances installées avant APP_LOCALE, dont la langue ne doit
-     * pas changer à la mise à jour.
+     * Langue proposée à l'installation d'une nouvelle instance (installateur web, kintai:provision) parmi les codes
+     * disponibles : l'anglais s'il y figure, sinon le premier.
+     *
+     * @param list<string> $codes
      */
-    public const NEW_INSTANCE_DEFAULT = 'en';
-
-    public static function defaultForNewInstance(LanguageRepositoryInterface $languages): string
+    public static function defaultForNewInstance(array $codes): string
     {
-        $active = array_column($languages->findAllActive(), 'code');
-        return in_array(self::NEW_INSTANCE_DEFAULT, $active, true) ? self::NEW_INSTANCE_DEFAULT : ($active[0] ?? self::NEW_INSTANCE_DEFAULT);
+        return in_array(self::NEW_INSTANCE_DEFAULT, $codes, true) ? self::NEW_INSTANCE_DEFAULT : ($codes[0] ?? self::NEW_INSTANCE_DEFAULT);
     }
 
     /** Langue d'un utilisateur : celle de son profil si elle est active, sinon celle de l'instance. */
@@ -71,7 +64,7 @@ final class InstanceLocale
 
     public function isActive(string $code): bool
     {
-        return in_array($code, array_column($this->languages->findAllActive(), 'code'), true);
+        return in_array($code, array_column(Language::findAllActive(), 'code'), true);
     }
 
     /**

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core\Services;
 
 use App\Models\AppSetting;
-use App\Repositories\LanguageRepositoryInterface;
 use App\Models\Store;
 use App\Models\StoreUser;
 use App\Models\User;
@@ -32,10 +31,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     private function service(): StoreService
     {
         if ($this->service === null) {
-            $languages = $this->createStub(LanguageRepositoryInterface::class);
-            $languages->method('findAllActive')->willReturn([['code' => 'en']]);
+            kintai_test_languages(['en']);
             $this->service = new StoreService(
-                $languages,
                 new PlanLimitService(
                     new LicenseClientService(['base_url' => '', 'api_key' => '']),
                 ),
@@ -173,7 +170,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     private function serviceWithAssignments(): StoreService
     {
         return new StoreService(
-            $this->createStub(LanguageRepositoryInterface::class),
             new PlanLimitService(
                 new LicenseClientService(['base_url' => '', 'api_key' => '']),
             ),

@@ -59,7 +59,7 @@ grep -q "Undefined array key\|Warning:" "$WORK/out.txt" && grep -v "Module .* is
   && fail "avertissements PHP pendant l'installation"
 
 [ -f storage/installed.lock ] || fail "storage/installed.lock absent"
-# Sans --locale, une instance neuve est en anglais (APP_LOCALE), quel que soit le is_default de lang/languages.json.
+# Sans --locale, une instance neuve est en anglais (APP_LOCALE).
 grep -q "^APP_LOCALE=en$" .env || fail "APP_LOCALE=en attendu dans .env sans --locale"
 tables=$(sql "SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
 [ "$tables" -ge 40 ] || fail "seulement $tables tables créées"

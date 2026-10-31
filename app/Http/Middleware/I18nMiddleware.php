@@ -6,7 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use App\Auth\AuthService;
-use App\Repositories\LanguageRepositoryInterface;
+use App\Models\Language;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,7 +21,6 @@ use App\Services\LocaleCookie;
 final class I18nMiddleware
 {
     public function __construct(
-        private readonly LanguageRepositoryInterface $languageRepository,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -34,11 +33,11 @@ final class I18nMiddleware
 
     private function determineLocale(Request $request): string
     {
-        $activeCodes = array_column($this->languageRepository->findAllActive(), 'code');
+        $activeCodes = array_column(Language::findAllActive(), 'code');
         if ($activeCodes === []) {
             return 'en';
         }
-        $instance = InstanceLocale::resolve($this->languageRepository);
+        $instance = InstanceLocale::resolve();
 
         // Connecté : le global tourne avant AuthMiddleware, le compte est lu depuis la session (aucun droit en jeu).
         $userId = AuthService::sessionUserId();

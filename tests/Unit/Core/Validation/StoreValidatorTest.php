@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Validation;
 
-use App\Repositories\LanguageRepositoryInterface;
 use App\Validation\StoreValidator;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -12,15 +11,13 @@ use PHPUnit\Framework\TestCase;
 
 final class StoreValidatorTest extends TestCase
 {
-    private LanguageRepositoryInterface&Stub $languages;
     private StoreValidator $validator;
 
     protected function setUp(): void
     {
-        $this->languages = $this->createStub(LanguageRepositoryInterface::class);
-        $this->languages->method('findAllActive')->willReturn([['code' => 'en'], ['code' => 'fr'], ['code' => 'ja']]);
+        kintai_test_languages(['en', 'fr', 'ja']);
 
-        $this->validator = new StoreValidator($this->languages);
+        $this->validator = new StoreValidator();
     }
 
     private function validData(array $overrides = []): array
