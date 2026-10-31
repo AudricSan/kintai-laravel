@@ -13,5 +13,5 @@ return [
     // Clé de chiffrement (jeton CSRF, cookies chiffrés) : écrite dans .env par l'installateur.
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',
-    'version' => '0.2.0',
+    'version' => '19.0.0',
 ];
