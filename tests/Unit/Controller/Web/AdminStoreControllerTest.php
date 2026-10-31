@@ -18,8 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
 use App\Services\RoleAssignmentSyncService;
-use App\Services\StoreServiceInterface;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreService;
+use App\Services\StoreStatsService;
 use App\Http\Controllers\Staff\AdminStoreController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminStoreControllerTest extends TestCase
 {
-    private StoreStatsServiceInterface&Stub $storeStatsService;
+    private StoreStatsService&Stub $storeStatsService;
     private ?AdminStoreController $controller = null;
 
     protected function setUp(): void
@@ -38,12 +38,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile('staff.stores-form');
         $this->ensureViewFile('staff.employee-stats');
         $this->ensureViewFile('layout.app');
-        $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
+        $this->storeStatsService = $this->createStub(StoreStatsService::class);
     }
     /** Audit n°8 : quota de magasins atteint → retour au formulaire (erreur de validation), plus une page 403. */
     public function testStoreQuotaReachedSendsBackToTheFormInsteadOfA403(): void
     {
-        $storeService = $this->createStub(StoreServiceInterface::class);
+        $storeService = $this->createStub(StoreService::class);
         $storeService->method('createStore')->willThrowException(new \App\Exceptions\PlanLimitExceededException('1 magasin maximum'));
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
@@ -113,7 +113,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $controller = new AdminStoreController(
             kintai_test_views(sys_get_temp_dir()),
             new AuditLogger(),
-            $this->createStub(StoreServiceInterface::class),
+            $this->createStub(StoreService::class),
             $this->storeStatsService,
             new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['daily-report'])), // messaging et store-photos désactivés
             new RoleAssignmentSyncService(),
@@ -152,7 +152,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         ]);
 
         $captured = null;
-        $storeService = $this->createStub(StoreServiceInterface::class);
+        $storeService = $this->createStub(StoreService::class);
         $storeService->method('updateStore')->willReturnCallback(function (int $id, array $data) use (&$captured) {
             $captured = $data;
             return ['id' => $id] + $data;
@@ -193,7 +193,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Test Store'] : null);
         $captured = null;
-        $storeService = $this->createStub(StoreServiceInterface::class);
+        $storeService = $this->createStub(StoreService::class);
         $storeService->method('updateStore')->willReturnCallback(function (int $id, array $data) use (&$captured) {
             $captured = $data;
             return ['id' => $id] + $data;
@@ -358,7 +358,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         Store::saveDeductionSettings(1, ['enabled' => 1, 'pension_rate' => 9.15]);
 
         $captured = null;
-        $storeService = $this->createStub(StoreServiceInterface::class);
+        $storeService = $this->createStub(StoreService::class);
         $storeService->method('updateStore')->willReturnCallback(function (int $id, array $data) use (&$captured) {
             $captured = $data;
             return ['id' => $id] + $data;
@@ -425,7 +425,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         Store::saveFeatureDecisions(1, ['shifts' => true, 'gone_bundle_feature' => true]);
 
         $captured = null;
-        $storeService = $this->createStub(StoreServiceInterface::class);
+        $storeService = $this->createStub(StoreService::class);
         $storeService->method('updateStore')->willReturnCallback(function (int $id, array $data) use (&$captured) {
             $captured = $data;
             return ['id' => $id] + $data;
@@ -470,7 +470,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $this->controller = new AdminStoreController(
                 $view,
                 new AuditLogger(),
-                $this->createStub(StoreServiceInterface::class),
+                $this->createStub(StoreService::class),
                 $this->storeStatsService,
                 new StoreFeatures(null, FakeBundleManagerFactory::withActiveSlugs(['messaging', 'daily-report', 'store-photos'])),
                 new RoleAssignmentSyncService(),

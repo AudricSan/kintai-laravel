@@ -17,7 +17,7 @@ use App\Models\UserDashboardPref;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreStatsService;
 use App\Extension\ExtensionRegistry;
 use Tests\Support\FakeBundleManagerFactory;
 use Tests\Support\FakeClaimsProvider;
@@ -58,7 +58,7 @@ final class HomeControllerPendingClaimsTest extends TestCase
         kintai_test_shifts([]);
         $this->seedWidgets(99, 'admin', ['kpi_counters']);
         kintai_test_store_users(findByStore: fn() => []);
-        $storeStats = $this->createStub(StoreStatsServiceInterface::class);
+        $storeStats = $this->createStub(StoreStatsService::class);
         kintai_test_assignments(findByUser: fn() => []);
         $permissions = new PermissionService();
 

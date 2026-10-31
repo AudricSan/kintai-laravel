@@ -92,7 +92,7 @@ trait CalendarSyncFixture
         $this->appSettings = new AppSettingsService();
 
         $this->sync = new CalendarSyncService(
-            new GoogleCalendarClient($this->google, $this->http),
+            new GoogleCalendarClient($this->google),
             $this->google,
             $this->secrets,
             new CalendarEventBuilder($translations),

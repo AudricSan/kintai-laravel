@@ -11,7 +11,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AppSettingsService;
 use App\Services\NotificationService;
-use App\Services\SystemAlertSourceInterface;
+use App\Services\SystemAlertDetectors;
 use App\Services\SystemNotificationService;
 use Tests\Support\InMemoryAppSettings;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -48,18 +48,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         ));
         kintai_test_roles(findById: fn() => ['id' => 10, 'is_system' => 1]);
         kintai_test_users(findById: fn(int $id): array => ['id' => $id, 'is_active' => 1, 'deleted_at' => null]);
-        $source = new class($this) implements SystemAlertSourceInterface {
-            public function __construct(private readonly SystemNotificationServiceTest $test) {}
-
-            public function all(): array
-            {
-                $out = [];
-                foreach (['core_update_available', 'migration_pending', 'bundle_update_available'] as $type) {
-                    $out[$type] = fn() => $this->test->detect($type);
-                }
-                return $out;
-            }
-        };
+        $out = [];
+        foreach (['core_update_available', 'migration_pending', 'bundle_update_available'] as $type) {
+            $out[$type] = fn() => $this->detect($type);
+        }
+        $source = $this->createStub(SystemAlertDetectors::class);
+        $source->method('all')->willReturn($out);
 
         return new SystemNotificationService(new OwnerGuard(new PermissionService()), $this->notifs, $this->settings, $source);
     }

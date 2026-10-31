@@ -14,7 +14,7 @@ use App\Models\User;
 use App\Routing\RouteSlugService;
 use App\Validation\StoreValidator;
 
-final class StoreService implements StoreServiceInterface
+class StoreService
 {
     public function __construct(
         private readonly PlanLimitService $planLimits,

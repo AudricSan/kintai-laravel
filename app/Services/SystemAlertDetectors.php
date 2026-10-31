@@ -7,8 +7,12 @@ namespace App\Services;
 use App\Models\InstalledBundle;
 use App\Services\BundleRegistry\BundleCatalogService;
 
-/** Détecteurs réels des notifications système : mise à jour, migrations, bundles, sauvegarde, canaux, quota. */
-final class SystemAlertDetectors implements SystemAlertSourceInterface
+/**
+ * Les détecteurs de SystemNotificationService : un par type de notification système. Chacun renvoie une alerte
+ * (`key` distingue l'alerte pour l'anti-doublon, `link` est la page à ouvrir, `params` remplit la traduction) ou null
+ * quand tout va bien.
+ */
+class SystemAlertDetectors
 {
     public function __construct(
         private readonly AppSettingsService $settings,

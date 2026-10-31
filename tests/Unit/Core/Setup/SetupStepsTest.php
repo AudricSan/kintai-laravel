@@ -18,7 +18,7 @@ use App\Services\NotificationChannelStatus;
 use App\Services\NotificationPreferenceService;
 use App\Services\NotificationService;
 use App\Services\PublicUrlResolver;
-use App\Services\StoreServiceInterface;
+use App\Services\StoreService;
 use App\Services\VapidKeyStore;
 use App\Setup\MailStep;
 use App\Setup\NotificationsStep;
@@ -211,7 +211,7 @@ final class SetupStepsTest extends TestCase
 
     // ── Premier magasin ─────────────────────────────────────────────────────────────────────────────────────────
 
-    private function storeStep(StoreServiceInterface $service, array $existing = []): StoreStep
+    private function storeStep(StoreService $service, array $existing = []): StoreStep
     {
         \Illuminate\Support\Facades\DB::table('stores')->delete();
         kintai_test_stores(findAll: fn() => array_map(fn(array $row, int $i) => ['id' => $i + 1] + $row, $existing, array_keys($existing)));
@@ -221,7 +221,7 @@ final class SetupStepsTest extends TestCase
 
     public function testTheFirstStoreIsCreatedWithACodeDerivedFromItsNameAndTheOwnerIsAttached(): void
     {
-        $service = $this->createMock(StoreServiceInterface::class);
+        $service = $this->createMock(StoreService::class);
         $service->expects($this->once())->method('createStore')->with($this->callback(function (array $data): bool {
             return $data['code'] === 'MABOUT' && $data['name'] === 'Ma Boutique' && $data['timezone'] === 'Asia/Tokyo' && $data['currency'] === 'JPY';
         }))->willReturn(['id' => 12]);
@@ -234,18 +234,18 @@ final class SetupStepsTest extends TestCase
 
     public function testStoreValidationAndQuotaErrorsComeBackAsMessages(): void
     {
-        $service = $this->createStub(StoreServiceInterface::class);
+        $service = $this->createStub(StoreService::class);
         $service->method('createStore')->willThrowException(new ValidationException(['name' => ['Le nom est requis.'], 'code' => 'Code requis.']));
         $this->assertSame(['Le nom est requis.', 'Code requis.'], $this->storeStep($service)->handle($this->post(['name' => 'X', 'timezone' => 'UTC']), 5));
 
-        $quota = $this->createStub(StoreServiceInterface::class);
+        $quota = $this->createStub(StoreService::class);
         $quota->method('createStore')->willThrowException(new PlanLimitExceededException('Limite de magasins atteinte.'));
         $this->assertSame(['Limite de magasins atteinte.'], $this->storeStep($quota)->handle($this->post(['name' => 'X', 'timezone' => 'UTC']), 5));
     }
 
     public function testAnUnknownTimezoneIsRefusedBeforeAnythingIsCreated(): void
     {
-        $service = $this->createMock(StoreServiceInterface::class);
+        $service = $this->createMock(StoreService::class);
         $service->expects($this->never())->method('createStore');
 
         $this->assertSame(['setup_store_timezone_invalid'], $this->storeStep($service)->handle($this->post(['name' => 'X', 'timezone' => 'Mars/Olympus']), 5));
@@ -253,11 +253,11 @@ final class SetupStepsTest extends TestCase
 
     public function testExistingStoresAreListedAndSummarised(): void
     {
-        $step = $this->storeStep($this->createStub(StoreServiceInterface::class), [['name' => 'Paris', 'is_active' => 1], ['name' => 'Fermé', 'is_active' => 0]]);
+        $step = $this->storeStep($this->createStub(StoreService::class), [['name' => 'Paris', 'is_active' => 1], ['name' => 'Fermé', 'is_active' => 0]]);
 
         $this->assertSame(['Paris'], $step->data(Request::capture())['existing']);
         $this->assertSame('Paris', $step->summary());
-        $this->assertNull($this->storeStep($this->createStub(StoreServiceInterface::class))->summary());
+        $this->assertNull($this->storeStep($this->createStub(StoreService::class))->summary());
     }
 
     // ── Notifications ───────────────────────────────────────────────────────────────────────────────────────────

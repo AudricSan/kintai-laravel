@@ -26,7 +26,7 @@ use App\Models\UserShiftTypeRate;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreStatsService;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -37,7 +37,7 @@ final class AdminSalaryReportControllerTest extends TestCase
     private SalaryReportRepositoryInterface&Stub $salaryReports;
     /** @var list<array<string, mixed>> Jours renvoyés par le fournisseur de ventes factice (rapports journaliers) */
     private array $dailyReports = [];
-    private StoreStatsServiceInterface&Stub $storeStatsService;
+    private StoreStatsService&Stub $storeStatsService;
     private ?AdminSalaryReportController $controller = null;
 
     protected function setUp(): void
@@ -54,7 +54,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
         $this->salaryReports = $this->createStub(SalaryReportRepositoryInterface::class);
         $this->dailyReports = [];
-        $this->storeStatsService = $this->createStub(StoreStatsServiceInterface::class);
+        $this->storeStatsService = $this->createStub(StoreStatsService::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -485,7 +485,7 @@ final class AdminSalaryReportControllerTest extends TestCase
 
     public function testCalculateSalaryReportUsesPayslipDataForEmployeeScopedRange(): void
     {
-        $this->storeStatsService = $this->createMock(StoreStatsServiceInterface::class);
+        $this->storeStatsService = $this->createMock(StoreStatsService::class);
         $_GET = ['from' => '2026-08-01', 'to' => '2026-08-15', 'user_id' => '7'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
@@ -729,7 +729,7 @@ final class AdminSalaryReportControllerTest extends TestCase
     public function testShowSalaryReportWithUserIdIncludesShiftDetailFromPayslipData(): void
     {
         $this->salaryReports = $this->createMock(SalaryReportRepositoryInterface::class);
-        $this->storeStatsService = $this->createMock(StoreStatsServiceInterface::class);
+        $this->storeStatsService = $this->createMock(StoreStatsService::class);
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->setRouteParams(['id' => '1', 'rid' => '30']);

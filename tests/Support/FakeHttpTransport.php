@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
-use App\Services\Calendar\HttpTransportInterface;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 
 /**
- * Transport HTTP factice : enregistre les requêtes et répond selon des règles « méthode + fin d'URL » (la première qui
+ * Serveur HTTP factice (Http::fake) : enregistre les requêtes et répond selon des règles « méthode + fin d'URL » (la première qui
  * correspond), ou par la réponse par défaut. Une règle peut être une liste de réponses consommées dans l'ordre.
  */
-final class FakeHttpTransport implements HttpTransportInterface
+final class FakeHttpTransport
 {
     /** @var list<array{method: string, url: string, headers: array<string, string>, body: ?string}> */
     public array $requests = [];
@@ -19,7 +22,23 @@ final class FakeHttpTransport implements HttpTransportInterface
     private array $rules = [];
 
     /** @param array{status: int, body: string} $default */
-    public function __construct(private array $default = ['status' => 200, 'body' => '{}']) {}
+    public function __construct(private array $default = ['status' => 200, 'body' => '{}'])
+    {
+        // Une fabrique neuve par test : fake() ajoute ses réponses à celles déjà posées, la plus ancienne l'emporterait.
+        Http::swap(new Factory());
+        Http::fake(function (Request $request) {
+            $headers = [];
+            foreach ($request->headers() as $name => $values) {
+                $headers[$name] = implode(', ', $values);
+            }
+            $answer = $this->request($request->method(), $request->url(), $headers, $request->body());
+            if ($answer['status'] === 0) {
+                throw new ConnectionException('Serveur injoignable (test).');
+            }
+
+            return Http::response($answer['body'], $answer['status']);
+        });
+    }
 
     /** @param array{status: int, body: string}|list<array{status: int, body: string}>|callable $response */
     public function when(string $method, string $urlEnd, array|callable $response): self

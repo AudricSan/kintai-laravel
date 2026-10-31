@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\AvailabilityGuard;
 use App\Services\NotificationService;
-use App\Services\ShiftServiceInterface;
+use App\Services\ShiftService;
 use App\Http\Controllers\Scheduling\AdminShiftController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -57,7 +57,7 @@ final class AdminShiftResolveConflictTest extends TestCase
             kintai_test_views(sys_get_temp_dir()),
             new AuditLogger(),
             $this->notifs,
-            $this->createStub(ShiftServiceInterface::class),
+            $this->createStub(ShiftService::class),
             new PermissionService(),
             new AvailabilityGuard(),
         );

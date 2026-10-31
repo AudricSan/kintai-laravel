@@ -6,8 +6,6 @@ namespace App\Services;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Container\Container;
-use App\Services\Calendar\CurlHttpTransport;
-use App\Services\Calendar\HttpTransportInterface;
 use App\Mail\MailerService;
 use App\Models\Store;
 use App\Models\StoreUser;
@@ -104,7 +102,6 @@ final class AppServiceProvider extends ServiceProvider
                 file_exists($path) ? require $path : [],
             );
         });
-        $this->app->singleton(HttpTransportInterface::class, fn() => new CurlHttpTransport());
         $this->app->singleton(UnsubscribeTokens::class,fn(Container $c) => new UnsubscribeTokens());
         $this->app->singleton(NotificationMailer::class, fn(Container $c) => new NotificationMailer(
             $c->make(MailerService::class),
@@ -138,7 +135,7 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(MascotResolver::class, fn(Container $c) => new MascotResolver($c->make(AppSettingsService::class)));
 
-        $this->app->singleton(ShiftServiceInterface::class, fn(Container $c) => new ShiftService(
+        $this->app->singleton(ShiftService::class, fn(Container $c) => new ShiftService(
         ));
 
         // Partagé : les réglages de publication lus une fois servent à tous les filtres de la requête.
@@ -176,12 +173,12 @@ final class AppServiceProvider extends ServiceProvider
         // Ventes journalières (contrat 1.14), aussi exposées aux bundles (kintai\Contract\Services\Sales).
         $this->app->bind(\App\Extension\Sales::class, fn() => \App\Extension\Sales::current());
 
-        $this->app->singleton(StoreServiceInterface::class, fn(Container $c) => new StoreService(
+        $this->app->singleton(StoreService::class, fn(Container $c) => new StoreService(
             $c->make(PlanLimitService::class),
             $c->make(\App\Routing\RouteSlugService::class),
         ));
 
-        $this->app->singleton(StoreStatsServiceInterface::class, fn(Container $c) => new StoreStatsService(
+        $this->app->singleton(StoreStatsService::class, fn(Container $c) => new StoreStatsService(
             $c->make(RoleAssignmentSyncService::class),
             $c->make(\App\Extension\Sales::class),
         ));
@@ -258,6 +255,5 @@ final class AppServiceProvider extends ServiceProvider
         ));
 
         // Détecteurs des notifications système (Owners) ; le service lui-même s'auto-résout.
-        $this->app->singleton(SystemAlertSourceInterface::class, fn(Container $c) => $c->make(SystemAlertDetectors::class));
     }
 }

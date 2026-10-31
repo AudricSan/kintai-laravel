@@ -16,7 +16,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\DashboardAlertService;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreStatsService;
 use App\Http\Controllers\HomeController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
@@ -51,7 +51,7 @@ final class HomeControllerScopingTest extends TestCase
         foreach ([1, 99] as $uid) $this->seedWidgets($uid, 'admin', [ 'kpi_counters', 'store_stats_summary', 'shifts_today', 'pending_timeoff', 'timeclocks_today', ]);
         kintai_test_users(findAll: fn() => $users); // après les shifts et les réglages, qui créent les comptes qu'ils citent
         kintai_test_store_users(findByStore: fn(int $storeId) => $storeMembers[$storeId] ?? []);
-        $storeStats = $this->createStub(StoreStatsServiceInterface::class);
+        $storeStats = $this->createStub(StoreStatsService::class);
         $storeStats->method('multiStoreComparison')->willReturn([]);
 
         // Rôle non-système accordant payroll.view à n'importe quel store, pour que

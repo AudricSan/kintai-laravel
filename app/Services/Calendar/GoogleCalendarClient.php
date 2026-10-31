@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Calendar;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
+
 /**
  * Client minimal de Google : OAuth 2.0 (code + PKCE, jeton de rafraîchissement) et les quatre appels de l'API Agenda
  * dont Kintai a besoin (créer/renommer un agenda, insérer/modifier/supprimer un événement). Pas de dépendance
- * `google/apiclient` : une dizaine de requêtes HTTP suffisent, et le transport reste remplaçable en test.
+ * `google/apiclient` : une dizaine de requêtes HTTP suffisent, et Http::fake() suffit en test.
  *
  * Le périmètre `calendar.app.created` donne accès aux seuls agendas créés par Kintai, jamais au reste de l'agenda de
  * l'utilisateur. `openid email` ne sert qu'à afficher quel compte est lié.
@@ -23,7 +26,6 @@ final class GoogleCalendarClient
 
     public function __construct(
         private readonly GoogleCalendarSettings $settings,
-        private readonly HttpTransportInterface $http,
     ) {}
 
     public function authorizationUrl(string $redirectUri, string $state, string $codeChallenge, ?string $loginHint = null): string
@@ -113,7 +115,7 @@ final class GoogleCalendarClient
     /** Révoque le jeton chez Google ; une panne n'empêche pas la déconnexion locale. */
     public function revoke(string $token): bool
     {
-        $r = $this->http->request('POST', self::REVOKE_URL, ['Content-Type' => 'application/x-www-form-urlencoded'], http_build_query(['token' => $token]));
+        $r = $this->send('POST', self::REVOKE_URL, ['Content-Type' => 'application/x-www-form-urlencoded'], http_build_query(['token' => $token]));
         return $r['status'] === 200;
     }
 
@@ -161,7 +163,7 @@ final class GoogleCalendarClient
     private function tokenRequest(array $form): array
     {
         $form += ['client_id' => $this->settings->clientId(), 'client_secret' => $this->settings->clientSecret()];
-        $r = $this->http->request('POST', self::TOKEN_URL, ['Content-Type' => 'application/x-www-form-urlencoded'], http_build_query($form));
+        $r = $this->send('POST', self::TOKEN_URL, ['Content-Type' => 'application/x-www-form-urlencoded'], http_build_query($form));
         $json = json_decode($r['body'], true);
         $json = is_array($json) ? $json : [];
         if ($r['status'] !== 200) {
@@ -180,7 +182,7 @@ final class GoogleCalendarClient
             $headers['Content-Type'] = 'application/json';
             $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
-        $r = $this->http->request($method, self::API . $path, $headers, $body);
+        $r = $this->send($method, self::API . $path, $headers, $body);
         if ($r['status'] >= 200 && $r['status'] < 300) {
             $json = json_decode($r['body'], true);
             return is_array($json) ? $json : [];
@@ -192,6 +194,27 @@ final class GoogleCalendarClient
             $reason = 'invalid_grant';
         }
         throw new GoogleCalendarException('API Agenda : ' . ($error['message'] ?? 'erreur ' . $r['status']), $r['status'], $reason);
+    }
+
+    /**
+     * Requête HTTP vers Google par le client de Laravel (Http::fake() en test).
+     *
+     * @param array<string, string> $headers
+     * @return array{status: int, body: string} status 0 quand le serveur n'a pas pu être joint
+     */
+    private function send(string $method, string $url, array $headers = [], ?string $body = null): array
+    {
+        try {
+            $request = Http::withHeaders($headers)->timeout(10);
+            if ($body !== null) {
+                $request = $request->withBody($body, $headers['Content-Type'] ?? 'application/json');
+            }
+            $response = $request->send(strtoupper($method), $url);
+        } catch (ConnectionException) {
+            return ['status' => 0, 'body' => ''];
+        }
+
+        return ['status' => $response->status(), 'body' => $response->body()];
     }
 
     private static function emailFromIdToken(string $idToken): ?string

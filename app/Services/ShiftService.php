@@ -9,7 +9,7 @@ use App\Models\ShiftType;
 use App\Extension\Absences;
 use App\Models\User;
 
-final class ShiftService implements ShiftServiceInterface
+class ShiftService
 {
     public function __construct(
     ) {}

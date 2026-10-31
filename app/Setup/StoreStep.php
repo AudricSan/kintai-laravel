@@ -9,7 +9,7 @@ use App\Exceptions\ValidationException;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use App\Services\InstanceLocale;
-use App\Services\StoreServiceInterface;
+use App\Services\StoreService;
 use App\Validation\StoreValidator;
 
 /**
@@ -20,7 +20,7 @@ use App\Validation\StoreValidator;
 final class StoreStep implements SetupStepInterface
 {
     public function __construct(
-        private readonly StoreServiceInterface $storeService,
+        private readonly StoreService $storeService,
         private readonly InstanceLocale $locale,
     ) {}
 

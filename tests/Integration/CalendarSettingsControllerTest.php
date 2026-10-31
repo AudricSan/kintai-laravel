@@ -45,7 +45,7 @@ final class CalendarSettingsControllerTest extends TestCase
         $this->controller = new CalendarSettingsController(
             $this->view,
             $this->google,
-            new GoogleCalendarClient($this->google, $this->http),
+            new GoogleCalendarClient($this->google),
             new GoogleRedirectUri(new PublicUrlResolver($this->appSettings, 'https://kintai.test')),
             new AuditLogger(),
         );

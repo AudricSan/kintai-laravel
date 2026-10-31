@@ -26,7 +26,7 @@ use App\Services\AuditLogger;
 use App\Services\AvailabilityGuard;
 use App\Services\NotificationService;
 use App\Services\SchedulePublication;
-use App\Services\ShiftServiceInterface;
+use App\Services\ShiftService;
 use App\Http\Controllers\Scheduling\AdminShiftController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Tests\Support\FakeAbsenceProvider;
@@ -37,7 +37,7 @@ use PHPUnit\Framework\TestCase;
 
 final class AdminShiftControllerTest extends TestCase
 {
-    private ShiftServiceInterface&Stub $shiftService;
+    private ShiftService&Stub $shiftService;
     private NotificationService&Stub $notifs;
     private ?AdminShiftController $controller = null;
     private ?SchedulePublication $publication = null;
@@ -57,7 +57,7 @@ final class AdminShiftControllerTest extends TestCase
         \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF');
         $this->ensureViewFile('scheduling.shifts');
         $this->ensureViewFile('layout.app');
-        $this->shiftService = $this->createStub(ShiftServiceInterface::class);
+        $this->shiftService = $this->createStub(ShiftService::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 

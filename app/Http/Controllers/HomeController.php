@@ -22,7 +22,7 @@ use App\Services\DashboardAlertService;
 use App\Services\DashboardLayoutResolver;
 use App\Services\SchedulePublication;
 use App\Services\ShiftWageCalculator;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreStatsService;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class HomeController
@@ -63,7 +63,7 @@ final class HomeController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StoreStatsServiceInterface $storeStats,
+        private readonly StoreStatsService $storeStats,
         private readonly DashboardAlertService $dashboardAlerts,
         private readonly PermissionService $permissions,
         private readonly ?PendingRequests $pendingRequests = null,

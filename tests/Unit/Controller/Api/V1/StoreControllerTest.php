@@ -10,7 +10,7 @@ use App\Models\Store;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
-use App\Services\StoreServiceInterface;
+use App\Services\StoreService;
 use App\Http\Controllers\Api\V1\StoreController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -19,13 +19,13 @@ use PHPUnit\Framework\TestCase;
 
 final class StoreControllerTest extends TestCase
 {
-    private StoreServiceInterface&Stub $storeService;
+    private StoreService&Stub $storeService;
     private ?StoreController $controller = null;
 
     protected function setUp(): void
     {
 kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
-        $this->storeService = $this->createStub(StoreServiceInterface::class);
+        $this->storeService = $this->createStub(StoreService::class);
     }
 
     /** Objet testé, construit à la première utilisation : un test peut d'abord remplacer un bouchon par un mock. */
@@ -52,7 +52,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** POST /api/v1/stores délègue à StoreService::createStore() (et non plus au repository directement), pour que les règles métier (validation, quota du plan) s'appliquent aussi côté API. */
     public function testStoreDelegatesToStoreService(): void
     {
-        $this->storeService = $this->createMock(StoreServiceInterface::class);
+        $this->storeService = $this->createMock(StoreService::class);
         $this->storeService->expects($this->once())
             ->method('createStore')
             ->with(['code' => 'ST01', 'name' => 'Store A'])
@@ -130,7 +130,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** DELETE /api/v1/stores/{id} passe par StoreService (suppression douce + rôles retirés), comme le web. */
     public function testDestroyDelegatesToTheStoreService(): void
     {
-        $this->storeService = $this->createMock(StoreServiceInterface::class);
+        $this->storeService = $this->createMock(StoreService::class);
         kintai_test_stores(findById: fn() => ['id' => 5]);
         $this->storeService->expects($this->once())->method('deleteStore')->with(5);
 

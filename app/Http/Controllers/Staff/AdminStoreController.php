@@ -22,8 +22,8 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
 use App\Services\RoleAssignmentSyncService;
 use App\Services\SchedulePublication;
-use App\Services\StoreServiceInterface;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreService;
+use App\Services\StoreStatsService;
 use App\Routing\RouteSlugService;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
@@ -34,8 +34,8 @@ final class AdminStoreController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly AuditLogger $auditLogger,
-        private readonly StoreServiceInterface $storeService,
-        private readonly StoreStatsServiceInterface $storeStatsService,
+        private readonly StoreService $storeService,
+        private readonly StoreStatsService $storeStatsService,
         private readonly StoreFeatures $storeFeatures,
         private readonly RoleAssignmentSyncService $roleSync,
         private readonly PermissionService $permissions,

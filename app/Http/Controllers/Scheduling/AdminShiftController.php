@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\ShiftWageCalculator;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use App\Http\Controllers\HasAdminAccess;
-use App\Services\ShiftServiceInterface;
+use App\Services\ShiftService;
 
 final class AdminShiftController
 {
@@ -38,7 +38,7 @@ final class AdminShiftController
         private readonly ViewFactory $view,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
-        private readonly ShiftServiceInterface $shiftService,
+        private readonly ShiftService $shiftService,
         private readonly PermissionService $permissions,
         private readonly AvailabilityGuard $availabilityGuard,
         // Publication du planning par magasin ; null (tests, appel direct) : tout est publié, comme avant.

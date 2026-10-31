@@ -18,7 +18,7 @@ use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\Sales;
 use kintai\Contract\Services\ShiftWageCalculator;
-use kintai\Contract\Services\StoreStatsServiceInterface;
+use kintai\Contract\Services\StoreStatsService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Http\Concerns\HasStaffReportCrud;
 use kintai\Contract\View\ViewFactory;
@@ -64,7 +64,7 @@ final class AdminSalaryReportController
         private readonly SalaryReportRepositoryInterface $salaryReports,
         private readonly Sales $sales,
         private readonly AuditLogger $auditLogger,
-        private readonly StoreStatsServiceInterface $storeStatsService,
+        private readonly StoreStatsService $storeStatsService,
         private readonly PermissionService $permissions,
     ) {}
 

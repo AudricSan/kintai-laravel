@@ -48,7 +48,7 @@ final class CalendarLinkControllerTest extends TestCase
         );
 
         $this->controller = new CalendarLinkController(
-            $auth, $this->google, new GoogleCalendarClient($this->google, $this->http), $this->sync,
+            $auth, $this->google, new GoogleCalendarClient($this->google), $this->sync,
             new GoogleRedirectUri(new PublicUrlResolver($this->appSettings, 'https://kintai.test')),
             new AuditLogger(),
         );

@@ -16,7 +16,7 @@ use kintai\Contract\Http\Request;
 use kintai\Contract\Http\Response;
 use kintai\Contract\Services\AuditLogger;
 use kintai\Contract\Services\NotificationService;
-use kintai\Contract\Services\ShiftServiceInterface;
+use kintai\Contract\Services\ShiftService;
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\View\ViewFactory;
 
@@ -27,7 +27,7 @@ final class AdminShiftClaimController
     public function __construct(
         private readonly ViewFactory $view,
         private readonly ShiftClaimRepositoryInterface $shiftClaims,
-        private readonly ShiftServiceInterface $shiftService,
+        private readonly ShiftService $shiftService,
         private readonly AuditLogger $auditLogger,
         private readonly NotificationService $notifs,
     ) {}

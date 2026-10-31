@@ -25,7 +25,7 @@ final class GoogleCalendarClientTest extends TestCase
         $config = new GoogleCalendarSettings(new SecretBox());
         $config->save(true, 'client-id.apps.googleusercontent.com', 'client-secret');
         $this->http   = new FakeHttpTransport();
-        $this->client = new GoogleCalendarClient($config, $this->http);
+        $this->client = new GoogleCalendarClient($config);
     }
 
     public function testAuthorizationUrlCarriesPkceMinimalScopeAndOfflineAccess(): void

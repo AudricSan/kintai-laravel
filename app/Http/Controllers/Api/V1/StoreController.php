@@ -12,14 +12,14 @@ use App\Models\Store;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\AuditLogger;
-use App\Services\StoreServiceInterface;
+use App\Services\StoreService;
 use App\Validation\ApiPayloadRules;
 use App\Validation\PayloadValidator;
 
 final class StoreController
 {
     public function __construct(
-        private readonly StoreServiceInterface $storeService,
+        private readonly StoreService $storeService,
         private readonly AuditLogger $auditLogger,
         private readonly PermissionService $permissions,
     ) {}

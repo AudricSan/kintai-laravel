@@ -16,7 +16,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\DashboardAlertService;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreStatsService;
 use App\Http\Controllers\HomeController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
         $this->ensureViewFile('layout.app', "<?php echo \$content ?? '';");
     }
 
-    private function buildController(StoreStatsServiceInterface $storeStats, array $stores): HomeController
+    private function buildController(StoreStatsService $storeStats, array $stores): HomeController
     {
         kintai_test_users(findAll: fn() => []);
         kintai_test_stores(findAll: fn() => $stores);
@@ -69,7 +69,7 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
     public function testFetchesWeeklyTrendWhenExactlyOneStoreInScope(): void
     {
-        $storeStats = $this->createMock(StoreStatsServiceInterface::class);
+        $storeStats = $this->createMock(StoreStatsService::class);
         $storeStats->method('multiStoreComparison')->willReturn([
             ['store_id' => 7, 'store_name' => 'Store 7', 'total_hours' => 120.0, 'total_cost' => 0.0, 'stability' => null, 'currency' => 'JPY', 'currency_symbol_style' => 'kanji'],
         ]);
@@ -91,7 +91,7 @@ final class HomeControllerWeeklyHoursTrendTest extends TestCase
 
     public function testDoesNotFetchWeeklyTrendWhenMultipleStoresInScope(): void
     {
-        $storeStats = $this->createMock(StoreStatsServiceInterface::class);
+        $storeStats = $this->createMock(StoreStatsService::class);
         $storeStats->method('multiStoreComparison')->willReturn([
             ['store_id' => 7, 'store_name' => 'Store 7', 'total_hours' => 120.0, 'total_cost' => 0.0, 'stability' => null, 'currency' => 'JPY', 'currency_symbol_style' => 'kanji'],
             ['store_id' => 8, 'store_name' => 'Store 8', 'total_hours' => 80.0, 'total_cost' => 0.0, 'stability' => null, 'currency' => 'JPY', 'currency_symbol_style' => 'kanji'],

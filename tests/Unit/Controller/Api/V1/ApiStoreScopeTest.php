@@ -25,7 +25,7 @@ use App\Services\AuditLogger;
 use App\Services\LicenseClientService;
 use Illuminate\Support\Facades\Log;
 use App\Services\PlanLimitService;
-use App\Services\StoreServiceInterface;
+use App\Services\StoreService;
 use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\IcalTokenController;
 use App\Http\Controllers\Api\V1\ShiftController;
@@ -217,7 +217,7 @@ final class ApiStoreScopeTest extends TestCase
     public function testManagerCannotUpdateAnotherStore(): void
     {
         kintai_test_stores(findById: fn() => ['id' => self::STORE_B]);
-        $controller = new StoreController($this->createStub(StoreServiceInterface::class), new AuditLogger(), $this->permissions);
+        $controller = new StoreController($this->createStub(StoreService::class), new AuditLogger(), $this->permissions);
 
         $this->expectException(ForbiddenException::class);
         $controller->update($this->request(self::MANAGER, ['id' => (string) self::STORE_B], ['name' => 'piraté']));

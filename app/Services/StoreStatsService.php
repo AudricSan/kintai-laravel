@@ -14,7 +14,7 @@ use App\Extension\Swaps;
 use App\Models\User;
 use App\Models\UserShiftTypeRate;
 
-final class StoreStatsService implements StoreStatsServiceInterface
+class StoreStatsService
 {
     /**
      * Résultats de storeStats() déjà calculés pendant cette requête, par (store, période, bornes de durée).

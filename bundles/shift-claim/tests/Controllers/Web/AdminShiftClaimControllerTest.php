@@ -15,7 +15,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\AuditLogger;
 use App\Services\NotificationService;
-use App\Services\ShiftServiceInterface;
+use App\Services\ShiftService;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
 final class AdminShiftClaimControllerTest extends TestCase
 {
     private ShiftClaimRepositoryInterface&Stub $shiftClaims;
-    private ShiftServiceInterface&Stub $shiftService;
+    private ShiftService&Stub $shiftService;
     private NotificationService&Stub $notifs;
     private ?AdminShiftClaimController $controller = null;
 
@@ -46,7 +46,7 @@ final class AdminShiftClaimControllerTest extends TestCase
         $this->ensureViewFile($viewDir, 'open-shifts-select');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
         $this->shiftClaims = $this->createStub(ShiftClaimRepositoryInterface::class);
-        $this->shiftService = $this->createStub(ShiftServiceInterface::class);
+        $this->shiftService = $this->createStub(ShiftService::class);
         $this->notifs = $this->createStub(NotificationService::class);
     }
 

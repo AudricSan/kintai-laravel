@@ -50,7 +50,7 @@ final class SystemNotificationService
         private readonly OwnerGuard $owners,
         private readonly NotificationService $notifications,
         private readonly AppSettingsService $settings,
-        private readonly SystemAlertSourceInterface $detectors,
+        private readonly SystemAlertDetectors $detectors,
     ) {}
 
     /**

@@ -15,7 +15,7 @@ use App\Models\UserDashboardPref;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\DashboardAlertService;
-use App\Services\StoreStatsServiceInterface;
+use App\Services\StoreStatsService;
 use App\Http\Controllers\HomeController;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use PHPUnit\Framework\TestCase;
@@ -50,7 +50,7 @@ final class HomeControllerFinancialHrWidgetsTest extends TestCase
         kintai_test_shift_types([]);
         $this->seedWidgets(1, 'admin', $enabledWidgets);
         kintai_test_store_users(findByStore: fn() => []);
-        $storeStats = $this->createStub(StoreStatsServiceInterface::class);
+        $storeStats = $this->createStub(StoreStatsService::class);
         $storeStats->method('multiStoreComparison')->willReturn([]);
         // La vue financière ne lit plus que le coût par mois (costByMonth()), pas storeStats() complet.
         $storeStats->method('costByMonth')->willReturnCallback(
