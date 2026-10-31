@@ -73,7 +73,7 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
         return $path;
     }
 
-    private function service(string $servedZip): BundleInstallerService
+    private function service(string $servedZip, bool $allowUnpinned = false): BundleInstallerService
     {
         return new BundleInstallerService(
             new UpdateService($this->fakeCoreBasePath),
@@ -81,6 +81,7 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
             $this->bundlesDir,
             fn() => 'https://example.test/fake.zip',
             static fn(string $url, string $dest): bool => copy($servedZip, $dest),
+            allowUnpinned: $allowUnpinned,
         );
     }
 
@@ -117,11 +118,21 @@ final class BundleInstallerServicePinnedCommitTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->bundlesDir . '/fake-bundle/.staging/1.0.0', "Rien ne doit avoir été extrait.");
     }
 
-    public function testInstallWithoutAPinStillWorksForRegistriesThatDoNotPinCommits(): void
+    /** SEC-04 : sans commit épinglé par le registry, l'installation est refusée par défaut. */
+    public function testInstallWithoutAPinIsRefusedByDefault(): void
+    {
+        $result = $this->service($this->githubZip(self::OTHER))
+            ->install('fake-bundle', self::REPO, '1.0.0');
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('commit épinglé', (string) $result->error);
+    }
+
+    public function testInstallWithoutAPinWorksWhenTheOperatorAllowsIt(): void
     {
         $this->expectInstalledUpsert('fake-bundle');
 
-        $result = $this->service($this->githubZip(self::OTHER))
+        $result = $this->service($this->githubZip(self::OTHER), allowUnpinned: true)
             ->install('fake-bundle', self::REPO, '1.0.0');
 
         $this->assertTrue($result->success, (string) $result->error);

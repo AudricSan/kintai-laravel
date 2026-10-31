@@ -103,8 +103,11 @@ final class BackupService
 
         $tmpDir = $this->backupDir . '/.restore_' . bin2hex(random_bytes(4));
         mkdir($tmpDir, 0755, true);
-        $zip->extractTo($tmpDir);
-        $zip->close();
+        try {
+            \App\Support\SafeZip::extract($zip, $tmpDir);
+        } finally {
+            $zip->close();
+        }
 
         $meta = $this->readBackupMeta($tmpDir);
         $driver = $meta['driver'] ?? 'sqlite';

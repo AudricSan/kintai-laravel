@@ -557,11 +557,13 @@ final class GithubUpdateService
         if ($zip->open($zipPath) !== true) {
             return null;
         }
-        if (!is_dir($extractDir)) {
-            mkdir($extractDir, 0755, true);
+        try {
+            \App\Support\SafeZip::extract($zip, $extractDir);
+        } catch (\RuntimeException) {
+            return null;
+        } finally {
+            $zip->close();
         }
-        $zip->extractTo($extractDir);
-        $zip->close();
 
         $dirs = glob($extractDir . '/*', GLOB_ONLYDIR);
         if ($dirs === false || count($dirs) !== 1) {

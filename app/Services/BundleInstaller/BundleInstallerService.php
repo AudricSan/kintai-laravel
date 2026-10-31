@@ -48,6 +48,10 @@ final class BundleInstallerService
         private readonly ?Migrator $migrator = null,
         // Droits du rôle Manager pour les catégories déclarées, à la première installation d'un bundle.
         private readonly ?BundlePermissionGranter $permissionGranter = null,
+        // Installer sans commit épinglé par le registry (audit SEC-04) : refusé par défaut, car le code d'un bundle
+        // s'exécute avec les droits de l'application. KINTAI_ALLOW_UNPINNED_BUNDLES=true, ou l'archive locale des tests
+        // de fumée (kintai:install-bundle-archive), l'autorisent explicitement.
+        private readonly ?bool $allowUnpinned = null,
     ) {
     }
 
@@ -189,7 +193,13 @@ final class BundleInstallerService
                 return BundleInstallResult::failure($commitError);
             }
         } elseif (!$dryRun) {
-            // Registry sans épinglage (tiers) : on installe comme avant, mais la trace en reste.
+            $allowed = $this->allowUnpinned ?? filter_var(env('KINTAI_ALLOW_UNPINNED_BUNDLES', false), FILTER_VALIDATE_BOOL);
+            if (!$allowed) {
+                @unlink($zipPath);
+                Log::warning('bundle_install_refused_unpinned', ['slug' => $slug, 'version' => $version]);
+                return BundleInstallResult::failure($this->lastError = 'Installation refusée : le registry ne fournit pas de commit épinglé pour cette version.');
+            }
+            // Installation non épinglée explicitement autorisée : la trace en reste.
             Log::warning('bundle_install_unpinned', ['slug' => $slug, 'version' => $version]);
         }
 
@@ -394,11 +404,13 @@ final class BundleInstallerService
         if ($zip->open($zipPath) !== true) {
             return null;
         }
-        if (!is_dir($extractDir)) {
-            mkdir($extractDir, 0755, true);
+        try {
+            \App\Support\SafeZip::extract($zip, $extractDir);
+        } catch (\RuntimeException) {
+            return null;
+        } finally {
+            $zip->close();
         }
-        $zip->extractTo($extractDir);
-        $zip->close();
 
         $dirs = glob($extractDir . '/*', GLOB_ONLYDIR);
         if ($dirs === false || count($dirs) !== 1) {

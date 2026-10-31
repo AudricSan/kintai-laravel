@@ -57,6 +57,7 @@ final class BundleInstallerServiceTest extends TestCase
             $zipDownloader,
             migrator: $migrator,
             permissionGranter: $permissionGranter,
+            allowUnpinned: true,
         );
     }
 

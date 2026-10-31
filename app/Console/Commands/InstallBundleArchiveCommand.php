@@ -47,6 +47,7 @@ final class InstallBundleArchiveCommand extends Command
             zipDownloader: fn(string $url, string $dest): bool => copy($zip, $dest),
             migrator: app('migrator'),
             permissionGranter: app(BundlePermissionGranter::class),
+            allowUnpinned: true, // archive locale choisie par l'opérateur (tests de fumée) : aucun registry pour l'épingler
         );
         $installer->install($slug, 'https://github.com/AudricSan/kintai-bundle-' . $slug, $version);
         $error = $installer->getLastError();

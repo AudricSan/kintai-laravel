@@ -72,6 +72,7 @@ final class BundleMarketControllerTest extends TestCase
             $this->bundlesDir,
             $this->releaseFetcher,
             $this->zipDownloader,
+            allowUnpinned: true,
         );
 
         return new BundleMarketController(
