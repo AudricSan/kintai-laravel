@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
-use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface as Repo;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSettings;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSend;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheck;
+
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\StoreUser;
@@ -24,7 +27,6 @@ use kintai\Contract\Services\NotificationService;
 final class PlanningCheckService
 {
     public function __construct(
-        private readonly Repo $repo,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
         private readonly PlanningShiftRows $rows,
@@ -44,7 +46,7 @@ final class PlanningCheckService
     public function state(array $store, \DateTimeImmutable $now): array
     {
         $storeId = (int) $store['id'];
-        $settings = $this->repo->settings($storeId);
+        $settings = PlanningCheckSettings::forStore($storeId);
         // Fuseau de l'application (APP_TIMEZONE), pas celui du magasin qui vaut « UTC » par défaut.
         $timezone = date_default_timezone_get();
         $date = PlanningCheckPolicy::targetDate($timezone, $now);
@@ -56,7 +58,7 @@ final class PlanningCheckService
         return [
             'settings' => $settings,
             'date'     => $date,
-            'check'    => $due ? $this->repo->ensure($storeId, $date) : $this->repo->findFor($storeId, $date),
+            'check'    => $due ? PlanningCheck::ensure($storeId, $date) : PlanningCheck::findFor($storeId, $date),
             'late'     => PlanningCheckPolicy::isLate($settings, $timezone, $now),
             'due'      => $due,
         ];
@@ -65,7 +67,7 @@ final class PlanningCheckService
     /** La version envoyée n'est plus celle du planning : un renvoi est proposé. @param array<string, mixed> $check */
     public function needsResend(array $check): bool
     {
-        if ($check['status'] !== Repo::STATUS_VALIDATED) {
+        if ($check['status'] !== PlanningCheck::STATUS_VALIDATED) {
             return false;
         }
         if ($check['send_status'] === 'failed') {
@@ -106,12 +108,12 @@ final class PlanningCheckService
     public function submit(int $storeId, string $date, int $userId, bool $confirmEmpty, \DateTimeImmutable $now): array
     {
         $store = Store::findById($storeId);
-        $settings = $this->repo->settings($storeId);
+        $settings = PlanningCheckSettings::forStore($storeId);
         if ($store === null || empty($settings['enabled'])) {
             return $this->fail('not_enabled');
         }
-        $check = $this->repo->ensure($storeId, $date);
-        if (!in_array($check['status'], [Repo::STATUS_PENDING, Repo::STATUS_REJECTED, Repo::STATUS_ESCALATED], true)) {
+        $check = PlanningCheck::ensure($storeId, $date);
+        if (!in_array($check['status'], [PlanningCheck::STATUS_PENDING, PlanningCheck::STATUS_REJECTED, PlanningCheck::STATUS_ESCALATED], true)) {
             return $this->fail('already_submitted', $check);
         }
         $count = count($this->rows->raw($storeId, $date));
@@ -119,8 +121,8 @@ final class PlanningCheckService
             return $this->fail('no_shifts', $check);
         }
 
-        $check = $this->repo->update($check['id'], [
-            'status'          => Repo::STATUS_SUBMITTED,
+        $check = PlanningCheck::put($check['id'], [
+            'status'          => PlanningCheck::STATUS_SUBMITTED,
             'confirmed_empty' => $count === 0 ? 1 : 0,
             'submitted_by'    => $userId,
             'submitted_at'    => date('Y-m-d H:i:s', $now->getTimestamp()),
@@ -139,11 +141,11 @@ final class PlanningCheckService
     /** « Non, modifier le planning » : la fenêtre se met en retrait un moment, le temps de corriger les shifts. */
     public function startEditing(int $storeId, string $date, int $userId, \DateTimeImmutable $now): void
     {
-        $check = $this->repo->ensure($storeId, $date);
-        if (in_array($check['status'], [Repo::STATUS_VALIDATED, Repo::STATUS_SUBMITTED], true)) {
+        $check = PlanningCheck::ensure($storeId, $date);
+        if (in_array($check['status'], [PlanningCheck::STATUS_VALIDATED, PlanningCheck::STATUS_SUBMITTED], true)) {
             return;
         }
-        $this->repo->update($check['id'], [
+        PlanningCheck::put($check['id'], [
             'editing_by'    => $userId,
             'editing_until' => date('Y-m-d H:i:s', $now->getTimestamp() + PlanningCheckPolicy::EDITING_MINUTES * 60),
         ]);
@@ -152,9 +154,9 @@ final class PlanningCheckService
     /** « Revenir à la validation » : la correction est terminée, la fenêtre se réaffiche. */
     public function resumeValidation(int $storeId, string $date): void
     {
-        $check = $this->repo->findFor($storeId, $date);
+        $check = PlanningCheck::findFor($storeId, $date);
         if ($check !== null && $check['editing_until'] !== null) {
-            $this->repo->update($check['id'], ['editing_by' => null, 'editing_until' => null]);
+            PlanningCheck::put($check['id'], ['editing_by' => null, 'editing_until' => null]);
         }
     }
 
@@ -166,24 +168,24 @@ final class PlanningCheckService
      */
     public function approve(int $checkId, int $userId, \DateTimeImmutable $now): array
     {
-        $check = $this->repo->find($checkId);
+        $check = PlanningCheck::find($checkId);
         if ($check === null) {
             return $this->fail('not_found');
         }
-        if ($check['status'] !== Repo::STATUS_SUBMITTED) {
+        if ($check['status'] !== PlanningCheck::STATUS_SUBMITTED) {
             return $this->fail('bad_status', $check);
         }
         $store = Store::findById($check['store_id']);
         if ($store === null) {
             return $this->fail('not_found', $check);
         }
-        $settings = $this->repo->settings($check['store_id']);
+        $settings = PlanningCheckSettings::forStore($check['store_id']);
         if ($this->mail->recipients($settings, (int) $check['store_id']) === []) {
             return $this->fail('no_recipients', $check);
         }
 
-        $check = $this->repo->update($check['id'], [
-            'status'       => Repo::STATUS_VALIDATED,
+        $check = PlanningCheck::put($check['id'], [
+            'status'       => PlanningCheck::STATUS_VALIDATED,
             'validated_by' => $userId,
             'validated_at' => date('Y-m-d H:i:s', $now->getTimestamp()),
         ]);
@@ -204,18 +206,18 @@ final class PlanningCheckService
      */
     public function resend(int $checkId, int $userId, \DateTimeImmutable $now): array
     {
-        $check = $this->repo->find($checkId);
+        $check = PlanningCheck::find($checkId);
         if ($check === null) {
             return $this->fail('not_found');
         }
-        if ($check['status'] !== Repo::STATUS_VALIDATED) {
+        if ($check['status'] !== PlanningCheck::STATUS_VALIDATED) {
             return $this->fail('bad_status', $check);
         }
         $store = Store::findById($check['store_id']);
         if ($store === null) {
             return $this->fail('not_found', $check);
         }
-        $settings = $this->repo->settings($check['store_id']);
+        $settings = PlanningCheckSettings::forStore($check['store_id']);
         $updated = $check['send_status'] === 'sent';
         $sent = $this->deliver($store, $check, $settings, $userId, $updated, $now);
         if (!$sent['ok']) {
@@ -234,12 +236,12 @@ final class PlanningCheckService
     public function sendNow(int $storeId, string $date, int $userId, bool $confirmEmpty, \DateTimeImmutable $now): array
     {
         $store = Store::findById($storeId);
-        $settings = $this->repo->settings($storeId);
+        $settings = PlanningCheckSettings::forStore($storeId);
         if ($store === null || empty($settings['enabled'])) {
             return $this->fail('not_enabled');
         }
-        $check = $this->repo->ensure($storeId, $date);
-        if (in_array($check['status'], [Repo::STATUS_PENDING, Repo::STATUS_REJECTED, Repo::STATUS_ESCALATED], true)) {
+        $check = PlanningCheck::ensure($storeId, $date);
+        if (in_array($check['status'], [PlanningCheck::STATUS_PENDING, PlanningCheck::STATUS_REJECTED, PlanningCheck::STATUS_ESCALATED], true)) {
             $submitted = $this->submit($storeId, $date, $userId, $confirmEmpty, $now);
             if (!$submitted['ok']) {
                 return $submitted;
@@ -247,7 +249,7 @@ final class PlanningCheckService
             $check = $submitted['check'];
         }
 
-        return $check['status'] === Repo::STATUS_VALIDATED
+        return $check['status'] === PlanningCheck::STATUS_VALIDATED
             ? $this->resend((int) $check['id'], $userId, $now)
             : $this->approve((int) $check['id'], $userId, $now);
     }
@@ -263,16 +265,16 @@ final class PlanningCheckService
     public function forceRecheck(int $storeId, string $date): array
     {
         $store = Store::findById($storeId);
-        $settings = $this->repo->settings($storeId);
+        $settings = PlanningCheckSettings::forStore($storeId);
         if ($store === null || empty($settings['enabled'])) {
             return $this->fail('not_enabled');
         }
-        $check = $this->repo->ensure($storeId, $date);
-        if (in_array($check['status'], [Repo::STATUS_SUBMITTED, Repo::STATUS_VALIDATED], true)) {
+        $check = PlanningCheck::ensure($storeId, $date);
+        if (in_array($check['status'], [PlanningCheck::STATUS_SUBMITTED, PlanningCheck::STATUS_VALIDATED], true)) {
             return $this->reopen($storeId, $date);
         }
         if ($check['editing_until'] !== null) {
-            $check = $this->repo->update($check['id'], ['editing_by' => null, 'editing_until' => null]);
+            $check = PlanningCheck::put($check['id'], ['editing_by' => null, 'editing_until' => null]);
         }
         return ['ok' => true, 'error' => null, 'check' => $check];
     }
@@ -285,15 +287,15 @@ final class PlanningCheckService
      */
     public function reopen(int $storeId, string $date): array
     {
-        $check = $this->repo->findFor($storeId, $date);
+        $check = PlanningCheck::findFor($storeId, $date);
         if ($check === null) {
             return $this->fail('not_found');
         }
-        if (!in_array($check['status'], [Repo::STATUS_SUBMITTED, Repo::STATUS_VALIDATED], true)) {
+        if (!in_array($check['status'], [PlanningCheck::STATUS_SUBMITTED, PlanningCheck::STATUS_VALIDATED], true)) {
             return $this->fail('bad_status', $check);
         }
-        $check = $this->repo->update($check['id'], [
-            'status'        => Repo::STATUS_PENDING,
+        $check = PlanningCheck::put($check['id'], [
+            'status'        => PlanningCheck::STATUS_PENDING,
             'submitted_by'  => null,
             'submitted_at'  => null,
             'validated_by'  => null,
@@ -315,19 +317,19 @@ final class PlanningCheckService
     public function reject(int $checkId, int $userId, string $reason, \DateTimeImmutable $now): array
     {
         $reason = trim($reason);
-        $check = $this->repo->find($checkId);
+        $check = PlanningCheck::find($checkId);
         if ($check === null) {
             return $this->fail('not_found');
         }
-        if ($check['status'] !== Repo::STATUS_SUBMITTED) {
+        if ($check['status'] !== PlanningCheck::STATUS_SUBMITTED) {
             return $this->fail('bad_status', $check);
         }
         if ($reason === '') {
             return $this->fail('reason_required', $check);
         }
         $store = Store::findById($check['store_id']);
-        $check = $this->repo->update($check['id'], [
-            'status'        => Repo::STATUS_REJECTED,
+        $check = PlanningCheck::put($check['id'], [
+            'status'        => PlanningCheck::STATUS_REJECTED,
             'rejected_by'   => $userId,
             'rejected_at'   => date('Y-m-d H:i:s', $now->getTimestamp()),
             'reject_reason' => mb_substr($reason, 0, 500),
@@ -348,7 +350,7 @@ final class PlanningCheckService
     public function escalate(\DateTimeImmutable $now): array
     {
         $escalated = [];
-        foreach ($this->repo->enabledStoreIds() as $storeId) {
+        foreach (PlanningCheckSettings::enabledStoreIds() as $storeId) {
             $store = Store::findById($storeId);
             if ($store === null) {
                 continue;
@@ -358,11 +360,11 @@ final class PlanningCheckService
             if (!$state['due'] || !$state['late'] || $check === null) {
                 continue;
             }
-            if (!in_array($check['status'], [Repo::STATUS_PENDING, Repo::STATUS_REJECTED], true)) {
+            if (!in_array($check['status'], [PlanningCheck::STATUS_PENDING, PlanningCheck::STATUS_REJECTED], true)) {
                 continue;
             }
-            $check = $this->repo->update($check['id'], [
-                'status'       => Repo::STATUS_ESCALATED,
+            $check = PlanningCheck::put($check['id'], [
+                'status'       => PlanningCheck::STATUS_ESCALATED,
                 'escalated_at' => date('Y-m-d H:i:s', $now->getTimestamp()),
             ]);
             $this->notify($this->approvers($storeId), 'planning_check_overdue', $store, $check, [], null);
@@ -391,7 +393,7 @@ final class PlanningCheckService
         $bytes = $this->pdf->generateBytes($store, $check, $day, $context);
         $result = $this->mail->send($store, $check, $settings, $bytes, $context);
 
-        $this->repo->addSend([
+        PlanningCheckSend::add([
             'check_id'    => $check['id'],
             'sent_by'     => $userId,
             'status'      => $result['ok'] ? 'sent' : 'failed',
@@ -399,7 +401,7 @@ final class PlanningCheckService
             'recipients'  => $result['recipients'],
             'error'       => $result['error'],
         ]);
-        $check = $this->repo->update($check['id'], [
+        $check = PlanningCheck::put($check['id'], [
             'send_status' => $result['ok'] ? 'sent' : 'failed',
             'sent_at'     => $result['ok'] ? date('Y-m-d H:i:s', $now->getTimestamp()) : $check['sent_at'],
             'last_error'  => $result['error'],

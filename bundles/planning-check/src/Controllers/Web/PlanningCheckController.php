@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\PlanningCheck\Controllers\Web;
 
-use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface as Repo;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSettings;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheck;
+
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckForce;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckPolicy;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;
@@ -35,7 +37,6 @@ final class PlanningCheckController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly Repo $repo,
         private readonly PlanningCheckService $service,
         private readonly PlanningShiftRows $rows,
         private readonly PlanningPdfService $pdf,
@@ -57,7 +58,7 @@ final class PlanningCheckController
         foreach (Store::findAll() as $store) {
             $id = (int) $store['id'];
             if (($managedIds === null || in_array($id, $managedIds, true)) && $this->permissions->can($user, 'planning_check.view', $id)) {
-                $visible[] = $store + ['planning_check_enabled' => $this->repo->settings($id)['enabled']];
+                $visible[] = $store + ['planning_check_enabled' => PlanningCheckSettings::forStore($id)['enabled']];
             }
         }
         // Un seul magasin : on ouvre directement son historique.
@@ -78,7 +79,7 @@ final class PlanningCheckController
         $user  = $request->attributes->get('auth_user');
         $storeId = (int) $store['id'];
 
-        $checks = $this->repo->recentForStore($storeId, 40);
+        $checks = PlanningCheck::recentForStore($storeId, 40);
         // Planning de demain (fuseau de l'application) : sa vérification, même hors fenêtre, pour l'envoyer ou la refaire à la main.
         $tomorrow = PlanningCheckPolicy::targetDate(date_default_timezone_get(), new \DateTimeImmutable('now'));
         // Les notifications « à valider », « validé »… de ces validations sont lues à la visite de la page.
@@ -107,13 +108,13 @@ final class PlanningCheckController
             'highlight'    => (int) $request->query('highlight', 0),
             'tomorrow'     => [
                 'date'  => $tomorrow,
-                'check' => $this->repo->findFor($storeId, $tomorrow),
+                'check' => PlanningCheck::findFor($storeId, $tomorrow),
                 'count' => count($this->rows->raw($storeId, $tomorrow)),
             ],
             'can_approve'  => $this->permissions->can($user, 'planning_check.approve', $storeId),
             'can_submit'   => $this->permissions->can($user, 'planning_check.submit', $storeId),
             'can_settings' => $this->permissions->can($user, 'planning_check.settings', $storeId),
-            'settings'     => $this->repo->settings($storeId),
+            'settings'     => PlanningCheckSettings::forStore($storeId),
         ])->render());
     }
 
@@ -238,7 +239,7 @@ final class PlanningCheckController
     public function pdf(Request $request): Response
     {
         [$store, $check] = $this->requireCheck($request);
-        $settings = $this->repo->settings((int) $store['id']);
+        $settings = PlanningCheckSettings::forStore((int) $store['id']);
         $day = $this->rows->forDay((int) $store['id'], (string) $check['target_date'], $settings);
         $bytes = $this->pdf->generateBytes($store, $check, $day, ['generated_at' => date('H:i')]);
         if ($bytes === null) {
@@ -257,7 +258,7 @@ final class PlanningCheckController
         return response($this->view->make('planning-check::settings', [
             'title'      => __('planning_check_settings_title'),
             'store'      => $store,
-            'settings'   => $this->repo->settings((int) $store['id']),
+            'settings'   => PlanningCheckSettings::forStore((int) $store['id']),
             'candidates' => $this->selection->candidates((int) $store['id']),
             'errors'     => [],
         ])->render());
@@ -267,7 +268,7 @@ final class PlanningCheckController
     public function saveSettings(Request $request): Response
     {
         $store = $this->requireStore($request);
-        $before = $this->repo->settings((int) $store['id']);
+        $before = PlanningCheckSettings::forStore((int) $store['id']);
         [$settings, $errors] = self::parseSettings($request->request->all(), $before);
 
         // Chaque employé coché doit être un membre actif du magasin.
@@ -285,7 +286,7 @@ final class PlanningCheckController
             ])->render());
         }
 
-        $this->repo->saveSettings((int) $store['id'], $settings);
+        PlanningCheckSettings::put((int) $store['id'], $settings);
         $this->auditLogger->logUpdate($request, 'planning_check.settings_saved', 'planning_check_settings', (int) $store['id'], $before, $settings, ['store_id' => (int) $store['id']], (int) $store['id']);
 
         return redirect()->away($this->base() . '/admin/stores/' . (int) $store['id'] . '/planning-check/settings')->with('success', 'saved');
@@ -304,7 +305,7 @@ final class PlanningCheckController
 
         $now = new \DateTimeImmutable('now');
         $date = PlanningCheckPolicy::targetDate(date_default_timezone_get(), $now);
-        $settings = $this->repo->settings((int) $store['id']);
+        $settings = PlanningCheckSettings::forStore((int) $store['id']);
         $check = ['target_date' => $date, 'status' => 'test'];
         $day = $this->rows->forDay((int) $store['id'], $date, $settings);
         $bytes = $this->pdf->generateBytes($store, $check, $day, ['validated_by' => '', 'generated_at' => $now->format('H:i')]);
@@ -324,7 +325,7 @@ final class PlanningCheckController
     public static function parseSettings(array $post, array $stored = []): array
     {
         $errors = [];
-        $defaults = Repo::DEFAULT_SETTINGS;
+        $defaults = PlanningCheckSettings::DEFAULT_SETTINGS;
         $time = static fn(string $key): ?string => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', trim((string) ($post[$key] ?? ''))) === 1 ? trim((string) $post[$key]) : null;
 
         $deadline = $time('deadline_time');
@@ -399,7 +400,7 @@ final class PlanningCheckController
     private function requireCheck(Request $request): array
     {
         $store = $this->requireStore($request);
-        $check = $this->repo->find((int) $request->route('cid'));
+        $check = PlanningCheck::find((int) $request->route('cid'));
         if ($check === null || $check['store_id'] !== (int) $store['id']) {
             throw new NotFoundException(__('planning_check_err_not_found'));
         }

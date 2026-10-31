@@ -6,8 +6,6 @@ namespace kintai\Bundles\Installed\PlanningCheck;
 
 use Illuminate\Console\Scheduling\Schedule;
 use kintai\Bundles\Installed\PlanningCheck\Console\EscalateCommand;
-use kintai\Bundles\Installed\PlanningCheck\Repositories\DatabasePlanningCheckRepository;
-use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckOverlayResolver;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningMailService;
@@ -68,7 +66,6 @@ final class PlanningCheckBundle extends Bundle
     {
         $container = $this->app;
 
-        $container->singleton(PlanningCheckRepositoryInterface::class, fn() => new DatabasePlanningCheckRepository());
         $container->singleton(PlanningShiftRows::class, fn(Container $c) => new PlanningShiftRows(
         ));
         $container->singleton(PlanningPdfService::class, fn(Container $c) => new PlanningPdfService(
@@ -82,7 +79,6 @@ final class PlanningCheckBundle extends Bundle
             $c->make(UserSelection::class),
         ));
         $container->singleton(PlanningCheckService::class, fn(Container $c) => new PlanningCheckService(
-            $c->make(PlanningCheckRepositoryInterface::class),
             $c->make(PermissionService::class),
             $c->make(NotificationService::class),
             $c->make(PlanningShiftRows::class),
@@ -90,7 +86,6 @@ final class PlanningCheckBundle extends Bundle
             $c->make(PlanningMailService::class),
         ));
         $container->singleton(PlanningCheckOverlayResolver::class, fn(Container $c) => new PlanningCheckOverlayResolver(
-            $c->make(PlanningCheckRepositoryInterface::class),
             $c->make(PlanningCheckService::class),
             $c->make(PlanningShiftRows::class),
         ));

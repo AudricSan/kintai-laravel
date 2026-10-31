@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\PlanningCheck\Services;
 
-use kintai\Bundles\Installed\PlanningCheck\Repositories\PlanningCheckRepositoryInterface as Repo;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSettings;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheck;
+
 use kintai\Contract\Data\Store;
 
 /**
@@ -26,7 +28,6 @@ final class PlanningCheckOverlayResolver
     private bool $escalationTried = false;
 
     public function __construct(
-        private readonly Repo $repo,
         private readonly PlanningCheckService $service,
         private readonly PlanningShiftRows $rows,
     ) {}
@@ -53,16 +54,16 @@ final class PlanningCheckOverlayResolver
         $userId = (int) ($context['user']['id'] ?? 0);
         $storeIds = array_map('intval', (array) $context['store_ids']);
         // Un valideur peut ne pas être membre du magasin (Owner) : on regarde aussi les magasins activés.
-        $candidates = array_values(array_unique(array_merge($storeIds, $this->repo->enabledStoreIds())));
+        $candidates = array_values(array_unique(array_merge($storeIds, PlanningCheckSettings::enabledStoreIds())));
 
         // 1) Une validation à effectuer.
         $approvable = array_values(array_filter($candidates, static fn(int $id): bool => (bool) $can('planning_check.approve', $id)));
-        foreach ($this->repo->submittedForStores($approvable) as $check) {
+        foreach (PlanningCheck::submittedForStores($approvable) as $check) {
             $store = Store::findById($check['store_id']);
             if ($store === null) {
                 continue;
             }
-            $settings = $this->repo->settings($check['store_id']);
+            $settings = PlanningCheckSettings::forStore($check['store_id']);
             return [
                 'kind'     => self::KIND_APPROVE,
                 'store'    => $store,
@@ -70,7 +71,7 @@ final class PlanningCheckOverlayResolver
                 'date'     => $check['target_date'],
                 'day'      => $this->rows->forDay($check['store_id'], (string) $check['target_date'], $settings),
                 'late'     => false,
-                'count'    => count($approvable) > 0 ? count($this->repo->submittedForStores($approvable)) : 1,
+                'count'    => count($approvable) > 0 ? count(PlanningCheck::submittedForStores($approvable)) : 1,
                 'settings' => $settings,
             ];
         }
@@ -85,11 +86,11 @@ final class PlanningCheckOverlayResolver
             $state = $this->state($store, $now);
             // « Revérifier le planning de demain » : la fenêtre est forcée pour cet utilisateur, même hors fenêtre horaire ou un jour non ouvré.
             if (!$state['due'] && !empty($state['settings']['enabled']) && PlanningCheckForce::isForced($storeId, (string) $state['date'])) {
-                $state['check'] = $this->repo->ensure($storeId, (string) $state['date']);
+                $state['check'] = PlanningCheck::ensure($storeId, (string) $state['date']);
                 $state['due'] = true;
             }
             $check = $state['check'];
-            if (!$state['due'] || $check === null || !in_array($check['status'], [Repo::STATUS_PENDING, Repo::STATUS_REJECTED, Repo::STATUS_ESCALATED], true)) {
+            if (!$state['due'] || $check === null || !in_array($check['status'], [PlanningCheck::STATUS_PENDING, PlanningCheck::STATUS_REJECTED, PlanningCheck::STATUS_ESCALATED], true)) {
                 continue;
             }
 
@@ -106,7 +107,7 @@ final class PlanningCheckOverlayResolver
                 'store'    => $store,
                 'check'    => $check,
                 'date'     => $state['date'],
-                'late'     => $state['late'] || $check['status'] === Repo::STATUS_ESCALATED,
+                'late'     => $state['late'] || $check['status'] === PlanningCheck::STATUS_ESCALATED,
                 'day'      => $this->rows->forDay($storeId, $state['date'], $state['settings']),
                 'settings' => $state['settings'],
             ];
@@ -119,7 +120,7 @@ final class PlanningCheckOverlayResolver
     {
         $state = $this->service->state($store, $now);
         // Repli sans cron : l'heure limite est passée et personne n'a répondu.
-        if (!$this->escalationTried && $state['due'] && $state['late'] && ($state['check']['status'] ?? '') === Repo::STATUS_PENDING) {
+        if (!$this->escalationTried && $state['due'] && $state['late'] && ($state['check']['status'] ?? '') === PlanningCheck::STATUS_PENDING) {
             $this->escalationTried = true;
             try {
                 $this->service->escalate($now);

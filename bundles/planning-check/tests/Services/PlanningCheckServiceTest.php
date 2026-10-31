@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\PlanningCheck\Services;
 
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSettings;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSend;
+use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheck;
+
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\PlanningCheck\Repositories\DatabasePlanningCheckRepository;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckForce;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckOverlayResolver;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;
@@ -37,7 +40,6 @@ final class PlanningCheckServiceTest extends TestCase
     private const NOW = '2026-10-21 10:00:00'; // UTC = 19:00 à Tokyo ; en Europe/Paris 12:00 → on règle l'heure par le fuseau du magasin
 
     private PlanningCheckService $service;
-    private DatabasePlanningCheckRepository $repo;
     /** @var list<array<string, mixed>> */
     public array $mails = [];
     /** @var list<array<string, mixed>> */
@@ -64,7 +66,6 @@ final class PlanningCheckServiceTest extends TestCase
         $this->previousTimezone = date_default_timezone_get();
         date_default_timezone_set('Asia/Tokyo');
 
-        $this->repo = new DatabasePlanningCheckRepository();
         $this->now =new \DateTimeImmutable('2026-10-21 08:00:00', new \DateTimeZone('Asia/Tokyo')); // 08:00 à Tokyo
         $this->mails = $this->notifications = [];
         $this->pdfBytes = '%PDF-fake';
@@ -116,7 +117,7 @@ final class PlanningCheckServiceTest extends TestCase
             new \App\Services\UserSelection($permissions),
         );
         $rows = new PlanningShiftRows();
-        $this->service = new PlanningCheckService($this->repo, $permissions, $notifications, $rows, $pdf, $mail);
+        $this->service = new PlanningCheckService($permissions, $notifications, $rows, $pdf, $mail);
         $this->resolverDeps = [$rows];
         $_SESSION = [];
     }
@@ -130,7 +131,7 @@ final class PlanningCheckServiceTest extends TestCase
     /** Un résolveur neuf (il mémorise son résultat le temps d'une requête) pour l'utilisateur 5, qui peut soumettre. */
     private function resolve(\DateTimeImmutable $now): ?array
     {
-        $resolver = new PlanningCheckOverlayResolver($this->repo, $this->service, $this->resolverDeps[0]);
+        $resolver = new PlanningCheckOverlayResolver($this->service, $this->resolverDeps[0]);
 
         return $resolver->resolve([
             'user' => ['id' => 5], 'now' => $now, 'store_ids' => [3],
@@ -140,7 +141,7 @@ final class PlanningCheckServiceTest extends TestCase
 
     private function enable(array $overrides = []): void
     {
-        $this->repo->saveSettings(3, $overrides + ['enabled' => true, 'deadline_time' => '12:00', 'window_start_time' => '06:00', 'weekdays' => [1, 2, 3, 4, 5, 6, 7],
+        PlanningCheckSettings::put(3, $overrides + ['enabled' => true, 'deadline_time' => '12:00', 'window_start_time' => '06:00', 'weekdays' => [1, 2, 3, 4, 5, 6, 7],
             'mail_recipients' => ['boss@example.com'], 'include_open_shifts' => false]);
     }
 
@@ -235,13 +236,13 @@ final class PlanningCheckServiceTest extends TestCase
     {
         $this->enable();
         $this->service->startEditing(3, '2026-10-22', 5, $this->now);
-        $check = $this->repo->findFor(3, '2026-10-22');
+        $check = PlanningCheck::findFor(3, '2026-10-22');
 
         $this->assertSame(5, $check['editing_by']);
         $this->assertGreaterThan($this->now->getTimestamp(), strtotime((string) $check['editing_until']));
 
         $this->service->resumeValidation(3, '2026-10-22');
-        $this->assertNull($this->repo->findFor(3, '2026-10-22')['editing_until']);
+        $this->assertNull(PlanningCheck::findFor(3, '2026-10-22')['editing_until']);
     }
 
     // ── Valider ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -263,7 +264,7 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertTrue($this->mails[0]['attached'], 'le PDF est joint');
         $this->assertSame(['planning_check_validated'], array_column($this->notifications, 'type'));
         $this->assertSame([5], $this->notifications[0]['ids']);
-        $this->assertCount(1, $this->repo->sendsFor($check['id']));
+        $this->assertCount(1, PlanningCheckSend::forCheck($check['id']));
     }
 
     public function testChosenEmployeesEachReceiveTheirOwnMailWithThePdf(): void
@@ -279,7 +280,7 @@ final class PlanningCheckServiceTest extends TestCase
         foreach ($this->mails as $mail) {
             $this->assertTrue($mail['attached'], 'le PDF est joint à chaque message');
         }
-        $this->assertSame('["u5@example.com","u7@example.com","u99@example.com","boss@EXAMPLE.com"]', $this->repo->sendsFor($check['id'])[0]['recipients'], 'l\'historique garde les adresses réellement utilisées');
+        $this->assertSame('["u5@example.com","u7@example.com","u99@example.com","boss@EXAMPLE.com"]', PlanningCheckSend::forCheck($check['id'])[0]['recipients'], 'l\'historique garde les adresses réellement utilisées');
     }
 
     public function testAnEmployeeSelectionAloneIsEnoughToApprove(): void
@@ -299,7 +300,7 @@ final class PlanningCheckServiceTest extends TestCase
         $result = $this->service->approve($check['id'], 7, $this->now);
 
         $this->assertSame('no_recipients', $result['error']);
-        $this->assertSame('submitted', $this->repo->find($check['id'])['status']);
+        $this->assertSame('submitted', PlanningCheck::find($check['id'])['status']);
         $this->assertSame([], $this->mails);
     }
 
@@ -314,7 +315,7 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertTrue($result['ok']);
         $this->assertSame('failed', $result['check']['send_status']);
         $this->assertContains('planning_check_failed', array_column($this->notifications, 'type'));
-        $this->assertTrue($this->service->needsResend($this->repo->find($check['id'])));
+        $this->assertTrue($this->service->needsResend(PlanningCheck::find($check['id'])));
     }
 
     public function testAPdfFailureIsReportedAsAFailedSend(): void
@@ -332,7 +333,7 @@ final class PlanningCheckServiceTest extends TestCase
     public function testOnlyASubmittedCheckCanBeApproved(): void
     {
         $this->enable();
-        $pending = $this->repo->ensure(3, '2026-10-22');
+        $pending = PlanningCheck::ensure(3, '2026-10-22');
 
         $this->assertSame('bad_status', $this->service->approve($pending['id'], 7, $this->now)['error']);
         $this->assertSame('not_found', $this->service->approve(999, 7, $this->now)['error']);
@@ -378,14 +379,14 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertFalse($this->service->needsResend($validated), 'rien n\'a changé');
 
         $this->seedShifts([['id' => 3, 'user_id' => 8, 'shift_type_id' => 1, 'start_time' => '12:00:00', 'end_time' => '20:00:00', 'duration_minutes' => 480, 'pause_minutes' => 60]]);
-        $this->assertTrue($this->service->needsResend($this->repo->find($check['id'])), 'un shift ajouté après l\'envoi');
+        $this->assertTrue($this->service->needsResend(PlanningCheck::find($check['id'])), 'un shift ajouté après l\'envoi');
 
         $result = $this->service->resend($check['id'], 7, $this->now);
         $this->assertTrue($result['ok']);
         $this->assertStringContainsString('planning_check_updated_label', $this->mails[1]['subject'], 'version mise à jour');
         $this->assertCount(2, $this->mails);
-        $this->assertCount(2, $this->repo->sendsFor($check['id']));
-        $this->assertFalse($this->service->needsResend($this->repo->find($check['id'])));
+        $this->assertCount(2, PlanningCheckSend::forCheck($check['id']));
+        $this->assertFalse($this->service->needsResend(PlanningCheck::find($check['id'])));
     }
 
     public function testResendingIsOnlyForValidatedChecks(): void
@@ -438,7 +439,7 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertTrue($result['ok']);
         $this->assertCount(2, $this->mails);
         $this->assertStringContainsString('planning_check_updated_label', $this->mails[1]['subject']);
-        $this->assertFalse($this->service->needsResend($this->repo->find($result['check']['id'])), 'la nouvelle version reflète les shifts actuels');
+        $this->assertFalse($this->service->needsResend(PlanningCheck::find($result['check']['id'])), 'la nouvelle version reflète les shifts actuels');
     }
 
     public function testSendNowWithoutShiftNeedsTheExplicitConfirmation(): void
@@ -476,7 +477,7 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertSame('pending', $reopened['check']['status']);
         $this->assertNull($reopened['check']['submitted_by']);
         $this->assertNull($reopened['check']['validated_by']);
-        $this->assertCount(1, $this->repo->sendsFor($sent['id']), 'l\'historique des envois est conservé');
+        $this->assertCount(1, PlanningCheckSend::forCheck($sent['id']), 'l\'historique des envois est conservé');
 
         $this->assertTrue($this->service->sendNow(3, '2026-10-22', 7, false, $this->now)['ok']);
         $this->assertCount(2, $this->mails);
@@ -511,7 +512,7 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertTrue($result['ok']);
         $this->assertSame('pending', $result['check']['status']);
         $this->assertNull($result['check']['validated_by']);
-        $this->assertCount(1, $this->repo->sendsFor($sent['id']));
+        $this->assertCount(1, PlanningCheckSend::forCheck($sent['id']));
     }
 
     public function testForceRecheckCreatesTheCheckAndLiftsTheEditingWithdrawal(): void
@@ -521,7 +522,7 @@ final class PlanningCheckServiceTest extends TestCase
         $this->assertSame('pending', $created['check']['status'], 'créée si elle n\'existait pas encore');
 
         $this->service->startEditing(3, '2026-10-22', 5, $this->now);
-        $this->assertNotNull($this->repo->findFor(3, '2026-10-22')['editing_until']);
+        $this->assertNotNull(PlanningCheck::findFor(3, '2026-10-22')['editing_until']);
 
         $this->assertNull($this->service->forceRecheck(3, '2026-10-22')['check']['editing_until']);
     }
@@ -561,7 +562,7 @@ final class PlanningCheckServiceTest extends TestCase
         PlanningCheckForce::clear(3);
         $this->assertNull($this->resolve($this->now), 'soumise : plus de fenêtre pour le manager');
 
-        $this->assertTrue($this->service->approve($this->repo->findFor(3, '2026-10-22')['id'], 7, $this->now)['ok']);
+        $this->assertTrue($this->service->approve(PlanningCheck::findFor(3, '2026-10-22')['id'], 7, $this->now)['ok']);
         $this->assertCount(2, $this->mails);
         $this->assertStringContainsString('planning_check_updated_label', $this->mails[1]['subject'], 'le nouveau rapport part comme version mise à jour');
     }
@@ -597,7 +598,7 @@ final class PlanningCheckServiceTest extends TestCase
 
         $this->assertCount(1, $first);
         $this->assertSame([], $second, 'une seule escalade');
-        $this->assertSame('escalated', $this->repo->findFor(3, '2026-10-22')['status']);
+        $this->assertSame('escalated', PlanningCheck::findFor(3, '2026-10-22')['status']);
         $overdue = array_values(array_filter($this->notifications, fn(array $n): bool => $n['type'] === 'planning_check_overdue'));
         $this->assertCount(1, $overdue);
         $this->assertEqualsCanonicalizing([7, 99], $overdue[0]['ids'], 'valideurs (membres) et Owners');
@@ -612,7 +613,7 @@ final class PlanningCheckServiceTest extends TestCase
         $late = new \DateTimeImmutable('2026-10-21 12:05:00', new \DateTimeZone('Asia/Tokyo'));
 
         $this->assertSame([], $this->service->escalate($late));
-        $this->assertSame('submitted', $this->repo->findFor(3, '2026-10-22')['status']);
+        $this->assertSame('submitted', PlanningCheck::findFor(3, '2026-10-22')['status']);
     }
 
     /** Mailer de Laravel dont le transport transmet chaque message envoyé (destinataires, sujet, HTML, nombre de pièces jointes) à $onSend. */
