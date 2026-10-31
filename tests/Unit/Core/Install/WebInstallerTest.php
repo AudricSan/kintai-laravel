@@ -75,7 +75,7 @@ final class WebInstallerTest extends TestCase
         $this->fail('L\'installation aurait dû échouer');
     }
 
-    public function testNonEmptySqliteDatabaseIsRefusedAndLeftUntouched(): void
+    public function testNonEmptySqliteDatabaseIsReplacedAndRestoredWhenTheInstallationFails(): void
     {
         $sqlite = $this->base . '/' . WebInstaller::SQLITE_PATH;
         $pdo = new PDO('sqlite:' . $sqlite);
@@ -86,8 +86,9 @@ final class WebInstallerTest extends TestCase
 
         $failure = $this->install();
 
-        $this->assertSame('install_error_database_not_empty', $failure->messageKey);
-        $this->assertSame(['name' => WebInstaller::SQLITE_PATH], $failure->replace);
+        $this->assertNotSame('install_error_database_not_empty', $failure->messageKey);
+        // L'installation a échoué plus loin (pas de bootstrap/boot.php ici) : l'ancienne base est remise en place.
+        $this->assertSame([], glob($sqlite . '.avant-install-*'));
         $check = new PDO('sqlite:' . $sqlite);
         $this->assertSame(1, (int) $check->query('SELECT COUNT(*) FROM users')->fetchColumn());
         $check = null;

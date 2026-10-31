@@ -246,12 +246,22 @@ final class WebInstaller
         }
 
         if (file_exists($path)) {
-            // Fichier laissé par une ancienne installation : accepté seulement s'il est vide de toute table.
+            // Fichier laissé par une ancienne installation : une installation neuve le remplace. Rien n'est perdu : un fichier
+            // qui contient des tables est mis de côté (database.sqlite.avant-install-AAAAMMJJHHMMSS) et remis en place si
+            // l'installation échoue.
             $pdo = new PDO('sqlite:' . $path, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
             $tables = (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'")->fetchColumn();
             $pdo = null;
             if ($tables > 0) {
-                throw new InstallFailure('install_error_database_not_empty', ['name' => self::SQLITE_PATH]);
+                $backup = $path . '.avant-install-' . date('YmdHis');
+                if (!@rename($path, $backup) || !@touch($path)) {
+                    throw new InstallFailure('install_error_not_writable', ['name' => 'storage/app/']);
+                }
+                $this->undo[] = static function () use ($path, $backup): void {
+                    @unlink($path);
+                    @rename($backup, $path);
+                };
+                return;
             }
             $this->undo[] = static fn () => @file_put_contents($path, '');
             return;
