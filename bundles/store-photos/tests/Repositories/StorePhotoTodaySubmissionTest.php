@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bundles\StorePhoto\Repositories;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use kintai\Bundles\Installed\StorePhoto\Repositories\DatabaseStorePhotoRepository;
+use kintai\Bundles\Installed\StorePhoto\Models\StorePhotoSubmission;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -54,7 +54,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
             'created_at' => $today . ' 09:00:00',
         ]);
 
-        $found = (new DatabaseStorePhotoRepository())->findTodaySubmission(1, $today);
+        $found = StorePhotoSubmission::findToday(1, $today);
 
         $this->assertNotNull($found);
         $this->assertSame(2, $found['image_count']);
@@ -69,7 +69,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
             'created_at' => $yesterday . ' 23:59:59',
         ]);
 
-        $this->assertNull((new DatabaseStorePhotoRepository())->findTodaySubmission(1, $today));
+        $this->assertNull(StorePhotoSubmission::findToday(1, $today));
     }
 
     public function testIgnoresSubmissionsFromOtherStores(): void
@@ -81,7 +81,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
             'created_at' => $today . ' 10:00:00',
         ]);
 
-        $this->assertNull((new DatabaseStorePhotoRepository())->findTodaySubmission(1, $today));
+        $this->assertNull(StorePhotoSubmission::findToday(1, $today));
     }
 
     public function testIgnoresSoftDeletedSubmissions(): void
@@ -92,6 +92,6 @@ final class StorePhotoTodaySubmissionTest extends TestCase
             'created_at' => $today . ' 08:00:00', 'deleted_at' => $today . ' 08:30:00',
         ]);
 
-        $this->assertNull((new DatabaseStorePhotoRepository())->findTodaySubmission(1, $today));
+        $this->assertNull(StorePhotoSubmission::findToday(1, $today));
     }
 }

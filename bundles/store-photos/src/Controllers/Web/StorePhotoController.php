@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\StorePhoto\Controllers\Web;
 
+use kintai\Bundles\Installed\StorePhoto\Models\StorePhotoSubmission;
+use kintai\Bundles\Installed\StorePhoto\Models\StorePhotoImage;
+
 use kintai\Contract\Http\Concerns\HasAdminAccess;
 use kintai\Contract\Services\ImageCompressionService;
 use kintai\Contract\Exceptions\ForbiddenException;
-use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Data\Store;
 use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Http\Request;
@@ -22,7 +24,6 @@ final class StorePhotoController
 
     public function __construct(
         private readonly ViewFactory $view,
-        private readonly StorePhotoRepositoryInterface $photos,
         private readonly AuditLogger $auditLogger,
         private readonly ImageCompressionService $imageCompressor,
         private readonly NotificationService $notifs,
@@ -38,7 +39,7 @@ final class StorePhotoController
         if ($storeId > 0 && $managedIds !== null && !in_array($storeId, $managedIds, true)) {
             $storeId = 0;
         }
-        $submissions = $this->photos->findAllSubmissions($managedIds, 100);
+        $submissions = StorePhotoSubmission::findAll($managedIds, 100);
 
         if ($storeId > 0) {
             $submissions = array_values(array_filter($submissions, fn($s) => (int) ($s['store_id'] ?? 0) === $storeId));
@@ -68,7 +69,7 @@ final class StorePhotoController
         $submissionImages = [];
         foreach ($submissions as $s) {
             $sid = (int) $s['id'];
-            $submissionImages[$sid] = $this->enrichWithVersion($this->photos->findImagesBySubmission($sid));
+            $submissionImages[$sid] = $this->enrichWithVersion(StorePhotoImage::findBySubmission($sid));
         }
 
         return response($this->view->make('store-photos::store-photos', [
@@ -129,7 +130,7 @@ final class StorePhotoController
         // rapport : on rattache à l'envoi du jour déjà existant plutôt que d'en
         // recréer un (photos + notes s'accumulent dans la même soumission).
         $today   = date('Y-m-d');
-        $existing = $this->photos->findTodaySubmission($storeId, $today);
+        $existing = StorePhotoSubmission::findToday($storeId, $today);
         $isMerge  = $existing !== null;
 
         if ($isMerge) {
@@ -137,14 +138,14 @@ final class StorePhotoController
             if ($notes !== '') {
                 $mergedNotes = $mergedNotes !== '' ? $mergedNotes . "\n" . $notes : $notes;
             }
-            $submission   = $this->photos->saveSubmission([
+            $submission   = StorePhotoSubmission::put([
                 'id'         => $existing['id'],
                 'notes'      => $mergedNotes,
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
             $submissionId = (int) $submission['id'];
         } else {
-            $submission = $this->photos->saveSubmission([
+            $submission = StorePhotoSubmission::put([
                 'store_id'       => $storeId,
                 'week_label'     => $weekLabel,
                 'notes'          => $notes,
@@ -179,7 +180,7 @@ final class StorePhotoController
     public function uploadFile(Request $request): Response
     {
         $submissionId = (int) $request->route('id');
-        $submission   = $this->photos->findSubmissionById($submissionId);
+        $submission   = StorePhotoSubmission::findById($submissionId);
         if (!$submission) {
             return response()->json(['error' => __('error_submission_not_found')], 404);
         }
@@ -210,7 +211,7 @@ final class StorePhotoController
         }
         $safe = basename($compressed['path']);
 
-        $this->photos->saveImage([
+        StorePhotoImage::put([
             'submission_id' => $submissionId,
             'filename'      => $file['name'],
             'filepath'      => 'storage/img/' . $storeId . '/' . $submissionId . '/' . $safe,
@@ -219,7 +220,7 @@ final class StorePhotoController
             'sort_order'    => $index,
         ]);
 
-        $this->photos->saveSubmission([
+        StorePhotoSubmission::put([
             'id'          => $submissionId,
             'image_count' => $index + 1,
             'updated_at'  => date('Y-m-d H:i:s'),
@@ -255,12 +256,12 @@ final class StorePhotoController
     public function rotateImage(Request $request): Response
     {
         $imageId = (int) $request->route('image_id');
-        $image   = $this->photos->findImageById($imageId);
+        $image   = StorePhotoImage::findById($imageId);
         if (!$image) {
             return redirect()->away($this->base() . '/admin/photos');
         }
 
-        $submission = $this->photos->findSubmissionById((int) $image['submission_id']);
+        $submission = StorePhotoSubmission::findById((int) $image['submission_id']);
         if (!$submission) {
             return redirect()->away($this->base() . '/admin/photos');
         }
@@ -350,7 +351,7 @@ final class StorePhotoController
             $compressed = $this->imageCompressor->compress($tmp, $subDir . 'photo_' . ($count + 1));
             if ($compressed === null) continue;
 
-            $this->photos->saveImage([
+            StorePhotoImage::put([
                 'submission_id' => $submissionId,
                 'filename'      => $names[$i],
                 'filepath'      => 'storage/img/' . $storeId . '/' . $submissionId . '/' . basename($compressed['path']),
@@ -361,7 +362,7 @@ final class StorePhotoController
             $count++;
         }
 
-        $this->photos->saveSubmission([
+        StorePhotoSubmission::put([
             'id'          => $submissionId,
             'image_count' => $count,
             'updated_at'  => date('Y-m-d H:i:s'),
@@ -371,7 +372,7 @@ final class StorePhotoController
     public function show(Request $request): Response
     {
         $id = (int) $request->route('id');
-        $submission = $this->photos->findSubmissionById($id);
+        $submission = StorePhotoSubmission::findById($id);
         if (!$submission) {
             return response($this->view->make('errors.404', ['title' => '404'])->render(), 404);
         }
@@ -383,7 +384,7 @@ final class StorePhotoController
             $this->notifs->markReadFor($userId, 'photo_submission', $id);
         }
 
-        $images = $this->enrichWithVersion($this->photos->findImagesBySubmission($id));
+        $images = $this->enrichWithVersion(StorePhotoImage::findBySubmission($id));
         $store  = Store::findById((int) $submission['store_id']);
 
         return response($this->view->make('store-photos::store-photos-detail', [
@@ -404,7 +405,7 @@ final class StorePhotoController
         }
 
         $id = (int) $request->route('id');
-        $submission = $this->photos->findSubmissionById($id);
+        $submission = StorePhotoSubmission::findById($id);
         if (!$submission) {
             return redirect()->away($this->base() . '/admin/photos');
         }
@@ -422,7 +423,7 @@ final class StorePhotoController
             }
         }
 
-        $this->photos->deleteSubmission($id);
+        StorePhotoSubmission::remove($id);
         $this->auditLogger->log($request, 'photo.submission_deleted', 'store_photo_submission', $id, $submission, $storeId);
 
         // Revenir là où l'utilisateur se trouvait (tous les stores, ou un store

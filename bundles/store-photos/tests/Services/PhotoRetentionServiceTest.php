@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\StorePhoto\Services;
 
-use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
+use Illuminate\Support\Facades\DB;
+use Tests\Support\StorePhotoRows;
 use kintai\Bundles\Installed\StorePhoto\Services\PhotoRetentionService;
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\AppSetting;
@@ -20,11 +21,13 @@ use PHPUnit\Framework\TestCase;
  */
 final class PhotoRetentionServiceTest extends TestCase
 {
+    use StorePhotoRows;
+
     private string $dir;
 
     protected function setUp(): void
     {
-kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off();
+        $this->resetPhotos();
         $this->dir = sys_get_temp_dir() . '/kintai-photo-retention-' . bin2hex(random_bytes(4)) . '/';
         mkdir($this->dir . '5/10', 0777, true);
         file_put_contents($this->dir . '5/10/photo_1.jpg', 'a');
@@ -55,20 +58,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     {
         kintai_test_settings(['photo_retention_days' => '10', 'photo_cleanup_delay' => '3']);
 
-        $photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $photos->expects($this->once())->method('getPendingCompression')->with(10)->willReturn([
-            ['id' => 10, 'store_id' => 5, 'week_label' => '2026-09-01', 'mail_sent_at' => null],
-            ['id' => 11, 'store_id' => 5, 'week_label' => '2026-09-02', 'mail_sent_at' => '2026-09-20 00:00:00'],
+        // 10 et 11 : plus vieux que 10 jours, pas encore compressés (à archiver) ; 20 : plus vieux que 13 jours, déjà compressé (à purger).
+        $this->seedSubmissions([
+            ['id' => 10, 'store_id' => 5, 'week_label' => '2026-09-01', 'mail_sent_at' => null, 'compressed' => 0, 'created_at' => date('Y-m-d H:i:s', strtotime('-11 days'))],
+            ['id' => 11, 'store_id' => 5, 'week_label' => '2026-09-02', 'mail_sent_at' => '2026-09-20 00:00:00', 'compressed' => 0, 'created_at' => date('Y-m-d H:i:s', strtotime('-11 days'))],
+            ['id' => 20, 'store_id' => 6, 'compressed' => 1, 'created_at' => date('Y-m-d H:i:s', strtotime('-40 days'))],
         ]);
-        $photos->expects($this->once())->method('getExpiredSubmissions')->with(13)->willReturn([
-            ['id' => 20, 'store_id' => 6],
-        ]);
-        $saved = [];
-        $photos->method('saveSubmission')->willReturnCallback(function (array $d) use (&$saved): array {
-            $saved[] = array_keys($d);
-            return $d;
-        });
-        $photos->expects($this->once())->method('deleteSubmission')->with(20)->willReturn(1);
         kintai_test_stores(findById: fn() => ['id' => 5, 'name' => 'Shibuya']);
         $permissions = $this->permissions([1, 2]);
         $notifications = $this->createMock(NotificationService::class);
@@ -77,7 +72,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['store' => 'Shibuya', 'date' => '2026-09-01', 'days' => '3'], 10, '/admin/photos/5/10'
         );
 
-        $result = (new PhotoRetentionService($photos, $permissions, $notifications, $this->dir))->run();
+        $result = (new PhotoRetentionService($permissions, $notifications, $this->dir))->run();
 
         $this->assertSame(2, $result['compressed']);
         $this->assertSame(1, $result['notified'], 'envoi déjà signalé : pas de nouvelle notification');
@@ -89,22 +84,21 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->assertSame(2, $zip->numFiles);
         $zip->close();
         $this->assertDirectoryDoesNotExist($this->dir . '6', 'purge : photos, archive et dossier du magasin vide supprimés');
-        $this->assertContains(['id', 'mail_sent_at', 'updated_at'], $saved);
+        $this->assertNotNull(DB::table('store_photo_submissions')->where('id', 10)->value('mail_sent_at'), 'envoi signalé aux Owners');
+        $this->assertNull(DB::table('store_photo_submissions')->where('id', 20)->first(), 'envoi purgé');
     }
 
     public function testNoOwnerMeansNoNotificationAndNoMarker(): void
     {
         kintai_test_settings();
-        $photos = $this->createStub(StorePhotoRepositoryInterface::class);
-        $photos->method('getPendingCompression')->willReturn([['id' => 10, 'store_id' => 5, 'mail_sent_at' => null]]);
-        $photos->method('getExpiredSubmissions')->willReturn([]);
-        $photos->method('saveSubmission')->willReturnArgument(0);
+        $this->seedSubmissions([['id' => 10, 'store_id' => 5, 'week_label' => '2026-09-01', 'mail_sent_at' => null, 'compressed' => 0, 'created_at' => date('Y-m-d H:i:s', strtotime('-18 days'))]]);
         $permissions = $this->permissions([]);
         $notifications = $this->createMock(NotificationService::class);
         $notifications->expects($this->never())->method('notifyMany');
 
-        $result = (new PhotoRetentionService($photos, $permissions, $notifications, $this->dir))->run();
+        $result = (new PhotoRetentionService($permissions, $notifications, $this->dir))->run();
 
+        $this->assertNull(DB::table('store_photo_submissions')->where('id', 10)->value('mail_sent_at'), 'pas de marqueur sans Owner');
         $this->assertSame(['compressed' => 1, 'notified' => 0], ['compressed' => $result['compressed'], 'notified' => $result['notified']]);
     }
 }

@@ -8,7 +8,7 @@ namespace Tests\Bundles\StorePhoto\Controllers\Web;
 use kintai\Bundles\Installed\StorePhoto\Controllers\Web\StorePhotoController;
 use App\Exceptions\ForbiddenException;
 use App\Models\AppSetting;
-use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
+use Tests\Support\StorePhotoRows;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,7 +22,8 @@ use PHPUnit\Framework\TestCase;
 
 final class StorePhotoControllerTest extends TestCase
 {
-    private StorePhotoRepositoryInterface&Stub $photos;
+    use StorePhotoRows;
+
     private NotificationService $notifs;
     private ?StorePhotoController $controller = null;
 
@@ -36,7 +37,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $this->ensureViewFile($viewDir, 'store-photos-detail');
         $this->ensureViewFile(sys_get_temp_dir(), 'layout.app');
 
-        $this->photos = $this->createStub(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $this->notifs = $this->createStub(NotificationService::class);
     }
 
@@ -49,7 +50,6 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             $view->addNamespace('store-photos', $viewDir);
             $this->controller = new StorePhotoController(
                 $view,
-                $this->photos,
                 new AuditLogger(),
                 new ImageCompressionService(),
                 $this->notifs,
@@ -72,11 +72,11 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
-        $this->photos->method('findAllSubmissions')->willReturn([
+        $this->seedSubmissions([
             ['id' => 10, 'store_id' => 1],
             ['id' => 11, 'store_id' => 2],
         ]);
-        $this->photos->method('findImagesBySubmission')->willReturn([]);
+        // aucune ligne;
 
         $_GET['store_id'] = '1';
         $req = Request::capture();
@@ -94,15 +94,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testIndexScopesSubmissionsToManagedStoresOnly(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         kintai_test_stores(findAll: fn() => [
             ['id' => 1, 'name' => 'Store A'],
             ['id' => 2, 'name' => 'Store B'],
         ]);
-        $this->photos->expects($this->once())->method('findAllSubmissions')
-            ->with([1], 100)
-            ->willReturn([['id' => 10, 'store_id' => 1]]);
-        $this->photos->method('findImagesBySubmission')->willReturn([]);
+        $this->seedSubmissions([['id' => 10, 'store_id' => 1]]);
+        // aucune ligne;
 
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', [1]);
@@ -115,12 +113,12 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Un ?store_id= hors du périmètre géré est ignoré plutôt que d'être appliqué tel quel. */
     public function testIndexIgnoresStoreIdFilterOutsideManagedScope(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->photos->expects($this->atLeastOnce())->method('findAllSubmissions')->with([1], 100)->willReturn([
+        $this->seedSubmissions([
             ['id' => 10, 'store_id' => 1],
         ]);
-        $this->photos->method('findImagesBySubmission')->willReturn([]);
+        // aucune ligne;
 
         $_GET['store_id'] = '2'; // store non géré par ce manager
         $req = Request::capture();
@@ -152,18 +150,17 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $controller = new StorePhotoController(
             $view,
-            $this->photos,
             new AuditLogger(),
             new ImageCompressionService(),
             $this->notifs,
         );
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->photos->method('findAllSubmissions')->willReturn([
+        $this->seedSubmissions([
             ['id' => 10, 'store_id' => 1, 'created_at' => '2026-09-08 10:00:00'],
             ['id' => 11, 'store_id' => 1, 'created_at' => '2026-09-07 09:00:00'],
         ]);
-        $this->photos->method('findImagesBySubmission')->willReturn([]);
+        // aucune ligne;
 
         $_GET['date'] = '2026-09-07';
         $req = Request::capture();
@@ -192,17 +189,16 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
         $controller = new StorePhotoController(
             $view,
-            $this->photos,
             new AuditLogger(),
             new ImageCompressionService(),
             $this->notifs,
         );
 
         kintai_test_stores(findAll: fn() => [['id' => 1, 'name' => 'Store A']]);
-        $this->photos->method('findAllSubmissions')->willReturn([
+        $this->seedSubmissions([
             ['id' => 10, 'store_id' => 1, 'created_at' => '2026-09-08 10:00:00'],
         ]);
-        $this->photos->method('findImagesBySubmission')->willReturn([]);
+        // aucune ligne;
 
         $_GET['date'] = '2099-01-01';
         $req = Request::capture();
@@ -225,8 +221,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testShowForbiddenForSubmissionOutsideManagedScope(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 2]);
+        $this->resetPhotos();
+        $this->seedSubmissions([['id' => 10, 'store_id' => 2]]);
 
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
@@ -238,9 +234,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testShowSucceedsForSubmissionWithinManagedScope(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
+        $this->resetPhotos();
+        $this->seedSubmissions([['id' => 10, 'store_id' => 1]]);
+        // aucune ligne;
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
@@ -254,9 +250,9 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Ouvrir l'envoi marque comme lue sa notification d'archivage, seulement pour un utilisateur connu. */
     public function testShowMarksTheArchiveNotificationAsRead(): void
     {
-        $this->photos = $this->createStub(StorePhotoRepositoryInterface::class);
-        $this->photos->method('findSubmissionById')->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->photos->method('findImagesBySubmission')->willReturn([]);
+        $this->resetPhotos();
+        $this->seedSubmissions([['id' => 10, 'store_id' => 1]]);
+        // aucune ligne;
         $this->notifs = $this->createMock(NotificationService::class);
         $this->notifs->expects($this->once())->method('markReadFor')->with(7, 'photo_submission', 10);
 
@@ -270,8 +266,8 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testShowForbiddenMarksNothing(): void
     {
-        $this->photos = $this->createStub(StorePhotoRepositoryInterface::class);
-        $this->photos->method('findSubmissionById')->willReturn(['id' => 10, 'store_id' => 2]);
+        $this->resetPhotos();
+        $this->seedSubmissions([['id' => 10, 'store_id' => 2]]);
         $this->notifs = $this->createMock(NotificationService::class);
         $this->notifs->expects($this->never())->method('markReadFor');
 
@@ -291,14 +287,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testShowPassesOriginStoreIdAsBackStoreId(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $viewDir = sys_get_temp_dir() . '/kintai-store-photos-views';
         file_put_contents($viewDir . DIRECTORY_SEPARATOR . 'store-photos-detail.php', '<?php echo $backStoreId;');
         file_put_contents(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'layout' . DIRECTORY_SEPARATOR . 'app.php', '<?php echo $content;');
 
         $_GET = ['origin_store_id' => '0'];
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
+        $this->seedSubmissions([['id' => 10, 'store_id' => 1]]);
+        // aucune ligne;
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
@@ -312,13 +308,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Sans ?origin_store_id= (lien direct/ancien), show() retombe sur le store de l'envoi lui-même. */
     public function testShowFallsBackToSubmissionsStoreWithoutOrigin(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $viewDir = sys_get_temp_dir() . '/kintai-store-photos-views';
         file_put_contents($viewDir . DIRECTORY_SEPARATOR . 'store-photos-detail.php', '<?php echo $backStoreId;');
         file_put_contents(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'layout' . DIRECTORY_SEPARATOR . 'app.php', '<?php echo $content;');
 
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(10)->willReturn(['id' => 10, 'store_id' => 1]);
-        $this->photos->expects($this->atLeastOnce())->method('findImagesBySubmission')->with(10)->willReturn([]);
+        $this->seedSubmissions([['id' => 10, 'store_id' => 1]]);
+        // aucune ligne;
         kintai_test_stores(findById: fn(int $id) => $id === 1 ? ['id' => 1, 'name' => 'Store A'] : null);
         $req = Request::capture();
         $req->setRouteParams(['id' => '10']);
@@ -397,7 +393,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
         $req->attributes->set('auth_user', ['id' => 7]);
 
         kintai_test_settings(['photo_retention_days' => '14']);
-        $this->photos->method('saveSubmission')->willReturn(['id' => 55, 'store_id' => 1]);
+        $this->nextRowId(55);
 
         $response = $this->controller()->store($req);
 
@@ -411,22 +407,18 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testStoreMergesIntoExistingSameDaySubmissionInsteadOfCreatingNew(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $_POST = ['store_id' => '1', 'notes' => 'Deuxième envoi'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 7]);
 
-        $this->photos->expects($this->atLeastOnce())->method('findTodaySubmission')->with(1, date('Y-m-d'))
-            ->willReturn(['id' => 55, 'store_id' => 1, 'notes' => 'Premier envoi', 'image_count' => 2]);
+        $this->seedSubmissions([['id' => 55, 'store_id' => 1, 'notes' => 'Premier envoi', 'image_count' => 2, 'created_at' => date('Y-m-d H:i:s')]]);
 
-        $this->photos->expects($this->once())->method('saveSubmission')
-            ->with($this->callback(function (array $data) {
-                return ($data['id'] ?? null) === 55
-                    && !array_key_exists('store_id', $data)
+        $this->expectSaved(function (array $data) {
+                return (int) $data['id'] === 55
                     && $data['notes'] === "Premier envoi\nDeuxième envoi";
-            }))
-            ->willReturn(['id' => 55, 'store_id' => 1, 'image_count' => 2]);
+            });
 
         $response = $this->controller()->store($req);
 
@@ -436,17 +428,15 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Sans envoi existant pour aujourd'hui, store() crée bien une nouvelle soumission (image_count à 0). */
     public function testStoreCreatesNewSubmissionWhenNoneExistsForToday(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $_POST = ['store_id' => '1', 'week_label' => '2026-07-07', 'notes' => 'RAS'];
         $req = Request::capture();
         $req->attributes->set('managed_store_ids', null);
         $req->attributes->set('auth_user', ['id' => 7]);
 
         kintai_test_settings(['photo_retention_days' => '14']);
-        $this->photos->method('findTodaySubmission')->willReturn(null);
-        $this->photos->expects($this->once())->method('saveSubmission')
-            ->with($this->callback(fn (array $data) => ($data['store_id'] ?? null) === 1 && ($data['image_count'] ?? null) === 0))
-            ->willReturn(['id' => 99, 'store_id' => 1, 'image_count' => 0]);
+        $this->seedSubmissions([]);
+        $this->expectSaved(fn (array $data) => (int) $data['store_id'] === 1 && (int) $data['image_count'] === 0);
 
         $response = $this->controller()->store($req);
 
@@ -475,13 +465,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     public function testDeleteRemovesSubmissionForAdmin(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
-        $this->photos->expects($this->once())->method('deleteSubmission')->with(42);
+        $this->seedSubmissions([['id' => 42, 'store_id' => 3]]);
+        $this->expectDeleted(42);
 
         $response = $this->controller()->delete($req);
 
@@ -494,13 +484,13 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testDeleteWithoutOriginRedirectsToTheSubmissionsOwnStore(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
+        $this->seedSubmissions([['id' => 42, 'store_id' => 3]]);
 
         $response = $this->controller()->delete($req);
 
@@ -515,14 +505,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
      */
     public function testDeleteFromAllStoresViewReturnsToAllStores(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_GET = ['origin_store_id' => '0'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
+        $this->seedSubmissions([['id' => 42, 'store_id' => 3]]);
 
         $response = $this->controller()->delete($req);
 
@@ -533,14 +523,14 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
     /** Supprimé depuis une vue filtrée sur un AUTRE store que celui de l'envoi : on y revient, pas sur le store de l'envoi. */
     public function testDeleteFromDifferentFilteredStoreReturnsToThatStore(): void
     {
-        $this->photos = $this->createMock(StorePhotoRepositoryInterface::class);
+        $this->resetPhotos();
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_GET = ['origin_store_id' => '9'];
         $req = Request::capture();
         $req->attributes->set('auth_user', ['id' => 1, 'is_admin' => true]);
         $req->setRouteParams(['id' => '42']);
 
-        $this->photos->expects($this->atLeastOnce())->method('findSubmissionById')->with(42)->willReturn(['id' => 42, 'store_id' => 3]);
+        $this->seedSubmissions([['id' => 42, 'store_id' => 3]]);
 
         $response = $this->controller()->delete($req);
 

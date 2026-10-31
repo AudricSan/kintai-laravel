@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace kintai\Bundles\Installed\StorePhoto\Services;
 
-use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
+use kintai\Bundles\Installed\StorePhoto\Models\StorePhotoSubmission;
+
 use kintai\Contract\Auth\PermissionService;
 use kintai\Contract\Data\AppSetting;
 use kintai\Contract\Data\Store;
@@ -20,7 +21,6 @@ use kintai\Contract\Services\NotificationService;
 final class PhotoRetentionService
 {
     public function __construct(
-        private readonly StorePhotoRepositoryInterface $photos,
         private readonly PermissionService $permissions,
         private readonly NotificationService $notifications,
         private readonly ?string $photoDir = null,
@@ -35,7 +35,7 @@ final class PhotoRetentionService
         $result = ['retention_days' => $retentionDays, 'cleanup_delay' => $cleanupDelay, 'compressed' => 0, 'notified' => 0, 'purged' => 0, 'errors' => []];
 
         $owners = null;
-        foreach ($this->photos->getPendingCompression($retentionDays) as $sub) {
+        foreach (StorePhotoSubmission::findPendingCompression($retentionDays) as $sub) {
             $sid     = (int) $sub['id'];
             $storeId = (int) ($sub['store_id'] ?? 0);
             $now     = date('Y-m-d H:i:s');
@@ -44,7 +44,7 @@ final class PhotoRetentionService
                 $result['errors'][] = "archive {$sid}";
                 continue;
             }
-            $this->photos->saveSubmission(['id' => $sid, 'compressed' => 1, 'compressed_at' => $now, 'updated_at' => $now]);
+            StorePhotoSubmission::put(['id' => $sid, 'compressed' => 1, 'compressed_at' => $now, 'updated_at' => $now]);
             $result['compressed']++;
 
             if (empty($sub['mail_sent_at'])) {
@@ -56,17 +56,17 @@ final class PhotoRetentionService
                         'date'  => (string) ($sub['week_label'] ?? '?'),
                         'days'  => (string) $cleanupDelay,
                     ], $sid, '/admin/photos/' . $storeId . '/' . $sid);
-                    $this->photos->saveSubmission(['id' => $sid, 'mail_sent_at' => $now, 'updated_at' => $now]);
+                    StorePhotoSubmission::put(['id' => $sid, 'mail_sent_at' => $now, 'updated_at' => $now]);
                     $result['notified']++;
                 }
             }
         }
 
-        foreach ($this->photos->getExpiredSubmissions($retentionDays + $cleanupDelay) as $sub) {
+        foreach (StorePhotoSubmission::findExpired($retentionDays + $cleanupDelay) as $sub) {
             $sid     = (int) $sub['id'];
             $storeId = (int) ($sub['store_id'] ?? 0);
             $this->purge($photoDir . $storeId . '/' . $sid . '/', $photoDir . $storeId . '/' . $sid . '.zip');
-            $this->photos->deleteSubmission($sid);
+            StorePhotoSubmission::remove($sid);
             $result['purged']++;
         }
 

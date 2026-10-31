@@ -6,8 +6,6 @@ namespace kintai\Bundles\Installed\StorePhoto;
 
 use Illuminate\Console\Scheduling\Schedule;
 use kintai\Bundles\Installed\StorePhoto\Console\RetentionCommand;
-use kintai\Bundles\Installed\StorePhoto\Repositories\DatabaseStorePhotoRepository;
-use kintai\Bundles\Installed\StorePhoto\Repositories\StorePhotoRepositoryInterface;
 use kintai\Contract\Bundle;
 use kintai\Contract\Extension\NavItem;
 use kintai\Contract\Extension\StoreFeature;
@@ -40,7 +38,6 @@ final class StorePhotoBundle extends Bundle
         // Tâche planifiée : commande Artisan du bundle, lancée par le planificateur de Laravel.
         $this->commands([RetentionCommand::class]);
         $this->callAfterResolving(Schedule::class, static fn(Schedule $schedule) => $schedule->command('kintai:photo-retention')->dailyAt('02:00')->withoutOverlapping());
-        $this->app->singleton(StorePhotoRepositoryInterface::class, fn() => new DatabaseStorePhotoRepository());
         $this->loadViewsFrom($this->getPath() . '/Views', 'store-photos');
         $this->loadRoutesFrom($this->getPath() . '/routes.php');
         $this->loadAssetsFrom('public');
