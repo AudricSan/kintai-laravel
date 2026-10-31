@@ -237,6 +237,17 @@ final class WebInstaller
         }
     }
 
+    /** Supprime toutes les tables, vues et déclencheurs d'une base SQLite, sans toucher au fichier. */
+    private function emptySqlite(string $path): void
+    {
+        $pdo = new PDO('sqlite:' . $path, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $pdo->exec('PRAGMA foreign_keys = OFF');
+        foreach ($pdo->query("SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('table', 'view', 'trigger')")->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $pdo->exec('DROP ' . strtoupper($row['type']) . ' IF EXISTS "' . $row['name'] . '"');
+        }
+        $pdo = null;
+    }
+
     private function prepareSqlite(): void
     {
         $path = $this->basePath . '/' . self::SQLITE_PATH;
@@ -254,12 +265,25 @@ final class WebInstaller
             $pdo = null;
             if ($tables > 0) {
                 $backup = $path . '.avant-install-' . date('YmdHis');
-                if (!@rename($path, $backup) || !@touch($path)) {
+                // Sous Windows, un fichier ouvert par le serveur web ne peut pas être renommé : on le copie, puis on vide la
+                // base elle-même (suppression de ses tables) au lieu de remplacer le fichier.
+                if (@rename($path, $backup) && @touch($path)) {
+                    $this->undo[] = static function () use ($path, $backup): void {
+                        @unlink($path);
+                        @rename($backup, $path);
+                    };
+                    return;
+                }
+                if (!file_exists($path) && file_exists($backup)) {
+                    @rename($backup, $path);
+                }
+                if (!@copy($path, $backup)) {
                     throw new InstallFailure('install_error_not_writable', ['name' => 'storage/app/']);
                 }
+                $this->emptySqlite($path);
                 $this->undo[] = static function () use ($path, $backup): void {
-                    @unlink($path);
-                    @rename($backup, $path);
+                    @copy($backup, $path);
+                    @unlink($backup);
                 };
                 return;
             }

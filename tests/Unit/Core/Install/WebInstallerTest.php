@@ -75,6 +75,24 @@ final class WebInstallerTest extends TestCase
         $this->fail('L\'installation aurait dû échouer');
     }
 
+    /** Fichier ouvert par le serveur web (renommage impossible sous Windows) : la base est vidée sur place. */
+    public function testAnOpenSqliteDatabaseIsEmptiedInPlace(): void
+    {
+        $sqlite = $this->base . '/' . WebInstaller::SQLITE_PATH;
+        $open = new PDO('sqlite:' . $sqlite);
+        $open->exec('CREATE TABLE users (id INTEGER PRIMARY KEY)');
+        $open->exec('INSERT INTO users (id) VALUES (1)');
+        file_put_contents($this->base . '/.env', "APP_NAME=Kintai
+APP_LOCALE=fr
+");
+
+        $failure = $this->install();
+
+        $this->assertNotSame('install_error_not_writable', $failure->messageKey);
+        $this->assertNotSame('install_error_database_not_empty', $failure->messageKey);
+        $this->assertSame(1, (int) $open->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'ancienne base remise en place après l\'échec');
+    }
+
     public function testNonEmptySqliteDatabaseIsReplacedAndRestoredWhenTheInstallationFails(): void
     {
         $sqlite = $this->base . '/' . WebInstaller::SQLITE_PATH;
