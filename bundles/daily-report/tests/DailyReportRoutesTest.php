@@ -45,8 +45,8 @@ final class DailyReportRoutesTest extends TestCase
 
         $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
         $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware());
-        $this->assertIsArray(\App\Http\Routing\Routes::permission($route), "$path doit déclarer une règle 'membership' (accès en libre-service par appartenance au store).");
-        $this->assertTrue(\App\Http\Routing\Routes::permission($route)['membership'] ?? false, "$path doit rester en libre-service (règle 'membership') pour qu'un simple employé puisse soumettre son propre rapport.");
+        $this->assertIsArray(\App\Http\Macros::permissionOf($route), "$path doit déclarer une règle 'membership' (accès en libre-service par appartenance au store).");
+        $this->assertTrue(\App\Http\Macros::permissionOf($route)['membership'] ?? false, "$path doit rester en libre-service (règle 'membership') pour qu'un simple employé puisse soumettre son propre rapport.");
     }
 
     public static function selfServiceRoutesProvider(): array
@@ -71,7 +71,7 @@ final class DailyReportRoutesTest extends TestCase
 
         $this->assertContains(AuthMiddleware::class, $route->gatherMiddleware());
         $this->assertContains(PermissionMiddleware::class, $route->gatherMiddleware());
-        $this->assertSame('daily_reports.view', \App\Http\Routing\Routes::permission($route));
+        $this->assertSame('daily_reports.view', \App\Http\Macros::permissionOf($route));
     }
 
     #[DataProvider('apiRoutesProvider')]

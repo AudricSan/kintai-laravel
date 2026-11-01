@@ -14,7 +14,7 @@ use App\Models\StoreUser;
 use App\Models\UserNavPref;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Http\Routing\Routes;
+use App\Http\Macros;
 use App\Services\EmployeeStatsService;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
@@ -77,7 +77,7 @@ final class AuthMiddleware
         // jusqu'ici aucun contrôle de permission alors que leurs routes en exigent une).
         // Route absente/sans permission déclarée/'public' : toujours visible.
         $view->share('route_visible', function (string $routeName) use ($isOwner, $permissions, $user): bool {
-            $rule = Routes::permission(Routes::byName($routeName));
+            $rule = Macros::permissionOf(Macros::routeNamed($routeName));
             if ($rule === null || $rule === 'public') {
                 return true;
             }

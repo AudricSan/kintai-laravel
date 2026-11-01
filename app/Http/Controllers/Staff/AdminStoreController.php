@@ -599,7 +599,7 @@ final class AdminStoreController
             'to'       => $to,
             'preset'   => $preset,
             // Lien vers les rapports journaliers du magasin, si le bundle qui les fournit est là.
-            'daily_reports_url' => \App\Http\Routing\Routes::byName('admin.daily_reports.index') !== null
+            'daily_reports_url' => \App\Http\Macros::routeNamed('admin.daily_reports.index') !== null
                 ? $this->base() . '/admin/stores/' . $storeId . '/daily-reports' : null,
         ]))->render());
     }

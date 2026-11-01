@@ -11,7 +11,7 @@ use App\Http\Middleware\OwnerOnlyMiddleware;
 use App\Http\Middleware\PermissionMiddleware;
 use Illuminate\Routing\Router;
 use Tests\Support\RouteRegistrar;
-use App\Http\Routing\Routes;
+use App\Http\Macros;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -77,7 +77,7 @@ final class PermissionMapsTest extends TestCase
                     'pattern'    => '/' . $route->uri(),
                     'middleware' => array_values(array_filter($route->gatherMiddleware(), static fn($m) => $m !== 'kintai.bind')),
                     'name'       => $route->getName(),
-                    'permission' => Routes::permission($route),
+                    'permission' => Macros::permissionOf($route),
                 ];
             }
         }

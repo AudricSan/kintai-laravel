@@ -344,7 +344,36 @@ if (!function_exists('base_url')) {
      */
     function route_url(string $name, array $params = []): string
     {
-        return base_url() . \App\Http\Routing\Routes::url($name, $params);
+        return base_url() . route_path($name, $params);
+    }
+}
+
+if (!function_exists('route_path')) {
+    /**
+     * Chemin d'une route nommée (« / » en tête, sans racine du site), par le générateur d'URL de Laravel. Les paramètres
+     * {store} et {employee} reçoivent un identifiant et deviennent le segment lisible de la route (slug, numéro
+     * d'employé) ; les autres paramètres sont ceux de Laravel.
+     *
+     * @throws \Symfony\Component\Routing\Exception\RouteNotFoundException route inconnue
+     */
+    function route_path(string $name, array $params = []): string
+    {
+        foreach (['store', 'employee'] as $typed) {
+            if (array_key_exists($typed, $params)) {
+                $params[$typed] = \App\Routing\RouteSegments::segmentFor($typed, $params[$typed]);
+            }
+        }
+        try {
+            return route($name, $params, false);
+        } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException $e) {
+            // Route nommée après l'ajout à la collection (bundle chargé tard) : la table des noms est à rafraîchir.
+            app('router')->getRoutes()->refreshNameLookups();
+            try {
+                return route($name, $params, false);
+            } catch (\Symfony\Component\Routing\Exception\RouteNotFoundException) {
+                throw $e;
+            }
+        }
     }
 }
 

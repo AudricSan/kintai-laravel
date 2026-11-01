@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\ResponseFactory;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Response;
-use App\Http\Routing\Routes;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -27,6 +26,28 @@ final class Macros
         self::apiMacros();
     }
 
+    /** Clé de l'action de route qui porte la règle de permission (->permission()). */
+    public const PERMISSION = 'kintai_permission';
+
+    /** La route de ce nom, y compris une route nommée après l'ajout à la collection (bundles). */
+    public static function routeNamed(string $name): ?Route
+    {
+        $routes = app('router')->getRoutes();
+        $route  = $routes->getByName($name);
+        if ($route === null) {
+            $routes->refreshNameLookups();
+            $route = $routes->getByName($name);
+        }
+
+        return $route;
+    }
+
+    /** Règle RBAC de la route : clé de permission, tableau de règle, « public », ou null (hors périmètre). */
+    public static function permissionOf(?Route $route): string|array|null
+    {
+        return $route?->getAction(self::PERMISSION);
+    }
+
     private static function routeMacros(): void
     {
         // Règle RBAC de la route, lue par PermissionMiddleware et ApiPermissionMiddleware : une clé de
@@ -34,7 +55,7 @@ final class Macros
         // 'store_param'), ou 'public' pour une route volontairement exemptée de contrôle fin.
         Route::macro('permission', function (string|array $rule): Route {
             /** @var Route $this */
-            return $this->setAction(array_merge($this->getAction(), [Routes::PERMISSION => $rule]));
+            return $this->setAction(array_merge($this->getAction(), [Macros::PERMISSION => $rule]));
         });
 
         // Règle de permission et nom de la route de la requête (posés à la main par les tests de middlewares).
@@ -42,7 +63,7 @@ final class Macros
             /** @var Request $this */
             return $this->attributes->has('route_permission')
                 ? $this->attributes->get('route_permission')
-                : Routes::permission($this->route());
+                : Macros::permissionOf($this->route());
         });
         Request::macro('routeName', function (): ?string {
             /** @var Request $this */

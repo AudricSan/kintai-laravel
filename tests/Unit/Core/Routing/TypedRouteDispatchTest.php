@@ -14,7 +14,6 @@ use App\Routing\EmployeeRouteBinder;
 use App\Routing\RouteSegments;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use App\Routing\StoreRouteBinder;
-use App\Http\Routing\Routes;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -93,10 +92,10 @@ final class TypedRouteDispatchTest extends TestCase
 
     public function testUrlGenerationTurnsIdsIntoReadableEncodedSegments(): void
     {
-        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/edit', Routes::url('stores.edit', ['store' => 3]));
-        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/016/stats', Routes::url('stores.emp', ['store' => '3', 'employee' => 18]));
-        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/id-26/stats', Routes::url('stores.emp', ['store' => 3, 'employee' => 26]));
-        $this->assertSame('/files/a/b.pdf', Routes::url('files', ['path' => 'a/b.pdf']), 'paramètres non typés inchangés');
+        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/edit', route_path('stores.edit', ['store' => 3]));
+        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/016/stats', route_path('stores.emp', ['store' => '3', 'employee' => 18]));
+        $this->assertSame('/admin/stores/' . rawurlencode('所沢寿町店') . '/report/id-26/stats', route_path('stores.emp', ['store' => 3, 'employee' => 26]));
+        $this->assertSame('/files/a/b.pdf', route_path('files', ['path' => 'a/b.pdf']), 'paramètres non typés inchangés');
     }
 
     public function testCanonicalUrlReachesTheControllerWithTheNumericId(): void

@@ -41,6 +41,8 @@ function kintai_test_router(): Illuminate\Routing\Router
     $router = new Illuminate\Routing\Router($app->make('events'), $app);
     $app->instance('router', $router);
     Illuminate\Support\Facades\Route::clearResolvedInstance('router');
+    // Le générateur d'URL (route(), route_path()) lit les routes de ce routeur-ci.
+    $app->make('url')->setRoutes($router->getRoutes());
 
     return $router;
 }

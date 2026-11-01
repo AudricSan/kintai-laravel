@@ -65,7 +65,6 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 | :--- | :--- | :--- |
 | `AuthService` | enveloppe autour du garde `session` (`attempt`, `user`, `isAdmin`…) | appeler `Auth::guard()` / `Gate` directement |
 | `$_SERVER` / `$_COOKIE` / `setcookie` | URL de base (`base_url()`, SCRIPT_NAME), schéma/hôte des liens iCal et Google, `LocaleCookie`, `I18nMiddleware` | `request()->getSchemeAndHttpHost()`, `Cookie::queue()` ; une trentaine de tests posent ces variables |
-| Registre de routes maison | `App\Http\Routing\Routes` (nom → URI pour `route_url()`) | `route()` de Laravel sur les routes nommées |
 | Macros de réponse | `response()->ical()`, `FileStreamResponse`, `ErrorResponder` | `response()->download()` / `streamDownload()`, gestionnaire d'exceptions |
 | Validation métier des contrôleurs | ~40 `throw new ValidationException` manuels | `FormRequest` (les tests appellent aujourd'hui les contrôleurs directement) |
 | `LaravelCapsule`, `RequestMemo` | pont base de données et mémo par requête | `DB` / cache de requête de Laravel |

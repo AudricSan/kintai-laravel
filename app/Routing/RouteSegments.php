@@ -30,6 +30,21 @@ final class RouteSegments
     }
 
     /** Résolveur d'un paramètre de route (« store », « employee »), ou null si le nom n'est pas lié. */
+    /** Segment d'URL d'un paramètre lié : l'identifiant devient le segment lisible ; toute autre valeur est prise telle quelle. */
+    public static function segmentFor(string $param, mixed $value): string
+    {
+        $segment = (string) $value;
+        if (is_int($value) || (is_string($value) && ctype_digit($value))) {
+            try {
+                $segment = self::binder($param)?->segmentFor((int) $value) ?? $segment;
+            } catch (\Throwable) {
+                // Base pas encore migrée : l'identifiant nu reste valable (redirigé en 301 ensuite).
+            }
+        }
+
+        return $segment;
+    }
+
     public static function binder(string $param): ?RouteParamBinder
     {
         return isset(self::BINDERS[$param]) ? app(self::BINDERS[$param]) : null;
