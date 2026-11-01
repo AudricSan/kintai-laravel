@@ -97,7 +97,7 @@ final class StoreUserController
         if (array_key_exists('is_active', $data) && empty($data['is_active']) && !empty($existing['is_active'] ?? 1)) {
             $this->assertNotSelf($request, (int) $existing['user_id']);
         }
-        return response()->json(StoreUser::put(array_merge($existing, $data, ['id' => $id, 'store_id' => $storeId])));
+        return response()->json(StoreUser::put(array_merge($existing->toArray(), $data, ['id' => $id, 'store_id' => $storeId])));
     }
 
     /**

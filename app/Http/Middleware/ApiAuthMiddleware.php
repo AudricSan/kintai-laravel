@@ -46,12 +46,12 @@ final class ApiAuthMiddleware
 
         // Mettre à jour last_used_at sans bloquer la requête en cas d'échec
         try {
-            ApiToken::put(array_merge($record, ['last_used_at' => date('Y-m-d H:i:s')]));
+            ApiToken::put(array_merge($record->toArray(), ['last_used_at' => date('Y-m-d H:i:s')]));
         } catch (\Throwable) {
         }
 
         $request->attributes->set('auth_user', $user);
-        $request->attributes->set('api_token', $record);
+        $request->attributes->set('api_token', $record->toArray());
 
         return $next($request);
     }

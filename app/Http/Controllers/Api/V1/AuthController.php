@@ -174,8 +174,9 @@ final class AuthController
         return $user;
     }
 
-    private function sanitizeToken(array $token): array
+    private function sanitizeToken(array|\Illuminate\Contracts\Support\Arrayable $token): array
     {
+        $token = $token instanceof \Illuminate\Contracts\Support\Arrayable ? $token->toArray() : $token;
         unset($token['token']);
         return $token;
     }

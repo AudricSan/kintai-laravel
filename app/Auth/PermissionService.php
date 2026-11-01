@@ -337,7 +337,7 @@ final class PermissionService
         return array_values(array_unique($ids));
     }
 
-    private function matchesScope(array $assignment, ?int $storeId, string $permissionKey): bool
+    private function matchesScope(array|\ArrayAccess $assignment, ?int $storeId, string $permissionKey): bool
     {
         if ($storeId === null) {
             return true;
@@ -379,7 +379,7 @@ final class PermissionService
         return in_array($permissionKey, Role::getPermissions($roleId), true);
     }
 
-    private function role(int $roleId): ?array
+    private function role(int $roleId): array|\App\Models\Role|null
     {
         if (!array_key_exists($roleId, $this->roleCache)) {
             $this->roleCache[$roleId] = Role::findById($roleId);

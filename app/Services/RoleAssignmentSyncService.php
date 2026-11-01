@@ -55,7 +55,7 @@ final class RoleAssignmentSyncService
     }
 
     /** Retourne un rôle par id, système inclus (contrairement à findAssignableRole), enrichi de `is_managing`. */
-    public function findRole(int $roleId): ?array
+    public function findRole(int $roleId): array|\App\Models\Role|null
     {
         if ($roleId <= 0) {
             return null;
@@ -69,7 +69,7 @@ final class RoleAssignmentSyncService
     }
 
     /** Retourne le rôle s'il existe et est assignable par store (non système), null sinon. */
-    public function findAssignableRole(int $roleId): ?array
+    public function findAssignableRole(int $roleId): array|\App\Models\Role|null
     {
         if ($roleId <= 0) {
             return null;
@@ -104,7 +104,7 @@ final class RoleAssignmentSyncService
      * crée l'affectation manquante. Retourne le rôle appliqué, ou null si le
      * rôle n'est pas assignable (inexistant ou système).
      */
-    public function syncStoreRoleById(int $userId, int $storeId, int $roleId): ?array
+    public function syncStoreRoleById(int $userId, int $storeId, int $roleId): array|\App\Models\Role|null
     {
         $role = $this->findAssignableRole($roleId);
         if ($role === null) {
@@ -181,7 +181,7 @@ final class RoleAssignmentSyncService
     }
 
     /** Le rôle système Owner (slug 'owner'), pour afficher son vrai nom dans les formulaires plutôt qu'un libellé codé en dur. */
-    public function ownerRole(): ?array
+    public function ownerRole(): array|\App\Models\Role|null
     {
         return Role::findBySlug('owner');
     }

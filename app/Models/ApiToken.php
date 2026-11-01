@@ -11,16 +11,16 @@ final class ApiToken extends Model
     protected $guarded = [];
     public $timestamps = false;
 
-    public static function findById(int $id): ?array
+    public static function findById(int $id): ?static
     {
         $record = static::find($id);
-        return $record ? $record->toArray() : null;
+        return $record;
     }
 
-    public static function findByToken(string $token): ?array
+    public static function findByToken(string $token): ?static
     {
         $record = static::where('token', $token)->first();
-        return $record ? $record->toArray() : null;
+        return $record;
     }
 
     public static function findByUserId(int $userId): array

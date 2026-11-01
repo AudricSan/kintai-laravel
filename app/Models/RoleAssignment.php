@@ -16,10 +16,10 @@ final class RoleAssignment extends Model
     protected $guarded = [];
     public $timestamps = false;
 
-    public static function findById(int $id): ?array
+    public static function findById(int $id): ?static
     {
         $row = static::find($id);
-        return $row ? $row->toArray() : null;
+        return $row;
     }
 
     public static function findByUser(int $userId): array

@@ -25,19 +25,19 @@ final class Role extends Model
         return static::all()->toArray();
     }
 
-    public static function findById(int $id): ?array
+    public static function findById(int $id): ?static
     {
         // Lu à chaque contrôle de droit : une fois par requête (voir RequestMemo).
-        return RequestMemo::remember('roles.' . $id, static function () use ($id): ?array {
+        return RequestMemo::remember('roles.' . $id, static function () use ($id): ?static {
             $role = static::find($id);
-            return $role ? $role->toArray() : null;
+            return $role;
         });
     }
 
-    public static function findBySlug(string $slug): ?array
+    public static function findBySlug(string $slug): ?static
     {
         $role = static::where('slug', $slug)->first();
-        return $role ? $role->toArray() : null;
+        return $role;
     }
 
     public static function put(array $data): array

@@ -303,7 +303,7 @@ final class AdminRoleController
      * dont la description est structurelle (non modifiable par l'Owner) et ne
      * doit donc pas rester figée dans la langue de la donnée seedée en base.
      */
-    private function resolveDescription(array $role): string
+    private function resolveDescription(array|\ArrayAccess $role): string
     {
         if (($role['slug'] ?? null) === 'owner') {
             return __('role_owner_description');
@@ -363,7 +363,7 @@ final class AdminRoleController
         if ($role === null) {
             throw new NotFoundException(__('error_role_not_found'));
         }
-        return $role;
+        return $role->toArray();
     }
 
     /** @return string[] Clés de permission cochées dans le formulaire. */

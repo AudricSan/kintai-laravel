@@ -61,7 +61,7 @@ final class DailyReportPermissionService
      * n'intervient plus ici (gardé pour la même signature que les méthodes sœurs) : il n'y a
      * plus de libre-service "tout membre du store".
      */
-    public function canCreate(array|\ArrayAccess $user, array $store, ?array $membership): bool
+    public function canCreate(array|\ArrayAccess $user, array $store, array|\ArrayAccess|null $membership): bool
     {
         if (!$this->isEnabled($store)) {
             return false;
@@ -74,7 +74,7 @@ final class DailyReportPermissionService
      * Le détenteur de `daily_reports.update` peut modifier tout brouillon ou
      * rapport soumis (avant validation finale).
      */
-    public function canEdit(array|\ArrayAccess $user, array $store, array $report, ?array $membership): bool
+    public function canEdit(array|\ArrayAccess $user, array $store, array $report, array|\ArrayAccess|null $membership): bool
     {
         if (!in_array($report['status'], ['draft', 'submitted'], true)) {
             return false;
@@ -90,7 +90,7 @@ final class DailyReportPermissionService
      * créer (daily_reports.create sans .submit) peut rédiger et éditer son propre brouillon,
      * mais pas le soumettre lui-même — voir CHANGELOG.
      */
-    public function canSubmit(array|\ArrayAccess $user, array $store, array $report, ?array $membership): bool
+    public function canSubmit(array|\ArrayAccess $user, array $store, array $report, array|\ArrayAccess|null $membership): bool
     {
         if ($report['status'] !== 'draft') {
             return false;
@@ -98,7 +98,7 @@ final class DailyReportPermissionService
         return $this->can($user, 'daily_reports.submit', $store);
     }
 
-    public function canValidate(array|\ArrayAccess $user, array $store, array $report, ?array $membership): bool
+    public function canValidate(array|\ArrayAccess $user, array $store, array $report, array|\ArrayAccess|null $membership): bool
     {
         if ($report['status'] !== 'submitted') {
             return false;
@@ -106,7 +106,7 @@ final class DailyReportPermissionService
         return $this->can($user, 'daily_reports.approve', $store);
     }
 
-    public function canSendMail(array|\ArrayAccess $user, array $store, array $report, ?array $membership): bool
+    public function canSendMail(array|\ArrayAccess $user, array $store, array $report, array|\ArrayAccess|null $membership): bool
     {
         if ($report['status'] !== 'validated') {
             return false;
@@ -114,7 +114,7 @@ final class DailyReportPermissionService
         return $this->can($user, 'daily_reports.approve', $store);
     }
 
-    public function canDelete(array|\ArrayAccess $user, array $store, array $report, ?array $membership): bool
+    public function canDelete(array|\ArrayAccess $user, array $store, array $report, array|\ArrayAccess|null $membership): bool
     {
         if ($report['deleted_at'] !== null) {
             return false;
@@ -122,7 +122,7 @@ final class DailyReportPermissionService
         return $this->can($user, 'daily_reports.delete', $store);
     }
 
-    public function canViewList(array|\ArrayAccess $user, array $store, ?array $membership): bool
+    public function canViewList(array|\ArrayAccess $user, array $store, array|\ArrayAccess|null $membership): bool
     {
         if ($this->can($user, 'daily_reports.view', $store)) {
             return true;
@@ -133,7 +133,7 @@ final class DailyReportPermissionService
         return $this->isEnabled($store);
     }
 
-    public function canViewReport(array|\ArrayAccess $user, array $store, array $report, ?array $membership): bool
+    public function canViewReport(array|\ArrayAccess $user, array $store, array $report, array|\ArrayAccess|null $membership): bool
     {
         if ($this->can($user, 'daily_reports.view', $store)) {
             return true;

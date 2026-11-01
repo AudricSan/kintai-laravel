@@ -12,10 +12,10 @@ final class StoreUser extends Model
     protected $guarded = [];
     public $timestamps = false;
 
-    public static function findById(int $id): ?array
+    public static function findById(int $id): ?static
     {
         $row = static::find($id);
-        return $row ? $row->toArray() : null;
+        return $row;
     }
 
     public static function findByStore(int $storeId): array
@@ -28,12 +28,12 @@ final class StoreUser extends Model
         return static::where('user_id', $userId)->get()->toArray();
     }
 
-    public static function findMembership(int $storeId, int $userId): ?array
+    public static function findMembership(int $storeId, int $userId): ?static
     {
         $row = static::where('store_id', $storeId)
             ->where('user_id', $userId)
             ->first();
-        return $row ? $row->toArray() : null;
+        return $row;
     }
 
     public static function put(array $data): array
