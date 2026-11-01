@@ -56,7 +56,7 @@ final class InstanceLocale
     }
 
     /** Langue d'un utilisateur : celle de son profil si elle est active, sinon celle de l'instance. */
-    public function forUser(?array $user): string
+    public function forUser(array|\ArrayAccess|null $user): string
     {
         $language = (string) ($user['language'] ?? '');
         return $language !== '' && $this->isActive($language) ? $language : $this->code();

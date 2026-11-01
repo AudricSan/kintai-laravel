@@ -130,7 +130,7 @@ final class DashboardLayoutsController
     }
 
     /** @param array<string, mixed> $user */
-    private function roleDefault(Request $request, array $user, string $dashboardType, bool $clear): ?string
+    private function roleDefault(Request $request, array|\ArrayAccess $user, string $dashboardType, bool $clear): ?string
     {
         if (empty($user['is_admin'])) {
             return 'dashboard_layouts_owner_only';

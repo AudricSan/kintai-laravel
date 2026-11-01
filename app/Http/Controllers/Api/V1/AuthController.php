@@ -167,8 +167,9 @@ final class AuthController
         return response()->json(['status' => 'ok', 'version' => 'v1']);
     }
 
-    private function sanitizeUser(array $user): array
+    private function sanitizeUser(array|\Illuminate\Contracts\Support\Arrayable $user): array
     {
+        $user = $user instanceof \Illuminate\Contracts\Support\Arrayable ? $user->toArray() : $user;
         unset($user['password_hash']);
         return $user;
     }

@@ -1164,8 +1164,9 @@ class StoreStatsService
      * Utilisateur sans ses champs secrets. Les statistiques renvoient la liste des utilisateurs (usersMap) jusqu'aux
      * vues et exports : le hachage du mot de passe n'a rien à y faire, même s'il n'est jamais affiché.
      */
-    private static function withoutSecrets(array $user): array
+    private static function withoutSecrets(array|\Illuminate\Contracts\Support\Arrayable $user): array
     {
+        $user = $user instanceof \Illuminate\Contracts\Support\Arrayable ? $user->toArray() : $user;
         unset($user['password_hash']);
 
         return $user;

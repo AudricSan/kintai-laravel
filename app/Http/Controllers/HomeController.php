@@ -302,7 +302,7 @@ final class HomeController
      * @param list<string> $enabledKeys Widgets activés (clés du tableau de bord gérant)
      * @return array{enabled: array<string, int>, shifts_today: array, upcoming: array, stores_map: array<int, string>, bundle: list<array{key: string, html: string}>}
      */
-    private function employeeWidgets(DashboardWidgets $dashWidgets, array $user, array $enabledKeys, string $today, \Closure $userCan): array
+    private function employeeWidgets(DashboardWidgets $dashWidgets, array|\ArrayAccess $user, array $enabledKeys, string $today, \Closure $userCan): array
     {
         $enabled = [];
         foreach ($enabledKeys as $key) {

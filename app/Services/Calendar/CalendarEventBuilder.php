@@ -28,7 +28,7 @@ final class CalendarEventBuilder
      * @param array<string, mixed>      $user
      * @return array{event: array<string, mixed>, hash: string}
      */
-    public function forShift(array $shift, array $store, ?array $type, array $user, ?string $publicUrl): array
+    public function forShift(array $shift, array $store, ?array $type, array|\ArrayAccess $user, ?string $publicUrl): array
     {
         return $this->withLocale($user, $store, function () use ($shift, $store, $type, $publicUrl) {
             // Un fuseau invalide (« UTC+9 ») était ignoré par Google, qui plaçait l'événement en UTC : +9 h à Tokyo.
@@ -71,7 +71,7 @@ final class CalendarEventBuilder
      * @param array<string, mixed> $user
      * @return array{event: array<string, mixed>, hash: string}
      */
-    public function forTimeoff(array $absence, array $store, array $user): array
+    public function forTimeoff(array $absence, array $store, array|\ArrayAccess $user): array
     {
         return $this->withLocale($user, $store, function () use ($absence, $store) {
             $start = (string) ($absence['start_date'] ?? date('Y-m-d'));
@@ -111,7 +111,7 @@ final class CalendarEventBuilder
      * @param array<string, mixed> $user
      * @param array<string, mixed> $store
      */
-    private function withLocale(array $user, array $store, \Closure $build): array
+    private function withLocale(array|\ArrayAccess $user, array $store, \Closure $build): array
     {
         if ((string) ($user['language'] ?? '') === '' && (string) ($store['locale'] ?? '') !== '') {
             $locale = strtolower(substr((string) $store['locale'], 0, 2));

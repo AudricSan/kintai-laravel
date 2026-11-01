@@ -551,7 +551,7 @@ if (!function_exists('user_locale')) {
      * Langue d'un utilisateur pour ce qui lui est écrit hors de sa session (notifications, e-mails, iCal) : celle
      * de son profil si elle est active, sinon celle de l'instance.
      */
-    function user_locale(?array $user): string
+    function user_locale(array|\ArrayAccess|null $user): string
     {
         try {
             return \Illuminate\Container\Container::getInstance()->make(\App\Services\InstanceLocale::class)->forUser($user);

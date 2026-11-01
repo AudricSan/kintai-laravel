@@ -813,7 +813,7 @@ final class AdminUserController
         }
         // Champ facultatif : vide = null, absent = valeur actuelle.
         $optional = fn(string $field): mixed => $request->hasPost($field) ? ($request->post($field, '') ?: null) : ($user[$field] ?? null);
-        $data = array_merge($user, [
+        $data = array_merge($user instanceof \Illuminate\Contracts\Support\Arrayable ? $user->toArray() : $user, [
             // Absent : valeur actuelle ; vide : « Nom Prénom » (UserDisplayName).
             'display_name'       => UserDisplayName::resolve($request->post('display_name', $user['display_name'] ?? ''), $firstName, $lastName),
             'first_name'         => $firstName,
@@ -869,7 +869,7 @@ final class AdminUserController
         return redirect()->away($this->base() . '/admin/users')->with('success', 'updated');
     }
 
-    private function updateUserError(Request $request, array $user, string $error): Response
+    private function updateUserError(Request $request, array|\ArrayAccess $user, string $error): Response
     {
         if ($request->wantsJsonResponse()) {
             return response()->json(['success' => false, 'error' => $error], 422);
@@ -898,7 +898,7 @@ final class AdminUserController
         }
         $this->assertCanActOnUser($request, (int) $user['id'], 'employees.update');
 
-        $oldUser = $user;
+        $oldUser = clone $user;
         $temporaryPassword = \App\Auth\PasswordPolicy::temporary();
         $user['password_hash'] = \App\Auth\PasswordHasher::hash($temporaryPassword);
         $user['must_change_password'] = 1;

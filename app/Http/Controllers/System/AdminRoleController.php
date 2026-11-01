@@ -439,7 +439,7 @@ final class AdminRoleController
     }
 
     /** Initiales nom+prénom (repli sur les 2 premiers caractères du nom affiché) — même règle que la colonne "Nom" de /admin/users. */
-    private function userInitials(?array $user): string
+    private function userInitials(array|\ArrayAccess|null $user): string
     {
         $initials = mb_strtoupper(
             mb_substr((string) ($user['last_name'] ?? ''), 0, 1) . mb_substr((string) ($user['first_name'] ?? ''), 0, 1)

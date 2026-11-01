@@ -21,7 +21,7 @@ final class PageOverlayHost
      * @param list<string>|null      $storeFeatures fonctionnalités activées du magasin courant (null = toutes)
      * @param ?PageOverlays          $overlays      remplacé en test
      */
-    public static function html(array $authUser, string $path, ?array $storeFeatures, ?PageOverlays $overlays = null, ?\DateTimeImmutable $now = null): string
+    public static function html(array|\ArrayAccess $authUser, string $path, ?array $storeFeatures, ?PageOverlays $overlays = null, ?\DateTimeImmutable $now = null): string
     {
         $userId = (int) ($authUser['id'] ?? 0);
         if ($userId <= 0 || !PageOverlays::allowedOn($path)) {

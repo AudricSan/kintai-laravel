@@ -26,7 +26,7 @@ final class UserTargetGuard
      * @throws NotFoundException Si la cible n'existe pas
      * @throws \App\Exceptions\ForbiddenException Si l'accès est refusé
      */
-    public function require(Request $request, int $userId, string $permissionKey): array
+    public function require(Request $request, int $userId, string $permissionKey): array|\App\Models\User
     {
         $user = User::findById($userId);
         if ($user === null) {

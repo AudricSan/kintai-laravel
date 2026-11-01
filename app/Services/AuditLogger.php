@@ -38,12 +38,14 @@ final class AuditLogger
         string $action,
         string $resourceType,
         ?int $resourceId,
-        ?array $oldData,
-        ?array $newData,
+        array|\Illuminate\Contracts\Support\Arrayable|null $oldData,
+        array|\Illuminate\Contracts\Support\Arrayable|null $newData,
         array $extraContext = [],
         ?int $storeId = null,
         ?int $userId = null,
     ): void {
+        $oldData = $oldData instanceof \Illuminate\Contracts\Support\Arrayable ? $oldData->toArray() : $oldData;
+        $newData = $newData instanceof \Illuminate\Contracts\Support\Arrayable ? $newData->toArray() : $newData;
         $changes = DiffHelper::diff($oldData ?? [], $newData ?? []);
 
         $context = $extraContext;

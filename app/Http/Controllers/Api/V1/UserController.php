@@ -152,7 +152,7 @@ final class UserController
         return $request->attributes->get('auth_user') ?? [];
     }
 
-    private function requireUser(int $id): array
+    private function requireUser(int $id): array|\App\Models\User
     {
         $user = User::findById($id);
         if ($user === null) {
@@ -211,8 +211,9 @@ final class UserController
         return PasswordHasher::hash($password);
     }
 
-    private function withoutSecrets(array $user): array
+    private function withoutSecrets(array|\Illuminate\Contracts\Support\Arrayable $user): array
     {
+        $user = $user instanceof \Illuminate\Contracts\Support\Arrayable ? $user->toArray() : $user;
         unset($user['password_hash']);
         return $user;
     }

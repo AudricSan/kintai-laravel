@@ -233,7 +233,7 @@ final class NotebookController
      * la permission doit être accordée sans restriction de magasin — `can(..., null)` signifie
      * seulement « quelque part » et laissait un gérant d'un seul magasin modifier les notes globales.
      */
-    private function canManageEntry(array $user, ?int $storeId): bool
+    private function canManageEntry(array|\ArrayAccess $user, ?int $storeId): bool
     {
         return $storeId === null
             ? $this->permissions->hasUnrestrictedGrant($user, 'notebook.manage')

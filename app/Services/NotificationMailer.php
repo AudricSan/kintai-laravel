@@ -41,7 +41,7 @@ final class NotificationMailer
      * @param string $body           texte de la notification, déjà traduit de même
      * @param int    $notificationId notification en base : le bouton « Voir » passe par /notifications/{id}/open
      */
-    public function send(array $user, string $type, string $title, string $body, int $notificationId): bool
+    public function send(array|\ArrayAccess $user, string $type, string $title, string $body, int $notificationId): bool
     {
         try {
             $email = trim((string) ($user['email'] ?? ''));

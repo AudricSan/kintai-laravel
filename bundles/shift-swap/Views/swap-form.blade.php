@@ -12,7 +12,7 @@ use kintai\Contract\View\Components\Flash;
 /** @var array   $stores_map       id → nom du store */
 
 if (!function_exists('kintai_admin_swap_employee_label')) {
-    function kintai_admin_swap_employee_label(array $u): string
+    function kintai_admin_swap_employee_label(array|\ArrayAccess $u): string
     {
         return trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? '')) ?: ($u['display_name'] ?? $u['email'] ?? '#' . $u['id']);
     }

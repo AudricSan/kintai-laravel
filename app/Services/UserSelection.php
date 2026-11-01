@@ -146,7 +146,7 @@ final class UserSelection
      * @param array<string, mixed> $user
      * @return array{id: int, name: string, email: string, language: string, owner: bool}
      */
-    private function summary(array $user): array
+    private function summary(array|\ArrayAccess $user): array
     {
         $name = trim((string) ($user['display_name'] ?? ''));
         if ($name === '') {

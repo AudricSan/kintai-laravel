@@ -183,7 +183,7 @@ final class ExportController
      * @param array<string, mixed> $user
      * @return array{body: string, count: int}|null null si le périmètre ne désigne pas exactement une personne et un magasin
      */
-    private function ics(ExportQuery $query, array $user): ?array
+    private function ics(ExportQuery $query, array|\ArrayAccess $user): ?array
     {
         if ($query->userIds === null || count($query->userIds) !== 1 || count($query->storeIds) !== 1) {
             return null;
@@ -225,7 +225,7 @@ final class ExportController
      * @param array<string, mixed> $user
      * @param list<int>            $storeIds
      */
-    private function trace(Request $request, array $user, ExportDataset $dataset, string $scope, array $storeIds, string $format, int $count): void
+    private function trace(Request $request, array|\ArrayAccess $user, ExportDataset $dataset, string $scope, array $storeIds, string $format, int $count): void
     {
         $this->auditLogger->log($request, 'export.dataset', 'export', 0, [
             'dataset' => $dataset->key,

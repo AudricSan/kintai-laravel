@@ -59,7 +59,7 @@ final class BundleViewDataMiddleware
      *
      * @return array<string, mixed>
      */
-    public function variables(array $user, bool $isManager): array
+    public function variables(array|\ArrayAccess $user, bool $isManager): array
     {
         $registry = $this->container->has(ExtensionRegistry::class) ? $this->container->make(ExtensionRegistry::class) : null;
         $declared = $registry?->viewVariablesByBundle() ?? [];

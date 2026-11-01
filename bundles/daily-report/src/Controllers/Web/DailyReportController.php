@@ -779,7 +779,7 @@ final class DailyReportController
     }
 
     /** @param array<string, mixed> $settings @param array<string, string> $errors */
-    private function renderSettings(array $store, array $settings, array $authUser, ?array $membership, array $errors): string
+    private function renderSettings(array $store, array $settings, array|\ArrayAccess $authUser, ?array $membership, array $errors): string
     {
         return $this->view->make('daily-report::daily-report-settings', [
             'store'      => $store,

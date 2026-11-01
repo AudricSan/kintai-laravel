@@ -36,31 +36,24 @@ class User extends Authenticatable
     }
 
     /**
-     * Finds a user by their ID.
-     * @param int $id
-     * @return array|null
+     * Le compte d'identifiant $id (lisible comme un tableau : $user['email']), ou null.
      */
-    public static function findById(int $id): ?array
+    public static function findById(int $id): ?static
     {
-        $user = static::find($id);
-        return $user ? $user->toArray() : null;
+        return static::find($id);
     }
 
     /**
-     * Finds a user by their email address.
-     * @param string $email
-     * @return array|null
+     * Le compte de cette adresse e-mail, ou null.
      */
-    public static function findByEmail(string $email): ?array
+    public static function findByEmail(string $email): ?static
     {
-        $user = static::where('email', $email)->first();
-        return $user ? $user->toArray() : null;
+        return static::where('email', $email)->first();
     }
 
-    public static function findByEmployeeCode(string $code): ?array
+    public static function findByEmployeeCode(string $code): ?static
     {
-        $user = static::where('employee_code', $code)->first();
-        return $user ? $user->toArray() : null;
+        return static::where('employee_code', $code)->first();
     }
 
     /**
@@ -87,8 +80,9 @@ class User extends Authenticatable
      * @param array $userData
      * @return array The saved user data.
      */
-    public static function put(array $userData): array
+    public static function put(array|self $userData): array
     {
+        $userData = $userData instanceof self ? $userData->toArray() : $userData;
         // Langue vide = le compte suit la langue de l'instance (InstanceLocale). Toujours '' plutôt que null : la
         // colonne est NOT NULL sur les instances existantes. Un nouveau compte suit l'instance, quel que soit le
         // défaut historique de la colonne ('fr').

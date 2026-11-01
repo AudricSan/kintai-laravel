@@ -84,7 +84,7 @@ final class ProfileSections
      * @param array<string, mixed> $user
      * @return list<string>
      */
-    public function render(array $user, ViewFactory $view): array
+    public function render(array|\ArrayAccess $user, ViewFactory $view): array
     {
         $html = [];
         foreach ($this->sections() as $section) {

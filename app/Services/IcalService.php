@@ -25,7 +25,7 @@ final class IcalService
      * @param array $user     Ligne de l'utilisateur (id, first_name, last_name, language)
      * @param array $types    Map id => shift_type (pour le SUMMARY)
      */
-    public function build(array $shifts, array $timeoffs, array $store, array $user, array $types = []): string
+    public function build(array $shifts, array $timeoffs, array $store, array|\ArrayAccess $user, array $types = []): string
     {
         $resolved = $this->resolveLocale($user, $store);
         $previous = $this->translations->getLocale();
@@ -75,7 +75,7 @@ final class IcalService
         }
     }
 
-    private function resolveLocale(array $user, array $store): string
+    private function resolveLocale(array|\ArrayAccess $user, array $store): string
     {
         // Langue du profil de l'employé, sinon celle du magasin, sinon celle de l'instance.
         if ((string) ($user['language'] ?? '') === '' && (string) ($store['locale'] ?? '') !== '') {

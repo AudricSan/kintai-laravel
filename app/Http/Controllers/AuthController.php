@@ -370,7 +370,7 @@ final class AuthController
         // Récupérer l'utilisateur complet depuis la DB pour être sûr de ne rien perdre
         $dbUser = User::findById($userId);
         if ($dbUser) {
-            $oldUser = $dbUser;
+            $oldUser = clone $dbUser;
             // Pas de catch ici : la colonne "language" existe depuis la toute première
             // migration de création de users (elle ne peut pas manquer si la table existe),
             // et avaler l'échec masquerait un vrai problème derrière un "?success=1" trompeur
@@ -436,7 +436,7 @@ final class AuthController
             }
         }
 
-        $oldUser = $dbUser;
+        $oldUser = clone $dbUser;
         $dbUser['avatar_path'] = basename($compressed['path']);
         User::put($dbUser);
 
@@ -464,7 +464,7 @@ final class AuthController
             @unlink($path);
         }
 
-        $oldUser = $dbUser;
+        $oldUser = clone $dbUser;
         $dbUser['avatar_path'] = null;
         User::put($dbUser);
 
@@ -535,7 +535,7 @@ final class AuthController
             return redirect()->away($this->base() . '/profile?tab=info')->with('error', 'current_password_wrong');
         }
 
-        $oldUser = $dbUser;
+        $oldUser = clone $dbUser;
         $dbUser['password_hash'] = \App\Auth\PasswordHasher::hash($newPass);
         $dbUser['must_change_password'] = 0;
         try {

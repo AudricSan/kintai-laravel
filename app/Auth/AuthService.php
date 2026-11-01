@@ -88,7 +88,7 @@ final class AuthService
         // Relu à chaque appel (middlewares, contrôleur, vues) : une fois par requête, voir RequestMemo. Toute écriture
         // de User vide cette mémoire : une désactivation ou un changement de mot de passe
         // se voit tout de suite.
-        $user = RequestMemo::remember('auth.user.' . (int) $id, fn(): ?array => User::findById((int) $id));
+        $user = RequestMemo::remember('auth.user.' . (int) $id, fn(): ?array => User::findById((int) $id)?->toArray());
         // Une session ouverte ne doit jamais survivre à la désactivation ou à la suppression
         // du compte : seules la connexion et le cookie « rester connecté » le vérifiaient.
         if ($user === null || !($user['is_active'] ?? 1) || !empty($user['deleted_at'])) {
@@ -139,7 +139,7 @@ final class AuthService
      * À appeler après que l'utilisateur CONNECTÉ a changé son propre mot de passe : la session
      * courante reste valide (nouvelle empreinte), toutes les autres sont invalidées.
      */
-    public function refreshSessionAfterPasswordChange(array $user): void
+    public function refreshSessionAfterPasswordChange(array|\ArrayAccess $user): void
     {
         // Empreinte de session de Laravel (AuthenticateSession) : sans elle, la session courante serait révoquée aussi.
         session()->put('password_hash_' . Auth::getDefaultDriver(), Auth::guard()->hashPasswordForCookie((string) ($user['password_hash'] ?? '')));
@@ -148,7 +148,7 @@ final class AuthService
     }
 
     /** Mémorise, à la connexion, si le mot de passe saisi est trop court (clair disponible uniquement ici). */
-    private function rememberPasswordStrength(array $user, string $password): void
+    private function rememberPasswordStrength(array|\ArrayAccess $user, string $password): void
     {
         session()->put(self::SESSION_PW_WEAK, [
             'fp'   => $this->fingerprint($user),
@@ -168,7 +168,7 @@ final class AuthService
         return $pending && $this->mustChangePassword();
     }
 
-    private function fingerprint(array $user): string
+    private function fingerprint(array|\ArrayAccess $user): string
     {
         return hash('sha256', (string) ($user['password_hash'] ?? ''));
     }

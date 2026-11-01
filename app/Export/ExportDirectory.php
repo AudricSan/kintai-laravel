@@ -22,7 +22,7 @@ final class ExportDirectory
     ) {}
 
     /** @return array<string, mixed>|null */
-    public function user(int $id): ?array
+    public function user(int $id): array|\App\Models\User|null
     {
         return array_key_exists($id, $this->users) ? $this->users[$id] : $this->users[$id] = User::findById($id);
     }

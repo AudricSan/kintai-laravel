@@ -38,7 +38,7 @@ final class ExportAccess
      * @param array<string, mixed> $user
      * @return list<int>
      */
-    public function permittedStoreIds(array $user, string $permission): array
+    public function permittedStoreIds(array|\ArrayAccess $user, string $permission): array
     {
         $ids = [];
         foreach (Store::findActive() as $store) {
@@ -66,7 +66,7 @@ final class ExportAccess
      * @param array<string, ExportDataset>  $datasets
      * @return array<string, array{dataset: ExportDataset, stores: list<int>, self: bool}>
      */
-    public function available(array $user, array $datasets): array
+    public function available(array|\ArrayAccess $user, array $datasets): array
     {
         $own = $this->ownStoreIds((int) $user['id']);
         $out = [];

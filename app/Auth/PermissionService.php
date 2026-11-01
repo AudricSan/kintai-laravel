@@ -31,7 +31,7 @@ final class PermissionService
      * @param int|null $storeId Portée à vérifier. null = n'importe quelle portée
      *                          (utile pour "cet utilisateur a-t-il X quelque part ?").
      */
-    public function can(array $authUser, string $permissionKey, ?int $storeId = null): bool
+    public function can(array|\ArrayAccess $authUser, string $permissionKey, ?int $storeId = null): bool
     {
         $userId = (int) ($authUser['id'] ?? 0);
         if ($userId <= 0) {
@@ -89,7 +89,7 @@ final class PermissionService
      * @param array<int, array<string,mixed>> $items
      * @return array<int, array<string,mixed>>
      */
-    public function restrictToScope(array $authUser, string $permissionKey, array $items, string $storeField = 'store_id'): array
+    public function restrictToScope(array|\ArrayAccess $authUser, string $permissionKey, array $items, string $storeField = 'store_id'): array
     {
         $userId   = (int) ($authUser['id'] ?? 0);
         $storeIds = $this->scopedStoreIds($userId, $permissionKey);
@@ -113,7 +113,7 @@ final class PermissionService
      * pipeline de requête — cohérent avec can()/scopedStoreIds() ci-dessus.
      * @return int[]
      */
-    public function anyGrantedStoreIds(array $authUser): array
+    public function anyGrantedStoreIds(array|\ArrayAccess $authUser): array
     {
         $userId = (int) ($authUser['id'] ?? 0);
         if ($userId <= 0) {
@@ -151,7 +151,7 @@ final class PermissionService
      * mais leurs images (servies via /storage/{path*}, route 'public') non.
      * @param array $authUser Utilisateur authentifié (au minimum ['id' => int])
      */
-    public function hasAnyGlobalPermissionGrant(array $authUser): bool
+    public function hasAnyGlobalPermissionGrant(array|\ArrayAccess $authUser): bool
     {
         $userId = (int) ($authUser['id'] ?? 0);
         if ($userId <= 0) {
@@ -211,7 +211,7 @@ final class PermissionService
      * can($user, $key, null) (« accordée quelque part »), un simple gérant d'un seul
      * magasin n'est jamais illimité.
      */
-    public function hasUnrestrictedGrant(array $authUser, string $permissionKey): bool
+    public function hasUnrestrictedGrant(array|\ArrayAccess $authUser, string $permissionKey): bool
     {
         $userId = (int) ($authUser['id'] ?? 0);
         if ($userId <= 0) {
@@ -237,7 +237,7 @@ final class PermissionService
      * @param int[] $storeIds
      * @throws ForbiddenException
      */
-    public function requireOnAnyStore(array $authUser, string $permissionKey, array $storeIds): void
+    public function requireOnAnyStore(array|\ArrayAccess $authUser, string $permissionKey, array $storeIds): void
     {
         if ($this->hasUnrestrictedGrant($authUser, $permissionKey)) {
             return;
@@ -258,7 +258,7 @@ final class PermissionService
      * @throws ValidationException Si $storeId est absent
      * @throws ForbiddenException
      */
-    public function requireOnStore(array $authUser, string $permissionKey, mixed $storeId): void
+    public function requireOnStore(array|\ArrayAccess $authUser, string $permissionKey, mixed $storeId): void
     {
         $storeId = is_numeric($storeId) ? (int) $storeId : 0;
         if ($storeId <= 0) {
@@ -278,7 +278,7 @@ final class PermissionService
      * @param int[] $targetStoreIds Magasins dont la cible est membre
      * @throws ForbiddenException
      */
-    public function requireUserAccess(array $authUser, string $permissionKey, int $targetUserId, array $targetStoreIds): void
+    public function requireUserAccess(array|\ArrayAccess $authUser, string $permissionKey, int $targetUserId, array $targetStoreIds): void
     {
         $callerId = (int) ($authUser['id'] ?? 0);
         if ($callerId > 0 && $callerId === $targetUserId) {
@@ -300,7 +300,7 @@ final class PermissionService
      * permission globale, obtenir des droits sur tous les magasins). Un Owner (rôle système)
      * satisfait toujours ces deux conditions.
      */
-    public function canAssignRole(array $authUser, int $roleId, int $storeId): bool
+    public function canAssignRole(array|\ArrayAccess $authUser, int $roleId, int $storeId): bool
     {
         foreach (Role::getPermissions($roleId) as $key) {
             if (!$this->can($authUser, $key, $storeId)) {

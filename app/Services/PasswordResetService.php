@@ -108,7 +108,7 @@ final class PasswordResetService
             return false;
         }
 
-        User::put(array_merge($user, [
+        User::put(array_merge($user->toArray(), [
             'password_hash' => \App\Auth\PasswordHasher::hash($newPassword),
             'must_change_password' => 0,
         ]));

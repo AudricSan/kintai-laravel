@@ -119,7 +119,7 @@ final class TeamDirectoryController
         return $map;
     }
 
-    private function displayName(array $u): string
+    private function displayName(array|\ArrayAccess $u): string
     {
         $name = trim(($u['last_name'] ?? '') . ' ' . ($u['first_name'] ?? ''));
         return $name !== '' ? $name : (string) ($u['display_name'] ?? $u['email'] ?? ('#' . ($u['id'] ?? '')));

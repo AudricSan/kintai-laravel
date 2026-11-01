@@ -402,7 +402,7 @@ final class AdminSalaryReportController
      *                         total des ventes du magasin (sans rapport avec un seul employé)
      *                         n'est pas pré-rempli.
      */
-    private function calculateSalaryPreset(array $store, string $from, string $to, array $authUser, ?int $userId = null): array
+    private function calculateSalaryPreset(array $store, string $from, string $to, array|\ArrayAccess $authUser, ?int $userId = null): array
     {
         $storeId = (int) $store['id'];
         $preset = [
