@@ -13,6 +13,7 @@ use Illuminate\Session\TokenMismatchException;
 use App\Exceptions\HttpException;
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\ValidationException;
+use App\Support\LogScrubber;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -147,25 +148,28 @@ final class ErrorResponder
             @mkdir($logDir, 0775, true);
         }
 
-        $entry = sprintf(
+        // Jamais de mot de passe, de jeton ni de lien secret dans les journaux (voir LogScrubber).
+        $message = LogScrubber::scrub($e->getMessage());
+        $trace   = LogScrubber::trace($e);
+        $entry   = sprintf(
             "[%s] %s: %s in %s:%d\n%s\n\n",
             date('Y-m-d H:i:s'),
             get_class($e),
-            $e->getMessage(),
+            $message,
             $e->getFile(),
             $e->getLine(),
-            $e->getTraceAsString(),
+            $trace,
         );
 
         @file_put_contents($logDir . '/error.log', $entry, FILE_APPEND | LOCK_EX);
 
         // Également logger en base via le système unifié
         try {
-            Log::error($e->getMessage(), [
+            Log::error($message, [
                 'exception' => get_class($e),
                 'file'      => $e->getFile(),
                 'line'      => $e->getLine(),
-                'trace'     => $e->getTraceAsString(),
+                'trace'     => $trace,
             ]);
         } catch (Throwable) {
             // Le logging ne doit jamais faire planter l'application

@@ -89,7 +89,7 @@ Le rapport `Audit_Kintai_Migration_Laravel_Securite_2026-10-31.md` est traité a
 | SEC-12 pile de middlewares | Partiel : `ValidatePostSize` rétabli ; ni CORS ni `TrimStrings`, volontairement |
 | SEC-13 CSP | Corrigé : `base-uri` et `connect-src` |
 | SEC-14 `$guarded = []` | À faire : liste blanche ajoutée aux entrées API des bundles touchés (timeclock) ; reste à passer chaque modèle en `$fillable` |
-| SEC-15 journaux | À faire |
+| SEC-15 journaux | Fait : `App\Support\LogScrubber` masque Bearer, mots de passe, jetons, identifiants d'URL et liens `/ical/…`, `/reset-password/…` dans les messages d'erreur ; les piles d'appels n'ont plus leurs arguments (`ErrorResponder::log()`) |
 | Couche « DAO » (méthodes statiques `findBy…/put/remove` renvoyant des tableaux) | À faire : principal chantier restant ; les 30 modèles du Cœur et ceux des 12 bundles l'exposent encore |
 ## Reste à faire
 
