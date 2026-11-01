@@ -21,8 +21,8 @@ final class GoogleRedirectUri
     {
         $root = $this->publicUrl->resolve();
         if ($root === null) {
-            $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-            $root  = ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $basePath;
+            $request = request();
+            $root    = $request->getScheme() . '://' . $request->getHttpHost() . $basePath;
         }
         return rtrim($root, '/') . self::PATH;
     }

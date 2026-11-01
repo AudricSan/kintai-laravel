@@ -129,7 +129,7 @@ final class NotificationController
             throw new ValidationException(['endpoint' => [__('validation_push_subscription_invalid')]]);
         }
 
-        WebPushSubscription::put($userId, $endpoint, $p256dh, $authKey, $_SERVER['HTTP_USER_AGENT'] ?? null);
+        WebPushSubscription::put($userId, $endpoint, $p256dh, $authKey, $request->userAgent());
 
         return response()->json(['ok' => true]);
     }

@@ -58,7 +58,7 @@ final class I18nMiddleware
         }
 
         // Langue du navigateur.
-        $acceptLang = (string) ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
+        $acceptLang = (string) $request->header('Accept-Language', '');
         if ($acceptLang !== '') {
             $primary = strtolower(substr(trim(explode(',', $acceptLang)[0]), 0, 2));
             if (in_array($primary, $activeCodes, true)) {

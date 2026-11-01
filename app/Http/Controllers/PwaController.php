@@ -11,7 +11,7 @@ final class PwaController
 {
     public function manifest(Request $request): Response
     {
-        $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+        $base = base_url();
 
         $data = [
             'name'             => 'Kintai',

@@ -35,7 +35,7 @@ final class I18nMiddlewareTest extends TestCase
     {
         session()->forget(['locale', auth()->getName()]);
         unset($_ENV['APP_LOCALE']);
-        $_COOKIE = [];
+        request()->cookies->replace([]);
     }
 
     private function makeRequest(array $server = []): Request
@@ -47,7 +47,7 @@ final class I18nMiddlewareTest extends TestCase
         ], $server);
         $_GET = [];
         $_POST = [];
-        $_COOKIE = [];
+        request()->cookies->replace([]);
         $_FILES = [];
 
         return Request::capture();
@@ -94,7 +94,7 @@ final class I18nMiddlewareTest extends TestCase
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
         session()->put(auth()->getName(), 1);
         session()->put('locale', 'fr');
-        $_COOKIE['kintai_locale'] = 'en';
+        request()->cookies->set('kintai_locale', 'en');
 
         $this->middleware()->handle($req, $this->noop());
 
@@ -120,7 +120,7 @@ final class I18nMiddlewareTest extends TestCase
         kintai_test_languages(['fr', 'ja', 'en']);
 
         $req = $this->makeRequest(['HTTP_ACCEPT_LANGUAGE' => 'en-US']);
-        $_COOKIE['kintai_locale'] = 'ja';
+        request()->cookies->set('kintai_locale', 'ja');
 
         $this->middleware()->handle($req, $this->noop());
 
