@@ -89,7 +89,7 @@ final class ExportAccess
      * @throws ForbiddenException si le périmètre demandé n'est pas permis
      */
     public function query(
-        array $user,
+        array|\ArrayAccess $user,
         ExportDataset $dataset,
         string $scope,
         ?int $storeId,

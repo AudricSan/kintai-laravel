@@ -79,7 +79,7 @@ final class AuthService
      * 'is_admin' reflète le calcul RBAC effectif (rôle système en portée
      * globale), pas la colonne brute users.is_admin.
      */
-    public function user(): ?array
+    public function user(): ?User
     {
         $id = self::sessionUserId();
         if ($id === null) {
@@ -88,13 +88,15 @@ final class AuthService
         // Relu à chaque appel (middlewares, contrôleur, vues) : une fois par requête, voir RequestMemo. Toute écriture
         // de User vide cette mémoire : une désactivation ou un changement de mot de passe
         // se voit tout de suite.
-        $user = RequestMemo::remember('auth.user.' . (int) $id, fn(): ?array => User::findById((int) $id)?->toArray());
+        $user = RequestMemo::remember('auth.user.' . (int) $id, fn(): ?User => User::findById((int) $id));
         // Une session ouverte ne doit jamais survivre à la désactivation ou à la suppression
         // du compte : seules la connexion et le cookie « rester connecté » le vérifiaient.
         if ($user === null || !($user['is_active'] ?? 1) || !empty($user['deleted_at'])) {
             $this->logout();
             return null;
         }
+        // Copie : l'appelant peut modifier ses attributs sans toucher la mémoire de la requête.
+        $user = clone $user;
         $user['is_admin'] = $this->hasOwnerRole((int) $user['id']) ? 1 : 0;
         return $user;
     }
