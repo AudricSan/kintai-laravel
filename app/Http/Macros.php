@@ -10,7 +10,6 @@ use Illuminate\Routing\ResponseFactory;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Macros Laravel (Request::macro, ResponseFactory::macro) qui remplacent les helpers de l'ancien Core\Request et
@@ -140,17 +139,6 @@ final class Macros
                 'Content-Type'  => 'text/calendar; charset=UTF-8',
                 'Cache-Control' => 'no-cache, no-store',
             ]), $filename);
-        });
-
-        // Fichier envoyé tel quel, sans le charger en mémoire.
-        ResponseFactory::macro('fileStream', function (string $path, string $contentType, string $filename) use ($attachment): SymfonyResponse {
-            $response = new FileStreamResponse(static function () use ($path): void {
-                readfile($path);
-            }, 200, [
-                'Content-Type'   => $contentType,
-                'Content-Length' => (string) filesize($path),
-            ]);
-            return $attachment($response, $filename);
         });
     }
 

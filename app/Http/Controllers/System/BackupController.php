@@ -40,7 +40,7 @@ final class BackupController
             return redirect()->away($this->base() . '/admin/backup')->with('success', 'error_not_found');
         }
 
-        return response()->fileStream($path, 'application/zip', basename($path));
+        return response()->download($path, basename($path), ['Content-Type' => 'application/zip']);
     }
 
     public function index(Request $request): Response

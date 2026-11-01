@@ -31,6 +31,7 @@ final class BackupControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
         $this->tmpDir = sys_get_temp_dir() . '/kintai_backupctrl_test_' . bin2hex(random_bytes(4));
         mkdir($this->tmpDir . '/storage/app', 0775, true);
         mkdir($this->tmpDir . '/storage/backups', 0775, true);

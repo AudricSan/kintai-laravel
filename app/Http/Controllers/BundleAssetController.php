@@ -65,9 +65,11 @@ final class BundleAssetController
 
         $name = basename($file);
 
-        return response()->fileStream($file, self::MIME_TYPES[$ext], $name)
-            ->header('Content-Disposition', "inline; filename=\"{$name}\"")
-            ->header('X-Content-Type-Options', 'nosniff')
-            ->header('Cache-Control', 'public, max-age=31536000, immutable');
+        return response()->file($file, [
+            'Content-Type'           => self::MIME_TYPES[$ext],
+            'Content-Disposition'    => "inline; filename=\"{$name}\"",
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control'          => 'public, max-age=31536000, immutable',
+        ]);
     }
 }

@@ -83,15 +83,15 @@ final class StorageFileController
         $mime = self::INLINE_TYPES[$ext] ?? self::ATTACHMENT_TYPES[$ext];
         $name = basename($file);
 
-        $response = response()->fileStream($file, $mime, $name)
-            ->header('X-Content-Type-Options', 'nosniff')
-            ->header('Cache-Control', 'private, max-age=3600');
+        $headers = [
+            'Content-Type'           => $mime,
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control'          => 'private, max-age=3600',
+        ];
 
-        if ($inline) {
-            $response = $response->header('Content-Disposition', "inline; filename=\"{$name}\"");
-        }
-
-        return $response;
+        return $inline
+            ? response()->file($file, $headers + ['Content-Disposition' => "inline; filename=\"{$name}\""])
+            : response()->download($file, $name, $headers);
     }
 
     /**

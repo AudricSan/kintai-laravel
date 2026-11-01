@@ -495,10 +495,12 @@ final class AuthController
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $mime = self::AVATAR_MIME_TYPES[$ext] ?? 'application/octet-stream';
 
-        return response()->fileStream($path, $mime, basename($path))
-            ->header('Content-Disposition', 'inline; filename="' . basename($path) . '"')
-            ->header('X-Content-Type-Options', 'nosniff')
-            ->header('Cache-Control', 'private, max-age=3600');
+        return response()->file($path, [
+            'Content-Type'           => $mime,
+            'Content-Disposition'    => 'inline; filename="' . basename($path) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control'          => 'private, max-age=3600',
+        ]);
     }
 
     /** Change le mot de passe de l'utilisateur. */
