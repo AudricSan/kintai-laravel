@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Services\AppResetService;
 use PHPUnit\Framework\TestCase;
 
 final class AppResetServiceTest extends TestCase
 {
     private string $tmpDir;
-    private Capsule $capsule;
+    private Connection $capsule;
     private AppResetService $service;
 
     protected function setUp(): void

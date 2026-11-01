@@ -21,7 +21,6 @@ use App\Models\DevicePushToken;
 use App\Services\BundleInstaller\BundleInstallerService;
 use App\Services\BundleRegistry\BundleRegistryClient;
 use Illuminate\Contracts\Bus\Dispatcher;
-use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 
 final class AppServiceProvider extends ServiceProvider
@@ -184,11 +183,11 @@ final class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(BackupService::class, fn(Container $c) => new BackupService(
-            $c->make(Capsule::class),
+            $c->make('db')->connection(),
         ));
 
         $this->app->singleton(AppResetService::class, fn(Container $c) => new AppResetService(
-            $c->make(Capsule::class),
+            $c->make('db')->connection(),
         ));
 
         $this->app->singleton(UpdateService::class, fn() => new UpdateService());

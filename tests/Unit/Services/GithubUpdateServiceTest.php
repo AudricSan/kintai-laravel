@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use App\Services\BackupService;

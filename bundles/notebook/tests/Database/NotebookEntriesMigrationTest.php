@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Notebook\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -44,7 +44,7 @@ final class NotebookEntriesMigrationTest extends TestCase
 
         $this->assertSame(['2026_09_25_000001_create_notebook_entries_table'], $applied);
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $this->assertTrue($schema->hasTable('notebook_entries'));
         foreach (['id', 'author_id', 'store_id', 'content', 'pinned', 'expires_at', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('notebook_entries', $column), "Colonne manquante : {$column}");

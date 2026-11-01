@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Messaging\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\Messaging\Models\MessageThread;
 use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
 use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;

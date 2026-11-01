@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 
 /**
  * Réinitialisation de l'application depuis /admin/backup (bouton "Danger zone").
@@ -26,7 +26,7 @@ final class AppResetService
     ];
 
     public function __construct(
-        private readonly Capsule $capsule,
+        private readonly Connection $db,
     ) {
     }
 
@@ -74,7 +74,7 @@ final class AppResetService
 
     private function allTableNames(): array
     {
-        $conn = $this->capsule->getConnection();
+        $conn = $this->db;
         $driver = $conn->getDriverName();
 
         if ($driver === 'sqlite') {
@@ -93,9 +93,9 @@ final class AppResetService
     private function truncateTables(array $tables): void
     {
         // Vidage dans un ordre quelconque, clés étrangères suspendues (MySQL comme SQLite).
-        $this->capsule->getConnection()->getSchemaBuilder()->withoutForeignKeyConstraints(function () use ($tables): void {
+        $this->db->getSchemaBuilder()->withoutForeignKeyConstraints(function () use ($tables): void {
             foreach ($tables as $table) {
-                $this->capsule->table($table)->truncate();
+                $this->db->table($table)->truncate();
             }
         });
     }

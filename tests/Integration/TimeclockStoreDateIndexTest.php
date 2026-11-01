@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class TimeclockStoreDateIndexTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -27,7 +27,7 @@ final class TimeclockStoreDateIndexTest extends TestCase
     {
         $columns = array_map(
             static fn(array $i): array => $i['columns'],
-            $this->capsule->getConnection()->getSchemaBuilder()->getIndexes('timeclocks')
+            $this->capsule->getSchemaBuilder()->getIndexes('timeclocks')
         );
 
         $this->assertContains(['store_id', 'shift_date'], $columns);

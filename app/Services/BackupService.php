@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
+use Illuminate\Support\Facades\DB;
 
 final class BackupService
 {
     private string $backupDir;
     private string $dbPath;
     private string $uploadsBase;
-    private ?Capsule $capsule;
+    private ?Connection $db;
 
-    public function __construct(?Capsule $capsule = null)
+    public function __construct(?Connection $db = null)
     {
         $this->backupDir = storage_path('backups');
         $this->dbPath = storage_path('app/database.sqlite');
         $this->uploadsBase = storage_path('uploads');
-        $this->capsule = $capsule;
+        $this->db = $db;
     }
 
     public function create(?string $note = null): array
@@ -257,7 +258,7 @@ final class BackupService
     private function getDriver(): string
     {
         try {
-            $conn = $this->capsule?->getConnection() ?? Capsule::connection();
+            $conn = $this->conn();
             return $conn->getDriverName();
         } catch (\Throwable) {
             return 'sqlite';
@@ -266,7 +267,7 @@ final class BackupService
 
     private function conn(): \Illuminate\Database\Connection
     {
-        return $this->capsule?->getConnection() ?? Capsule::connection();
+        return $this->db ?? DB::connection();
     }
 
     private function getMysqlTableNames(): array

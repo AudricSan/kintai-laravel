@@ -5,7 +5,7 @@ namespace Tests\Bundles\DailyReport\Repositories;
 
 use PHPUnit\Framework\TestCase;
 use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\DailyReport\Models\DailyReport as EloquentDailyReport;
 
 final class DatabaseDailyReportRepositoryTest extends TestCase
@@ -21,7 +21,7 @@ final class DatabaseDailyReportRepositoryTest extends TestCase
     {
         $capsule = kintai_test_database();
 
-        $capsule->getConnection()->getSchemaBuilder()->create('daily_reports', function ($table) {
+        $capsule->getSchemaBuilder()->create('daily_reports', function ($table) {
             $table->increments('id');
             $table->integer('store_id');
             $table->integer('author_id');

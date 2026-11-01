@@ -67,7 +67,7 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 | `$_SERVER` (URL de base) | `base_url()` lit encore SCRIPT_NAME (glue de sous-dossier) ; schéma/hôte, cookie de langue et User-Agent sont natifs (`request()`, `Cookie::queue()`) | `request()->getBasePath()` ; une trentaine de tests posent SCRIPT_NAME |
 | Macros de réponse | `csv`, `jsonDownload`, `pdf`, `ical`, `fileContents` (en-têtes de téléchargement en mémoire, macros Laravel) ; les fichiers passent par `response()->file()` / `download()` | `ErrorResponder` pourrait devenir un gestionnaire d'exceptions par classe |
 | Validation métier des contrôleurs | ~40 `throw new ValidationException` manuels | `FormRequest` (les tests appellent aujourd'hui les contrôleurs directement) |
-| `LaravelCapsule`, `RequestMemo` | pont base de données et mémo par requête | `DB` / cache de requête de Laravel |
+| `RequestMemo` | mémo par requête des lectures de comptes, rôles et droits (vidé à chaque écriture, trait `FlushesRequestMemo`) | disparaît avec les relations Eloquent chargées une fois sur le modèle `User` ; la `Capsule` est supprimée (services sur `DB` / `Connection`) |
 
 ## Audit du 31/10/2026
 

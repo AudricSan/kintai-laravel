@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Models\RouteSlug;
 use App\Models\Store;
 use App\Models\User;
@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class RouteSlugsTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -31,7 +31,7 @@ final class RouteSlugsTest extends TestCase
 
     private function insertUser(int $id, ?string $code): void
     {
-        $this->capsule->getConnection()->table('users')->insert([
+        $this->capsule->table('users')->insert([
             'id' => $id, 'email' => "u{$id}@kintai.test", 'password_hash' => 'x',
             'first_name' => 'A', 'last_name' => 'B', 'display_name' => 'A B', 'employee_code' => $code,
         ]);
@@ -40,7 +40,7 @@ final class RouteSlugsTest extends TestCase
 
     public function testStoreBinderResolvesTheJapaneseAliasFromTheDatabase(): void
     {
-        $this->capsule->getConnection()->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
+        $this->capsule->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
         RouteSlug::setCurrent('store', 1, '所沢東町店', false);
 
         $binder = new StoreRouteBinder();
@@ -77,7 +77,7 @@ final class RouteSlugsTest extends TestCase
 
     public function testDeletingAStoreOrAUserRemovesTheirAliases(): void
     {
-        $db = $this->capsule->getConnection();
+        $db = $this->capsule;
         $db->table('stores')->insert(['id' => 1, 'name' => '所沢東町店', 'code' => 'A']);
         RouteSlug::setCurrent('store', 1, '所沢東町店', false);
         $this->insertUser(18, '015');

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use PHPUnit\Framework\TestCase;
 
 /** Migration du web push natif : table des abonnements, clés VAPID créées, une seule fois. */
 final class WebPushMigrationTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -25,7 +25,7 @@ final class WebPushMigrationTest extends TestCase
     public function testFreshInstanceGetsTheTableAndTheVapidKeys(): void
     {
         $this->migrate();
-        $conn = $this->capsule->getConnection();
+        $conn = $this->capsule;
 
         $this->assertTrue($conn->getSchemaBuilder()->hasTable('web_push_subscriptions'));
         $this->assertTrue($conn->getSchemaBuilder()->hasColumns('web_push_subscriptions', ['user_id', 'endpoint', 'endpoint_hash', 'p256dh', 'auth', 'user_agent', 'created_at', 'last_used_at']));
@@ -39,17 +39,17 @@ final class WebPushMigrationTest extends TestCase
     public function testRunningTwiceKeepsTheSameKeys(): void
     {
         $this->migrate();
-        $before = $this->capsule->getConnection()->table('app_settings')->where('key', 'web_push_vapid_private')->value('value');
+        $before = $this->capsule->table('app_settings')->where('key', 'web_push_vapid_private')->value('value');
 
         $this->migrate();
 
-        $this->assertSame($before, $this->capsule->getConnection()->table('app_settings')->where('key', 'web_push_vapid_private')->value('value'));
+        $this->assertSame($before, $this->capsule->table('app_settings')->where('key', 'web_push_vapid_private')->value('value'));
     }
 
     public function testEndpointHashIsUniqueAndLongEndpointsFit(): void
     {
         $this->migrate();
-        $conn = $this->capsule->getConnection();
+        $conn = $this->capsule;
         $row = ['user_id' => 1, 'endpoint' => 'https://push.example/' . str_repeat('x', 1500), 'endpoint_hash' => hash('sha256', 'a'), 'p256dh' => 'k', 'auth' => 'a'];
         $conn->table('web_push_subscriptions')->insert($row);
 

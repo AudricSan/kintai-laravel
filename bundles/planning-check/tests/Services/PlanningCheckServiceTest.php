@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSettings;
 use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSend;
 use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheck;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckForce;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckOverlayResolver;
 use kintai\Bundles\Installed\PlanningCheck\Services\PlanningCheckService;

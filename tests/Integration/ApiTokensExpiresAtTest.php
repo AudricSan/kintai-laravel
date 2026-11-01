@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ApiTokensExpiresAtTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -24,7 +24,7 @@ final class ApiTokensExpiresAtTest extends TestCase
 
     public function testFreshSchemaHasTheColumnsTheApiLoginWrites(): void
     {
-        $schema = $this->capsule->getConnection()->getSchemaBuilder();
+        $schema = $this->capsule->getSchemaBuilder();
         foreach (['user_id', 'token', 'name', 'expires_at', 'last_used_at', 'created_at'] as $column) {
             $this->assertTrue($schema->hasColumn('api_tokens', $column), "api_tokens.$column manquante");
         }
@@ -32,7 +32,7 @@ final class ApiTokensExpiresAtTest extends TestCase
 
     public function testATokenWithAnExpiryCanBeInserted(): void
     {
-        $db = $this->capsule->getConnection();
+        $db = $this->capsule;
         $db->table('users')->insert([
             'id' => 1, 'email' => 'a@b.test', 'password_hash' => 'x', 'first_name' => 'A', 'last_name' => 'B', 'display_name' => 'A B',
         ]);

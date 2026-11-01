@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Timeclock\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +25,7 @@ final class DatabaseTimeclockRepositoryTest extends TestCase
     {
         $capsule = kintai_test_database();
         // Tables référencées par les clés étrangères de timeclocks.
-        $capsule->getConnection()->unprepared('CREATE TABLE users (id INTEGER PRIMARY KEY); CREATE TABLE stores (id INTEGER PRIMARY KEY); CREATE TABLE shifts (id INTEGER PRIMARY KEY);');
+        $capsule->unprepared('CREATE TABLE users (id INTEGER PRIMARY KEY); CREATE TABLE stores (id INTEGER PRIMARY KEY); CREATE TABLE shifts (id INTEGER PRIMARY KEY);');
 
         $runner = new BundleMigrationHarness();
         $runner->runPendingFor('timeclock', dirname(__DIR__, 2) . '/database/migrations');
@@ -33,7 +33,7 @@ final class DatabaseTimeclockRepositoryTest extends TestCase
 
     public function testFindByStoreBetweenReturnsOnlyTheStoreAndThePeriodBoundsIncluded(): void
     {
-        $db = Capsule::connection();
+        $db = \Illuminate\Support\Facades\DB::connection();
         foreach ([[1, 1, '2026-06-01'], [2, 1, '2026-06-15'], [3, 1, '2026-06-30'], [4, 1, '2026-07-01'], [5, 2, '2026-06-15']] as [$id, $store, $date]) {
             $db->table('timeclocks')->insert(['id' => $id, 'user_id' => 10, 'store_id' => $store, 'shift_date' => $date, 'clock_in_time' => $date . ' 09:00:00']);
         }
@@ -45,7 +45,7 @@ final class DatabaseTimeclockRepositoryTest extends TestCase
 
     public function testAFreshTableHasTheStoreDateIndex(): void
     {
-        $columns = array_map(static fn(array $i): array => $i['columns'], Capsule::connection()->getSchemaBuilder()->getIndexes('timeclocks'));
+        $columns = array_map(static fn(array $i): array => $i['columns'], \Illuminate\Support\Facades\DB::connection()->getSchemaBuilder()->getIndexes('timeclocks'));
 
         $this->assertContains(['store_id', 'shift_date'], $columns);
     }

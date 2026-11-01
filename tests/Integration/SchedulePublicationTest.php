@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Services\NotificationService;
@@ -22,7 +22,7 @@ if (!defined('BASE_PATH')) {
  */
 final class SchedulePublicationTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
     /** @var NotificationService&object{sent: list<array<string, mixed>>} */
     private NotificationService $notifs;
     private SchedulePublication $publication;

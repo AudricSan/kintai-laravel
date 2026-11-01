@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Models\UserDashboardPref;
 use PHPUnit\Framework\TestCase;
 
@@ -19,7 +19,7 @@ final class DashboardLayoutPrefsTest extends TestCase
 
         kintai_test_migrate();
 
-        $conn = $capsule->getConnection();
+        $conn = $capsule;
         $conn->table('users')->insert(['email' => 'layout@kintai.test', 'password_hash' => 'x', 'first_name' => 'L', 'last_name' => 'Y', 'display_name' => 'L Y']);
         $this->userId = (int) $conn->table('users')->where('email', 'layout@kintai.test')->value('id');
     }

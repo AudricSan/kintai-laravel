@@ -141,8 +141,8 @@ function kintai_test_log(): Tests\Support\RecordingLog
 }
 
 // Aide des tests : base SQLite en mémoire neuve, installée comme connexion par défaut de l'application (DB::, Schema::,
-// Eloquent, migrateur). Renvoie la Capsule posée sur cette connexion.
-function kintai_test_database(): App\Database\LaravelCapsule
+// Eloquent, migrateur). Renvoie cette connexion.
+function kintai_test_database(): Illuminate\Database\Connection
 {
     $app = $GLOBALS['kintai_test_app'];
     // Les messages flashés d'un test précédent ne doivent pas servir au suivant.
@@ -154,13 +154,10 @@ function kintai_test_database(): App\Database\LaravelCapsule
     $app['db']->setDefaultConnection('testing');
     config(['database.default' => 'testing']);
 
-    // Les modèles Eloquent reviennent sur le gestionnaire de l'application (un test peut avoir posé une autre Capsule).
+    // Les modèles Eloquent reviennent sur le gestionnaire de l'application (un test peut avoir posé sa propre Capsule).
     Illuminate\Database\Eloquent\Model::setConnectionResolver($app['db']);
 
-    $capsule = new App\Database\LaravelCapsule($app);
-    $capsule->setAsGlobal();
-
-    return $capsule;
+    return $app['db']->connection('testing');
 }
 
 // Aide des tests : `php artisan migrate` puis `php artisan db:seed` sur la base de kintai_test_database().

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Messaging\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\Messaging\Models\MessageThread;
 use kintai\Bundles\Installed\Messaging\Models\ThreadMessage;
 use kintai\Bundles\Installed\Messaging\Models\ThreadParticipant;
@@ -43,9 +43,9 @@ final class MessagingMigrationTest extends TestCase
     }
 
     /** Tables telles que les a laissées l'ancien schéma SQL (relevé sur une instance réelle). */
-    private static function legacySqlSchema(Capsule $capsule): void
+    private static function legacySqlSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->unprepared(<<<'SQL'
+        $capsule->unprepared(<<<'SQL'
             CREATE TABLE message_threads (id INTEGER PRIMARY KEY AUTOINCREMENT, store_id INTEGER NOT NULL,
                 creator_id INTEGER NOT NULL, subject TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
             CREATE TABLE thread_participants (id INTEGER PRIMARY KEY AUTOINCREMENT, thread_id INTEGER NOT NULL,
@@ -58,9 +58,9 @@ final class MessagingMigrationTest extends TestCase
     }
 
     /** Tables telles que les créait l'ancienne migration du Core (2026_06_09_000011). */
-    private static function legacyCoreMigrationSchema(Capsule $capsule): void
+    private static function legacyCoreMigrationSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->unprepared(<<<'SQL'
+        $capsule->unprepared(<<<'SQL'
             CREATE TABLE message_threads (id INTEGER PRIMARY KEY AUTOINCREMENT, store_id INTEGER NOT NULL,
                 creator_id INTEGER NOT NULL, subject VARCHAR, type VARCHAR NOT NULL DEFAULT 'direct',
                 last_message_at DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME);
@@ -94,7 +94,7 @@ final class MessagingMigrationTest extends TestCase
 
         $this->assertSame(self::MIGRATIONS, $runner->runPendingFor('messaging', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'store_id', 'creator_id', 'subject', 'type', 'last_message_at', 'created_at', 'updated_at'] as $c) {
             $this->assertTrue($schema->hasColumn('message_threads', $c), "message_threads.{$c}");
         }

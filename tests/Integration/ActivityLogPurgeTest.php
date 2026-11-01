@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Models\ActivityEntry;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 /** Purge manuelle du journal d'activité : par ancienneté ou totale, sur une vraie base SQLite en mémoire. */
 final class ActivityLogPurgeTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -25,15 +25,15 @@ final class ActivityLogPurgeTest extends TestCase
         kintai_test_migrate();
         foreach (['-400 days', '-100 days', '-10 days', '-1 day'] as $age) {
             \App\Models\ActivityEntry::create(['level' => 'info', 'channel' => 'audit', 'message' => 'x', 'action' => 'test.action', 'created_at' => date('Y-m-d H:i:s')]);
-            $id = (int) $this->capsule->getConnection()->table('activity_log')->max('id');
-            $this->capsule->getConnection()->table('activity_log')->where('id', $id)->update(['created_at' => date('Y-m-d H:i:s', strtotime($age))]);
+            $id = (int) $this->capsule->table('activity_log')->max('id');
+            $this->capsule->table('activity_log')->where('id', $id)->update(['created_at' => date('Y-m-d H:i:s', strtotime($age))]);
         }
     }
 
     private function rowCount(): int
     {
         // Les entrées de test seulement : la purge écrit aussi sa propre entrée d'audit.
-        return (int) $this->capsule->getConnection()->table('activity_log')->where('action', 'test.action')->count();
+        return (int) $this->capsule->table('activity_log')->where('action', 'test.action')->count();
     }
 
     private function controller(): ActivityController

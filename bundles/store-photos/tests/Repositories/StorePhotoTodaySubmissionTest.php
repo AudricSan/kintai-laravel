@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\StorePhoto\Repositories;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\StorePhoto\Models\StorePhotoSubmission;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +23,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
         kintai_test_database();
     }
 
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -31,7 +31,7 @@ final class StorePhotoTodaySubmissionTest extends TestCase
         $this->capsule = $capsule;
 
         // Tables du Core référencées par les clés étrangères du bundle.
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('stores', function ($table) {
             $table->increments('id');
             $table->string('name');

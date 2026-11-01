@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web\System;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use Illuminate\Container\Container;
 use App\Models\AppSetting;
 use Illuminate\Http\Request;

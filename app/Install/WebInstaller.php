@@ -7,7 +7,6 @@ namespace App\Install;
 use Closure;
 use Dotenv\Dotenv;
 use Illuminate\Contracts\Console\Kernel;
-use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -481,7 +480,7 @@ final class WebInstaller
     {
         // Connexions Eloquent fermées d'abord : sous Windows, un fichier SQLite ouvert ne peut pas être supprimé.
         try {
-            Capsule::connection()->disconnect();
+            DB::connection()->disconnect();
         } catch (Throwable) {
             // Aucune connexion ouverte (échec avant le démarrage de l'application).
         }

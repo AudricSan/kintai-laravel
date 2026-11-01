@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controller\Web\System;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Auth\AuthService;
 use App\Models\RoleAssignment;
 use App\Models\Role;
@@ -146,7 +146,7 @@ final class AppResetControllerTest extends TestCase
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('reset_backup_missing', (string) session('error'));
-        $this->assertSame(1, Capsule::table('users')->count(), 'rien ne doit être vidé si la sauvegarde est manquante');
+        $this->assertSame(1, \Illuminate\Support\Facades\DB::table('users')->count(), 'rien ne doit être vidé si la sauvegarde est manquante');
     }
 
     public function testExecuteRunsDataResetKeepingUserAndRedirectsToBackupPage(): void
@@ -158,7 +158,7 @@ final class AppResetControllerTest extends TestCase
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertStringContainsString('reset_data', (string) session('success'));
-        $this->assertSame(1, Capsule::table('users')->count(), 'users doit être conservé en mode données');
+        $this->assertSame(1, \Illuminate\Support\Facades\DB::table('users')->count(), 'users doit être conservé en mode données');
         $this->assertFileExists($this->tmpDir . '/storage/installed.lock');
     }
 
@@ -172,7 +172,7 @@ final class AppResetControllerTest extends TestCase
 
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('/', $this->locationOf($response));
-        $this->assertSame(0, Capsule::table('users')->count(), 'users doit être vidé en mode usine');
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('users')->count(), 'users doit être vidé en mode usine');
         $this->assertFalse(session()->has(auth()->getName()), 'la session doit être détruite après un reset usine');
         $this->assertFileDoesNotExist($this->tmpDir . '/storage/installed.lock');
     }

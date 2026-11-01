@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\StorePhoto\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +40,7 @@ final class StorePhotosMigrationTest extends TestCase
 
         $this->assertSame(['2026_10_14_000001_create_store_photos_tables'], $runner->runPendingFor('store-photos', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'store_id', 'week_label', 'notes', 'image_count', 'retention_days', 'compressed', 'compressed_at', 'mail_sent_at', 'deleted_at', 'created_by', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('store_photo_submissions', $column), "store_photo_submissions.{$column}");
         }
@@ -54,7 +54,7 @@ final class StorePhotosMigrationTest extends TestCase
     public function testExistingTablesAndDataAreLeftUntouched(): void
     {
         [$runner, $capsule] = $this->freshRunner();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('store_photo_submissions', function ($table) {
             $table->increments('id');
             $table->integer('store_id');

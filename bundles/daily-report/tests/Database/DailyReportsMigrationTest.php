@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\DailyReport\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\DailyReport\Models\DailyReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class DailyReportsMigrationTest extends TestCase
 
         $this->assertSame(['2026_10_14_000001_create_daily_reports_table'], $runner->runPendingFor('daily-report', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'store_id', 'author_id', 'report_date', 'sales_total', 'customer_count', 'labor_cost', 'waste_total',
             'notes', 'data', 'status', 'submitted_at', 'validated_by', 'validated_at', 'mail_sent_at', 'created_at',
             'updated_at', 'deleted_at'] as $column) {
@@ -60,7 +60,7 @@ final class DailyReportsMigrationTest extends TestCase
     public function testExistingTableAndDataAreLeftUntouched(): void
     {
         [$runner, $capsule] = $this->freshRunner();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('daily_reports', function ($table) {
             $table->increments('id');
             $table->integer('store_id');

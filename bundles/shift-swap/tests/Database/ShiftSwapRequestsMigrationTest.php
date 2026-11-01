@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\ShiftSwap\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\ShiftSwap\Models\ShiftSwapRequest;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -41,9 +41,9 @@ final class ShiftSwapRequestsMigrationTest extends TestCase
     }
 
     /** Table telle que l'a laissée l'ancien schéma SQL (relevé sur une instance réelle). */
-    private static function legacySqlSchema(Capsule $capsule): void
+    private static function legacySqlSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->unprepared(<<<'SQL'
+        $capsule->unprepared(<<<'SQL'
             CREATE TABLE "shift_swap_requests" (
                 "id" INTEGER NOT NULL PRIMARY KEY, "store_id" INTEGER NOT NULL, "requester_id" INTEGER NOT NULL,
                 "target_id" INTEGER NOT NULL, "requester_shift_id" INTEGER NOT NULL, "target_shift_id" INTEGER NULL DEFAULT NULL,
@@ -58,9 +58,9 @@ final class ShiftSwapRequestsMigrationTest extends TestCase
     }
 
     /** Table telle que la créait la migration du Core (déjà au bon schéma). */
-    private static function coreMigrationSchema(Capsule $capsule): void
+    private static function coreMigrationSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->getSchemaBuilder()->create('shift_swap_requests', function ($table) {
+        $capsule->getSchemaBuilder()->create('shift_swap_requests', function ($table) {
             $table->increments('id');
             $table->integer('store_id');
             $table->integer('requester_id');
@@ -94,7 +94,7 @@ final class ShiftSwapRequestsMigrationTest extends TestCase
 
         $this->assertSame(self::MIGRATIONS, $runner->runPendingFor('shift-swap', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'store_id', 'requester_id', 'target_user_id', 'requester_shift_id', 'target_shift_id', 'status', 'reason',
             'accepted_by_id', 'accepted_at', 'approved_by_id', 'approved_at', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('shift_swap_requests', $column), "shift_swap_requests.{$column}");

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Services\BundleInstaller;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Migrations\Migrator;
 use App\InstalledBundleManifestStore;
 use Tests\Support\InstalledBundleExpectations;
@@ -341,7 +341,7 @@ PHP);
         $result = $service->install('fake-bundle', 'https://github.com/AudricSan/kintai-bundle-fake', '1.0.0');
 
         $this->assertTrue($result->success);
-        $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('fake_table'));
+        $this->assertTrue($capsule->getSchemaBuilder()->hasTable('fake_table'));
         $this->assertContains('2026_09_25_000001_create_fake_table', $capsule->table('migrations')->pluck('migration')->toArray());
     }
 
@@ -412,7 +412,7 @@ return new class extends Migration {
         $tracked = $capsule->table('migrations')->pluck('migration')->toArray();
         $this->assertNotContains('2026_09_25_000001_create_other_table', $tracked);
         $this->assertNotEmpty($tracked, 'les migrations du Cœur restent suivies');
-        $this->assertTrue($capsule->getConnection()->getSchemaBuilder()->hasTable('other_table'));
+        $this->assertTrue($capsule->getSchemaBuilder()->hasTable('other_table'));
     }
 
     /**

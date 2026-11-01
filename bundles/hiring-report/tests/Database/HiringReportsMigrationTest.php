@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\HiringReport\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\HiringReport\Controllers\Web\AdminHiringReportController;
 use kintai\Bundles\Installed\HiringReport\Models\HiringReport;
 use Tests\Support\BundleMigrationHarness;
@@ -42,7 +42,7 @@ final class HiringReportsMigrationTest extends TestCase
 
         $this->assertSame(['2026_10_14_000001_create_hiring_reports_table'], $runner->runPendingFor('hiring-report', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'store_id', 'user_id', 'employee_number', 'employee_name', 'furigana_last_name', 'furigana_first_name',
             'gender', 'tax_classification', 'birth_date', 'hire_date', 'education', 'postal_code', 'address', 'phone',
             'mobile_phone', 'email', 'guarantor_name', 'guarantor_phone', 'store_name', 'hired_by', 'notes', 'created_by',
@@ -65,7 +65,7 @@ final class HiringReportsMigrationTest extends TestCase
     {
         [$runner, $capsule] = $this->freshRunner();
         $runner->runPendingFor('hiring-report', $this->migrationsPath());
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
 
         $type = (new \ReflectionClassConstant(AdminHiringReportController::class, 'REPORT_TYPE'))->getValue();
         $this->assertNotEmpty($type['fields']);
@@ -82,7 +82,7 @@ final class HiringReportsMigrationTest extends TestCase
     public function testExistingTableAndDataAreLeftUntouched(): void
     {
         [$runner, $capsule] = $this->freshRunner();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('hiring_reports', function ($table) {
             $table->increments('id');
             $table->integer('store_id');

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\ShiftClaim\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class ShiftClaimsMigrationTest extends TestCase
 
         $this->assertSame(['2026_10_14_000001_create_shift_claims_table'], $runner->runPendingFor('shift-claim', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'shift_id', 'user_id', 'store_id', 'status', 'note', 'claimed_at', 'resolved_at', 'resolved_by', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('shift_claims', $column), "shift_claims.{$column}");
         }
@@ -54,7 +54,7 @@ final class ShiftClaimsMigrationTest extends TestCase
     public function testExistingTableAndDataAreLeftUntouched(): void
     {
         [$runner, $capsule] = $this->freshRunner();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('shift_claims', function ($table) {
             $table->increments('id');
             $table->integer('shift_id');

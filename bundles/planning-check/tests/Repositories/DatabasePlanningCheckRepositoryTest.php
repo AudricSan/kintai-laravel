@@ -8,7 +8,7 @@ use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSettings;
 use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheckSend;
 use kintai\Bundles\Installed\PlanningCheck\Models\PlanningCheck;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use PHPUnit\Framework\TestCase;
 
 /** Réglages, validations et historique contre le vrai schéma de la migration du bundle. */
@@ -27,7 +27,7 @@ final class DatabasePlanningCheckRepositoryTest extends TestCase
 
         // Les migrations lisent $this->capsule : on les charge depuis un objet qui le porte, comme le MigrationRunner du Core.
         $loader = new class($capsule) {
-            public function __construct(public Capsule $capsule) {}
+            public function __construct(public Connection $capsule) {}
 
             public function load(string $file): object
             {

@@ -6,7 +6,7 @@ namespace Tests\Bundles\ShiftClaim\Repositories;
 
 use PHPUnit\Framework\TestCase;
 use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\ShiftClaim\Models\ShiftClaim as EloquentShiftClaim;
 
 /**
@@ -29,7 +29,7 @@ final class DatabaseShiftClaimRepositoryTest extends TestCase
     {
         $capsule = kintai_test_database();
 
-        $capsule->getConnection()->getSchemaBuilder()->create('shift_claims', function ($table) {
+        $capsule->getSchemaBuilder()->create('shift_claims', function ($table) {
             $table->increments('id');
             $table->integer('shift_id');
             $table->integer('user_id');

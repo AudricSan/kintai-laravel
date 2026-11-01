@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Services\AppResetService;
 use PHPUnit\Framework\TestCase;
 
@@ -31,11 +31,11 @@ final class AppResetServiceTest extends TestCase
         rmdir($this->storageDir);
     }
 
-    private function makeCapsule(): Capsule
+    private function makeCapsule(): \Illuminate\Database\Connection
     {
         $capsule = kintai_test_database();
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('roles', function ($table) {
             $table->increments('id');
             $table->string('slug');

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\ResignationReport\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\ResignationReport\Console\DeactivateCommand;
 use kintai\Bundles\Installed\ResignationReport\Models\ResignationReport;
 use kintai\Bundles\Installed\ResignationReport\Services\ResignationDeactivation;

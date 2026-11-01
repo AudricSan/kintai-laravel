@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Auth\PasswordPolicy;
 use App\Database\DemoDataSeeder;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class DemoDataSeederTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
 
     protected function setUp(): void
     {
@@ -28,7 +28,7 @@ final class DemoDataSeederTest extends TestCase
     public function testSeedsAConsistentDemoOnTheCurrentSchema(): void
     {
         $result = (new DemoDataSeeder())->run();
-        $db = $this->capsule->getConnection();
+        $db = $this->capsule;
 
         $this->assertSame(2, $result['stores']);
         $this->assertSame(3, $result['shift_types']);
@@ -51,7 +51,7 @@ final class DemoDataSeederTest extends TestCase
 
         $this->assertSame(0, $again['users']);
         $this->assertSame(0, $again['shifts']);
-        $this->assertSame(6, $this->capsule->getConnection()->table('users')->count());
+        $this->assertSame(6, $this->capsule->table('users')->count());
     }
 
     public function testDemoPasswordIsLongEnoughForTheApi(): void

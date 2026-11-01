@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Repositories;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\Models\RoleDashboardLayout;
 use App\Models\UserDashboardLayout;
 use PHPUnit\Framework\TestCase;

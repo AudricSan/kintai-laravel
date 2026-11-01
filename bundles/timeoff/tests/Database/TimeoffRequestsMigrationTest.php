@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\TimeOff\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\TimeOff\Models\TimeoffRequest;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -36,9 +36,9 @@ final class TimeoffRequestsMigrationTest extends TestCase
     }
 
     /** Table telle que l'a laissée l'ancien schéma SQL (relevé sur une instance réelle). */
-    private static function legacySqlSchema(Capsule $capsule): void
+    private static function legacySqlSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->unprepared(<<<'SQL'
+        $capsule->unprepared(<<<'SQL'
             CREATE TABLE "timeoff_requests" (
                 "id" INTEGER NOT NULL PRIMARY KEY, "store_id" INTEGER NOT NULL, "user_id" INTEGER NOT NULL,
                 "type" TEXT NOT NULL DEFAULT 'vacation' CHECK ("type" IN ('vacation','sick','personal','unpaid','other')),
@@ -53,9 +53,9 @@ final class TimeoffRequestsMigrationTest extends TestCase
     }
 
     /** Table telle que la créait la migration du Core (déjà au bon schéma). */
-    private static function coreMigrationSchema(Capsule $capsule): void
+    private static function coreMigrationSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->getSchemaBuilder()->create('timeoff_requests', function ($table) {
+        $capsule->getSchemaBuilder()->create('timeoff_requests', function ($table) {
             $table->increments('id');
             $table->integer('user_id');
             $table->integer('store_id');
@@ -88,7 +88,7 @@ final class TimeoffRequestsMigrationTest extends TestCase
 
         $this->assertSame(self::MIGRATIONS, $runner->runPendingFor('timeoff', dirname(__DIR__, 2) . '/database/migrations'));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'user_id', 'store_id', 'start_date', 'end_date', 'type', 'status', 'reason', 'admin_note', 'processed_by',
             'processed_at', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('timeoff_requests', $column), "timeoff_requests.{$column}");

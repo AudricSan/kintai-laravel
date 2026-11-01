@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use Illuminate\Container\Container;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -30,7 +30,7 @@ if (!defined('BASE_PATH')) {
  */
 trait CalendarSyncFixture
 {
-    private Capsule $capsule;
+    private Connection $capsule;
     private FakeHttpTransport $http;
     private InMemoryAppSettings $values;
     private AppSettingsService $appSettings;

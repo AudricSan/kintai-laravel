@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use App\BundleManager;
 use Illuminate\Container\Container;
 use App\Extension\Events;
@@ -32,7 +32,7 @@ if (!defined('BASE_PATH')) {
  */
 final class WeekPlannerTest extends TestCase
 {
-    private Capsule $capsule;
+    private Connection $capsule;
     private WeekPlanner $planner;
     private int $store;
     private int $alice;

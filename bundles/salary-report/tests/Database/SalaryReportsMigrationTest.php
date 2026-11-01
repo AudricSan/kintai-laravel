@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\SalaryReport\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\SalaryReport\Models\SalaryReport;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +41,7 @@ final class SalaryReportsMigrationTest extends TestCase
 
         $this->assertSame(['2026_10_14_000001_create_salary_reports_table'], $runner->runPendingFor('salary-report', $this->migrationsPath()));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'store_id', 'user_id', 'employee_name', 'target_month', 'store_name', 'person_in_charge', 'total_payment',
             'total_deductions', 'income_tax_base', 'withholding_tax', 'residence_tax', 'other_deductions', 'net_payment',
             'active_employees', 'hand_delivered_salary', 'bank_transfer_salary', 'staff_man_hours', 'staff_total_payment',
@@ -64,7 +64,7 @@ final class SalaryReportsMigrationTest extends TestCase
     public function testExistingTableAndDataAreLeftUntouched(): void
     {
         [$runner, $capsule] = $this->freshRunner();
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         $schema->create('salary_reports', function ($table) {
             $table->increments('id');
             $table->integer('store_id');

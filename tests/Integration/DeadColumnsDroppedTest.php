@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -42,7 +42,7 @@ final class DeadColumnsDroppedTest extends TestCase
 
         kintai_test_migrate();
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
 
         foreach (self::DEAD_COLUMNS as $table => $columns) {
             foreach ($columns as $column) {

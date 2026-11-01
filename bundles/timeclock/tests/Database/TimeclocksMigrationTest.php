@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bundles\Timeclock\Database;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 use kintai\Bundles\Installed\Timeclock\Models\Timeclock;
 use Tests\Support\BundleMigrationHarness;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -35,9 +35,9 @@ final class TimeclocksMigrationTest extends TestCase
     }
 
     /** Table telle que l'a laissée l'ancien schéma SQL (relevé sur une instance réelle). */
-    private static function legacySqlSchema(Capsule $capsule): void
+    private static function legacySqlSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->unprepared(<<<'SQL'
+        $capsule->unprepared(<<<'SQL'
             CREATE TABLE "timeclocks" (
                 "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "store_id" INTEGER NOT NULL, "user_id" INTEGER NOT NULL,
                 "shift_date" TEXT NOT NULL, "clock_in_time" TEXT NOT NULL, "clock_out_time" TEXT NULL,
@@ -50,9 +50,9 @@ final class TimeclocksMigrationTest extends TestCase
     }
 
     /** Table telle que la créait la migration du Core (déjà complète). */
-    private static function coreMigrationSchema(Capsule $capsule): void
+    private static function coreMigrationSchema(Connection $capsule): void
     {
-        $capsule->getConnection()->getSchemaBuilder()->create('timeclocks', function ($table) {
+        $capsule->getSchemaBuilder()->create('timeclocks', function ($table) {
             $table->increments('id');
             $table->integer('user_id');
             $table->integer('store_id');
@@ -85,7 +85,7 @@ final class TimeclocksMigrationTest extends TestCase
 
         $this->assertSame(self::MIGRATIONS, $runner->runPendingFor('timeclock', dirname(__DIR__, 2) . '/database/migrations'));
 
-        $schema = $capsule->getConnection()->getSchemaBuilder();
+        $schema = $capsule->getSchemaBuilder();
         foreach (['id', 'user_id', 'store_id', 'shift_id', 'shift_date', 'clock_in_time', 'clock_out_time', 'duration_minutes',
             'clock_in_ip', 'clock_out_ip', 'notes', 'created_at', 'updated_at'] as $column) {
             $this->assertTrue($schema->hasColumn('timeclocks', $column), "timeclocks.{$column}");
