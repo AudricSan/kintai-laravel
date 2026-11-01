@@ -19,4 +19,14 @@ final class PasswordHasher
     {
         return password_hash($password, PASSWORD_BCRYPT, ['cost' => self::COST]);
     }
+
+    /**
+     * Dépense un calcul bcrypt pour rien, au même coût qu'une vraie vérification : un compte inconnu, inactif ou un
+     * magasin inexistant ne doivent pas répondre plus vite qu'un vrai compte (sinon la durée révèle quels comptes
+     * existent).
+     */
+    public static function burn(string $password): void
+    {
+        self::hash($password);
+    }
 }

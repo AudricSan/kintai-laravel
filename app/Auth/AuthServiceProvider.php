@@ -17,6 +17,8 @@ final class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Connexion par mot de passe ou par cookie « rester connecté » : la fenêtre de rappel s'affiche une fois.
+        // Pilote « kintai » de config/auth.php : connexion par e-mail ou par code employé + magasin.
+        \Illuminate\Support\Facades\Auth::provider('kintai', fn($app, array $config) => new KintaiUserProvider($app['hash'], $config['model']));
         \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, fn() => $this->app->make(AuthService::class)->flagPasswordReminder());
         // « Rester connecté » : 30 jours.
         \Illuminate\Support\Facades\Auth::guard()->setRememberDuration(30 * 24 * 60);

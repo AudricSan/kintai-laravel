@@ -7,8 +7,6 @@ namespace App\Auth;
 use App\Database\RequestMemo;
 use App\Models\RoleAssignment;
 use App\Models\Role;
-use App\Models\Store;
-use App\Models\StoreUser;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,34 +30,14 @@ final class AuthService
     private const SESSION_PW_WEAK = 'auth_pw_weak';
     /** Posé à chaque nouvelle session : la fenêtre de rappel du mot de passe s'affiche une fois par connexion. */
     private const SESSION_PW_REMINDER = 'auth_pw_reminder_pending';
-    // Coût bcrypt des mots de passe créés par l'app (voir AdminUserController/PasswordResetService).
-    // Même coût que PasswordHasher : le calcul factice doit durer autant qu'une vraie vérification.
-    private const TIMING_COST = PasswordHasher::COST;
 
     /**
-     * Tente de connecter un utilisateur avec email + mot de passe.
+     * Tente de connecter un utilisateur avec email + mot de passe (Auth::attempt(), KintaiUserProvider).
      * Retourne true si les identifiants sont valides et l'utilisateur actif.
      */
     public function attempt(string $email, string $password, bool $remember = false): bool
     {
-        $user = User::findByEmail($email);
-
-        if ($user === null) {
-            $this->burnPasswordCheck($password);
-            return false;
-        }
-
-        if (empty($user['is_active']) || !empty($user['deleted_at'])) {
-            $this->burnPasswordCheck($password);
-            return false;
-        }
-
-        if (!password_verify($password, $user['password_hash'] ?? '')) {
-            return false;
-        }
-
-        $this->login($user, $password, $remember);
-        return true;
+        return $this->attemptWith(['email' => $email, 'password' => $password], $password, $remember);
     }
 
     /**
@@ -68,46 +46,19 @@ final class AuthService
      */
     public function attemptByCode(string $employeeCode, string $storeCode, string $password, bool $remember = false): bool
     {
-        $store = Store::findByCode(strtoupper(trim($storeCode)));
-        if ($store === null) {
-            $this->burnPasswordCheck($password);
+        return $this->attemptWith(['employee_code' => $employeeCode, 'store_code' => $storeCode, 'password' => $password], $password, $remember);
+    }
+
+    /** @param array<string, string> $credentials */
+    private function attemptWith(array $credentials, string $password, bool $remember): bool
+    {
+        if (!Auth::guard()->attempt($credentials, $remember)) {
             return false;
         }
+        $this->rememberPasswordStrength(Auth::guard()->user()->toArray(), $password);
 
-        $user = User::findByEmployeeCode(trim($employeeCode));
-        if ($user === null) {
-            $this->burnPasswordCheck($password);
-            return false;
-        }
-
-        if (empty($user['is_active']) || !empty($user['deleted_at'])) {
-            $this->burnPasswordCheck($password);
-            return false;
-        }
-
-        // Vérifier que l'utilisateur est membre de ce store
-        $membership = StoreUser::findMembership((int) $store['id'], (int) $user['id']);
-        if ($membership === null) {
-            $this->burnPasswordCheck($password);
-            return false;
-        }
-
-        if (!password_verify($password, $user['password_hash'] ?? '')) {
-            return false;
-        }
-
-        $this->login($user, $password, $remember);
         return true;
     }
-
-    /** Ouvre la session de Laravel pour ce compte (nouvel identifiant de session, cookie « rester connecté » au besoin). */
-    private function login(array $user, string $password, bool $remember): void
-    {
-        // Le compte vient d'être lu par le dépôt : pas de seconde lecture pour le modèle du garde.
-        Auth::guard()->login((new User())->newFromBuilder($user), $remember);
-        $this->rememberPasswordStrength($user, $password);
-    }
-
     /** La fenêtre de rappel du mot de passe s'affichera une fois pour cette connexion (événement Login de Laravel). */
     public function flagPasswordReminder(): void
     {
@@ -271,16 +222,6 @@ final class AuthService
     {
         Auth::guard()->logout();
         session()->forget([self::SESSION_PW_WEAK, self::SESSION_PW_REMINDER, 'password_hash_' . Auth::getDefaultDriver()]);
-    }
-
-    /**
-     * Dépense un calcul bcrypt pour rien. Sans cela, un e-mail inconnu, un compte inactif ou un magasin
-     * inexistant répondaient bien plus vite qu'un vrai compte avec un mauvais mot de passe (qui, lui,
-     * paie un password_verify) : cette différence de durée permettait de tester l'existence d'un compte.
-     */
-    private function burnPasswordCheck(string $password): void
-    {
-        password_hash($password, PASSWORD_BCRYPT, ['cost' => self::TIMING_COST]);
     }
 
     private function hasOwnerRole(int $userId): bool

@@ -16,7 +16,7 @@ return [
 
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'kintai',
             'model' => App\Models\User::class,
         ],
     ],

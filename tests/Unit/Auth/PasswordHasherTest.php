@@ -26,8 +26,8 @@ final class PasswordHasherTest extends TestCase
 
     public function testNoOtherCodeHashesPasswordsOnItsOwn(): void
     {
-        // Seuls PasswordHasher et le calcul factice de la connexion (AuthService, même coût) appellent password_hash().
-        $allowed = ['app/Auth/PasswordHasher.php', 'app/Auth/AuthService.php'];
+        // Seul PasswordHasher appelle password_hash() (y compris le calcul factice de la connexion : burn()).
+        $allowed = ['app/Auth/PasswordHasher.php'];
         $base = dirname(__DIR__, 3);
         $offenders = [];
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base . '/app', \FilesystemIterator::SKIP_DOTS));
@@ -45,12 +45,5 @@ final class PasswordHasherTest extends TestCase
         }
 
         $this->assertSame([], $offenders);
-    }
-
-    public function testTheLoginTimingGuardUsesTheSameCost(): void
-    {
-        $constant = new \ReflectionClassConstant(\App\Auth\AuthService::class, 'TIMING_COST');
-
-        $this->assertSame(PasswordHasher::COST, $constant->getValue());
     }
 }
