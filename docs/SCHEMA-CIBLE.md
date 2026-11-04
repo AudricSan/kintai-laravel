@@ -42,7 +42,9 @@ annuaire (`bio`, `skills`, `languages_spoken`, `hobbies`, `show_in_directory`, `
 **users** : `name` (nom affiché), `first_name`, `last_name`, `furigana_first_name`, `furigana_last_name`, `email`
 unique, `employee_code` unique nullable, `password`, `remember_token`, `locale` nullable (null = langue de
 l'instance), `color` (défaut `#3B82F6`), `avatar_path` nullable, `is_active` (défaut true), `quiet_hours_start`,
-`quiet_hours_end` (`time` nullable), colonnes de double authentification du kit, timestamps, `deleted_at`.
+`quiet_hours_end` (`time` nullable), `share_email`, `share_phone`, `share_mobile_phone` (booléens, défaut false :
+coordonnées que l'employé rend visibles à son équipe), colonnes de double authentification du kit, timestamps,
+`deleted_at`.
 `SoftDeletes` : `deleted_at` posé à l'anonymisation ; les comptes anonymisés disparaissent des listes, l'historique
 reste rattaché.
 
@@ -50,9 +52,21 @@ reste rattaché.
 `address`, `postal_code`, `phone`, `mobile_phone`, `tax_classification`, `education`, `guarantor_name`,
 `guarantor_phone`. Vidée à l'anonymisation.
 
+**Trois niveaux de visibilité** (validé le 04/11/2026) :
+1. Données RH (`employee_profiles`, sauf téléphones partagés) : la personne elle-même et `employees.view` sur son
+   magasin, jamais les collègues.
+2. Coordonnées partageables (e-mail, téléphone, mobile) : choix de l'employé (`share_*`), règle du corps.
+3. Profil d'équipe (bio, compétences, langues, loisirs, présence dans l'annuaire) : table du bundle `team-directory`.
+
+Un bundle ne lit jamais ces tables directement : le contrat lui fournit les membres d'un magasin avec les seules
+coordonnées partagées (policy du corps).
+
 **passkeys**, **sessions**, **password_reset_tokens**, **personal_access_tokens** : tables standard.
 
 ### Rôles et droits
+Stockage maison branché sur le Gate de Laravel (validé le 04/11/2026, sans `spatie/laravel-permission`) : usage
+standard `$user->can('shifts.update', $store)`, `@can`, `can:`.
+
 **roles** : `name`, `slug` unique, `description`, `color`, `is_system` (Owner, non modifiable), `is_manager`
 (navigation gérant), timestamps.
 
@@ -91,9 +105,16 @@ la fonctionnalité est active.
 **shifts** : `store_id` (cascade), `user_id` nullable (null = shift ouvert ; `set null` si l'utilisateur disparaît),
 `shift_type_id` nullable (type dominant, `set null`), `shift_date` (`date`, jour de rattachement), `starts_at`,
 `ends_at` (horodatages dans le fuseau de l'instance), `pause_minutes`, `notes`, `hourly_rate_override`,
-`net_minutes_override`, `ical_sequence`, `created_by` nullable (`set null`), timestamps, `deleted_at`. Index
-(`store_id`, `shift_date`), (`user_id`, `shift_date`), (`user_id`, `starts_at`, `ends_at`). Durée, passage minuit et
-minutes nettes sont des attributs calculés.
+`net_minutes_override`, `ical_uid` (unique), `ical_sequence`, `replaced_by_id` nullable (`shifts`, `set null`),
+`created_by` nullable (`set null`), timestamps, `deleted_at`. Index (`store_id`, `shift_date`), (`user_id`,
+`shift_date`), (`user_id`, `starts_at`, `ends_at`). Durée, passage minuit et minutes nettes sont des attributs calculés.
+
+**Remplacement** (validé le 04/11/2026) : quand un shift en remplace un autre, l'ancien part à la corbeille avec
+`replaced_by_id`, et le nouveau fait foi : l'ancien ne compte plus dans les conflits, ne peut pas être restauré tant
+que le remplaçant existe, et le remplaçant reprend son `ical_uid` (le calendrier affiche une modification, pas une
+annulation). Cas : résolution d'un conflit par une option prédéfinie (« garder le plus récent »…), échange entre
+employés (`shift-swap`), reprise d'un shift ouvert (`shift-claim`). Le corps fournit l'opération `replace` ; les
+bundles l'appellent par le contrat.
 
 **availabilities** : `user_id`, `store_id` (cascade), `day_of_week` (1-7), `starts_at`, `ends_at` (`time` nullable),
 `is_available`, timestamps ; index (`user_id`, `store_id`).
