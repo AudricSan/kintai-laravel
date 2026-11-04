@@ -26,6 +26,8 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
@@ -33,7 +35,37 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+            'locale' => null,
+            'color' => '#3B82F6',
+            'is_active' => true,
         ];
+    }
+
+    /**
+     * Compte désactivé.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => ['is_active' => false]);
+    }
+
+    /**
+     * Compte anonymisé : identité effacée, désactivé et placé dans la corbeille.
+     */
+    public function anonymized(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => 'Utilisateur supprimé',
+            'first_name' => null,
+            'last_name' => null,
+            'furigana_first_name' => null,
+            'furigana_last_name' => null,
+            'email' => 'anonymized-'.fake()->unique()->uuid().'@invalid.example',
+            'employee_code' => null,
+            'avatar_path' => null,
+            'is_active' => false,
+            'deleted_at' => now(),
+        ]);
     }
 
     /**

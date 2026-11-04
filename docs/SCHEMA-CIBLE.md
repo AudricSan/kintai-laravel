@@ -104,15 +104,16 @@ la fonctionnalité est active.
 
 **shifts** : `store_id` (cascade), `user_id` nullable (null = shift ouvert ; `set null` si l'utilisateur disparaît),
 `shift_type_id` nullable (type dominant, `set null`), `shift_date` (`date`, jour de rattachement), `starts_at`,
-`ends_at` (horodatages dans le fuseau de l'instance), `pause_minutes`, `notes`, `hourly_rate_override`,
+`ends_at` (horodatages stockés en UTC, saisis et affichés dans le fuseau de l'instance (`kintai.timezone`) ; `shift_date` est le jour local de rattachement), `pause_minutes`, `notes`, `hourly_rate_override`,
 `net_minutes_override`, `ical_uid` (unique), `ical_sequence`, `replaced_by_id` nullable (`shifts`, `set null`),
 `created_by` nullable (`set null`), timestamps, `deleted_at`. Index (`store_id`, `shift_date`), (`user_id`,
 `shift_date`), (`user_id`, `starts_at`, `ends_at`). Durée, passage minuit et minutes nettes sont des attributs calculés.
 
 **Remplacement** (validé le 04/11/2026) : quand un shift en remplace un autre, l'ancien part à la corbeille avec
 `replaced_by_id`, et le nouveau fait foi : l'ancien ne compte plus dans les conflits, ne peut pas être restauré tant
-que le remplaçant existe, et le remplaçant reprend son `ical_uid` (le calendrier affiche une modification, pas une
-annulation). Cas : résolution d'un conflit par une option prédéfinie (« garder le plus récent »…), échange entre
+que le remplaçant existe, et, si le remplaçant est créé à cette occasion, il reprend son `ical_uid` avec une séquence + 1 (le calendrier affiche une
+modification, pas une annulation). Si le remplaçant existe déjà (donc déjà publié dans les flux), personne ne change
+d'`ical_uid` : l'ancien, supprimé, est publié comme annulé et le remplaçant n'est pas modifié. Cas : résolution d'un conflit par une option prédéfinie (« garder le plus récent »…), échange entre
 employés (`shift-swap`), reprise d'un shift ouvert (`shift-claim`). Le corps fournit l'opération `replace` ; les
 bundles l'appellent par le contrat.
 

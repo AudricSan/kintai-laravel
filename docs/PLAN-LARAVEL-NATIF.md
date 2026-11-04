@@ -103,6 +103,7 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 - Inscription publique désactivée (instances privées : les comptes sont créés par les gérants). Double authentification
   et passkeys du kit conservées, en option dans le profil (validé le 04/11/2026).
 - Droits maison (rôles, permissions par rôle, attributions globales ou par magasin), sans `spatie/laravel-permission`.
+- Rendre `first_name` et `last_name` obligatoires (facultatifs en phase 2 tant que l'inscription du kit existe).
 
 ### Phase 4 : Cœur, par tranches verticales
 - Un domaine à la fois, dans l'ordre de la section 9 de l'inventaire : modèles, `FormRequest`, contrôleurs fins, vues Blade/Livewire, `JsonResource`, tests.
