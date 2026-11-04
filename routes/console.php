@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('kintai:notifications:purge')->daily();
+Schedule::command('kintai:activity:purge')->daily();

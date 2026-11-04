@@ -28,4 +28,18 @@ return [
         'retention_days' => (int) env('KINTAI_NOTIFICATIONS_RETENTION_DAYS', 90),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Journal d'activité
+    |--------------------------------------------------------------------------
+    |
+    | `retention_days` : jours de conservation des entrées avant la purge quotidienne
+    | (0 = conservation illimitée).
+    |
+    */
+
+    'activity' => [
+        'retention_days' => (int) env('KINTAI_ACTIVITY_RETENTION_DAYS', 180),
+    ],
+
 ];

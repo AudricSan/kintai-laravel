@@ -3,6 +3,7 @@
 namespace App\Actions\Roles;
 
 use App\Authorization\OwnerGuard;
+use App\Events\RoleHoldersChanged;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\Store;
@@ -54,6 +55,8 @@ class ManageRoleHolders
         }
 
         $user->assignRole($role, $store);
+
+        RoleHoldersChanged::dispatch($role->id, $user->id, $store?->id, true);
     }
 
     /**
@@ -76,6 +79,8 @@ class ManageRoleHolders
         }
 
         $user->removeRole($role, $assignment->store_id === null ? null : Store::query()->findOrFail($assignment->store_id));
+
+        RoleHoldersChanged::dispatch($role->id, $user->id, $assignment->store_id, false);
     }
 
     /**

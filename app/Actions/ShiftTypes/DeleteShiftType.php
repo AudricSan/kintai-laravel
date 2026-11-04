@@ -31,8 +31,10 @@ class DeleteShiftType
         }
 
         $id = $type->id;
+        $name = $type->name;
+        $code = $type->code;
         $type->delete();
 
-        ShiftTypeDeleted::dispatch($id);
+        ShiftTypeDeleted::dispatch($id, $name, $code);
     }
 }

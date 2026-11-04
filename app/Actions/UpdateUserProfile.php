@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Events\ProfileUpdated;
 use App\Models\User;
 use App\Support\Locales;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +48,8 @@ class UpdateUserProfile
                 'address' => $this->blankToNull($validated['address'] ?? null),
             ]);
         });
+
+        ProfileUpdated::dispatch($user->id);
     }
 
     private function blankToNull(mixed $value): ?string

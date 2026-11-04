@@ -2,14 +2,36 @@
 
 namespace App\Providers;
 
+use App\Activity\ActivityActionRegistry;
+use App\Activity\CoreActivityActions;
 use App\Contracts\Planning\TimeOffChecker;
 use App\Dashboard\CoreWidgets;
 use App\Dashboard\DashboardWidgetRegistry;
+use App\Events\EmployeeCreated;
+use App\Events\EmployeePasswordReset;
+use App\Events\EmployeeRatesUpdated;
+use App\Events\EmployeeUpdated;
+use App\Events\PasswordChanged;
+use App\Events\ProfileUpdated;
+use App\Events\RoleDeleted;
+use App\Events\RoleHoldersChanged;
+use App\Events\RoleSaved;
 use App\Events\ShiftCreated;
 use App\Events\ShiftDeleted;
 use App\Events\ShiftReplaced;
 use App\Events\ShiftRestored;
+use App\Events\ShiftTypeCreated;
+use App\Events\ShiftTypeDeleted;
+use App\Events\ShiftTypeUpdated;
 use App\Events\ShiftUpdated;
+use App\Events\StoreCreated;
+use App\Events\StoreDeleted;
+use App\Events\StoreMemberAdded;
+use App\Events\StoreMemberRemoved;
+use App\Events\StoreMemberUpdated;
+use App\Events\StoreUpdated;
+use App\Events\UserAnonymized;
+use App\Listeners\RecordActivity;
 use App\Listeners\SendShiftNotifications;
 use App\Models\User;
 use App\Navigation\CoreNavigation;
@@ -22,6 +44,10 @@ use App\Profile\ProfileSectionRegistry;
 use App\Requests\PendingRequestRegistry;
 use App\Stores\StoreFeatureRegistry;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -42,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PendingRequestRegistry::class);
         $this->app->singleton(DashboardWidgetRegistry::class);
         $this->app->singleton(NotificationTypeRegistry::class);
+        $this->app->singleton(ActivityActionRegistry::class);
         $this->app->scoped(NavigationMenu::class);
         // Sans bundle de congés, personne n'est en congé ; le bundle timeoff remplace cette liaison.
         $this->app->bind(TimeOffChecker::class, NullTimeOffChecker::class);
@@ -59,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerDashboardWidgets();
         $this->registerNotificationTypes();
         $this->registerShiftNotifications();
+        $this->registerActivityLog();
     }
 
     /**
@@ -67,6 +95,49 @@ class AppServiceProvider extends ServiceProvider
     private function registerNotificationTypes(): void
     {
         CoreNotificationTypes::registerIn($this->app->make(NotificationTypeRegistry::class));
+    }
+
+    /**
+     * Libellés des actions du Core ; les bundles y ajouteront les leurs.
+     */
+    private function registerActivityLog(): void
+    {
+        CoreActivityActions::registerIn($this->app->make(ActivityActionRegistry::class));
+
+        $listeners = [
+            Login::class => 'login',
+            Logout::class => 'logout',
+            Failed::class => 'loginFailed',
+            PasswordReset::class => 'passwordReset',
+            PasswordChanged::class => 'passwordChanged',
+            ProfileUpdated::class => 'profileUpdated',
+            EmployeeCreated::class => 'employeeCreated',
+            EmployeeUpdated::class => 'employeeUpdated',
+            EmployeePasswordReset::class => 'employeePasswordReset',
+            EmployeeRatesUpdated::class => 'employeeRatesUpdated',
+            UserAnonymized::class => 'userAnonymized',
+            StoreCreated::class => 'storeCreated',
+            StoreUpdated::class => 'storeUpdated',
+            StoreDeleted::class => 'storeDeleted',
+            StoreMemberAdded::class => 'storeMemberAdded',
+            StoreMemberUpdated::class => 'storeMemberUpdated',
+            StoreMemberRemoved::class => 'storeMemberRemoved',
+            ShiftTypeCreated::class => 'shiftTypeCreated',
+            ShiftTypeUpdated::class => 'shiftTypeUpdated',
+            ShiftTypeDeleted::class => 'shiftTypeDeleted',
+            ShiftCreated::class => 'shiftCreated',
+            ShiftUpdated::class => 'shiftUpdated',
+            ShiftDeleted::class => 'shiftDeleted',
+            ShiftRestored::class => 'shiftRestored',
+            ShiftReplaced::class => 'shiftReplaced',
+            RoleSaved::class => 'roleSaved',
+            RoleDeleted::class => 'roleDeleted',
+            RoleHoldersChanged::class => 'roleHoldersChanged',
+        ];
+
+        foreach ($listeners as $event => $method) {
+            Event::listen($event, [RecordActivity::class, $method]);
+        }
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Roles;
 
+use App\Events\RoleDeleted;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -28,6 +29,10 @@ class DeleteRole
             throw ValidationException::withMessages(['role' => __('This role still has holders and cannot be deleted.')]);
         }
 
+        $id = $role->id;
+        $name = $role->name;
         $role->delete();
+
+        RoleDeleted::dispatch($id, $name);
     }
 }

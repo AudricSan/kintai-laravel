@@ -3,7 +3,7 @@
 namespace App\Actions\Employees;
 
 use App\Authorization\Authorizer;
-use App\Events\EmployeeUpdated;
+use App\Events\EmployeeRatesUpdated;
 use App\Models\ShiftType;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -83,6 +83,6 @@ class UpdateEmployeeRates
             }
         });
 
-        EmployeeUpdated::dispatch($target->id);
+        EmployeeRatesUpdated::dispatch($target->id);
     }
 }

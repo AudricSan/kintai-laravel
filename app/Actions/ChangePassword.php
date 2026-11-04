@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Events\PasswordChanged;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,5 +24,7 @@ class ChangePassword
         // AuthenticateSession compare l'empreinte en session au mot de passe actuel : on met la nôtre à jour.
         $user->refresh();
         session()->put('password_hash_web', $guard->hashPasswordForCookie($user->getAuthPassword()));
+
+        PasswordChanged::dispatch($user->id);
     }
 }

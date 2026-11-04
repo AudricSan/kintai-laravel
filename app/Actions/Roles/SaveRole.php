@@ -4,6 +4,7 @@ namespace App\Actions\Roles;
 
 use App\Authorization\Authorizer;
 use App\Authorization\PermissionRegistry;
+use App\Events\RoleSaved;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -52,6 +53,8 @@ class SaveRole
         $permissions = array_values(array_unique($data['permissions'] ?? []));
         $allStores = array_values(array_intersect(array_unique($data['all_stores'] ?? []), $permissions));
 
+        $created = $role === null;
+
         $role = DB::transaction(function () use ($role, $data, $permissions, $allStores): Role {
             $attributes = [
                 'name' => trim($data['name']),
@@ -83,6 +86,8 @@ class SaveRole
         });
 
         $this->authorizer->forget();
+
+        RoleSaved::dispatch($role->id, $created);
 
         return $role;
     }

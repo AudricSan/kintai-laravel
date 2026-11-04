@@ -25,7 +25,7 @@ Conventions : identifiants `id()` (bigint), clés étrangères `foreignId()->con
 | `shifts.open_shift_note` + `notes` | `notes` | Doublon |
 | `shift_deletion_log` + suppression définitive | `SoftDeletes` + élagage après 30 jours | Le flux iCal lit les shifts supprimés récents |
 | `user_dashboard_prefs` + `user_dashboard_layouts` + `dashboard_role_layouts` | `dashboard_layouts` | Trois mécanismes pour un seul besoin |
-| `activity_log` (journal métier + journal d'accès HTTP) | `activity_log` (métier) ; accès HTTP dans les logs Laravel | Séparer audit et technique |
+| `activity_log` (journal métier + journal d'accès HTTP) | `activity_entries` (métier) ; accès HTTP dans les logs Laravel | Séparer audit et technique |
 | `availabilities.day_of_week` 0-6 dans l'API, 1-7 dans le garde-fou | ISO 1 (lundi) à 7 | Anomalie n°6 |
 | Type de dashboard `admin` | `manager` | Nom réel |
 
@@ -125,9 +125,10 @@ bundles l'appellent par le contrat.
 des trois), **push_subscriptions** (canal Web Push), **device_push_tokens** (`user_id` cascade, `token` unique,
 `platform`, `last_used_at`).
 
-**activity_log** : `user_id` nullable, `store_id` nullable, `action`, `subject_type` + `subject_id` (morphe
-nullable), `properties` (json), `ip_address`, `user_agent`, `created_at` ; index (`action`, `created_at`),
-(`user_id`, `created_at`), (`store_id`, `created_at`), (`subject_type`, `subject_id`).
+**activity_entries** (journal d'audit métier) : `actor_id` nullable (set null), `action` (clé, ex. `store.created`),
+`subject_type` + `subject_id` (référence souple, nullable : la cible a pu être supprimée), `store_id` nullable (set
+null), `properties` (json : noms, avant/après), `ip_address`, `user_agent` (255 max), `created_at` ; index (`action`),
+(`actor_id`, `created_at`), (`store_id`, `created_at`), (`subject_type`, `subject_id`), (`created_at`).
 
 **ical_tokens** : `user_id`, `store_id` (cascade), `token` unique, timestamps ; unicité (`user_id`, `store_id`).
 

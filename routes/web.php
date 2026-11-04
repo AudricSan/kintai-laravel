@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityExportController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\NotificationOpenController;
 use App\Http\Controllers\NotificationUnsubscribeController;
@@ -58,6 +59,11 @@ Route::middleware(['auth'])->group(function () {
         Route::livewire('calendar', 'pages::my-shifts.calendar')->name('my-shifts.calendar');
         Route::livewire('week', 'pages::my-shifts.week')->name('my-shifts.week');
         Route::livewire('day', 'pages::my-shifts.day')->name('my-shifts.day');
+    });
+
+    Route::prefix('activity')->middleware('can:stores.view')->group(function () {
+        Route::livewire('/', 'pages::activity.index')->name('activity.index');
+        Route::get('export', ActivityExportController::class)->name('activity.export');
     });
 
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {

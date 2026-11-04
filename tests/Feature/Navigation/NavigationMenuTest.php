@@ -60,15 +60,15 @@ class NavigationMenuTest extends TestCase
         $this->assertSame(['main', 'planning', 'account'], $this->sectionKeys($employee));
     }
 
-    public function test_manager_sees_planning_and_hr_but_not_system(): void
+    public function test_manager_sees_planning_hr_and_activity_log_but_not_roles(): void
     {
         $manager = $this->managerOf($this->store);
 
         $this->assertSame(
-            ['dashboard', 'shifts', 'calendar', 'timeline', 'conflicts', 'shift-types', 'my-shifts', 'employees', 'stores', 'notifications', 'settings'],
+            ['dashboard', 'shifts', 'calendar', 'timeline', 'conflicts', 'shift-types', 'my-shifts', 'employees', 'stores', 'activity', 'notifications', 'settings'],
             $this->keys($manager),
         );
-        $this->assertNotContains('system', $this->sectionKeys($manager));
+        $this->assertNotContains('roles', $this->keys($manager));
     }
 
     public function test_owner_also_sees_the_system_section(): void
