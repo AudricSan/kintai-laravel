@@ -33,8 +33,43 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
    déclare `"kintai/contracts": "^1.0"` et Composer refuse un bundle incompatible. Chaque point d'extension est créé
    **avec le domaine du Cœur qui l'utilise**, et le Cœur s'en sert lui-même pour ses propres widgets, entrées de menu,
    etc.
-5. **Laravel 13** (dernière version, 13.40 au 04/11/2026), **PHP 8.3 minimum** (minimum de Laravel 13). Passage à
+5. **Installation et mise à jour depuis le navigateur, conservées.** Des clients sont en hébergement mutualisé sans
+   terminal : assistant d'installation web et mise à jour depuis les releases GitHub (archive construite par la CI,
+   `vendor/` inclus, migrations lancées par `Artisan::call`), en plus des commandes `php artisan`. Même besoin pour les
+   bundles.
+6. **Licence conservée.** La refonte du serveur de licence est un chantier séparé, plus tard. En dernière phase : un
+   serveur d'auto-déploiement de Kintai, conçu avec le serveur de licence.
+7. **Fonctionnalités** : édition des traductions dans l'interface abandonnée (fichiers `lang/` versionnés) ;
+   signalement de problème vers GitHub et documentation synchronisée depuis le wiki conservés.
+8. **API v1 = contrat public pour une future application mobile** qui se branche sur n'importe quelle instance par son
+   adresse : API versionnée et stable, jetons Sanctum, point d'entrée de découverte (`GET /api/v1/ping` : nom,
+   version, fonctionnalités de l'instance), push mobile (FCM) conservé.
+9. **Laravel 13** (dernière version, 13.40 au 04/11/2026), **PHP 8.3 minimum** (minimum de Laravel 13). Passage à
    Laravel 14 à sa sortie, après livraison.
+
+## Corps et bundles
+
+Règle : le corps contient ce que toute installation utilise et la plateforme sur laquelle les bundles se branchent ;
+un bundle contient ce qui est optionnel, propre à un usage ou lié à un service extérieur.
+
+**Corps** : identité, profil, utilisateurs, rôles et droits ; magasins et membres ; types de shift et taux ; planning
+(shifts, conflits, garde-fous) ; calcul des coûts (`ShiftWageCalculator`) ; disponibilités ; tableau de bord,
+navigation, notifications (base, mail, Web Push, FCM), journal d'activité ; exports (mécanisme + jeux de données du
+corps) ; flux iCal ; API v1 ; administration (réglages, sauvegardes, maintenance, installation et mise à jour web,
+licence, documentation, signalement, tâches planifiées) ; page « demandes en attente » (vide sans bundle).
+
+**Bundles existants** (13) : timeclock, timeoff, shift-swap, shift-claim, messaging, notebook, team-directory,
+store-photos, daily-report, planning-check, salary-report, hiring-report, resignation-report.
+
+**À sortir du corps vers des bundles (proposé, à confirmer avant la tranche concernée)** :
+- **Synchronisation Google Agenda** → bundle `google-calendar` : service extérieur, OAuth, file de synchronisation.
+- **Import Excel de planning** → bundle `planning-import` : algorithme lié au format de fichier des clients.
+- **Statistiques, rentabilité, rapports par employé** (`StoreStatsService`, widgets financier et absentéisme) →
+  bundle `analytics` ; le corps garde le calcul des coûts et l'aperçu du coût dans le formulaire de shift.
+- **Déductions** (réglages par magasin, `subject_to_deductions`) → bundle `salary-report`, qui fait la paie.
+
+Le corps ne dépend jamais d'un bundle : là où il en a besoin (congés pour le garde-fou du planning), il définit une
+interface dans `kintai/contracts` avec une implémentation vide par défaut, que le bundle remplace.
 
 ## Principes
 
@@ -52,7 +87,7 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
 - [x] Base de référence verte de l'ancienne version : 3611 tests, 10808 assertions.
 - [x] Référence : `../Kintai`, branche `develop` (production, dernières mises à jour).
 - [x] Inventaire fonctionnel (spécification) : `docs/INVENTAIRE-FONCTIONNEL.md` (04/11/2026, zones non lues listées).
-- [ ] Décider des fonctionnalités abandonnées ou remplacées (section 7 de l'inventaire).
+- [x] Fonctionnalités abandonnées ou conservées : décisions 5 à 8 ci-dessus.
 
 ### Phase 1 : Squelette
 - `laravel new` (Laravel 13, kit de démarrage Livewire) sur la branche `laravel-native`, qui remplace l'ancien code.
@@ -75,8 +110,10 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
 - Les 13 bundles, un par un : migrations, vues, traductions, routes, commandes, tâches planifiées, configuration
   publiable, tests.
 
-### Phase 6 : Installation
-- `php artisan kintai:install` (+ page web minimale si nécessaire pour l'hébergement mutualisé).
+### Phase 6 : Installation et mise à jour
+- `php artisan kintai:install` et assistant d'installation web.
+- Mise à jour web depuis les releases GitHub (canaux release/beta/alpha), et CI qui construit l'archive de release.
+- Licence (client) sur le serveur de licence actuel.
 
 ### Phase 7 : Outil de migration (hors application)
 - `tools/legacy-migration/` : lit une base de l'ancienne version, écrit dans le nouveau schéma. Testé sur un jeu de
@@ -85,6 +122,9 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
 ### Phase 8 : Qualité et livraison
 - Revue de sécurité (reprise de l'audit du 31/10/2026), documentation (`README`, `DEPLOIEMENT`), changelog, version
   majeure.
+
+### Phase 9 : Serveur d'auto-déploiement (après livraison)
+- Conçu avec la refonte du serveur de licence (chantier séparé).
 
 ## Définition de « terminé »
 

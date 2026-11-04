@@ -246,6 +246,11 @@ s'en sert lui-même pour ses propres widgets, entrées de menu, etc.
 
 ## 7. Fonctionnalités dont l'abandon ou le remplacement est à décider
 
+**Tranché le 04/11/2026** (plan, décisions 5 à 8) : installation et mise à jour web conservées (hébergement mutualisé
+sans terminal), licence conservée, édition des traductions abandonnée, signalement GitHub et documentation du wiki
+conservés, push FCM conservé pour une future application mobile. Restent ouverts : marché de bundles, sauvegarde
+(maison ou `spatie/laravel-backup`), cron par URL, slugs de routes.
+
 | Fonctionnalité | Proposition |
 |---|---|
 | Assistant d'installation web | `php artisan kintai:install` ; page web minimale seulement si l'hébergement mutualisé l'exige |
