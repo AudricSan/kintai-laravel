@@ -16,6 +16,18 @@ Route::middleware(['auth'])->group(function () {
         Route::livewire('{user}/edit', 'pages::employees.edit')->middleware('can:employees.view')->name('employees.edit');
     });
 
+    Route::prefix('stores')->group(function () {
+        Route::livewire('/', 'pages::stores.index')->middleware('can:stores.view')->name('stores.index');
+        Route::livewire('create', 'pages::stores.form')->middleware('can:stores.create')->name('stores.create');
+        Route::livewire('{store}/edit', 'pages::stores.form')->middleware('can:stores.view')->name('stores.edit');
+    });
+
+    Route::prefix('shift-types')->group(function () {
+        Route::livewire('/', 'pages::shift-types.index')->middleware('can:shifts.view')->name('shift-types.index');
+        Route::livewire('create', 'pages::shift-types.form')->middleware('can:shifts.update')->name('shift-types.create');
+        Route::livewire('{shiftType}/edit', 'pages::shift-types.form')->middleware('can:shifts.update')->name('shift-types.edit');
+    });
+
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {
         Route::livewire('/', 'pages::roles.index')->name('roles.index');
         Route::livewire('create', 'pages::roles.form')->name('roles.create');

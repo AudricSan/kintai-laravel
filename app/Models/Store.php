@@ -94,6 +94,16 @@ class Store extends Model
     }
 
     /**
+     * Sans ligne, la fonctionnalité est active.
+     */
+    public function hasFeature(string $feature): bool
+    {
+        $row = $this->features()->where('feature', $feature)->first();
+
+        return $row === null || $row->enabled;
+    }
+
+    /**
      * @return HasMany<StoreFeature, $this>
      */
     public function features(): HasMany

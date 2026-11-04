@@ -20,6 +20,16 @@
                             {{ __('Employees') }}
                         </flux:sidebar.item>
                     @endcan
+                    @can('stores.view')
+                        <flux:sidebar.item icon="building-storefront" :href="route('stores.index')" :current="request()->routeIs('stores.*')" wire:navigate>
+                            {{ __('Stores') }}
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('shifts.view')
+                        <flux:sidebar.item icon="clock" :href="route('shift-types.index')" :current="request()->routeIs('shift-types.*')" wire:navigate>
+                            {{ __('Shift types') }}
+                        </flux:sidebar.item>
+                    @endcan
                     @can('manage-roles')
                         <flux:sidebar.item icon="shield-check" :href="route('roles.index')" :current="request()->routeIs('roles.*')" wire:navigate>
                             {{ __('Roles') }}

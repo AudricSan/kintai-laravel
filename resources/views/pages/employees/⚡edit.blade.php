@@ -218,6 +218,7 @@ new #[Title('Edit employee')] class extends Component {
             return [
                 'store' => $store,
                 'manageable' => in_array($store->id, $manageable, true),
+                'accessible' => $authorizer->allows($actor, 'stores.view', $store),
                 'roles' => $assignableRoles->filter(
                     fn (Role $role): bool => $role->id === $current || $authorizer->canAssignRole($actor, $role, $store),
                 )->values(),
@@ -268,7 +269,11 @@ new #[Title('Edit employee')] class extends Component {
         @forelse ($storeRows as $row)
             <div class="grid items-end gap-4 sm:grid-cols-2" wire:key="store-{{ $row['store']->id }}">
                 <div>
-                    <flux:text class="font-medium">{{ $row['store']->name }}</flux:text>
+                    @if ($row['accessible'])
+                        <flux:link :href="route('stores.edit', $row['store'])" wire:navigate class="font-medium">{{ $row['store']->name }}</flux:link>
+                    @else
+                        <flux:text class="font-medium">{{ $row['store']->name }}</flux:text>
+                    @endif
                     <flux:text class="text-sm">
                         @if ($row['store']->pivot->staff_code) {{ __('Staff code') }}: {{ $row['store']->pivot->staff_code }} @endif
                         @if ($row['store']->pivot->hire_date) {{ __('Hired on') }} {{ $row['store']->pivot->hire_date->format('Y-m-d') }} @endif

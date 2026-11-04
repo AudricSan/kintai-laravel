@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Profile\ProfileSectionRegistry;
+use App\Stores\StoreFeatureRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ProfileSectionRegistry::class);
+        $this->app->singleton(StoreFeatureRegistry::class);
     }
 
     /**
@@ -26,6 +28,15 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->registerProfileSections();
+        $this->registerStoreFeatures();
+    }
+
+    /**
+     * Fonctionnalités du corps activables par magasin ; les bundles y ajouteront les leurs.
+     */
+    private function registerStoreFeatures(): void
+    {
+        $this->app->make(StoreFeatureRegistry::class)->register('shifts', 'Planning');
     }
 
     /**

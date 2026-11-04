@@ -2,12 +2,12 @@
 
 namespace App\Actions\Employees;
 
+use App\Actions\Stores\StoreRoleManager;
 use App\Authorization\Authorizer;
 use App\Authorization\OwnerGuard;
 use App\Concerns\EmployeeValidationRules;
 use App\Events\EmployeeUpdated;
 use App\Models\Role;
-use App\Models\RoleAssignment;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -26,6 +26,7 @@ class UpdateEmployee
     public function __construct(
         private readonly Authorizer $authorizer,
         private readonly OwnerGuard $ownerGuard,
+        private readonly StoreRoleManager $storeRoles,
     ) {}
 
     /**
@@ -100,8 +101,7 @@ class UpdateEmployee
             }
 
             foreach ($storeRoles as [$store, $role]) {
-                RoleAssignment::query()->where('user_id', $target->id)->where('store_id', $store->id)->delete();
-                $target->assignRole($role, $store);
+                $this->storeRoles->apply($target, $store, $role);
             }
 
             $this->authorizer->forget($target);
@@ -158,28 +158,17 @@ class UpdateEmployee
                 throw ValidationException::withMessages([$field => __('You cannot assign this role.')]);
             }
 
-            $role = Role::query()->find($roleId);
             $store = Store::query()->find($storeId);
 
-            if ($role === null || $store === null || $role->is_system) {
+            if ($store === null) {
                 throw ValidationException::withMessages([$field => __('You cannot assign this role.')]);
             }
 
-            $current = RoleAssignment::query()
-                ->where('user_id', $target->id)
-                ->where('store_id', $store->id)
-                ->pluck('role_id')
-                ->all();
+            $role = $this->storeRoles->resolveChange($actor, $target, $store, $roleId, $field);
 
-            if ($current === [$role->id]) {
-                continue;
+            if ($role !== null) {
+                $changes[] = [$store, $role];
             }
-
-            if (! $this->authorizer->canAssignRole($actor, $role, $store)) {
-                throw ValidationException::withMessages([$field => __('You cannot assign this role.')]);
-            }
-
-            $changes[] = [$store, $role];
         }
 
         // Un non-Owner ne change pas ses propres rôles : il perdrait des droits sans pouvoir revenir en arrière.
