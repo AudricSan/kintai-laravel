@@ -39,10 +39,12 @@ class SaveDashboardLayout
         }
 
         return DB::transaction(function () use ($user, $audience, $name, $normalized, $existing): DashboardLayout {
-            DashboardLayout::query()->personal($user, $audience)->update(['is_active' => false]);
-
             $layout = $existing ?? new DashboardLayout(['user_id' => $user->id, 'dashboard' => $audience]);
             $layout->fill(['name' => $name, 'layout' => $normalized, 'is_active' => true])->save();
+
+            // Les autres dispositions sont désactivées après l'enregistrement : mettre à jour la disposition déjà active
+            // ne la modifie pas (is_active ne change pas), et la désactiver d'abord la laisserait inactive.
+            DashboardLayout::query()->personal($user, $audience)->whereKeyNot($layout->id)->update(['is_active' => false]);
 
             return $layout;
         });

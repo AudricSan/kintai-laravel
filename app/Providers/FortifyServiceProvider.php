@@ -72,8 +72,11 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            $login = Str::transliterate(Str::lower(trim((string) $request->input(Fortify::username()))));
-            $storeCode = Str::transliterate(Str::upper(trim((string) $request->input('store_code'))));
+            // Une valeur qui n'est pas du texte (tableau envoyé à l'API) compte comme vide : elle sera refusée plus loin.
+            $rawLogin = $request->input(Fortify::username());
+            $rawStoreCode = $request->input('store_code');
+            $login = Str::transliterate(Str::lower(trim(is_string($rawLogin) ? $rawLogin : '')));
+            $storeCode = Str::transliterate(Str::upper(trim(is_string($rawStoreCode) ? $rawStoreCode : '')));
 
             return [
                 Limit::perMinute(5)->by($login.'|'.$storeCode.'|'.$request->ip()),

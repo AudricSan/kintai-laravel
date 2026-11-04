@@ -39,6 +39,7 @@ final class ActivityDetails
         'stores' => 'Stores',
         'from' => 'From',
         'to' => 'To',
+        'device' => 'Device',
     ];
 
     private const CHANGES = ['added' => 'Added', 'removed' => 'Removed'];

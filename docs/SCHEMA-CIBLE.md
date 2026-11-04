@@ -139,6 +139,11 @@ correspond pas, un employé inactif ou supprimé, un magasin supprimé ou une ap
 publiée : 60 jours avant à 365 jours après aujourd'hui ; shifts supprimés depuis moins de 30 jours publiés `CANCELLED`
 (`SEQUENCE` = `ical_sequence` + 1) ; congés en journée entière via le contrat `TimeOffProvider` (vide sans bundle).
 
+**personal_access_tokens** (Laravel Sanctum, jetons de l'API v1) : `tokenable` (morphs, toujours un `User`), `name` (nom de
+l'appareil), `token` (SHA-256 du jeton, 64 caractères, unique : le jeton en clair n'est jamais stocké), `abilities`,
+`last_used_at`, `expires_at` (indexé ; 90 jours au plus), timestamps. Les jetons d'un utilisateur sont supprimés à son
+changement de mot de passe, à sa désactivation et à son anonymisation. Voir `docs/API-V1.md`.
+
 ### Tableau de bord, navigation, réglages
 **dashboard_layouts** : `user_id` nullable (cascade), `role_id` nullable (cascade ; disposition imposée par rôle),
 `dashboard` (`manager` ou `employee`), `name`, `layout` (json : widgets et positions), `is_active`, `position`,

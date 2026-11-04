@@ -24,6 +24,7 @@ use InvalidArgumentException;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property int $id
@@ -69,10 +70,11 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements HasLocalePreference, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
-     * Un changement de mot de passe invalide les cookies « rester connecté » et lève le rappel de changement.
+     * Un changement de mot de passe invalide les cookies « rester connecté », lève le rappel de changement et révoque
+     * tous les jetons de l'API ; la désactivation du compte révoque aussi les jetons.
      */
     protected static function booted(): void
     {
@@ -88,6 +90,12 @@ class User extends Authenticatable implements HasLocalePreference, PasskeyUser
             // Le rappel de changement de mot de passe tombe, sauf si le même enregistrement le repose.
             if (! $user->isDirty('must_change_password')) {
                 $user->must_change_password = false;
+            }
+        });
+
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('password') || ($user->wasChanged('is_active') && ! $user->is_active)) {
+                $user->tokens()->delete();
             }
         });
     }

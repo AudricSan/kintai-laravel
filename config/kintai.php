@@ -16,6 +16,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Version
+    |--------------------------------------------------------------------------
+    |
+    | Version de Kintai, annoncée par `GET /api/v1/ping`. Constante à mettre à jour à chaque version publiée
+    | (composer.json ne porte pas de version).
+    |
+    */
+
+    'version' => '0.1.0',
+
+    /*
+    |--------------------------------------------------------------------------
+    | API v1
+    |--------------------------------------------------------------------------
+    |
+    | `version` : numéro de version du contrat de l'API (préfixe d'URL `/api/v1`).
+    | `rate_limit` : requêtes par minute et par jeton (par adresse IP sans jeton).
+    | `token_max_days` : durée de vie maximale, et par défaut, d'un jeton d'accès (en jours).
+    |
+    */
+
+    'api' => [
+        'version' => '1',
+        'rate_limit' => (int) env('KINTAI_API_RATE_LIMIT', 300),
+        'token_max_days' => 90,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Notifications
     |--------------------------------------------------------------------------
     |

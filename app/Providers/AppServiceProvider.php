@@ -63,6 +63,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\PersonalAccessToken;
 use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
@@ -116,9 +117,17 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Flux iCal public : 60 lectures par minute et par adresse IP (un agenda relit environ une fois par heure).
+     * API v1 : 300 requêtes par minute et par jeton, ou par adresse IP sans jeton (`kintai.api.rate_limit`).
      */
     private function registerRateLimiters(): void
     {
+        RateLimiter::for('api', function (Request $request): Limit {
+            $token = $request->user('sanctum')?->currentAccessToken();
+            $key = $token instanceof PersonalAccessToken ? 'token:'.$token->getKey() : 'ip:'.$request->ip();
+
+            return Limit::perMinute((int) config('kintai.api.rate_limit', 300))->by($key);
+        });
+
         RateLimiter::for('ical', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->ip()));
     }
 
