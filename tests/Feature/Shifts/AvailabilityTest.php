@@ -176,7 +176,7 @@ class AvailabilityTest extends TestCase
 
         $this->assertContains('availability', $keys($this->employee));
         $this->assertNotContains('availability', $keys(User::factory()->create()));
-        $this->assertSame(['profile', 'availability', 'security', 'appearance'], $keys($this->employee));
+        $this->assertSame(['profile', 'availability', 'security', 'navigation', 'appearance'], $keys($this->employee));
     }
 
     public function test_the_page_shows_a_form_per_store_and_saves(): void

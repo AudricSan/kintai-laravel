@@ -4,6 +4,12 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
+        @php
+            $menu = app(\App\Navigation\NavigationMenu::class);
+            $navigation = $menu->sections(auth()->user());
+            $bottomBar = $menu->bottomBar(auth()->user());
+        @endphp
+
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
@@ -11,51 +17,15 @@
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
-                    </flux:sidebar.item>
-                    @can('employees.view')
-                        <flux:sidebar.item icon="users" :href="route('employees.index')" :current="request()->routeIs('employees.*')" wire:navigate>
-                            {{ __('Employees') }}
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('stores.view')
-                        <flux:sidebar.item icon="building-storefront" :href="route('stores.index')" :current="request()->routeIs('stores.*')" wire:navigate>
-                            {{ __('Stores') }}
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('shifts.view')
-                        <flux:sidebar.item icon="clock" :href="route('shift-types.index')" :current="request()->routeIs('shift-types.*')" wire:navigate>
-                            {{ __('Shift types') }}
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('manage-roles')
-                        <flux:sidebar.item icon="shield-check" :href="route('roles.index')" :current="request()->routeIs('roles.*')" wire:navigate>
-                            {{ __('Roles') }}
-                        </flux:sidebar.item>
-                    @endcan
-                </flux:sidebar.group>
-
-                <flux:sidebar.group :heading="__('Planning')" class="grid">
-                    @can('shifts.view')
-                        <flux:sidebar.item icon="queue-list" :href="route('shifts.index')" :current="request()->routeIs('shifts.index', 'shifts.create', 'shifts.edit')" wire:navigate>
-                            {{ __('Shifts') }}
-                        </flux:sidebar.item>
-                        <flux:sidebar.item icon="calendar-days" :href="route('shifts.calendar')" :current="request()->routeIs('shifts.calendar')" wire:navigate>
-                            {{ __('Calendar') }}
-                        </flux:sidebar.item>
-                        <flux:sidebar.item icon="chart-bar" :href="route('shifts.timeline')" :current="request()->routeIs('shifts.timeline')" wire:navigate>
-                            {{ __('Timeline') }}
-                        </flux:sidebar.item>
-                        <flux:sidebar.item icon="exclamation-triangle" :href="route('shifts.conflicts')" :current="request()->routeIs('shifts.conflicts')" wire:navigate>
-                            {{ __('Conflicts') }}
-                        </flux:sidebar.item>
-                    @endcan
-                    <flux:sidebar.item icon="clock" :href="route('my-shifts.index')" :current="request()->routeIs('my-shifts.*')" wire:navigate>
-                        {{ __('My shifts') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
+                @foreach ($navigation as $section)
+                    <flux:sidebar.group :heading="$section['heading'] !== null ? __($section['heading']) : null" class="grid" data-test="nav-section-{{ $section['key'] }}">
+                        @foreach ($section['items'] as $item)
+                            <flux:sidebar.item :icon="$item->icon" :href="route($item->route)" :current="$item->isCurrent()" wire:navigate data-test="nav-item-{{ $item->key }}">
+                                {{ __($item->label) }}
+                            </flux:sidebar.item>
+                        @endforeach
+                    </flux:sidebar.group>
+                @endforeach
             </flux:sidebar.nav>
 
             <flux:spacer />
@@ -121,6 +91,26 @@
         </flux:header>
 
         {{ $slot }}
+
+        <!-- Barre mobile du bas -->
+        <div class="h-16 lg:hidden"></div>
+        <nav class="fixed inset-x-0 bottom-0 z-30 flex border-t border-zinc-200 bg-white lg:hidden dark:border-zinc-700 dark:bg-zinc-900" aria-label="{{ __('Quick navigation') }}" data-test="bottom-nav">
+            @foreach ($bottomBar as $item)
+                <a
+                    href="{{ route($item->route) }}"
+                    wire:navigate
+                    @class([
+                        'flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-xs',
+                        'font-semibold text-zinc-900 dark:text-white' => $item->isCurrent(),
+                        'text-zinc-500 dark:text-zinc-400' => ! $item->isCurrent(),
+                    ])
+                    data-test="bottom-nav-{{ $item->key }}"
+                >
+                    <flux:icon :name="$item->icon" class="size-5" />
+                    <span class="max-w-full truncate">{{ __($item->label) }}</span>
+                </a>
+            @endforeach
+        </nav>
 
         @persist('toast')
             <flux:toast.group>

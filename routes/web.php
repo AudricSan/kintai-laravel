@@ -7,7 +7,11 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/dashboard')->name('home');
 
 Route::middleware(['auth'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    // `audience` : « auto » = tableau gérant pour un gérant ou un Owner, tableau employé sinon.
+    Route::livewire('dashboard', 'pages::dashboard.show')->defaults('audience', 'auto')->name('dashboard');
+    Route::livewire('dashboard/employee', 'pages::dashboard.show')->defaults('audience', 'employee')->name('dashboard.employee');
+
+    Route::livewire('requests', 'pages::requests.index')->name('requests.index');
 
     Route::get('avatar/{user}', [AvatarController::class, 'show'])->name('avatar.show');
 

@@ -175,6 +175,22 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * @return HasMany<DashboardLayout, $this>
+     */
+    public function dashboardLayouts(): HasMany
+    {
+        return $this->hasMany(DashboardLayout::class);
+    }
+
+    /**
+     * @return HasOne<UserNavPref, $this>
+     */
+    public function navPref(): HasOne
+    {
+        return $this->hasOne(UserNavPref::class);
+    }
+
+    /**
      * @return HasMany<Availability, $this>
      */
     public function availabilities(): HasMany
