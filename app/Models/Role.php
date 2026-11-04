@@ -20,6 +20,16 @@ final class Role extends Model
     // Une couleur invalide en base est remplacée à la lecture (voir HexColor).
     protected $casts = ['color' => HexColor::class];
 
+    /**
+     * Ce rôle affiche-t-il la navigation de gestion (tableau de bord admin, menus) ? Piloté par le champ explicite
+     * roles.is_manager (coché par le propriétaire sur /admin/roles), indépendant des permissions RBAC du rôle :
+     * PermissionMiddleware reste la barrière route par route. Un rôle système l'affiche toujours.
+     */
+    public function showsManagerNav(): bool
+    {
+        return !empty($this->is_system) || !empty($this->is_manager);
+    }
+
     public static function findAll(): array
     {
         return static::all()->toArray();

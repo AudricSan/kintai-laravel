@@ -26,7 +26,7 @@ use Illuminate\Contracts\View\Factory as ViewFactory;
  * cochées ici sont lues par PermissionService pour l'autorisation réelle de
  * chaque route ; le champ is_manager est lu séparément par AuthService pour
  * décider si ce rôle affiche la navigation manager (indépendant des
- * permissions accordées, voir AuthService::roleIsManagerType()).
+ * permissions accordées, voir Role::showsManagerNav()).
  */
 final class AdminRoleController
 {

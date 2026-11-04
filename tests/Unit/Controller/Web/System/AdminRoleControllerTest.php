@@ -132,7 +132,7 @@ kintai_test_database();        kintai_test_migrate();        kintai_test_fk_off(
 
     /**
      * is_manager doit rester indépendant des permissions cochées (voir AuthService::
-     * roleIsManagerType()) : un rôle peut accorder des permissions en libre-service
+     * Role::showsManagerNav()) : un rôle peut accorder des permissions en libre-service
      * (ex. photos.create) sans jamais devoir afficher la navigation manager, tant que
      * cette case n'est pas explicitement cochée.
      */

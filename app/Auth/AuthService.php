@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Database\RequestMemo;
-use App\Models\RoleAssignment;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -97,7 +95,7 @@ final class AuthService
         }
         // Copie : l'appelant peut modifier ses attributs sans toucher la mémoire de la requête.
         $user = clone $user;
-        $user['is_admin'] = $this->hasOwnerRole((int) $user['id']) ? 1 : 0;
+        $user['is_admin'] = $user->isOwner() ? 1 : 0;
         return $user;
     }
 
@@ -189,25 +187,8 @@ final class AuthService
      */
     public function managedStoreIds(): array
     {
-        $user = $this->user();
-        if (!$user) {
-            return [];
-        }
         // Admin global → pas de restriction, on retourne [] (signifie « tous »)
-        if (!empty($user['is_admin'])) {
-            return [];
-        }
-
-        $storeIds = [];
-        foreach (RoleAssignment::findByUser((int) $user['id']) as $assignment) {
-            if ($assignment['scope_type'] !== 'store' || $assignment['scope_id'] === null) {
-                continue;
-            }
-            if ($this->roleIsManagerType((int) $assignment['role_id'])) {
-                $storeIds[] = (int) $assignment['scope_id'];
-            }
-        }
-        return array_values(array_unique($storeIds));
+        return $this->user()?->managedStoreIds() ?? [];
     }
 
     /** L'utilisateur est-il gestionnaire d'au moins un store (ou admin global) ? */
@@ -224,50 +205,5 @@ final class AuthService
     {
         Auth::guard()->logout();
         session()->forget([self::SESSION_PW_WEAK, self::SESSION_PW_REMINDER, 'password_hash_' . Auth::getDefaultDriver()]);
-    }
-
-    private function hasOwnerRole(int $userId): bool
-    {
-        foreach (RoleAssignment::findByUser($userId) as $assignment) {
-            if ($assignment['scope_type'] !== 'global') {
-                continue;
-            }
-            $role = Role::findById((int) $assignment['role_id']);
-            if ($role !== null && !empty($role['is_system'])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Vrai si ce rôle doit afficher la navigation manager (dashboard admin, menus de
-     * gestion) — piloté par le champ explicite roles.is_manager, coché par l'Owner sur
-     * /admin/roles, INDÉPENDANT des permissions RBAC que le rôle accorde par ailleurs.
-     *
-     * Historique : cette méthode s'appelait roleGrantsAnyPermission() et se basait sur
-     * "le rôle accorde-t-il au moins une permission, peu importe laquelle". Ce critère a
-     * posé deux problèmes symétriques au fil du temps :
-     * - Entre le 06/08/2026 et le 12/09/2026, une variante excluait les rôles n'accordant
-     *   QUE des permissions .view, ce qui bloquait à tort tout rôle "lecture seule" légitime
-     *   (ex. un rôle "consulter les rapports photos", n'accordant que photos.view) — il ne
-     *   pouvait jamais atteindre /admin/photos, alors même que sa permission l'y autorisait.
-     * - À partir du 16/09/2026, le problème inverse est apparu : accorder à un rôle "Employé"
-     *   une permission purement en libre-service (ex. photos.create, pour lui permettre de
-     *   poster sa propre photo de store) le faisait basculer en navigation manager complète,
-     *   alors qu'aucune des deux notions n'a de raison d'être liée — un rôle peut légitimement
-     *   accorder une permission sans jamais devoir afficher le tableau de bord admin.
-     * roles.is_manager résout les deux à la fois : la navigation dépend uniquement de ce
-     * champ, jamais du contenu des permissions accordées. PermissionMiddleware reste la
-     * barrière fine qui limite l'accès route par route à la permission réellement requise,
-     * complètement indépendante de ce champ.
-     */
-    private function roleIsManagerType(int $roleId): bool
-    {
-        $role = Role::findById($roleId);
-        if ($role === null) {
-            return false;
-        }
-        return !empty($role['is_system']) || !empty($role['is_manager']);
     }
 }

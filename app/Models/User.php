@@ -57,6 +57,48 @@ class User extends Authenticatable
     }
 
     /**
+     * Le compte détient-il un rôle système en portée globale (propriétaire) ? C'est le calcul RBAC de « is_admin »,
+     * à la place de la colonne historique users.is_admin.
+     */
+    public function isOwner(): bool
+    {
+        foreach (RoleAssignment::findByUser((int) $this->getKey()) as $assignment) {
+            if ($assignment['scope_type'] !== 'global') {
+                continue;
+            }
+            $role = Role::findById((int) $assignment['role_id']);
+            if ($role !== null && !empty($role['is_system'])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Identifiants des magasins où le compte a un rôle de gestion (voir Role::showsManagerNav()). Vide pour un
+     * propriétaire, qui n'est restreint à aucun magasin.
+     * @return int[]
+     */
+    public function managedStoreIds(): array
+    {
+        if ($this->isOwner()) {
+            return [];
+        }
+
+        $storeIds = [];
+        foreach (RoleAssignment::findByUser((int) $this->getKey()) as $assignment) {
+            if ($assignment['scope_type'] !== 'store' || $assignment['scope_id'] === null) {
+                continue;
+            }
+            $role = Role::findById((int) $assignment['role_id']);
+            if ($role !== null && $role->showsManagerNav()) {
+                $storeIds[] = (int) $assignment['scope_id'];
+            }
+        }
+        return array_values(array_unique($storeIds));
+    }
+
+    /**
      * Retrieves all users.
      * @return array
      */

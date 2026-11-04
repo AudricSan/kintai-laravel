@@ -63,7 +63,7 @@ Inventaire au 31/10/2026 (code de `app/`, hors bundles). Eloquent n'est plus « 
 
 | Reste | Détail | Piste |
 | :--- | :--- | :--- |
-| `AuthService` | la connexion est native (`Auth::attempt()` + `KintaiUserProvider`, pilote « kintai ») ; reste `user()` (tableau + `is_admin` RBAC), `isAdmin()`, `managedStoreIds()` et le rappel de mot de passe | `Gate::before` / méthodes du modèle `User` quand les contrôleurs liront l'objet Eloquent plutôt qu'un tableau |
+| `AuthService` | la connexion est native (`Auth::attempt()` + `KintaiUserProvider`, pilote « kintai ») ; `user()` renvoie le modèle `User` ; le calcul RBAC vit sur le modèle (`User::isOwner()`, `User::managedStoreIds()`, `Role::showsManagerNav()`) ; reste `is_admin` posé sur une copie pour les contrôleurs qui lisent encore un tableau, et le rappel de mot de passe | `Gate::before` quand les contrôleurs liront `isOwner()` au lieu de la clé `is_admin` |
 | `$_SERVER` (URL de base) | `base_url()` lit encore SCRIPT_NAME (glue de sous-dossier) ; schéma/hôte, cookie de langue et User-Agent sont natifs (`request()`, `Cookie::queue()`) | `request()->getBasePath()` ; une trentaine de tests posent SCRIPT_NAME |
 | Macros de réponse | `csv`, `jsonDownload`, `pdf`, `ical`, `fileContents` (en-têtes de téléchargement en mémoire, macros Laravel) ; les fichiers passent par `response()->file()` / `download()` | `ErrorResponder` pourrait devenir un gestionnaire d'exceptions par classe |
 | Validation métier des contrôleurs | ~40 `throw new ValidationException` manuels | `FormRequest` (les tests appellent aujourd'hui les contrôleurs directement) |

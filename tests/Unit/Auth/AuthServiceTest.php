@@ -48,7 +48,7 @@ final class AuthServiceTest extends TestCase
     /**
      * Simule une affectation store-scope à un rôle non-système accordant $permissions.
      * $isManager pilote roles.is_manager, INDÉPENDAMMENT de $permissions (voir
-     * AuthService::roleIsManagerType()) — les deux doivent être choisis explicitement
+     * Role::showsManagerNav()) — les deux doivent être choisis explicitement
      * pour chaque test plutôt que de dépendre d'un défaut implicite.
      */
     private function grantStoreRole(int $userId, int $storeId, int $roleId, array $permissions, bool $isManager): void

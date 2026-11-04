@@ -320,7 +320,7 @@ final class PermissionService
      * portée globale — remplace le filtre historique sur la colonne legacy
      * users.is_admin (ex. la liste des responsables proposée dans les
      * formulaires de rapport de démission/salaire). Même définition que
-     * AuthService::hasOwnerRole() (rôle is_system en portée globale, pas un
+     * User::isOwner() (rôle is_system en portée globale, pas un
      * slug codé en dur) pour ne jamais diverger de ce qui fait réellement foi
      * pour l'autorisation.
      * @return int[]
