@@ -100,6 +100,9 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 ### Phase 3 : Authentification et autorisation
 - Authentification du kit de démarrage (connexion, réinitialisation de mot de passe), rôles via les modèles.
 - Gate/policies pour tous les droits, middleware `can:` sur les routes.
+- Inscription publique désactivée (instances privées : les comptes sont créés par les gérants). Double authentification
+  et passkeys du kit conservées, en option dans le profil (validé le 04/11/2026).
+- Droits maison (rôles, permissions par rôle, attributions globales ou par magasin), sans `spatie/laravel-permission`.
 
 ### Phase 4 : Cœur, par tranches verticales
 - Un domaine à la fois, dans l'ordre de la section 9 de l'inventaire : modèles, `FormRequest`, contrôleurs fins, vues Blade/Livewire, `JsonResource`, tests.
