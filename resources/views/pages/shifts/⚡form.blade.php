@@ -10,6 +10,7 @@ use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
 use App\Planning\ShiftWageCalculator;
+use App\Support\Money;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -55,6 +56,16 @@ new #[Title('Shift')] class extends Component {
                 ->orderBy('name')
                 ->value('id');
             $this->shift_date = now()->toDateString();
+
+            // Préremplissage depuis le calendrier : ?date=Y-m-d&store_id=…
+            $date = (string) request()->query('date', '');
+            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $parts) === 1 && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+                $this->shift_date = $date;
+            }
+            $requestedStore = (int) request()->query('store_id', 0);
+            if ($requestedStore > 0 && ($allowed === null || in_array($requestedStore, $allowed, true)) && Store::query()->whereKey($requestedStore)->exists()) {
+                $this->store_id = (string) $requestedStore;
+            }
 
             return;
         }
@@ -253,6 +264,7 @@ new #[Title('Shift')] class extends Component {
                 ->get(['id', 'name']),
             'employees' => $store === null ? collect() : $store->members()->wherePivot('is_active', true)->orderBy('users.name')->get(['users.id', 'users.name']),
             'preview' => $this->preview(),
+            'previewStore' => $store,
         ];
     }
 }; ?>
@@ -325,15 +337,15 @@ new #[Title('Shift')] class extends Component {
                 <flux:heading size="lg">{{ __('Estimated cost') }}</flux:heading>
                 @forelse ($preview['slices'] as $slice)
                     <div class="flex justify-between text-sm">
-                        <span>{{ $slice['name'] !== '' ? $slice['name'] : __('Flat rate') }} - {{ $slice['minutes'] }} min x {{ number_format($slice['rate'], 2) }}</span>
-                        <span>{{ number_format($slice['amount'], 2) }}</span>
+                        <span>{{ $slice['name'] !== '' ? $slice['name'] : __('Flat rate') }} - {{ $slice['minutes'] }} min x {{ Money::forStore($slice['rate'], $previewStore) }}</span>
+                        <span>{{ Money::forStore($slice['amount'], $previewStore) }}</span>
                     </div>
                 @empty
                     <flux:text>{{ __('No shift type covers these hours.') }}</flux:text>
                 @endforelse
                 <div class="flex justify-between font-semibold">
                     <span>{{ __('Total') }} ({{ $preview['net'] }} min)</span>
-                    <span data-test="wage-preview-total">{{ number_format($preview['total'], 2) }}</span>
+                    <span data-test="wage-preview-total">{{ Money::forStore($preview['total'], $previewStore) }}</span>
                 </div>
             </div>
         @endif

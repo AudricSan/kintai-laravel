@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\TimelinePrintController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
@@ -29,9 +30,20 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::prefix('shifts')->group(function () {
+        Route::livewire('/', 'pages::shifts.index')->middleware('can:shifts.view')->name('shifts.index');
+        Route::livewire('calendar', 'pages::shifts.calendar')->middleware('can:shifts.view')->name('shifts.calendar');
+        Route::livewire('timeline', 'pages::shifts.timeline')->middleware('can:shifts.view')->name('shifts.timeline');
+        Route::get('timeline/print', TimelinePrintController::class)->middleware('can:shifts.view')->name('shifts.timeline.print');
         Route::livewire('create', 'pages::shifts.form')->middleware('can:shifts.create')->name('shifts.create');
         Route::livewire('conflicts', 'pages::shifts.conflicts')->middleware('can:shifts.view')->name('shifts.conflicts');
         Route::livewire('{shift}/edit', 'pages::shifts.form')->middleware('can:shifts.update')->name('shifts.edit')->withTrashed();
+    });
+
+    Route::prefix('my-shifts')->group(function () {
+        Route::livewire('/', 'pages::my-shifts.index')->name('my-shifts.index');
+        Route::livewire('calendar', 'pages::my-shifts.calendar')->name('my-shifts.calendar');
+        Route::livewire('week', 'pages::my-shifts.week')->name('my-shifts.week');
+        Route::livewire('day', 'pages::my-shifts.day')->name('my-shifts.day');
     });
 
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {

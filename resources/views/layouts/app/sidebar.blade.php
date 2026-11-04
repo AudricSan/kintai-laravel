@@ -36,6 +36,26 @@
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
+
+                <flux:sidebar.group :heading="__('Planning')" class="grid">
+                    @can('shifts.view')
+                        <flux:sidebar.item icon="queue-list" :href="route('shifts.index')" :current="request()->routeIs('shifts.index', 'shifts.create', 'shifts.edit')" wire:navigate>
+                            {{ __('Shifts') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="calendar-days" :href="route('shifts.calendar')" :current="request()->routeIs('shifts.calendar')" wire:navigate>
+                            {{ __('Calendar') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="chart-bar" :href="route('shifts.timeline')" :current="request()->routeIs('shifts.timeline')" wire:navigate>
+                            {{ __('Timeline') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="exclamation-triangle" :href="route('shifts.conflicts')" :current="request()->routeIs('shifts.conflicts')" wire:navigate>
+                            {{ __('Conflicts') }}
+                        </flux:sidebar.item>
+                    @endcan
+                    <flux:sidebar.item icon="clock" :href="route('my-shifts.index')" :current="request()->routeIs('my-shifts.*')" wire:navigate>
+                        {{ __('My shifts') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
             </flux:sidebar.nav>
 
             <flux:spacer />

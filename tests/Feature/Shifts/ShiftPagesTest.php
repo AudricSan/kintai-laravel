@@ -183,7 +183,7 @@ class ShiftPagesTest extends TestCase
         $this->actingAs($accountant);
         $this->fill(Livewire::test('pages::shifts.form'))
             ->assertSeeHtml('data-test="wage-preview-total"')
-            ->assertSee('70.00')
+            ->assertSee('70,00 €')
             ->assertDontSeeHtml('data-test="overrides-section"');
     }
 
