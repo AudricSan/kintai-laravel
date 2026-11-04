@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Authorization\Authorizer;
 use App\Casts\TimeOfDay;
+use App\Support\Locales;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -64,7 +66,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
     'quiet_hours_start', 'quiet_hours_end', 'share_email', 'share_phone', 'share_mobile_phone',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+class User extends Authenticatable implements HasLocalePreference, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
@@ -100,6 +102,14 @@ class User extends Authenticatable implements PasskeyUser
         return Attribute::make(
             set: fn (?string $value): ?string => $value === null || trim($value) === '' ? null : Str::lower(trim($value)),
         );
+    }
+
+    /**
+     * Langue des e-mails et notifications envoyés à cet utilisateur ; à défaut, celle de l'instance.
+     */
+    public function preferredLocale(): string
+    {
+        return Locales::isSupported($this->locale) ? (string) $this->locale : (string) config('app.locale');
     }
 
     /**

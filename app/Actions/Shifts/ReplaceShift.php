@@ -52,7 +52,7 @@ class ReplaceShift
 
         $old->replaceWith($replacement);
 
-        ShiftReplaced::dispatch($old->id, $replacement->id);
+        ShiftReplaced::dispatch($old->id, $replacement->id, $actor->id);
 
         return $replacement;
     }

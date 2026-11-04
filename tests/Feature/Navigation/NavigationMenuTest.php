@@ -56,7 +56,7 @@ class NavigationMenuTest extends TestCase
     {
         $employee = $this->employeeOf($this->store);
 
-        $this->assertSame(['dashboard', 'my-shifts', 'settings'], $this->keys($employee));
+        $this->assertSame(['dashboard', 'my-shifts', 'notifications', 'settings'], $this->keys($employee));
         $this->assertSame(['main', 'planning', 'account'], $this->sectionKeys($employee));
     }
 
@@ -65,7 +65,7 @@ class NavigationMenuTest extends TestCase
         $manager = $this->managerOf($this->store);
 
         $this->assertSame(
-            ['dashboard', 'shifts', 'calendar', 'timeline', 'conflicts', 'shift-types', 'my-shifts', 'employees', 'stores', 'settings'],
+            ['dashboard', 'shifts', 'calendar', 'timeline', 'conflicts', 'shift-types', 'my-shifts', 'employees', 'stores', 'notifications', 'settings'],
             $this->keys($manager),
         );
         $this->assertNotContains('system', $this->sectionKeys($manager));

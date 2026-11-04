@@ -1,10 +1,17 @@
 <?php
 
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\NotificationOpenController;
+use App\Http\Controllers\NotificationUnsubscribeController;
 use App\Http\Controllers\TimelinePrintController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
+
+// Désabonnement e-mail : sans connexion, protégé par la signature du lien (sans expiration, comme l'ancienne version).
+// Le POST sert aussi au « one-click » des clients de messagerie (en-tête List-Unsubscribe-Post), exclu du CSRF.
+Route::get('notifications/unsubscribe', [NotificationUnsubscribeController::class, 'show'])->name('notifications.unsubscribe');
+Route::post('notifications/unsubscribe', [NotificationUnsubscribeController::class, 'confirm'])->name('notifications.unsubscribe.confirm');
 
 Route::middleware(['auth'])->group(function () {
     // `audience` : « auto » = tableau gérant pour un gérant ou un Owner, tableau employé sinon.
@@ -12,6 +19,9 @@ Route::middleware(['auth'])->group(function () {
     Route::livewire('dashboard/employee', 'pages::dashboard.show')->defaults('audience', 'employee')->name('dashboard.employee');
 
     Route::livewire('requests', 'pages::requests.index')->name('requests.index');
+
+    Route::livewire('notifications', 'pages::notifications.index')->name('notifications.index');
+    Route::get('notifications/{notification}/open', NotificationOpenController::class)->name('notifications.open');
 
     Route::get('avatar/{user}', [AvatarController::class, 'show'])->name('avatar.show');
 

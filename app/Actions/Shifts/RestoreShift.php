@@ -38,7 +38,7 @@ class RestoreShift
             throw ValidationException::withMessages(['shift' => __('This shift was replaced by another shift and cannot be restored.')]);
         }
 
-        ShiftRestored::dispatch($shift->id);
+        ShiftRestored::dispatch($shift->id, $actor->id);
 
         return $shift;
     }

@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Le « one-click » des clients de messagerie poste sans jeton CSRF : la signature du lien fait foi.
+        $middleware->validateCsrfTokens(except: ['notifications/unsubscribe']);
+
         $middleware->web(append: [
             AuthenticateSession::class,
             EnsureAccountIsActive::class,

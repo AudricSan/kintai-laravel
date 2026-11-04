@@ -159,6 +159,21 @@ class Shift extends Model
     }
 
     /**
+     * Créneau en heures locales de l'instance : magasin, jour de rattachement, début et fin "H:i".
+     *
+     * @return array{store_id: int, date: string, start: string, end: string}
+     */
+    public function slot(): array
+    {
+        return [
+            'store_id' => $this->store_id,
+            'date' => $this->shift_date->toDateString(),
+            'start' => $this->localStartsAt->format('H:i'),
+            'end' => $this->localEndsAt->format('H:i'),
+        ];
+    }
+
+    /**
      * Shifts ouverts (sans employé).
      *
      * @param  Builder<Shift>  $query

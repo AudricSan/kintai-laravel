@@ -32,6 +32,6 @@ class DeleteShift
 
         $shift->delete();
 
-        ShiftDeleted::dispatch($shift->id);
+        ShiftDeleted::dispatch($shift->id, $actor->id);
     }
 }

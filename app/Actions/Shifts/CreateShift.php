@@ -29,7 +29,7 @@ class CreateShift
         $shift = $this->preparer->prepare($actor, $input, null, $force);
         $shift->save();
 
-        ShiftCreated::dispatch($shift->id);
+        ShiftCreated::dispatch($shift->id, $actor->id);
 
         return $shift;
     }

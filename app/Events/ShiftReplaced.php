@@ -11,5 +11,9 @@ class ShiftReplaced
 {
     use Dispatchable;
 
-    public function __construct(public readonly int $replacedShiftId, public readonly int $replacementShiftId) {}
+    public function __construct(
+        public readonly int $replacedShiftId,
+        public readonly int $replacementShiftId,
+        public readonly ?int $actorId = null,
+    ) {}
 }

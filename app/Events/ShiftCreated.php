@@ -11,5 +11,5 @@ class ShiftCreated
 {
     use Dispatchable;
 
-    public function __construct(public readonly int $shiftId) {}
+    public function __construct(public readonly int $shiftId, public readonly ?int $actorId = null) {}
 }

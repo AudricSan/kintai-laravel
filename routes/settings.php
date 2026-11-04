@@ -10,6 +10,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::livewire('settings/navigation', 'pages::settings.navigation')->name('navigation.edit');
 
+    Route::livewire('settings/notifications', 'pages::settings.notifications')->name('notification-preferences.edit');
+
     Route::livewire('settings/availability', 'pages::settings.availability')->name('availability.edit');
 
     Route::livewire('settings/security', 'pages::settings.security')

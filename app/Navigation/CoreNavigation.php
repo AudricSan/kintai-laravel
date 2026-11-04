@@ -37,9 +37,11 @@ final class CoreNavigation
         // Zone réservée à l'Owner : jamais masquable, comme les réglages de l'ancienne version.
         $registry->register(new NavigationItem('roles', 'Roles', 'roles.index', 'shield-check', NavigationRegistry::SECTION_SYSTEM, 10, 'manage-roles', hideable: false, current: ['roles.*']));
 
+        $registry->register(new NavigationItem('notifications', 'Notifications', 'notifications.index', 'bell', NavigationRegistry::SECTION_ACCOUNT, 5, current: ['notifications.index']));
+
         $registry->register(new NavigationItem(
             'settings', 'Settings', 'profile.edit', 'cog', NavigationRegistry::SECTION_ACCOUNT, 10,
-            hideable: false, current: ['profile.edit', 'availability.edit', 'security.edit', 'appearance.edit', 'navigation.edit'],
+            hideable: false, current: ['profile.edit', 'availability.edit', 'security.edit', 'appearance.edit', 'navigation.edit', 'notification-preferences.edit'],
         ));
     }
 }

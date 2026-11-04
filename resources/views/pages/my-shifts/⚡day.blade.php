@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Shift;
+use App\Notifications\NotificationInbox;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
@@ -13,16 +14,35 @@ new #[Title('My day')] class extends Component {
     public function mount(): void
     {
         $this->date = (string) request()->query('date', '') ?: now()->toDateString();
+        $this->markSeen();
+    }
+
+    /**
+     * L'employé vient de voir ce jour : les notifications de ses shifts du jour, et celles qui annoncent
+     * un shift supprimé ce jour-là, sont lues.
+     */
+    private function markSeen(): void
+    {
+        $user = Auth::user();
+        $day = $this->day();
+        $inbox = app(NotificationInbox::class);
+
+        $shiftIds = Shift::query()->where('user_id', $user->id)->whereDate('shift_date', $day->toDateString())->pluck('id')->all();
+
+        $inbox->markReadFor($user, 'shift', $shiftIds);
+        $inbox->markReadFor($user, 'shift_day', (int) $day->format('Ymd'));
     }
 
     public function previousDay(): void
     {
         $this->date = $this->day()->subDay()->toDateString();
+        $this->markSeen();
     }
 
     public function nextDay(): void
     {
         $this->date = $this->day()->addDay()->toDateString();
+        $this->markSeen();
     }
 
     private function day(): CarbonImmutable
