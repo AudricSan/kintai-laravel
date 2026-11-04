@@ -56,7 +56,7 @@ class NavigationMenuTest extends TestCase
     {
         $employee = $this->employeeOf($this->store);
 
-        $this->assertSame(['dashboard', 'my-shifts', 'notifications', 'settings'], $this->keys($employee));
+        $this->assertSame(['dashboard', 'exports', 'my-shifts', 'notifications', 'settings'], $this->keys($employee));
         $this->assertSame(['main', 'planning', 'account'], $this->sectionKeys($employee));
     }
 
@@ -65,7 +65,7 @@ class NavigationMenuTest extends TestCase
         $manager = $this->managerOf($this->store);
 
         $this->assertSame(
-            ['dashboard', 'shifts', 'calendar', 'timeline', 'conflicts', 'shift-types', 'my-shifts', 'employees', 'stores', 'activity', 'notifications', 'settings'],
+            ['dashboard', 'exports', 'shifts', 'calendar', 'timeline', 'conflicts', 'shift-types', 'my-shifts', 'employees', 'stores', 'activity', 'notifications', 'settings'],
             $this->keys($manager),
         );
         $this->assertNotContains('roles', $this->keys($manager));
@@ -105,7 +105,7 @@ class NavigationMenuTest extends TestCase
     {
         app(NavigationRegistry::class)->register(new NavigationItem('early', 'Early', 'shifts.index', 'bolt', NavigationRegistry::SECTION_PLANNING, 5));
 
-        $this->assertSame(['dashboard', 'early', 'shifts'], array_slice($this->keys($this->managerOf($this->store)), 0, 3));
+        $this->assertSame(['dashboard', 'exports', 'early', 'shifts'], array_slice($this->keys($this->managerOf($this->store)), 0, 4));
     }
 
     public function test_sidebar_is_rendered_from_the_registry(): void

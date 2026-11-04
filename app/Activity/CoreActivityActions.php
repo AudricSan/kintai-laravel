@@ -49,6 +49,13 @@ final class CoreActivityActions
                 'role.deleted' => 'Role deleted',
                 'role.holders_changed' => 'Role holders changed',
             ],
+            'Exports and calendar' => [
+                'export.downloaded' => 'Data exported',
+                'export.schedule' => 'Own schedule exported',
+                'export.personal_data' => 'Personal data exported',
+                'ical.token_regenerated' => 'Calendar link generated',
+                'ical.token_deleted' => 'Calendar link deleted',
+            ],
             'Activity log' => [
                 'activity.exported' => 'Activity log exported',
                 'activity.purged' => 'Activity log purged',

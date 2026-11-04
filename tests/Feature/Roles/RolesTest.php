@@ -224,6 +224,54 @@ class RolesTest extends TestCase
         $this->assertNull($role->fresh());
     }
 
+    public function test_opening_the_role_deletion_confirmation_changes_nothing_and_confirming_deletes(): void
+    {
+        $role = $this->customRole([]);
+        $this->actingAs($this->owner());
+
+        $page = Livewire::test('pages::roles.index')
+            ->call('confirmDelete', $role->id)
+            ->assertSet('pendingRoleId', $role->id);
+        $this->assertNotNull($role->fresh());
+        $this->assertStringNotContainsString('wire:confirm', $page->html());
+
+        $page->call('deletePending');
+        $this->assertNull($role->fresh());
+    }
+
+    public function test_opening_the_holder_removal_confirmation_changes_nothing_and_confirming_removes(): void
+    {
+        $role = $this->customRole([]);
+        $user = User::factory()->create();
+        $this->store->members()->attach($user);
+        $assignment = $user->assignRole($role, $this->store);
+        $this->actingAs($this->owner());
+
+        $page = Livewire::test('pages::roles.form', ['role' => $role])
+            ->call('confirmRemoveHolder', $assignment->id)
+            ->assertSet('pendingAssignmentId', $assignment->id);
+        $this->assertSame(1, $role->assignments()->count());
+        $this->assertStringNotContainsString('wire:confirm', $page->html());
+
+        $page->call('removePendingHolder');
+        $this->assertSame(0, $role->assignments()->count());
+    }
+
+    public function test_the_holder_confirmation_refuses_an_assignment_of_another_role(): void
+    {
+        $role = $this->customRole([]);
+        $other = $this->customRole([]);
+        $user = User::factory()->create();
+        $this->store->members()->attach($user);
+        $assignment = $user->assignRole($other, $this->store);
+        $this->actingAs($this->owner());
+
+        Livewire::test('pages::roles.form', ['role' => $role])
+            ->call('confirmRemoveHolder', $assignment->id)
+            ->assertStatus(404);
+        $this->assertSame(1, $other->assignments()->count());
+    }
+
     public function test_holders_can_be_added_and_removed(): void
     {
         $role = $this->customRole([]);

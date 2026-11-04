@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Events\UserAnonymized;
+use App\Models\IcalToken;
 use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,7 @@ class AnonymizeUser
             $user->webPushSubscriptions()->delete();
             $user->devicePushTokens()->delete();
             RoleAssignment::query()->where('user_id', $user->id)->delete();
+            IcalToken::query()->where('user_id', $user->id)->delete();
 
             app(RevokeUserSessions::class)->handle($user);
 

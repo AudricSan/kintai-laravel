@@ -100,6 +100,25 @@ new #[Title('Role')] class extends Component {
         Flux::toast(variant: 'success', text: __('Holder added.'));
     }
 
+    /** Attribution visée par la modale de confirmation ouverte. */
+    #[Locked]
+    public int $pendingAssignmentId = 0;
+
+    public function confirmRemoveHolder(int $assignmentId): void
+    {
+        $role = $this->role();
+        abort_if($role === null, 404);
+
+        $this->pendingAssignmentId = $role->assignments()->findOrFail($assignmentId)->id;
+        Flux::modal('confirm-holder-removal')->show();
+    }
+
+    public function removePendingHolder(ManageRoleHolders $holders): void
+    {
+        $this->removeHolder($this->pendingAssignmentId, $holders);
+        Flux::modal('confirm-holder-removal')->close();
+    }
+
     public function removeHolder(int $assignmentId, ManageRoleHolders $holders): void
     {
         $this->resetErrorBag();
@@ -198,7 +217,7 @@ new #[Title('Role')] class extends Component {
                             <flux:table.cell>{{ $assignment->user->name }}</flux:table.cell>
                             <flux:table.cell>{{ $assignment->store?->name ?? __('Global') }}</flux:table.cell>
                             <flux:table.cell>
-                                <flux:button size="sm" variant="danger" wire:click="removeHolder({{ $assignment->id }})" wire:confirm="{{ __('Remove this holder?') }}">
+                                <flux:button size="sm" variant="danger" wire:click="confirmRemoveHolder({{ $assignment->id }})" data-test="remove-holder-button">
                                     {{ __('Remove') }}
                                 </flux:button>
                             </flux:table.cell>
@@ -230,6 +249,19 @@ new #[Title('Role')] class extends Component {
             </form>
             @error('holder_user') <flux:text class="text-red-500">{{ $message }}</flux:text> @enderror
             @error('holder_store') <flux:text class="text-red-500">{{ $message }}</flux:text> @enderror
+
+        <flux:modal name="confirm-holder-removal" class="max-w-lg">
+            <div class="space-y-6">
+                <div>
+                    <flux:heading size="lg">{{ __('Remove this holder?') }}</flux:heading>
+                    <flux:subheading>{{ __('The user loses this role in this scope.') }}</flux:subheading>
+                </div>
+                <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+                    <flux:modal.close><flux:button variant="filled">{{ __('Cancel') }}</flux:button></flux:modal.close>
+                    <flux:button variant="danger" wire:click="removePendingHolder" data-test="confirm-remove-holder-button">{{ __('Remove') }}</flux:button>
+                </div>
+            </div>
+        </flux:modal>
         </div>
     @endif
 </section>

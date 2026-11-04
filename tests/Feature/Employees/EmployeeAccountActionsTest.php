@@ -67,6 +67,20 @@ class EmployeeAccountActionsTest extends TestCase
         Event::assertDispatched(EmployeePasswordReset::class, fn (EmployeePasswordReset $e): bool => $e->userId === $employee->id);
     }
 
+    public function test_opening_the_password_reset_confirmation_changes_nothing_and_confirming_resets(): void
+    {
+        $employee = $this->employeeOf($this->storeA, ['must_change_password' => false]);
+        $this->actingAs($this->managerOf($this->storeA));
+
+        $page = Livewire::test('pages::employees.edit', ['user' => $employee])->call('confirmResetPassword');
+        $this->assertFalse($employee->fresh()->must_change_password);
+        $this->assertStringNotContainsString('Reset the password to 0000 and sign the employee out everywhere?" data-test', $page->html());
+        $this->assertStringNotContainsString('wire:confirm', $page->html());
+
+        $page->call('resetPassword');
+        $this->assertTrue($employee->fresh()->must_change_password);
+    }
+
     public function test_reset_keeps_the_flag_when_it_was_already_set(): void
     {
         $employee = $this->employeeOf($this->storeA, ['must_change_password' => true]);

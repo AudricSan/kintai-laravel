@@ -130,7 +130,14 @@ des trois), **push_subscriptions** (canal Web Push), **device_push_tokens** (`us
 null), `properties` (json : noms, avant/après), `ip_address`, `user_agent` (255 max), `created_at` ; index (`action`),
 (`actor_id`, `created_at`), (`store_id`, `created_at`), (`subject_type`, `subject_id`), (`created_at`).
 
-**ical_tokens** : `user_id`, `store_id` (cascade), `token` unique, timestamps ; unicité (`user_id`, `store_id`).
+**ical_tokens** : `user_id`, `store_id` (cascade), `token_hash` (SHA-256 du jeton, `char(64)`, unique), timestamps ;
+unicité (`user_id`, `store_id`). Choix de la reconstruction : l'ancienne version stockait le jeton en clair ; ici seule
+l'empreinte est conservée, le jeton (64 caractères hexadécimaux) n'est montré qu'une fois, à la création ou à la
+régénération, et la régénération invalide l'ancien. Flux public `GET /ical/{jeton}/{magasin}/shifts.ics` (hors du groupe
+`web` : ni session ni cookie ; 60 requêtes par minute et par IP) : 404 identique pour un jeton inconnu, un magasin qui ne
+correspond pas, un employé inactif ou supprimé, un magasin supprimé ou une appartenance retirée ou désactivée. Période
+publiée : 60 jours avant à 365 jours après aujourd'hui ; shifts supprimés depuis moins de 30 jours publiés `CANCELLED`
+(`SEQUENCE` = `ical_sequence` + 1) ; congés en journée entière via le contrat `TimeOffProvider` (vide sans bundle).
 
 ### Tableau de bord, navigation, réglages
 **dashboard_layouts** : `user_id` nullable (cascade), `role_id` nullable (cascade ; disposition imposée par rôle),

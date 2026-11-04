@@ -31,6 +31,9 @@ final class CoreNavigation
             visible: fn (User $user): bool => ! $requests->isEmpty(),
         ));
 
+        // Ouvert à tout utilisateur connecté : chacun peut au moins exporter ses propres données.
+        $registry->register(new NavigationItem('exports', 'Exports', 'exports.index', 'arrow-down-tray', $main, 20));
+
         $registry->register(new NavigationItem('employees', 'Employees', 'employees.index', 'users', $hr, 10, 'employees.view', current: ['employees.*']));
         $registry->register(new NavigationItem('stores', 'Stores', 'stores.index', 'building-storefront', $hr, 20, 'stores.view', current: ['stores.*']));
 
@@ -43,7 +46,7 @@ final class CoreNavigation
 
         $registry->register(new NavigationItem(
             'settings', 'Settings', 'profile.edit', 'cog', NavigationRegistry::SECTION_ACCOUNT, 10,
-            hideable: false, current: ['profile.edit', 'availability.edit', 'security.edit', 'appearance.edit', 'navigation.edit', 'notification-preferences.edit'],
+            hideable: false, current: ['profile.edit', 'availability.edit', 'security.edit', 'appearance.edit', 'navigation.edit', 'notification-preferences.edit', 'calendar.edit', 'data.edit'],
         ));
     }
 }

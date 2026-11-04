@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityExportController;
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\NotificationOpenController;
 use App\Http\Controllers\NotificationUnsubscribeController;
 use App\Http\Controllers\PushSubscriptionController;
@@ -34,6 +35,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('push/status', [PushSubscriptionController::class, 'status'])->name('push.status');
     Route::post('push/subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1')->name('push.subscriptions.store');
     Route::delete('push/subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push.subscriptions.destroy');
+
+    // Exports : droits décidés par jeu de données et par magasin (ExportAccess), chacun exporte au moins ses données.
+    Route::livewire('exports', 'pages::exports.index')->name('exports.index');
+    Route::get('exports/download', ExportController::class)->middleware('throttle:30,1')->name('exports.download');
 
     Route::get('avatar/{user}', [AvatarController::class, 'show'])->name('avatar.show');
 

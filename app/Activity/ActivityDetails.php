@@ -34,6 +34,11 @@ final class ActivityDetails
         'kept_days' => 'Days kept',
         'deleted' => 'Deleted entries',
         'filters' => 'Filters',
+        'dataset' => 'Data set',
+        'format' => 'Format',
+        'stores' => 'Stores',
+        'from' => 'From',
+        'to' => 'To',
     ];
 
     private const CHANGES = ['added' => 'Added', 'removed' => 'Removed'];

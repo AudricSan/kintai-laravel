@@ -188,7 +188,7 @@ final class ShiftWageCalculator
     /**
      * @return Collection<int, ShiftType>
      */
-    private function activeTypes(int $storeId): Collection
+    public function activeTypes(int $storeId): Collection
     {
         return ShiftType::query()
             ->where('is_active', true)
@@ -201,7 +201,7 @@ final class ShiftWageCalculator
     /**
      * @return array<int, float>
      */
-    private function personalRates(?User $user): array
+    public function personalRates(?User $user): array
     {
         if ($user === null) {
             return [];

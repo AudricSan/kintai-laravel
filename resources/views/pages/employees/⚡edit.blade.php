@@ -4,9 +4,12 @@ use App\Actions\Employees\DeleteEmployee;
 use App\Actions\Employees\ResetEmployeePassword;
 use App\Actions\Employees\UpdateEmployee;
 use App\Actions\Employees\UpdateEmployeeRates;
+use App\Actions\Ical\DeleteIcalToken;
+use App\Actions\Ical\GenerateIcalToken;
 use App\Authorization\Authorizer;
 use App\Authorization\PasswordDefaults;
 use App\Concerns\EmployeeValidationRules;
+use App\Models\IcalToken;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\User;
@@ -51,6 +54,10 @@ new #[Title('Edit employee')] class extends Component {
     public array $hr = [];
 
     public string $password = '';
+
+    /** Liens iCal montrés une seule fois, juste après leur régénération (seule l'empreinte est stockée). @var array<int, string> */
+    #[Locked]
+    public array $revealedIcal = [];
 
     public bool $must_change = true;
 
@@ -165,11 +172,18 @@ new #[Title('Edit employee')] class extends Component {
         Flux::toast(variant: 'success', text: __('Employee saved.'));
     }
 
+    public function confirmResetPassword(): void
+    {
+        // Le droit est revérifié par l'action ; ouvrir la modale ne change rien.
+        Flux::modal('confirm-password-reset')->show();
+    }
+
     public function resetPassword(ResetEmployeePassword $resetPassword): void
     {
         $resetPassword->handle(Auth::user(), $this->employee());
 
         $this->reset('password');
+        Flux::modal('confirm-password-reset')->close();
         Flux::toast(variant: 'success', text: __('Password reset to :password.', ['password' => PasswordDefaults::DEFAULT_PASSWORD]));
     }
 
@@ -190,6 +204,56 @@ new #[Title('Edit employee')] class extends Component {
 
         $this->fillRates($user);
         Flux::toast(variant: 'success', text: __('Hourly rates saved.'));
+    }
+
+    /** Magasin visé par la modale de confirmation ouverte. */
+    #[Locked]
+    public int $pendingIcalStoreId = 0;
+
+    public function confirmRegenerateIcal(int $storeId): void
+    {
+        $this->pendingIcalStoreId = $this->employee()->stores()->where('stores.id', $storeId)->firstOrFail()->id;
+        Flux::modal('confirm-ical-regenerate')->show();
+    }
+
+    public function confirmDeleteIcal(int $storeId): void
+    {
+        $this->pendingIcalStoreId = $this->employee()->stores()->where('stores.id', $storeId)->firstOrFail()->id;
+        Flux::modal('confirm-ical-delete')->show();
+    }
+
+    public function regeneratePendingIcal(GenerateIcalToken $generate): void
+    {
+        $this->regenerateIcal($this->pendingIcalStoreId, $generate);
+        Flux::modal('confirm-ical-regenerate')->close();
+    }
+
+    public function deletePendingIcal(DeleteIcalToken $delete): void
+    {
+        $this->deleteIcal($this->pendingIcalStoreId, $delete);
+        Flux::modal('confirm-ical-delete')->close();
+    }
+
+    public function regenerateIcal(int $storeId, GenerateIcalToken $generate): void
+    {
+        $user = $this->employee();
+        $store = $user->stores()->where('stores.id', $storeId)->firstOrFail();
+
+        $token = $generate->handle(Auth::user(), $user, $store);
+        $this->revealedIcal[$store->id] = route('ical.feed', ['token' => $token, 'store' => $store->id]);
+
+        Flux::toast(variant: 'success', text: __('Calendar link generated. Copy it now: it will not be shown again.'));
+    }
+
+    public function deleteIcal(int $storeId, DeleteIcalToken $delete): void
+    {
+        $user = $this->employee();
+        $store = $user->stores()->where('stores.id', $storeId)->firstOrFail();
+
+        $delete->handle(Auth::user(), $user, $store);
+        unset($this->revealedIcal[$store->id]);
+
+        Flux::toast(variant: 'success', text: __('Calendar link deleted.'));
     }
 
     public function delete(DeleteEmployee $deleteEmployee): void
@@ -233,6 +297,8 @@ new #[Title('Edit employee')] class extends Component {
             'storeRows' => $storeRows,
             'shiftTypes' => $canUpdate ? app(UpdateEmployeeRates::class)->eligibleShiftTypes($actor, $user) : collect(),
             'defaultPassword' => PasswordDefaults::DEFAULT_PASSWORD,
+            'icalStores' => $canUpdate ? $stores->filter(fn ($store): bool => $authorizer->allows($actor, 'employees.update', $store)) : collect(),
+            'icalLinked' => IcalToken::query()->where('user_id', $user->id)->pluck('store_id')->all(),
         ];
     }
 }; ?>
@@ -328,10 +394,23 @@ new #[Title('Edit employee')] class extends Component {
             <flux:heading size="lg">{{ __('Password') }}</flux:heading>
 
             <div>
-                <flux:button wire:click="resetPassword" wire:confirm="{{ __('Reset the password to :password and sign the employee out everywhere?', ['password' => $defaultPassword]) }}" data-test="reset-password-button">
+                <flux:button wire:click="confirmResetPassword" data-test="reset-password-button">
                     {{ __('Reset to :password', ['password' => $defaultPassword]) }}
                 </flux:button>
             </div>
+
+            <flux:modal name="confirm-password-reset" class="max-w-lg">
+                <div class="space-y-6">
+                    <div>
+                        <flux:heading size="lg">{{ __('Reset the password?') }}</flux:heading>
+                        <flux:subheading>{{ __('Reset the password to :password and sign the employee out everywhere?', ['password' => $defaultPassword]) }}</flux:subheading>
+                    </div>
+                    <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+                        <flux:modal.close><flux:button variant="filled">{{ __('Cancel') }}</flux:button></flux:modal.close>
+                        <flux:button variant="danger" wire:click="resetPassword" data-test="confirm-reset-password-button">{{ __('Reset to :password', ['password' => $defaultPassword]) }}</flux:button>
+                    </div>
+                </div>
+            </flux:modal>
 
             <form wire:submit="setPassword" class="space-y-4">
                 <flux:input wire:model="password" :label="__('New password')" type="password" viewable autocomplete="new-password" />
@@ -356,6 +435,56 @@ new #[Title('Edit employee')] class extends Component {
 
                 <flux:button type="submit" data-test="save-rates-button">{{ __('Save rates') }}</flux:button>
             </form>
+        @endif
+
+        @if ($icalStores->isNotEmpty())
+            <div class="space-y-4" data-test="ical-section">
+                <flux:heading size="lg">{{ __('Calendar links') }}</flux:heading>
+                <flux:subheading>{{ __('Generating a new link stops the previous one from working. The employee can also manage their links in their settings.') }}</flux:subheading>
+
+                @foreach ($icalStores as $store)
+                    <div class="space-y-2" wire:key="ical-{{ $store->id }}" data-test="ical-store-{{ $store->id }}">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="min-w-40 font-medium">{{ $store->name }}</span>
+                            <flux:text size="sm">{{ in_array($store->id, $icalLinked, true) ? __('A link is active.') : __('No link yet.') }}</flux:text>
+                            <flux:button size="sm" wire:click="confirmRegenerateIcal({{ $store->id }})" data-test="ical-regenerate-{{ $store->id }}">{{ __('Generate a new link') }}</flux:button>
+                            @if (in_array($store->id, $icalLinked, true))
+                                <flux:button size="sm" variant="danger" wire:click="confirmDeleteIcal({{ $store->id }})" data-test="ical-delete-{{ $store->id }}">{{ __('Delete the link') }}</flux:button>
+                            @endif
+                        </div>
+                        @if (isset($revealedIcal[$store->id]))
+                            <flux:input :value="$revealedIcal[$store->id]" readonly copyable :label="__('Calendar link')" data-test="ical-url-{{ $store->id }}" />
+                            <flux:text size="sm">{{ __('Copy it now: it will not be shown again.') }}</flux:text>
+                        @endif
+                    </div>
+                @endforeach
+
+                <flux:modal name="confirm-ical-regenerate" class="max-w-lg">
+                    <div class="space-y-6">
+                        <div>
+                            <flux:heading size="lg">{{ __('Generate a new link?') }}</flux:heading>
+                            <flux:subheading>{{ __('The previous link will stop working.') }}</flux:subheading>
+                        </div>
+                        <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+                            <flux:modal.close><flux:button variant="filled">{{ __('Cancel') }}</flux:button></flux:modal.close>
+                            <flux:button variant="primary" wire:click="regeneratePendingIcal" data-test="confirm-ical-regenerate">{{ __('Generate a new link') }}</flux:button>
+                        </div>
+                    </div>
+                </flux:modal>
+
+                <flux:modal name="confirm-ical-delete" class="max-w-lg">
+                    <div class="space-y-6">
+                        <div>
+                            <flux:heading size="lg">{{ __('Delete this calendar link?') }}</flux:heading>
+                            <flux:subheading>{{ __('Calendars using it will stop receiving your shifts.') }}</flux:subheading>
+                        </div>
+                        <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+                            <flux:modal.close><flux:button variant="filled">{{ __('Cancel') }}</flux:button></flux:modal.close>
+                            <flux:button variant="danger" wire:click="deletePendingIcal" data-test="confirm-ical-delete">{{ __('Delete the link') }}</flux:button>
+                        </div>
+                    </div>
+                </flux:modal>
+            </div>
         @endif
     @endif
 

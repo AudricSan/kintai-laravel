@@ -5,6 +5,7 @@ use App\Models\Role;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -12,6 +13,22 @@ new #[Title('Roles')] class extends Component {
     public function mount(): void
     {
         abort_unless(Gate::allows('manage-roles'), 403);
+    }
+
+    /** Rôle visé par la modale de confirmation ouverte. */
+    #[Locked]
+    public int $pendingRoleId = 0;
+
+    public function confirmDelete(int $roleId): void
+    {
+        $this->pendingRoleId = Role::query()->findOrFail($roleId)->id;
+        Flux::modal('confirm-role-deletion')->show();
+    }
+
+    public function deletePending(DeleteRole $deleteRole): void
+    {
+        $this->delete($this->pendingRoleId, $deleteRole);
+        Flux::modal('confirm-role-deletion')->close();
     }
 
     public function delete(int $roleId, DeleteRole $deleteRole): void
@@ -73,7 +90,7 @@ new #[Title('Roles')] class extends Component {
                     <flux:table.cell>{{ $role->assignments_count }}</flux:table.cell>
                     <flux:table.cell>
                         @unless ($role->is_system)
-                            <flux:button size="sm" variant="danger" wire:click="delete({{ $role->id }})" wire:confirm="{{ __('Delete this role?') }}" data-test="delete-role-button">
+                            <flux:button size="sm" variant="danger" wire:click="confirmDelete({{ $role->id }})" data-test="delete-role-button">
                                 {{ __('Delete') }}
                             </flux:button>
                         @endunless
@@ -82,4 +99,17 @@ new #[Title('Roles')] class extends Component {
             @endforeach
         </flux:table.rows>
     </flux:table>
+
+    <flux:modal name="confirm-role-deletion" class="max-w-lg">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Delete this role?') }}</flux:heading>
+                <flux:subheading>{{ __('Holders lose the permissions of this role. This cannot be undone.') }}</flux:subheading>
+            </div>
+            <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+                <flux:modal.close><flux:button variant="filled">{{ __('Cancel') }}</flux:button></flux:modal.close>
+                <flux:button variant="danger" wire:click="deletePending" data-test="confirm-delete-role-button">{{ __('Delete') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </section>

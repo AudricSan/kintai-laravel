@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Activity\ActivityActionRegistry;
 use App\Activity\CoreActivityActions;
 use App\Contracts\Planning\TimeOffChecker;
+use App\Contracts\Planning\TimeOffProvider;
 use App\Dashboard\CoreWidgets;
 use App\Dashboard\DashboardWidgetRegistry;
 use App\Events\EmployeeCreated;
@@ -31,6 +32,8 @@ use App\Events\StoreMemberRemoved;
 use App\Events\StoreMemberUpdated;
 use App\Events\StoreUpdated;
 use App\Events\UserAnonymized;
+use App\Exports\CoreExportDatasets;
+use App\Exports\ExportDatasetRegistry;
 use App\Listeners\RecordActivity;
 use App\Listeners\RemovePushSubscriptionOnLogout;
 use App\Listeners\SendShiftNotifications;
@@ -41,6 +44,7 @@ use App\Navigation\NavigationRegistry;
 use App\Notifications\CoreNotificationTypes;
 use App\Notifications\NotificationTypeRegistry;
 use App\Planning\NullTimeOffChecker;
+use App\Planning\NullTimeOffProvider;
 use App\Profile\ProfileSectionRegistry;
 use App\Push\MinishlinkWebPushSender;
 use App\Push\WebPushSender;
@@ -51,9 +55,12 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
@@ -72,10 +79,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(DashboardWidgetRegistry::class);
         $this->app->singleton(NotificationTypeRegistry::class);
         $this->app->singleton(ActivityActionRegistry::class);
+        $this->app->singleton(ExportDatasetRegistry::class);
         $this->app->bind(WebPushSender::class, MinishlinkWebPushSender::class);
         $this->app->scoped(NavigationMenu::class);
         // Sans bundle de congés, personne n'est en congé ; le bundle timeoff remplace cette liaison.
         $this->app->bind(TimeOffChecker::class, NullTimeOffChecker::class);
+        // Idem pour les congés publiés dans le flux iCal.
+        $this->app->bind(TimeOffProvider::class, NullTimeOffProvider::class);
     }
 
     /**
@@ -92,6 +102,24 @@ class AppServiceProvider extends ServiceProvider
         $this->registerShiftNotifications();
         Event::listen(Logout::class, RemovePushSubscriptionOnLogout::class);
         $this->registerActivityLog();
+        $this->registerExportDatasets();
+        $this->registerRateLimiters();
+    }
+
+    /**
+     * Jeux de données exportables du Core ; les bundles y ajouteront les leurs.
+     */
+    private function registerExportDatasets(): void
+    {
+        CoreExportDatasets::registerIn($this->app->make(ExportDatasetRegistry::class), $this->app);
+    }
+
+    /**
+     * Flux iCal public : 60 lectures par minute et par adresse IP (un agenda relit environ une fois par heure).
+     */
+    private function registerRateLimiters(): void
+    {
+        RateLimiter::for('ical', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->ip()));
     }
 
     /**
@@ -196,6 +224,8 @@ class AppServiceProvider extends ServiceProvider
         $sections->register('profile', 'Profile', 'profile.edit', 10);
         $sections->register('availability', 'Availability', 'availability.edit', 15, fn (User $user): bool => $user->stores()->exists());
         $sections->register('notifications', 'Notifications', 'notification-preferences.edit', 22);
+        $sections->register('calendar', 'Calendar', 'calendar.edit', 23, fn (User $user): bool => $user->stores()->exists());
+        $sections->register('data', 'My data', 'data.edit', 35);
         $sections->register('navigation', 'Navigation', 'navigation.edit', 25);
         $sections->register('security', 'Security', 'security.edit', 20);
         $sections->register('appearance', 'Appearance', 'appearance.edit', 30);
