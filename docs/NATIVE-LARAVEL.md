@@ -1,5 +1,7 @@
 # Passage à Laravel natif
 
+> Feuille de route à jour : [`PLAN-LARAVEL-NATIF.md`](PLAN-LARAVEL-NATIF.md). Ce document reste l'inventaire de l'existant.
+
 Objectif : supprimer toute la couche maison (routeur, conteneur, requête/réponse, session, CSRF, moteur de vues,
 migrateur, traducteur, authentification…) pour obtenir une application Laravel standard. **Aucune rétrocompatibilité** :
 les instances déjà en production sont réinstallées (ou importées par `WebInstaller::import()`), et le contrat de bundle

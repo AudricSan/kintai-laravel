@@ -152,7 +152,7 @@ database/migrations/php/ → Eloquent migrations, SQLite + MySQL from one schema
 
 ## Migration to Laravel
 
-> Next goal: a fully native Laravel application, compatibility with the old core no longer preserved. Plan: [docs/NATIVE-LARAVEL.md](docs/NATIVE-LARAVEL.md).
+> Next goal: a fully native Laravel application, compatibility with the old core no longer preserved. Plan: [docs/PLAN-LARAVEL-NATIF.md](docs/PLAN-LARAVEL-NATIF.md) (inventory: [docs/NATIVE-LARAVEL.md](docs/NATIVE-LARAVEL.md)).
 
 1. **Done — Kintai runs on the Laravel kernel.** Laravel receives every request and hands it to the Kintai application
    (`app/Http/KintaiBridge.php`). Routes, middlewares, controllers, views, bundles and the bundle contract are
