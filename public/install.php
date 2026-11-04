@@ -10,8 +10,10 @@ require BASE_PATH . '/app/Support/helpers.php';
 kintai_normalize_script_name();
 
 use Illuminate\Container\Container;
+use App\Install\InstallCsrf;
 use App\Install\InstallFailure;
 use App\Install\InstallInput;
+use App\Install\InstallLock;
 use App\Install\InstallRequirements;
 use App\Install\WebInstaller;
 use App\Models\Language;
@@ -77,10 +79,9 @@ $installBase  = base_url();
 
 // Audit SEC-01 : jeton anti-CSRF sans session (double envoi) : un cookie SameSite=Strict et le même jeton dans le formulaire.
 // Un POST venu d'un autre site ne porte pas le cookie ; sans lui, rien n'est installé.
-$csrfCookie  = 'kintai_install_csrf';
-$csrfInCookie = is_string($_COOKIE[$csrfCookie] ?? null) && preg_match('/^[a-f0-9]{64}$/', $_COOKIE[$csrfCookie]) === 1;
-$csrfToken   = $csrfInCookie ? $_COOKIE[$csrfCookie] : bin2hex(random_bytes(32));
-setcookie($csrfCookie, $csrfToken, ['expires' => 0, 'path' => '/', 'secure' => $scheme === 'https', 'httponly' => true, 'samesite' => 'Strict']);
+$csrf      = new InstallCsrf($_COOKIE);
+$csrfToken = $csrf->token();
+setcookie(InstallCsrf::COOKIE, $csrfToken, ['expires' => 0, 'path' => '/', 'secure' => $scheme === 'https', 'httponly' => true, 'samesite' => 'Strict']);
 
 // Audit SEC-06 : l'adresse publique est confirmée par l'administrateur (préremplie), jamais prise telle quelle du Host.
 $defaultPublicUrl = (string) (PublicUrlResolver::normalize($scheme . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . $installBase) ?? '');
@@ -89,9 +90,7 @@ $publicUrlInput   = is_string($_POST['public_url'] ?? null) ? trim($_POST['publi
 // Changement de langue (sélecteur du formulaire) : la page est seulement réaffichée, rien n'est installé.
 $switchingLanguage = isset($_POST['switch_language']);
 
-$csrfOk = $csrfInCookie && is_string($_POST['_install_token'] ?? null) && hash_equals($csrfToken, $_POST['_install_token']);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage && !$csrfOk) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage && !$csrf->verifies($_POST)) {
     $errors[] = __('install_error_csrf');
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage) {
     $input = InstallInput::fromPost($_POST, $defaultLocale);
@@ -103,8 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$switchingLanguage && !$csrfOk) {
 
     // Une seule installation à la fois (deux POST simultanés ne doivent pas écrire en même temps la base et le .env),
     // et jamais sur une instance que l'autre requête vient d'installer.
-    $runLock = @fopen(BASE_PATH . '/storage/install.running', 'c');
-    if ($runLock !== false && (!flock($runLock, LOCK_EX | LOCK_NB) || file_exists($installedLockFile))) {
+    $installLock = new InstallLock(BASE_PATH);
+    if (!$installLock->acquire()) {
         $errors[] = __('install_error_busy');
     }
 
