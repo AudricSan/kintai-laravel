@@ -25,7 +25,15 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
    le JavaScript maison (~4800 lignes) là où l'écran est interactif : planning, pointage, formulaires dynamiques,
    filtres. Pas d'Inertia : il faudrait réécrire toutes les vues en Vue/React, et chaque bundle devrait embarquer son
    build JS, ce qui complique beaucoup les packages.
-4. **Laravel 13** (dernière version, 13.40 au 04/11/2026), **PHP 8.3 minimum** (minimum de Laravel 13). Passage à
+4. **Contrat Cœur ↔ bundles.** Deux sens : le bundle *donne* au Cœur par des registres (widgets, menu, permissions,
+   types de notifications, sections du profil, exports…), remplis dans le `boot()` de son ServiceProvider ; le bundle
+   *demande* au Cœur par une API publique (modèles, interfaces de services injectées par le conteneur, événements
+   émis par le Cœur). Le Cœur ne connaît jamais un bundle par son nom et fonctionne avec des registres vides. Le
+   contrat (interfaces, événements, registres) vit dans un package `kintai/contracts` versionné en semver ; un bundle
+   déclare `"kintai/contracts": "^1.0"` et Composer refuse un bundle incompatible. Chaque point d'extension est créé
+   **avec le domaine du Cœur qui l'utilise**, et le Cœur s'en sert lui-même pour ses propres widgets, entrées de menu,
+   etc.
+5. **Laravel 13** (dernière version, 13.40 au 04/11/2026), **PHP 8.3 minimum** (minimum de Laravel 13). Passage à
    Laravel 14 à sa sortie, après livraison.
 
 ## Principes
@@ -43,8 +51,8 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
 ### Phase 0 : Cadrage
 - [x] Base de référence verte de l'ancienne version : 3611 tests, 10808 assertions.
 - [x] Référence : `../Kintai`, branche `develop` (production, dernières mises à jour).
-- [ ] Inventaire fonctionnel (spécification) : par domaine, routes, écrans, règles métier, droits, tâches planifiées ;
-  et la liste des tests de l'ancienne suite qui décrivent ces comportements.
+- [x] Inventaire fonctionnel (spécification) : `docs/INVENTAIRE-FONCTIONNEL.md` (04/11/2026, zones non lues listées).
+- [ ] Décider des fonctionnalités abandonnées ou remplacées (section 7 de l'inventaire).
 
 ### Phase 1 : Squelette
 - `laravel new` (Laravel 13, kit de démarrage Livewire) sur la branche `laravel-native`, qui remplace l'ancien code.
@@ -59,14 +67,12 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
 - Gate/policies pour tous les droits, middleware `can:` sur les routes.
 
 ### Phase 4 : Cœur, par tranches verticales
-- Un domaine à la fois (magasins, utilisateurs et rôles, types de shift, planning, disponibilités, tableau de bord,
-  exports, API v1…) : modèles, `FormRequest`, contrôleurs fins, vues Blade/Livewire, `JsonResource`, tests.
+- Un domaine à la fois, dans l'ordre de la section 9 de l'inventaire : modèles, `FormRequest`, contrôleurs fins, vues Blade/Livewire, `JsonResource`, tests.
 - Réponses dédiées pour CSV, PDF, iCal ; exceptions via `bootstrap/app.php`.
 
 ### Phase 5 : Bundles officiels (dépôt `kintai-bundles`)
-- Mécanisme d'extension du Cœur (points d'accroche du menu, du tableau de bord, des droits) défini une fois, en Laravel
-  standard (événements, tags du conteneur, composants Blade).
-- Puis les 13 bundles, un par un : migrations, vues, traductions, routes, commandes, tâches planifiées, configuration
+- Le contrat (`kintai/contracts`) existe déjà, construit en phase 4 avec les domaines du Cœur.
+- Les 13 bundles, un par un : migrations, vues, traductions, routes, commandes, tâches planifiées, configuration
   publiable, tests.
 
 ### Phase 6 : Installation
