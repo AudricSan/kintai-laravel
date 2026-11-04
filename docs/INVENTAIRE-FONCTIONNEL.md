@@ -1,7 +1,7 @@
 # Inventaire fonctionnel de Kintai (spécification de la reconstruction)
 
 Source : dépôt de production `Kintai` (`AudricSan/Kintai`, branche `develop`, merge #327 du 04/11/2026), lu dans
-`../Kintai`. Chemins cités relatifs à ce dépôt. Bundles hors périmètre, sauf les points d'accroche que le Cœur leur offre.
+`../Kintai`. Chemins cités relatifs à ce dépôt. Bundles hors périmètre, sauf les points d'accroche que le Core leur offre.
 
 **Limites.** Inventaire du 04/11/2026, fait en lecture rapide : les règles citées sont vérifiées dans le code, mais
 plusieurs zones n'ont pas été lues (liste en fin de document). Chaque tranche de la phase 4 commence par relire ces zones
@@ -53,7 +53,7 @@ pour son domaine.
   Plafond anti-escalade à l'attribution d'un rôle — `src/Core/Auth/PermissionService.php`.
 - Gestion des rôles et de leurs titulaires réservée à l'Owner (`/admin/roles*`) ; rôle d'un membre dans un magasin
   (`/stores/{id}/members/*`).
-- Clés du Cœur (`src/Core/Auth/PermissionCatalog.php:19-35`) :
+- Clés du Core (`src/Core/Auth/PermissionCatalog.php:19-35`) :
 
 | Clé | Sens |
 |---|---|
@@ -150,7 +150,7 @@ synchronisation ; chiffrement par cast `encrypted` ; `ShiftWageCalculator`, `Ava
 ### Tableau de bord
 - Deux tableaux : gérant (`/`) et employé (`/employee`). Grille personnalisable : ajout et retrait de widgets,
   dispositions nommées, personnelles ou par rôle (seul l'admin choisit celles des rôles).
-- Widgets du Cœur — gérant : compteurs, alertes, résumé des statistiques, aperçu financier, absentéisme, shifts du jour ;
+- Widgets du Core — gérant : compteurs, alertes, résumé des statistiques, aperçu financier, absentéisme, shifts du jour ;
   employé : shifts du jour, à venir, statistiques du mois. Le gérant peut ajouter ses widgets personnels (`emp_*`).
 - Chaque widget a une audience, un ordre, une permission, une fonctionnalité de magasin, une taille et un intervalle de
   rafraîchissement ; une erreur dans un widget le retire sans casser la page (`src/Core/Extension/DashboardWidgets.php`).
@@ -167,7 +167,7 @@ synchronisation ; chiffrement par cast `encrypted` ; `ShiftWageCalculator`, `Ava
   redirige vers un chemin interne).
 - Canaux : base, e-mail (lien de désabonnement signé, sans connexion), Web Push (VAPID), push mobile (FCM via l'API).
   Préférences par type et par canal.
-- Types du Cœur : `shift_assigned`, `shift_updated`, `shift_deleted`, `calendar_sync_error` ; système (Owner) :
+- Types du Core : `shift_assigned`, `shift_updated`, `shift_deleted`, `calendar_sync_error` ; système (Owner) :
   `core_update_available`, `migration_pending`, `bundle_update_available`, `backup_failed`, `backup_stale`,
   `channel_broken`, `license_quota`.
 - Purge des notifications lues (90 jours par défaut, 7 à 3650) et des abonnements push inactifs depuis 180 jours.
@@ -193,7 +193,7 @@ FCM), préférences filtrées dans `via()` ; tableau de bord et cloche en Livewi
 - **Réglages de l'Owner** (`app_settings`) : sous-titre, message de connexion, e-mail de support, URL publique,
   couleurs du thème et mode sombre, mascotte, expéditeur des mails, mode maintenance et message, journal d'accès,
   rétentions (journal, notifications), limite de l'API, sauvegarde automatique et nombre conservé, canaux de mise à jour
-  (Cœur, bundles), bundles activés, état de l'assistant d'installation.
+  (Core, bundles), bundles activés, état de l'assistant d'installation.
 - **Sauvegardes** : création, restauration, suppression, téléchargement, sauvegarde automatique planifiée, alerte en cas
   d'échec ou de sauvegarde trop ancienne.
 - **Réinitialisation de l'application** (préparation + exécution).
@@ -227,7 +227,7 @@ tableau de bord, cartes de statistiques, superpositions de pages, types de notif
 profil, écouteurs d'événements, jeux de données d'export. Plus les fournisseurs `Absences` (congés, utilisé par le
 planning) et `ShiftFormSections` (sections du formulaire de shift).
 
-Règle de la reconstruction : chaque point d'extension est recréé **avec le domaine du Cœur qui l'utilise**, et le Cœur
+Règle de la reconstruction : chaque point d'extension est recréé **avec le domaine du Core qui l'utilise**, et le Core
 s'en sert lui-même pour ses propres widgets, entrées de menu, etc.
 
 ---
