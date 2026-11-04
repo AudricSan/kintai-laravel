@@ -24,8 +24,8 @@ class AnonymizeUserTest extends TestCase
     {
         $this->seedRoles();
         Event::fake([UserAnonymized::class]);
-        Storage::fake('public');
-        Storage::disk('public')->put('avatars/me.png', 'x');
+        Storage::fake('local');
+        Storage::disk('local')->put('avatars/me.png', 'x');
         config(['session.driver' => 'database']);
 
         $store = Store::factory()->create();
@@ -72,7 +72,7 @@ class AnonymizeUserTest extends TestCase
         $this->assertDatabaseMissing('passkeys', ['user_id' => $user->id]);
         $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
         $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'user_id' => $user->id]);
-        Storage::disk('public')->assertMissing('avatars/me.png');
+        Storage::disk('local')->assertMissing('avatars/me.png');
         Event::assertDispatched(UserAnonymized::class, fn (UserAnonymized $e) => $e->userId === $user->id);
     }
 

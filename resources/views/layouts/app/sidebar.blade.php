@@ -15,20 +15,20 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+                    @can('employees.view')
+                        <flux:sidebar.item icon="users" :href="route('employees.index')" :current="request()->routeIs('employees.*')" wire:navigate>
+                            {{ __('Employees') }}
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('manage-roles')
+                        <flux:sidebar.item icon="shield-check" :href="route('roles.index')" :current="request()->routeIs('roles.*')" wire:navigate>
+                            {{ __('Roles') }}
+                        </flux:sidebar.item>
+                    @endcan
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
             <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
-                </flux:sidebar.item>
-            </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
         </flux:sidebar>
@@ -41,6 +41,7 @@
 
             <flux:dropdown position="top" align="end">
                 <flux:profile
+                    :avatar="auth()->user()->avatarUrl()"
                     :initials="auth()->user()->initials()"
                     icon-trailing="chevron-down"
                 />
@@ -50,6 +51,7 @@
                         <div class="p-0 text-sm font-normal">
                             <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                                 <flux:avatar
+                                    :src="auth()->user()->avatarUrl()"
                                     :name="auth()->user()->name"
                                     :initials="auth()->user()->initials()"
                                 />

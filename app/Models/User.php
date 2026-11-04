@@ -30,7 +30,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $last_name
  * @property string|null $furigana_first_name
  * @property string|null $furigana_last_name
- * @property string $email
+ * @property string|null $email
  * @property Carbon|null $email_verified_at
  * @property string|null $employee_code
  * @property string $password
@@ -91,15 +91,28 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
-     * E-mail stocké en minuscules, sans espaces autour.
+     * E-mail stocké en minuscules, sans espaces autour ; vide = pas d'e-mail (null).
      *
-     * @return Attribute<string, string>
+     * @return Attribute<string|null, string|null>
      */
     protected function email(): Attribute
     {
         return Attribute::make(
-            set: fn (string $value): string => Str::lower(trim($value)),
+            set: fn (?string $value): ?string => $value === null || trim($value) === '' ? null : Str::lower(trim($value)),
         );
+    }
+
+    /**
+     * Adresse de l'avatar (privé, servi aux utilisateurs connectés) ; null si pas d'avatar.
+     * Le paramètre `v` change avec le fichier, ce qui renouvelle le cache du navigateur.
+     */
+    public function avatarUrl(): ?string
+    {
+        if ($this->avatar_path === null || $this->avatar_path === '') {
+            return null;
+        }
+
+        return route('avatar.show', ['user' => $this->id, 'v' => substr(md5($this->avatar_path), 0, 8)]);
     }
 
     /**

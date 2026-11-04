@@ -23,6 +23,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         CorePermissions::registerIn($this->app->make(PermissionRegistry::class));
 
+        // Réservée à l'Owner : Gate::before l'accorde, tous les autres sont refusés.
+        Gate::define('manage-roles', fn (): bool => false);
+
         // Pas de Gate::define par clé : les bundles enregistrent leurs catégories plus tard dans le registre.
         Gate::before(function (User $user, string $ability, array $arguments): ?bool {
             $authorizer = $this->app->make(Authorizer::class);

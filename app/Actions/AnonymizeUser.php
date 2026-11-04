@@ -45,20 +45,17 @@ class AnonymizeUser
             $user->passkeys()->delete();
             RoleAssignment::query()->where('user_id', $user->id)->delete();
 
-            if (config('session.driver') === 'database') {
-                DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
-            }
+            app(RevokeUserSessions::class)->handle($user);
 
             $user->delete();
 
             DB::afterCommit(function () use ($user, $avatarPath): void {
                 if ($avatarPath !== null && $avatarPath !== '') {
-                    Storage::disk('public')->delete($avatarPath);
+                    Storage::disk('local')->delete($avatarPath);
                 }
 
                 UserAnonymized::dispatch($user->id);
             });
         });
-
     }
 }

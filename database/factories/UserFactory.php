@@ -28,6 +28,8 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
+            'furigana_first_name' => 'テスト',
+            'furigana_last_name' => 'ユーザー',
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),

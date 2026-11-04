@@ -42,6 +42,20 @@ trait CreatesAccess
     }
 
     /**
+     * Employé (rôle `employee`) membre d'un magasin.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function employeeOf(Store $store, array $attributes = []): User
+    {
+        $user = User::factory()->create($attributes);
+        $store->members()->attach($user);
+        $user->assignRole($this->role('employee'), $store);
+
+        return $user;
+    }
+
+    /**
      * Rôle non système avec les permissions données ; `$allStores` liste celles qui ignorent la portée magasin.
      *
      * @param  list<string>  $permissions

@@ -40,7 +40,7 @@ annuaire (`bio`, `skills`, `languages_spoken`, `hobbies`, `show_in_directory`, `
 
 ### Identité
 **users** : `name` (nom affiché), `first_name`, `last_name` (non nullables), `furigana_first_name`, `furigana_last_name`, `email`
-unique, `employee_code` unique nullable, `password`, `remember_token`, `locale` nullable (null = langue de
+unique nullable (un employé peut n'avoir qu'un code employé), `employee_code` unique nullable, `password`, `remember_token`, `locale` nullable (null = langue de
 l'instance), `color` (défaut `#3B82F6`), `avatar_path` nullable, `is_active` (défaut true), `must_change_password` (défaut false ; rappel posé à la connexion si le mot de passe a moins de 8 caractères, levé par tout changement de mot de passe), `quiet_hours_start`,
 `quiet_hours_end` (`time` nullable), `share_email`, `share_phone`, `share_mobile_phone` (booléens, défaut false :
 coordonnées que l'employé rend visibles à son équipe), colonnes de double authentification du kit, timestamps,

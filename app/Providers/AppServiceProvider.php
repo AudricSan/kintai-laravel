@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Profile\ProfileSectionRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ProfileSectionRegistry::class);
     }
 
     /**
@@ -24,6 +25,19 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->registerProfileSections();
+    }
+
+    /**
+     * Pages du corps dans la zone « réglages personnels » ; les bundles y ajouteront les leurs.
+     */
+    private function registerProfileSections(): void
+    {
+        $sections = $this->app->make(ProfileSectionRegistry::class);
+
+        $sections->register('profile', 'Profile', 'profile.edit', 10);
+        $sections->register('security', 'Security', 'security.edit', 20);
+        $sections->register('appearance', 'Appearance', 'appearance.edit', 30);
     }
 
     /**

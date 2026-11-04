@@ -19,6 +19,7 @@ class RoleFactory extends Factory
             'name' => ucfirst(fake()->unique()->word()),
             'slug' => fake()->unique()->slug(2),
             'description' => null,
+            'color' => '#6B7280',
             'is_system' => false,
             'is_manager' => false,
         ];
