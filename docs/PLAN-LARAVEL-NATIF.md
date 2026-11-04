@@ -1,7 +1,7 @@
 # Plan : Kintai, application Laravel native
 
 Feuille de route de la reconstruction. `NATIVE-LARAVEL.md` reste l'inventaire de l'existant. Branche de travail :
-`laravel-native`.
+`reconstruction` (créée depuis `laravel-native`, qui garde l'ancien code intact).
 
 ## Objectif
 
@@ -61,7 +61,7 @@ licence, documentation, signalement, tâches planifiées) ; page « demandes en 
 **Bundles existants** (13) : timeclock, timeoff, shift-swap, shift-claim, messaging, notebook, team-directory,
 store-photos, daily-report, planning-check, salary-report, hiring-report, resignation-report.
 
-**À sortir du corps vers des bundles (proposé, à confirmer avant la tranche concernée)** :
+**À sortir du corps vers des bundles (validé le 04/11/2026)** :
 - **Synchronisation Google Agenda** → bundle `google-calendar` : service extérieur, OAuth, file de synchronisation.
 - **Import Excel de planning** → bundle `planning-import` : algorithme lié au format de fichier des clients.
 - **Statistiques, rentabilité, rapports par employé** (`StoreStatsService`, widgets financier et absentéisme) →
@@ -90,7 +90,7 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 - [x] Fonctionnalités abandonnées ou conservées : décisions 5 à 8 ci-dessus.
 
 ### Phase 1 : Squelette
-- `laravel new` (Laravel 13, kit de démarrage Livewire) sur la branche `laravel-native`, qui remplace l'ancien code.
+- `laravel new` (Laravel 13, kit de démarrage Livewire) sur la branche `reconstruction`, qui remplace l'ancien code.
 - Larastan, Pint, PHPUnit, CI ; `.env` standard ; traductions (fr, ja, en selon l'existant).
 
 ### Phase 2 : Schéma et modèles
