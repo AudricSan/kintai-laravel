@@ -104,6 +104,22 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
   et passkeys du kit conservées, en option dans le profil (validé le 04/11/2026).
 - Droits maison (rôles, permissions par rôle, attributions globales ou par magasin), sans `spatie/laravel-permission`.
 - Rendre `first_name` et `last_name` obligatoires (facultatifs en phase 2 tant que l'inscription du kit existe).
+- Conception (04/11/2026) :
+  - Connexion Fortify (`authenticateUsing`) par e-mail, ou par code employé + code magasin (membre du magasin),
+    même message d'erreur et même durée de réponse dans tous les cas de refus ; limitation par identifiant et par IP.
+  - Pas de vérification d'e-mail (comptes créés par les gérants). Mot de passe : 8 caractères minimum (règle de
+    l'ancienne version).
+  - Mot de passe à changer (`users.must_change_password`, posé à la création par un gérant ou si le mot de passe saisi
+    à la connexion est trop court) : rappel uniquement, comme avant (bandeau, et fenêtre une fois par connexion),
+    levé dès que le mot de passe change.
+  - Changement de mot de passe : autres sessions déconnectées (`AuthenticateSession`), cookies « rester connecté »
+    invalidés ; compte désactivé : session coupée à la requête suivante.
+  - Droits : registre des permissions (le corps et les bundles y déclarent leurs catégories) ; `Authorizer` (Owner,
+    attributions globales ou par magasin, `all_stores`) branché par `Gate::before`, donc `can()`, `@can` et `can:`
+    fonctionnent avec un magasin ou un modèle portant `store_id` ; plafond d'attribution des rôles ; seul un Owner
+    agit sur un Owner ; il reste toujours un Owner actif.
+  - Suppression d'un compte = anonymisation (données personnelles effacées, droits et sessions retirés, historique
+    conservé), événement `UserAnonymized` pour les bundles.
 
 ### Phase 4 : Cœur, par tranches verticales
 - Un domaine à la fois, dans l'ordre de la section 9 de l'inventaire : modèles, `FormRequest`, contrôleurs fins, vues Blade/Livewire, `JsonResource`, tests.

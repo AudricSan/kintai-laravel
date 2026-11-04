@@ -29,7 +29,6 @@ class UserFactory extends Factory
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
@@ -56,8 +55,8 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'name' => 'Utilisateur supprimé',
-            'first_name' => null,
-            'last_name' => null,
+            'first_name' => '[Supprimé]',
+            'last_name' => '',
             'furigana_first_name' => null,
             'furigana_last_name' => null,
             'email' => 'anonymized-'.fake()->unique()->uuid().'@invalid.example',
@@ -69,13 +68,11 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the model's email address should be unverified.
+     * Compte dont le mot de passe doit être changé à la prochaine connexion.
      */
-    public function unverified(): static
+    public function mustChangePassword(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return $this->state(fn (array $attributes) => ['must_change_password' => true]);
     }
 
     /**

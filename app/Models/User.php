@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Authorization\Authorizer;
 use App\Casts\TimeOfDay;
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -17,6 +18,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -24,8 +26,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 /**
  * @property int $id
  * @property string $name
- * @property string|null $first_name
- * @property string|null $last_name
+ * @property string $first_name
+ * @property string $last_name
  * @property string|null $furigana_first_name
  * @property string|null $furigana_last_name
  * @property string $email
@@ -40,6 +42,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $color
  * @property string|null $avatar_path
  * @property bool $is_active
+ * @property bool $must_change_password
  * @property string|null $quiet_hours_start Heure "H:i"
  * @property string|null $quiet_hours_end Heure "H:i"
  * @property bool $share_email
@@ -61,10 +64,43 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
     'quiet_hours_start', 'quiet_hours_end', 'share_email', 'share_phone', 'share_mobile_phone',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+
+    /**
+     * Un changement de mot de passe invalide les cookies « rester connecté » et lève le rappel de changement.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            if (! $user->isDirty('password')) {
+                return;
+            }
+
+            if (! $user->isDirty('remember_token')) {
+                $user->remember_token = Str::random(60);
+            }
+
+            // Le rappel de changement de mot de passe tombe, sauf si le même enregistrement le repose.
+            if (! $user->isDirty('must_change_password')) {
+                $user->must_change_password = false;
+            }
+        });
+    }
+
+    /**
+     * E-mail stocké en minuscules, sans espaces autour.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => Str::lower(trim($value)),
+        );
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -77,6 +113,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
             'share_email' => 'boolean',
             'share_phone' => 'boolean',
             'share_mobile_phone' => 'boolean',
@@ -142,6 +179,50 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return $this->belongsToMany(ShiftType::class, 'shift_type_user')
             ->withPivot('hourly_rate')
             ->withTimestamps();
+    }
+
+    /**
+     * Attribue un rôle (global si $store est null). Idempotent : l'unicité est garantie ici,
+     * car un NULL n'est pas unique en SQL.
+     */
+    public function assignRole(Role $role, ?Store $store = null): RoleAssignment
+    {
+        if ($role->is_system && $store !== null) {
+            throw new InvalidArgumentException('A system role can only be assigned globally.');
+        }
+
+        $existing = RoleAssignment::query()
+            ->where('user_id', $this->id)
+            ->where('role_id', $role->id)
+            ->where('store_id', $store?->id)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $assignment = new RoleAssignment;
+        $assignment->user_id = $this->id;
+        $assignment->role_id = $role->id;
+        $assignment->store_id = $store?->id;
+        $assignment->save();
+
+        $this->unsetRelation('roles');
+        app(Authorizer::class)->forget($this);
+
+        return $assignment;
+    }
+
+    public function removeRole(Role $role, ?Store $store = null): void
+    {
+        RoleAssignment::query()
+            ->where('user_id', $this->id)
+            ->where('role_id', $role->id)
+            ->where('store_id', $store?->id)
+            ->delete();
+
+        $this->unsetRelation('roles');
+        app(Authorizer::class)->forget($this);
     }
 
     /**

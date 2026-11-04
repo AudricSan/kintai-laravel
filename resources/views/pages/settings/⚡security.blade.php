@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\ChangePassword;
 use App\Concerns\PasswordValidationRules;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -78,7 +79,7 @@ new #[Title('Security settings')] class extends Component {
     /**
      * Update the password for the currently authenticated user.
      */
-    public function updatePassword(): void
+    public function updatePassword(ChangePassword $changePassword): void
     {
         try {
             $validated = $this->validate([
@@ -91,9 +92,7 @@ new #[Title('Security settings')] class extends Component {
             throw $e;
         }
 
-        Auth::user()->update([
-            'password' => $validated['password'],
-        ]);
+        $changePassword->handle(Auth::user(), $validated['password']);
 
         $this->reset('current_password', 'password', 'password_confirmation');
 

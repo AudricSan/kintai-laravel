@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('first_name')->nullable();
-            $table->string('last_name')->nullable();
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('furigana_first_name')->nullable();
             $table->string('furigana_last_name')->nullable();
             $table->string('email')->unique();
@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('color', 7)->default('#3B82F6');
             $table->string('avatar_path')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('must_change_password')->default(false);
             $table->time('quiet_hours_start')->nullable();
             $table->time('quiet_hours_end')->nullable();
             $table->boolean('share_email')->default(false);

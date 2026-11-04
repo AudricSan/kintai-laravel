@@ -27,9 +27,9 @@ class RoleSeederTest extends TestCase
 
     public function test_manager_defaults_are_a_subset_of_core_permissions(): void
     {
-        $this->assertCount(16, CorePermissions::ALL);
+        $this->assertCount(16, CorePermissions::all());
         $this->assertCount(14, CorePermissions::MANAGER_DEFAULTS);
-        $this->assertSame([], array_diff(CorePermissions::MANAGER_DEFAULTS, CorePermissions::ALL));
-        $this->assertSame(['stores.create', 'stores.delete'], array_values(array_diff(CorePermissions::ALL, CorePermissions::MANAGER_DEFAULTS)));
+        $this->assertSame([], array_diff(CorePermissions::MANAGER_DEFAULTS, CorePermissions::all()));
+        $this->assertSame(['stores.create', 'stores.delete'], array_values(array_diff(CorePermissions::all(), CorePermissions::MANAGER_DEFAULTS)));
     }
 }

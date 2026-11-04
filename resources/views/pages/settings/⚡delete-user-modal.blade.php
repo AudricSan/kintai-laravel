@@ -1,8 +1,12 @@
 <?php
 
+use App\Actions\AnonymizeUser;
+use App\Authorization\OwnerGuard;
 use App\Concerns\PasswordValidationRules;
 use App\Livewire\Actions\Logout;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 new class extends Component {
@@ -11,15 +15,24 @@ new class extends Component {
     public string $password = '';
 
     /**
-     * Delete the currently authenticated user.
+     * Anonymize the currently authenticated user's account (history is kept).
      */
-    public function deleteUser(Logout $logout): void
+    public function deleteUser(Logout $logout, AnonymizeUser $anonymizeUser, OwnerGuard $ownerGuard): void
     {
         $this->validate([
             'password' => $this->currentPasswordRules(),
         ]);
 
-        tap(Auth::user(), $logout(...))->delete();
+        $user = Auth::user();
+
+        try {
+            $ownerGuard->assertCanRemoveOwner($user, $user);
+        } catch (AuthorizationException $e) {
+            throw ValidationException::withMessages(['password' => $e->getMessage()]);
+        }
+
+        $logout();
+        $anonymizeUser->handle($user);
 
         $this->redirect('/', navigate: true);
     }
@@ -31,7 +44,7 @@ new class extends Component {
             <flux:heading size="lg">{{ __('Are you sure you want to delete your account?') }}</flux:heading>
 
             <flux:subheading>
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+                {{ __('Your account will be anonymized: your personal data is erased and you can no longer sign in. Your shift history is kept, without your name. Please enter your password to confirm.') }}
             </flux:subheading>
         </div>
 

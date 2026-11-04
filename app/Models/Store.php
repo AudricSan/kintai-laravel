@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -66,6 +68,18 @@ class Store extends Model
             'min_shift_minutes' => 'integer',
             'max_shift_minutes' => 'integer',
         ];
+    }
+
+    /**
+     * Code stocké en majuscules : la connexion par code magasin le compare en majuscules.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function code(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => Str::upper(trim($value)),
+        );
     }
 
     /**

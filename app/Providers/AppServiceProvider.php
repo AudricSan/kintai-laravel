@@ -37,14 +37,7 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
-        );
+        // Règle des employés de magasin : 8 caractères minimum, dans tous les environnements.
+        Password::defaults(fn (): Password => Password::min(8));
     }
 }
