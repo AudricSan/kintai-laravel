@@ -1,221 +1,62 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
-use App\Models\CalendarConnection;
-use App\Models\RouteSlug;
-use App\Models\Casts\HexColor;
-use App\Models\Concerns\FlushesRequestMemo;
+use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\PasskeyUser;
+use Laravel\Fortify\PasskeyAuthenticatable;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
- * Compte utilisateur, et utilisateur du garde de session de Laravel (config/auth.php). Le hash du mot de passe est dans
- * la colonne password_hash.
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property Carbon|null $email_verified_at
+ * @property string $password
+ * @property string|null $two_factor_secret
+ * @property string|null $two_factor_recovery_codes
+ * @property Carbon|null $two_factor_confirmed_at
+ * @property string|null $remember_token
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
-class User extends Authenticatable
+#[Fillable(['name', 'email', 'password'])]
+#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
-    use FlushesRequestMemo;
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
-    protected $table = 'users';
-    protected $guarded = []; // Allow mass assignment for now to simplify migration
-    public $timestamps = false;
-
-    // Une couleur invalide en base est remplacée à la lecture (voir HexColor).
-    protected $casts = ['color' => HexColor::class . ':#3B82F6'];
-
-    public function getAuthPassword(): string
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return (string) $this->password_hash;
-    }
-
-    public function getAuthPasswordName(): string
-    {
-        return 'password_hash';
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 
     /**
-     * Le compte d'identifiant $id (lisible comme un tableau : $user['email']), ou null.
+     * Get the user's initials
      */
-    public static function findById(int $id): ?static
+    public function initials(): string
     {
-        return static::find($id);
-    }
+        $initials = Str::initials($this->name, true);
 
-    /**
-     * Le compte de cette adresse e-mail, ou null.
-     */
-    public static function findByEmail(string $email): ?static
-    {
-        return static::where('email', $email)->first();
-    }
-
-    public static function findByEmployeeCode(string $code): ?static
-    {
-        return static::where('employee_code', $code)->first();
-    }
-
-    /**
-     * Le compte détient-il un rôle système en portée globale (propriétaire) ? C'est le calcul RBAC de « is_admin »,
-     * à la place de la colonne historique users.is_admin.
-     */
-    public function isOwner(): bool
-    {
-        foreach (RoleAssignment::findByUser((int) $this->getKey()) as $assignment) {
-            if ($assignment['scope_type'] !== 'global') {
-                continue;
-            }
-            $role = Role::findById((int) $assignment['role_id']);
-            if ($role !== null && !empty($role['is_system'])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Identifiants des magasins où le compte a un rôle de gestion (voir Role::showsManagerNav()). Vide pour un
-     * propriétaire, qui n'est restreint à aucun magasin.
-     * @return int[]
-     */
-    public function managedStoreIds(): array
-    {
-        if ($this->isOwner()) {
-            return [];
-        }
-
-        $storeIds = [];
-        foreach (RoleAssignment::findByUser((int) $this->getKey()) as $assignment) {
-            if ($assignment['scope_type'] !== 'store' || $assignment['scope_id'] === null) {
-                continue;
-            }
-            $role = Role::findById((int) $assignment['role_id']);
-            if ($role !== null && $role->showsManagerNav()) {
-                $storeIds[] = (int) $assignment['scope_id'];
-            }
-        }
-        return array_values(array_unique($storeIds));
-    }
-
-    /**
-     * Retrieves all users.
-     * @return array
-     */
-    public static function findAll(): array
-    {
-        return static::all()->toArray();
-    }
-
-    /**
-     * Compte les utilisateurs actifs (is_active = 1, deleted_at IS NULL).
-     */
-    public static function countActive(): int
-    {
-        return static::where('is_active', 1)
-            ->whereNull('deleted_at')
-            ->count();
-    }
-
-    /**
-     * Saves a user record. Creates if no ID, updates if ID exists.
-     * @param array $userData
-     * @return array The saved user data.
-     */
-    public static function put(array|self $userData): array
-    {
-        $userData = $userData instanceof self ? $userData->toArray() : $userData;
-        // Langue vide = le compte suit la langue de l'instance (InstanceLocale). Toujours '' plutôt que null : la
-        // colonne est NOT NULL sur les instances existantes. Un nouveau compte suit l'instance, quel que soit le
-        // défaut historique de la colonne ('fr').
-        if (array_key_exists('language', $userData) && $userData['language'] === null) {
-            $userData['language'] = '';
-        }
-        if (empty($userData['id'])) {
-            $userData += ['language' => ''];
-        }
-        if (!empty($userData['id'])) {
-            $user = static::findOrFail($userData['id']);
-            $oldCode = $user->employee_code;
-            $user->fill($userData);
-            $user->save();
-            static::recordEmployeeCodeChange((int) $user->id, $oldCode, $user->employee_code);
-        } else {
-            $user = static::create($userData);
-            static::recordEmployeeCodeChange((int) $user->id, null, $user->employee_code);
-        }
-        
-        return $user->toArray();
-    }
-
-    /**
-     * Deletes a user by their ID.
-     * @param int $id
-     * @return int The number of deleted users (0 or 1).
-     */
-    public static function revokeRememberToken(int $userId): void
-    {
-        static::whereKey($userId)->update(['remember_token' => null]);
-    }
-
-    public static function remove(int $id): int
-    {
-        $user = static::find($id);
-        if ($user) {
-            static::forgetEmployeeCodes($id);
-            // SQLite n'applique pas les cascades : les préférences de notification partent avec le compte.
-            try {
-                \App\Models\NotificationPreference::where('user_id', $id)->delete();
-                \App\Models\WebPushSubscription::where('user_id', $id)->delete();
-                // Liaison d'agenda externe, correspondances shift ↔ événement et file de synchronisation.
-                CalendarConnection::removeAllFor($id);
-            } catch (\Illuminate\Database\QueryException) {
-                // Table absente (migration pas encore jouée) : la suppression du compte prime.
-            }
-            return $user->delete() ? 1 : 0;
-        }
-        return 0;
-    }
-
-    /**
-     * Le numéro d'employé sert de segment d'URL (/admin/users/057/edit, voir EmployeeRouteBinder). Quel que soit
-     * le chemin qui le modifie (formulaire, API, import), l'ancien numéro est conservé pour rediriger les anciens
-     * liens en 301, et un numéro réattribué cesse de pointer vers son ancien titulaire.
-     */
-    private static function recordEmployeeCodeChange(int $userId, mixed $oldCode, mixed $newCode): void
-    {
-        $old = $oldCode === null || $oldCode === '' ? null : (string) $oldCode;
-        $new = $newCode === null || $newCode === '' ? null : (string) $newCode;
-        if ($old === $new) {
-            return;
-        }
-
-        try {
-            if ($new !== null) {
-                // Le numéro courant l'emporte sur tout historique : le sien comme celui d'un autre employé.
-                RouteSlug::where('entity_type', 'employee')->where('slug', $new)->delete();
-            }
-            if ($old !== null && !RouteSlug::where('entity_type', 'employee')->where('slug', $old)->exists()) {
-                RouteSlug::create([
-                    'entity_type' => 'employee',
-                    'entity_id'   => $userId,
-                    'slug'        => $old,
-                    'is_current'  => false,
-                    'is_manual'   => false,
-                    'created_at'  => date('Y-m-d H:i:s'),
-                ]);
-            }
-        } catch (\Illuminate\Database\QueryException) {
-            // Table route_slugs absente (migration pas encore jouée) : l'enregistrement de l'utilisateur prime.
-        }
-    }
-
-    private static function forgetEmployeeCodes(int $userId): void
-    {
-        try {
-            RouteSlug::where('entity_type', 'employee')->where('entity_id', $userId)->delete();
-        } catch (\Illuminate\Database\QueryException) {
-            // Table route_slugs absente : rien à oublier.
-        }
+        return Str::length($initials) > 1
+            ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
+            : $initials;
     }
 }

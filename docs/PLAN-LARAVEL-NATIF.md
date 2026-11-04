@@ -1,6 +1,6 @@
 # Plan : Kintai, application Laravel native
 
-Feuille de route de la reconstruction. `NATIVE-LARAVEL.md` reste l'inventaire de l'existant. Branche de travail :
+Feuille de route de la reconstruction. [`archive/NATIVE-LARAVEL.md`](archive/NATIVE-LARAVEL.md) reste l'inventaire de l'existant. Branche de travail :
 `reconstruction` (créée depuis `laravel-native`, qui garde l'ancien code intact).
 
 ## Objectif
@@ -120,7 +120,7 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
   données d'exemple, documenté à part.
 
 ### Phase 8 : Qualité et livraison
-- Revue de sécurité (reprise de l'audit du 31/10/2026), documentation (`README`, `DEPLOIEMENT`), changelog, version
+- Revue de sécurité (reprise de l'[audit du 31/10/2026](archive/Audit_Kintai_Migration_Laravel_Securite_2026-10-31.md)), documentation (`README`, [`DEPLOIEMENT`](archive/DEPLOIEMENT.md)), changelog, version
   majeure.
 
 ### Phase 9 : Serveur d'auto-déploiement (après livraison)

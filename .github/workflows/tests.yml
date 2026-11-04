@@ -1,268 +1,60 @@
-name: Tests
+name: tests
 
 on:
   push:
-    branches: [main, alpha, beta, develop]
+    branches: [main, develop, reconstruction]
   pull_request:
-    branches: [main, alpha, beta, develop]
+    branches: [main, develop, reconstruction]
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+
+    name: PHP ${{ matrix.php }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: '8.3'
-          extensions: pdo_sqlite, pdo_mysql, mbstring, gd, intl, curl, openssl
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
           coverage: none
 
-      - name: Install dependencies
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run tests
-        run: ./vendor/bin/phpunit
-
-  install-smoke:
-    # Installation neuve de bout en bout par le vrai installateur web (base SQLite vide), puis connexion
-    # de l'admin créé. Aucun test unitaire ne couvre ce parcours ; il était cassé sans que rien n'échoue.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-dev
-
-      - name: Fresh install smoke test
-        run: bash scripts/ci/install-smoke-test.sh
-
-  import-smoke:
-    # Importation de l'ancien Kintai (AudricSan/Kintai, canal alpha : celui des dernières releases 0.x, installé avec ses
-    # données de démonstration) par l'installateur web en mode « importer » : migrations, comptes repris, base d'origine
-    # intacte, pages sans erreur. main n'a pas de release 0.x récente et son provision.php ne crée pas la base SQLite.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/checkout@v4
-        with:
-          repository: AudricSan/Kintai
-          ref: alpha
-          path: legacy
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
-          coverage: none
-
-      - name: Install dependencies
+      - name: Prepare environment
         run: |
-          composer install --no-interaction --prefer-dist --no-dev
-          composer install --no-interaction --prefer-dist --no-dev --working-dir=legacy
+          cp .env.example .env
+          php artisan key:generate
 
-      - name: Install the legacy instance
-        run: php legacy/scripts/provision.php --admin-email=owner@kintai.test --admin-password=Owner-Passw0rd! --app-url=http://127.0.0.1 --locale=fr --seed
-
-      - name: Import smoke test
-        run: bash scripts/ci/import-smoke-test.sh legacy owner@kintai.test 'Owner-Passw0rd!' alice.martin@kintai.local 'Demo1234!' chloe.dupont@kintai.local 'Demo1234!'
-
-  provision-smoke:
-    # Installation en ligne de commande (kintai:provision) sur une instance vierge : refus attendus, compte
-    # Owner, URL publique, connexion. Job séparé : chaque test exige une instance sans installation.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: pdo_sqlite, mbstring, gd, intl, curl, openssl
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-dev
-
-      - name: CLI provisioning smoke test
-        run: bash scripts/ci/provision-smoke-test.sh
-
-  lint:
-    # Contrôles statiques rapides : syntaxe PHP et JS, JSON valides (langues, composer), dépendances sans faille connue.
-    # Aucun test ne lit chaque fichier : une erreur de syntaxe dans une page rarement visitée passait inaperçue.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
-
-      - name: PHP syntax
+      - name: Install and build front-end assets
         run: |
-          set -euo pipefail
-          find app src bootstrap config database public routes scripts tests -name '*.php' -not -name '*.blade.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+          npm ci
+          npm run build
 
-      - name: JavaScript syntax
-        run: |
-          set -euo pipefail
-          find public/assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Pint
+        run: vendor/bin/pint --test
 
-      - name: JSON files
-        run: |
-          set -euo pipefail
-          for f in lang/*.json contract.snapshot.json composer.json; do php -r 'json_decode(file_get_contents($argv[1]), false, 512, JSON_THROW_ON_ERROR);' "$f"; done
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse
 
-      - name: Static analysis (PHPStan)
-        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
-
-      - name: Composer validate and audit
-        run: |
-          composer validate --no-check-publish
-          composer audit --no-interaction
-
-  crawl-bundles-smoke:
-    # Parcours des pages d'une instance de démonstration (propriétaire, gérant, employé), avec les 12 bundles officiels installés depuis leur branche develop
-    # (BUNDLES_REF) : migrations réelles, droits du gérant, pages et routes des bundles.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: pdo_sqlite, mbstring, gd, intl, curl, zip, openssl
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-dev
-
-      - name: Page crawl smoke test with bundles
-        run: bash scripts/ci/crawl-bundles-smoke-test.sh
-  crawl-forms-smoke:
-    # Comme crawl-bundles-smoke, mais chaque formulaire POST rencontré est aussi soumis une fois (valeurs plausibles).
-    # Un refus 4xx est normal ; une réponse 5xx ou une erreur PHP échoue. Job séparé : les soumissions modifient les
-    # comptes de démonstration (ce qui réduit la couverture des pages suivantes) et ne doivent pas affaiblir le parcours.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: pdo_sqlite, mbstring, gd, intl, curl, zip, openssl
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-dev
-
-      - name: Form submission smoke test with bundles
-        env:
-          CRAWL_FLAGS: --forms
-        run: bash scripts/ci/crawl-bundles-smoke-test.sh
-  mysql-smoke:
-    # Installation neuve sur un vrai MySQL (migrations, données de démonstration), pages principales et API.
-    # Seul job qui exécute MySQL : sans lui, les écarts SQLite / MySQL n'étaient jamais vérifiés.
-    runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-          MYSQL_DATABASE: kintai
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1"
-          --health-interval=5s --health-timeout=5s --health-retries=20
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: pdo_mysql, mbstring, gd, intl, curl, openssl
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-dev
-
-      - name: MySQL smoke test
-        env:
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_USER: root
-          MYSQL_PASSWORD: ''
-          MYSQL_DATABASE: kintai
-        run: bash scripts/ci/mysql-smoke-test.sh
-
-  docker-smoke:
-    # L'image Docker se construit (dépendances comprises), démarre, et sert la page de l'installateur.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build the image
-        run: docker build -t kintai:ci .
-
-      - name: Start a container and open the installer
-        run: |
-          set -euo pipefail
-          docker run -d --name kintai -p 8080:80 kintai:ci
-          for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/install.php || true)
-            [ "$code" = "200" ] && break
-            sleep 1
-          done
-          docker logs kintai
-          test "$code" = "200"
-          curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' http://127.0.0.1:8080/ | grep -q '^302 .*/install.php$'
-
-  check-translations:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Check FR/JA translations are present and up to date
-        run: php artisan kintai:check-translations
+      - name: Tests
+        run: php artisan test

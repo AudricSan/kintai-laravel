@@ -1,25 +1,25 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Database\Seeders;
 
+use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-/**
- * Données structurelles nécessaires à toute instance (rôles, registre officiel de bundles, clés du web push). Chaque
- * seeder est idempotent : `php artisan db:seed` peut être rejoué sans doublon, et l'est après une remise à zéro.
- */
-final class DatabaseSeeder extends Seeder
+class DatabaseSeeder extends Seeder
 {
+    use WithoutModelEvents;
+
+    /**
+     * Seed the application's database.
+     */
     public function run(): void
     {
-        $this->call([
-            RoleSeeder::class,
-            LanguageSeeder::class,
-            LanguageSeeder::class,
-            BundleRegistrySeeder::class,
-            WebPushKeySeeder::class,
+        // User::factory(10)->create();
+
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
         ]);
     }
 }

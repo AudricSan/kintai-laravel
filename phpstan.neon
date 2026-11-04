@@ -1,14 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
 parameters:
-    level: 0
     paths:
-        - app
-    excludePaths:
-        - resources/views
-    treatPhpDocTypesAsCertain: false
-    ignoreErrors:
-        # Le trait HasAdminAccess lit $this->stores / storeUsers / users, fournis par les contrôleurs qui l'utilisent ;
-        # certains n'appellent pas les méthodes concernées et ne déclarent donc pas ces dépendances.
-        -
-            identifier: property.notFound
-            message: '#::\$(stores|storeUsers|users)\.$#'
-            reportUnmatched: false
+        - app/
+        - bootstrap/
+        - config/
+        - database/
+        - routes/
+
+    level: 6
