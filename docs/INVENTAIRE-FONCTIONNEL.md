@@ -239,6 +239,7 @@ s'en sert lui-même pour ses propres widgets, entrées de menu, etc.
 3. Durées calculées par `strtotime("HH:MM")` sur la date du jour : écart possible un jour de changement d'heure.
 4. Pas de validation du format d'heure dans `moveShift` et `quickShift`.
 5. Tâches système déclenchées au passage d'une requête (`NotificationMiddleware`) en plus du cron.
+6. Jour de semaine des disponibilités : 0-6 dans l'API (`ApiPayloadRules.php:131`), 1-7 dans le garde-fou (`AvailabilityGuard.php:21-33`) ; une indisponibilité du dimanche saisie par l'API n'est jamais vue.
 
 À confirmer chacune par un test sur `Kintai` avant de la déclarer.
 

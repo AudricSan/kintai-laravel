@@ -94,8 +94,8 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 - Larastan, Pint, PHPUnit, CI ; `.env` standard ; traductions (fr, ja, en selon l'existant).
 
 ### Phase 2 : Schéma et modèles
-- Migrations redessinées de zéro, modèles avec relations, `$fillable` explicites, casts, factories, seeders.
-- Ordre : `User`, `Role`, `RoleAssignment`, `Store`, `StoreUser`, `ShiftType`, `Shift`, `Availability`, puis le reste.
+- Schéma : `docs/SCHEMA-CIBLE.md`. Migrations, modèles (relations, casts, `$fillable`), factories, seeder des rôles.
+- Périmètre : identité, rôles, magasins, planning ; les autres tables viennent avec leur tranche de la phase 4.
 
 ### Phase 3 : Authentification et autorisation
 - Authentification du kit de démarrage (connexion, réinitialisation de mot de passe), rôles via les modèles.
