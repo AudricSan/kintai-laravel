@@ -2,6 +2,8 @@
 
 namespace App\Dashboard;
 
+use App\Requests\PendingRequestRegistry;
+
 /**
  * Widgets du Core. Les statistiques, la rentabilité et l'absentéisme appartiennent au bundle `analytics`.
  */
@@ -17,6 +19,8 @@ final class CoreWidgets
         $registry->register(new DashboardWidget(
             key: 'pending-requests', label: 'Pending requests', audience: DashboardWidget::MANAGER, component: 'widgets::manager.pending-requests',
             size: WidgetSize::Small, refresh: 60, order: 15,
+            // Sans bundle fournissant des demandes (congés, échanges…), le widget n'a rien à montrer.
+            when: fn (): bool => ! app(PendingRequestRegistry::class)->isEmpty(),
         ));
         $registry->register(new DashboardWidget(
             key: 'alerts', label: 'Alerts', audience: DashboardWidget::MANAGER, component: 'widgets::manager.alerts',

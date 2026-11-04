@@ -13,6 +13,8 @@ use App\Dashboard\DashboardWidget;
 use App\Models\DashboardLayout;
 use App\Models\Store;
 use App\Models\User;
+use App\Requests\PendingRequestProvider;
+use App\Requests\PendingRequestRegistry;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -34,6 +36,8 @@ class DashboardCustomizationTest extends TestCase
         parent::setUp();
 
         $this->seedRoles();
+        // Un fournisseur de demandes rend le widget « pending-requests » disponible.
+        app(PendingRequestRegistry::class)->register(new PendingRequestProvider('fake', 'Fake', 'requests.index', fn (User $user): int => 1));
         $this->store = Store::factory()->create();
         $this->manager = $this->managerOf($this->store);
     }

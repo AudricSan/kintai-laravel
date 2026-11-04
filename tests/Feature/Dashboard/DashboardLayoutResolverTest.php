@@ -11,6 +11,8 @@ use App\Models\DashboardLayout;
 use App\Models\Store;
 use App\Models\StoreFeature;
 use App\Models\User;
+use App\Requests\PendingRequestProvider;
+use App\Requests\PendingRequestRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
@@ -27,6 +29,8 @@ class DashboardLayoutResolverTest extends TestCase
         parent::setUp();
 
         $this->seedRoles();
+        // Un fournisseur de demandes rend le widget « pending-requests » disponible.
+        app(PendingRequestRegistry::class)->register(new PendingRequestProvider('fake', 'Fake', 'requests.index', fn (User $user): int => 1));
         $this->store = Store::factory()->create();
     }
 
@@ -200,5 +204,19 @@ class DashboardLayoutResolverTest extends TestCase
         $placements = app(DashboardLayoutResolver::class)->resolve($employee, DashboardWidget::EMPLOYEE);
 
         $this->assertSame(WidgetSize::Small, $placements[0]->size);
+    }
+
+    public function test_the_when_condition_gates_the_widget_for_the_user(): void
+    {
+        $manager = $this->managerOf($this->store);
+        $other = $this->managerOf($this->store);
+        app(DashboardWidgetRegistry::class)->register(new DashboardWidget(
+            key: 'picky', label: 'Picky', audience: DashboardWidget::MANAGER, component: 'x::picky',
+            when: fn (User $user): bool => $user->id === $manager->id,
+        ));
+        DashboardLayout::factory()->widgets(['picky'])->active()->create(['user_id' => $other->id]);
+
+        $this->assertContains('picky', $this->resolve($manager));
+        $this->assertSame([], $this->resolve($other), 'a saved layout cannot bring back a widget whose condition fails');
     }
 }

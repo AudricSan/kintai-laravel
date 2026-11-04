@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Dashboard\DashboardLayoutResolver;
 use App\Dashboard\DashboardScope;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
+use App\Requests\PendingRequestProvider;
+use App\Requests\PendingRequestRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;
@@ -207,7 +210,7 @@ class DashboardWidgetsTest extends TestCase
         $this->assertSame($this->today(1), $shifts->first()->shift_date->toDateString());
     }
 
-    public function test_employee_month_sums_planned_and_completed_hours_without_cost(): void
+    public function test_employee_month_sums_planned_and_completed_hours(): void
     {
         $me = $this->employeeOf($this->storeA);
         $first = app(DashboardScope::class)->today()->startOfMonth();
@@ -223,6 +226,73 @@ class DashboardWidgetsTest extends TestCase
         $month = Livewire::test('widgets::employee.month');
         $month->assertViewHas('count', $first->equalTo($last) ? 1 : 2);
         $month->assertViewHas('plannedMinutes', $first->equalTo($last) ? 420 : 840);
-        $month->assertDontSee('€');
+        $month->assertSee('0,00 €');
+    }
+
+    public function test_employee_month_shows_the_estimated_pay_formatted_for_the_store_currency(): void
+    {
+        $this->storeA->update(['currency' => 'EUR']);
+        $me = $this->employeeOf($this->storeA);
+        $monthStart = app(DashboardScope::class)->today()->startOfMonth()->toDateString();
+        Shift::fromLocalTimes($monthStart, '09:00', '17:00', ['store_id' => $this->storeA->id, 'user_id' => $me->id, 'hourly_rate_override' => 10, 'net_minutes_override' => 420])->save();
+        Shift::fromLocalTimes($monthStart, '18:00', '20:00', ['store_id' => $this->storeA->id, 'user_id' => $me->id, 'hourly_rate_override' => 10, 'net_minutes_override' => 120])->save();
+
+        $this->actingAs($me);
+
+        Livewire::test('widgets::employee.month')
+            ->assertSee('Estimated pay')
+            ->assertSeeInOrder(['data-test="month-pay"', '90,00 €'], false);
+    }
+
+    public function test_employee_month_gives_one_pay_total_per_currency(): void
+    {
+        $this->storeA->update(['currency' => 'EUR']);
+        $this->storeB->update(['currency' => 'JPY', 'currency_symbol_style' => 'international']);
+        $me = $this->employeeOf($this->storeA);
+        $this->storeB->members()->attach($me);
+        $monthStart = app(DashboardScope::class)->today()->startOfMonth()->toDateString();
+        Shift::fromLocalTimes($monthStart, '09:00', '17:00', ['store_id' => $this->storeA->id, 'user_id' => $me->id, 'hourly_rate_override' => 10, 'net_minutes_override' => 420])->save();
+        Shift::fromLocalTimes($monthStart, '09:00', '17:00', ['store_id' => $this->storeB->id, 'user_id' => $me->id, 'hourly_rate_override' => 1000, 'net_minutes_override' => 120])->save();
+
+        $this->actingAs($me);
+
+        $component = Livewire::test('widgets::employee.month');
+        $this->assertEqualsCanonicalizing(['70,00 €', '2,000¥'], $component->viewData('estimatedPay'));
+        $component->assertSee('70,00 €')->assertSee('2,000¥');
+    }
+
+    public function test_employee_month_never_adds_the_pay_of_other_employees(): void
+    {
+        $me = $this->employeeOf($this->storeA);
+        $colleague = $this->employeeOf($this->storeA);
+        $monthStart = app(DashboardScope::class)->today()->startOfMonth()->toDateString();
+        Shift::fromLocalTimes($monthStart, '09:00', '17:00', ['store_id' => $this->storeA->id, 'user_id' => $me->id, 'hourly_rate_override' => 10, 'net_minutes_override' => 60])->save();
+        Shift::fromLocalTimes($monthStart, '09:00', '17:00', ['store_id' => $this->storeA->id, 'user_id' => $colleague->id, 'hourly_rate_override' => 500, 'net_minutes_override' => 600])->save();
+        Shift::fromLocalTimes($monthStart, '09:00', '17:00', ['store_id' => $this->storeA->id, 'user_id' => null, 'hourly_rate_override' => 500, 'net_minutes_override' => 600])->save();
+
+        $this->actingAs($me);
+
+        $this->assertSame(['10,00 €'], Livewire::test('widgets::employee.month')->viewData('estimatedPay'));
+    }
+
+    public function test_pending_requests_widget_is_hidden_without_provider_and_present_with_one(): void
+    {
+        $resolver = app(DashboardLayoutResolver::class);
+        $manager = $this->managerOf($this->storeA);
+        $keys = fn (): array => array_map(fn ($widget): string => $widget->key, $resolver->available($manager, 'manager'));
+
+        $this->assertNotContains('pending-requests', $keys());
+
+        app(PendingRequestRegistry::class)->register(new PendingRequestProvider('timeoff', 'Time off', 'requests.index', fn (User $user): int => 2));
+
+        $this->assertContains('pending-requests', $keys());
+    }
+
+    public function test_employee_month_pay_is_a_dash_without_shift(): void
+    {
+        $me = $this->employeeOf($this->storeA);
+        $this->actingAs($me);
+
+        Livewire::test('widgets::employee.month')->assertViewHas('estimatedPay', [])->assertSeeInOrder(['data-test="month-pay"', '—'], false);
     }
 }

@@ -52,6 +52,7 @@ class DashboardWidgetRegistryTest extends TestCase
         $this->assertNull($widget->permission);
         $this->assertNull($widget->storeFeature);
         $this->assertNull($widget->refresh);
+        $this->assertNull($widget->when);
         $this->assertTrue($widget->default);
         $this->assertTrue($widget->resizable);
         $this->assertSame(WidgetSize::Medium, $widget->size);

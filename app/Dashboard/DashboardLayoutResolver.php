@@ -33,6 +33,10 @@ class DashboardLayoutResolver
             return false;
         }
 
+        if ($widget->when !== null && ! ($widget->when)($user)) {
+            return false;
+        }
+
         if ($widget->storeFeature === null) {
             return true;
         }

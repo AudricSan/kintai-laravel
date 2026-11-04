@@ -2,6 +2,9 @@
 
 namespace App\Dashboard;
 
+use App\Models\User;
+use Closure;
+
 /**
  * Un widget des tableaux de bord. Objet valeur du contrat Core / bundles.
  */
@@ -22,6 +25,7 @@ final class DashboardWidget
      * @param  int|null  $refresh  Intervalle de rafraîchissement en secondes ; null = pas de rafraîchissement.
      * @param  bool  $default  Inclus dans la disposition par défaut.
      * @param  bool  $resizable  L'utilisateur peut changer sa taille.
+     * @param  (Closure(User): bool)|null  $when  Condition supplémentaire d'affichage (ex. au moins une source de données) ; null = toujours.
      */
     public function __construct(
         public readonly string $key,
@@ -35,5 +39,6 @@ final class DashboardWidget
         public readonly int $order = 100,
         public readonly bool $default = true,
         public readonly bool $resizable = true,
+        public readonly ?Closure $when = null,
     ) {}
 }
