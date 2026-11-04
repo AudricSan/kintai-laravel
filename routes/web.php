@@ -28,6 +28,12 @@ Route::middleware(['auth'])->group(function () {
         Route::livewire('{shiftType}/edit', 'pages::shift-types.form')->middleware('can:shifts.update')->name('shift-types.edit');
     });
 
+    Route::prefix('shifts')->group(function () {
+        Route::livewire('create', 'pages::shifts.form')->middleware('can:shifts.create')->name('shifts.create');
+        Route::livewire('conflicts', 'pages::shifts.conflicts')->middleware('can:shifts.view')->name('shifts.conflicts');
+        Route::livewire('{shift}/edit', 'pages::shifts.form')->middleware('can:shifts.update')->name('shifts.edit')->withTrashed();
+    });
+
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {
         Route::livewire('/', 'pages::roles.index')->name('roles.index');
         Route::livewire('create', 'pages::roles.form')->name('roles.create');

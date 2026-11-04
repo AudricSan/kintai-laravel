@@ -3,7 +3,7 @@
 namespace App\Authorization;
 
 /**
- * Permissions déclarées par le corps de l'application.
+ * Permissions déclarées par le Core de l'application.
  */
 final class CorePermissions
 {
@@ -34,7 +34,7 @@ final class CorePermissions
     ];
 
     /**
-     * Toutes les clés `catégorie.action` du corps.
+     * Toutes les clés `catégorie.action` du Core.
      *
      * @return list<string>
      */
@@ -51,7 +51,7 @@ final class CorePermissions
     }
 
     /**
-     * Enregistre les catégories du corps dans le registre.
+     * Enregistre les catégories du Core dans le registre.
      */
     public static function registerIn(PermissionRegistry $registry): void
     {

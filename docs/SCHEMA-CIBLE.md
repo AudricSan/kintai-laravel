@@ -1,7 +1,7 @@
-# Schéma cible du corps (phase 2)
+# Schéma cible du Core (phase 2)
 
 Conçu le 04/11/2026 à partir du schéma final de `Kintai` (branche `develop`, ~100 migrations relues) et des décisions
-du plan. Les tables sortent du corps quand leur fonctionnalité part dans un bundle. Le passage des anciennes données
+du plan. Les tables sortent du Core quand leur fonctionnalité part dans un bundle. Le passage des anciennes données
 se fait dans l'outil de migration (phase 7), jamais dans l'application.
 
 Conventions : identifiants `id()` (bigint), clés étrangères `foreignId()->constrained()`, booléens `boolean`, heures
@@ -55,11 +55,11 @@ reste rattaché.
 **Trois niveaux de visibilité** (validé le 04/11/2026) :
 1. Données RH (`employee_profiles`, sauf téléphones partagés) : la personne elle-même et `employees.view` sur son
    magasin, jamais les collègues.
-2. Coordonnées partageables (e-mail, téléphone, mobile) : choix de l'employé (`share_*`), règle du corps.
+2. Coordonnées partageables (e-mail, téléphone, mobile) : choix de l'employé (`share_*`), règle du Core.
 3. Profil d'équipe (bio, compétences, langues, loisirs, présence dans l'annuaire) : table du bundle `team-directory`.
 
 Un bundle ne lit jamais ces tables directement : le contrat lui fournit les membres d'un magasin avec les seules
-coordonnées partagées (policy du corps).
+coordonnées partagées (policy du Core).
 
 **passkeys**, **sessions**, **password_reset_tokens**, **personal_access_tokens** : tables standard.
 
@@ -70,7 +70,7 @@ standard `$user->can('shifts.update', $store)`, `@can`, `can:`.
 **roles** : `name`, `slug` unique, `description`, `color`, `is_system` (Owner, non modifiable), `is_manager`
 (navigation gérant), timestamps.
 
-**role_permissions** : `role_id` (cascade), `permission` (clé du catalogue, déclarée en code par le corps et les
+**role_permissions** : `role_id` (cascade), `permission` (clé du catalogue, déclarée en code par le Core et les
 bundles), `all_stores` (booléen : ignore la portée magasin), clé primaire (`role_id`, `permission`).
 
 **role_user** : `id`, `user_id` (cascade), `role_id` (cascade), `store_id` nullable (cascade ; null = global),
@@ -114,7 +114,7 @@ la fonctionnalité est active.
 que le remplaçant existe, et, si le remplaçant est créé à cette occasion, il reprend son `ical_uid` avec une séquence + 1 (le calendrier affiche une
 modification, pas une annulation). Si le remplaçant existe déjà (donc déjà publié dans les flux), personne ne change
 d'`ical_uid` : l'ancien, supprimé, est publié comme annulé et le remplaçant n'est pas modifié. Cas : résolution d'un conflit par une option prédéfinie (« garder le plus récent »…), échange entre
-employés (`shift-swap`), reprise d'un shift ouvert (`shift-claim`). Le corps fournit l'opération `replace` ; les
+employés (`shift-swap`), reprise d'un shift ouvert (`shift-claim`). Le Core fournit l'opération `replace` ; les
 bundles l'appellent par le contrat.
 
 **availabilities** : `user_id`, `store_id` (cascade), `day_of_week` (1-7), `starts_at`, `ends_at` (`time` nullable),

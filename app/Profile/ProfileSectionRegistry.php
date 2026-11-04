@@ -7,7 +7,7 @@ use Closure;
 use InvalidArgumentException;
 
 /**
- * Point d'extension : le corps et les bundles y déclarent les pages de la zone « réglages personnels ».
+ * Point d'extension : le Core et les bundles y déclarent les pages de la zone « réglages personnels ».
  * Le libellé est une clé de traduction, traduite à l'affichage.
  */
 class ProfileSectionRegistry

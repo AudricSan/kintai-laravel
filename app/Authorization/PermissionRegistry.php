@@ -5,7 +5,7 @@ namespace App\Authorization;
 use InvalidArgumentException;
 
 /**
- * Catalogue des permissions : le corps et les bundles y déclarent leurs catégories.
+ * Catalogue des permissions : le Core et les bundles y déclarent leurs catégories.
  */
 class PermissionRegistry
 {

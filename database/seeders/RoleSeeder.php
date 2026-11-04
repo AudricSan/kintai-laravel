@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 class RoleSeeder extends Seeder
 {
     /**
-     * Rôles obligatoires du corps ; peut être relancé sans doublon.
+     * Rôles obligatoires du Core ; peut être relancé sans doublon.
      */
     public function run(): void
     {

@@ -5,7 +5,7 @@ namespace App\Stores;
 use InvalidArgumentException;
 
 /**
- * Point d'extension : le corps et les bundles y déclarent les fonctionnalités activables par magasin.
+ * Point d'extension : le Core et les bundles y déclarent les fonctionnalités activables par magasin.
  * Le libellé est une clé de traduction, traduite à l'affichage.
  */
 class StoreFeatureRegistry

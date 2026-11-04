@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\Planning\TimeOffChecker;
+use App\Models\User;
+use App\Planning\NullTimeOffChecker;
 use App\Profile\ProfileSectionRegistry;
 use App\Stores\StoreFeatureRegistry;
 use Carbon\CarbonImmutable;
@@ -19,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ProfileSectionRegistry::class);
         $this->app->singleton(StoreFeatureRegistry::class);
+        // Sans bundle de congés, personne n'est en congé ; le bundle timeoff remplace cette liaison.
+        $this->app->bind(TimeOffChecker::class, NullTimeOffChecker::class);
     }
 
     /**
@@ -32,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Fonctionnalités du corps activables par magasin ; les bundles y ajouteront les leurs.
+     * Fonctionnalités du Core activables par magasin ; les bundles y ajouteront les leurs.
      */
     private function registerStoreFeatures(): void
     {
@@ -40,13 +45,14 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Pages du corps dans la zone « réglages personnels » ; les bundles y ajouteront les leurs.
+     * Pages du Core dans la zone « réglages personnels » ; les bundles y ajouteront les leurs.
      */
     private function registerProfileSections(): void
     {
         $sections = $this->app->make(ProfileSectionRegistry::class);
 
         $sections->register('profile', 'Profile', 'profile.edit', 10);
+        $sections->register('availability', 'Availability', 'availability.edit', 15, fn (User $user): bool => $user->stores()->exists());
         $sections->register('security', 'Security', 'security.edit', 20);
         $sections->register('appearance', 'Appearance', 'appearance.edit', 30);
     }
