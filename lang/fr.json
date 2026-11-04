@@ -581,5 +581,18 @@
     "Select a retention period.": "Choisissez une durée de conservation.",
     "Action key": "Clé de l'action",
     "Target": "Cible",
-    "Shift": "Shift"
+    "Shift": "Shift",
+    "Notifications on this device": "Notifications sur cet appareil",
+    "Push notifications are not enabled on this instance.": "Les notifications push ne sont pas activées sur cette instance.",
+    "This browser does not support push notifications.": "Ce navigateur ne prend pas en charge les notifications push.",
+    "On iPhone and iPad, add this application to your home screen to receive push notifications.": "Sur iPhone et iPad, ajoutez cette application à votre écran d'accueil pour recevoir les notifications push.",
+    "Notifications are blocked for this site. Allow them in your browser settings, then reload the page.": "Les notifications sont bloquées pour ce site. Autorisez-les dans les réglages de votre navigateur, puis rechargez la page.",
+    "Push notifications could not be set up on this device. Try again.": "Les notifications push n'ont pas pu être configurées sur cet appareil. Réessayez.",
+    "Push notifications are off on this device.": "Les notifications push sont désactivées sur cet appareil.",
+    "Enable notifications on this device": "Activer les notifications sur cet appareil",
+    "Push notifications are on for this device.": "Les notifications push sont activées sur cet appareil.",
+    "Disable notifications on this device": "Désactiver les notifications sur cet appareil",
+    "This push subscription is not valid.": "Cet abonnement aux notifications push n'est pas valide.",
+    "The device token is invalid.": "Le jeton de l'appareil n'est pas valide.",
+    "The platform must be ios or android.": "La plateforme doit être ios ou android."
 }

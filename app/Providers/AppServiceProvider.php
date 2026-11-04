@@ -32,6 +32,7 @@ use App\Events\StoreMemberUpdated;
 use App\Events\StoreUpdated;
 use App\Events\UserAnonymized;
 use App\Listeners\RecordActivity;
+use App\Listeners\RemovePushSubscriptionOnLogout;
 use App\Listeners\SendShiftNotifications;
 use App\Models\User;
 use App\Navigation\CoreNavigation;
@@ -41,6 +42,8 @@ use App\Notifications\CoreNotificationTypes;
 use App\Notifications\NotificationTypeRegistry;
 use App\Planning\NullTimeOffChecker;
 use App\Profile\ProfileSectionRegistry;
+use App\Push\MinishlinkWebPushSender;
+use App\Push\WebPushSender;
 use App\Requests\PendingRequestRegistry;
 use App\Stores\StoreFeatureRegistry;
 use Carbon\CarbonImmutable;
@@ -69,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(DashboardWidgetRegistry::class);
         $this->app->singleton(NotificationTypeRegistry::class);
         $this->app->singleton(ActivityActionRegistry::class);
+        $this->app->bind(WebPushSender::class, MinishlinkWebPushSender::class);
         $this->app->scoped(NavigationMenu::class);
         // Sans bundle de congés, personne n'est en congé ; le bundle timeoff remplace cette liaison.
         $this->app->bind(TimeOffChecker::class, NullTimeOffChecker::class);
@@ -86,6 +90,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerDashboardWidgets();
         $this->registerNotificationTypes();
         $this->registerShiftNotifications();
+        Event::listen(Logout::class, RemovePushSubscriptionOnLogout::class);
         $this->registerActivityLog();
     }
 

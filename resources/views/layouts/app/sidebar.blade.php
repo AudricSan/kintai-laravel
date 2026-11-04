@@ -80,8 +80,9 @@
 
                     <flux:menu.separator />
 
-                    <form method="POST" action="{{ route('logout') }}" class="w-full">
+                    <form method="POST" action="{{ route('logout') }}" class="w-full" data-push-logout>
                         @csrf
+                        <input type="hidden" name="push_endpoint" value="">
                         <flux:menu.item
                             as="button"
                             type="submit"

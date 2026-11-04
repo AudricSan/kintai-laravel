@@ -43,6 +43,8 @@ class AnonymizeUser
 
             $user->profile()->delete();
             $user->passkeys()->delete();
+            $user->webPushSubscriptions()->delete();
+            $user->devicePushTokens()->delete();
             RoleAssignment::query()->where('user_id', $user->id)->delete();
 
             app(RevokeUserSessions::class)->handle($user);

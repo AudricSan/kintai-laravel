@@ -209,6 +209,22 @@ class User extends Authenticatable implements HasLocalePreference, PasskeyUser
     }
 
     /**
+     * @return HasMany<WebPushSubscription, $this>
+     */
+    public function webPushSubscriptions(): HasMany
+    {
+        return $this->hasMany(WebPushSubscription::class);
+    }
+
+    /**
+     * @return HasMany<DevicePushToken, $this>
+     */
+    public function devicePushTokens(): HasMany
+    {
+        return $this->hasMany(DevicePushToken::class);
+    }
+
+    /**
      * Types de shift pour lesquels l'utilisateur a un taux horaire personnel (pivot `hourly_rate`).
      *
      * @return BelongsToMany<ShiftType, $this>

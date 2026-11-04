@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Notifications\Channels\FcmChannel;
+use App\Notifications\Channels\WebPushChannel;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
@@ -10,8 +12,8 @@ use Symfony\Component\Mime\Email;
 
 /**
  * Notification d'un type déclaré dans `NotificationTypeRegistry`. La cloche (canal `database`) est toujours
- * alimentée ; l'e-mail suit les préférences de l'utilisateur. Le canal push (Web Push, FCM) s'ajoutera ici
- * dans `via()` avec les heures silencieuses (`NotificationPreferences::isQuietNow()`).
+ * alimentée ; l'e-mail et le push (Web Push pour les navigateurs, FCM pour l'application mobile) suivent les
+ * préférences de l'utilisateur. Le push d'un utilisateur en heures silencieuses part sans son (`quiet`, voir `PushPayload`).
  *
  * Le titre vient du type ; le corps est une clé de traduction avec ses paramètres, traduits à l'affichage.
  */
@@ -49,6 +51,18 @@ class KintaiNotification extends Notification
 
         if ($notifiable instanceof User && $this->mailEnabled($notifiable)) {
             $channels[] = 'mail';
+        }
+
+        // Push : seulement si le type l'autorise pour ce destinataire et qu'un appareil est joignable. Chaque
+        // canal est isolé (il journalise ses échecs sans lever), les heures silencieuses sont portées par la charge utile.
+        if ($notifiable instanceof User && app(NotificationPreferences::class)->isEnabled($notifiable, $this->type, NotificationType::CHANNEL_PUSH)) {
+            if (WebPushChannel::isAvailableFor($notifiable)) {
+                $channels[] = WebPushChannel::class;
+            }
+
+            if (FcmChannel::isAvailableFor($notifiable)) {
+                $channels[] = FcmChannel::class;
+            }
         }
 
         return $channels;

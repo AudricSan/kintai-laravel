@@ -4,6 +4,8 @@ use App\Http\Controllers\ActivityExportController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\NotificationOpenController;
 use App\Http\Controllers\NotificationUnsubscribeController;
+use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\PwaController;
 use App\Http\Controllers\TimelinePrintController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +16,10 @@ Route::redirect('/', '/dashboard')->name('home');
 Route::get('notifications/unsubscribe', [NotificationUnsubscribeController::class, 'show'])->name('notifications.unsubscribe');
 Route::post('notifications/unsubscribe', [NotificationUnsubscribeController::class, 'confirm'])->name('notifications.unsubscribe.confirm');
 
+// PWA : service worker (push, clic sur une notification) et manifeste, publics.
+Route::get('sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.sw');
+Route::get('manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
+
 Route::middleware(['auth'])->group(function () {
     // `audience` : « auto » = tableau gérant pour un gérant ou un Owner, tableau employé sinon.
     Route::livewire('dashboard', 'pages::dashboard.show')->defaults('audience', 'auto')->name('dashboard');
@@ -23,6 +29,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::livewire('notifications', 'pages::notifications.index')->name('notifications.index');
     Route::get('notifications/{notification}/open', NotificationOpenController::class)->name('notifications.open');
+
+    // Abonnements Web Push du navigateur de l'utilisateur connecté (JSON, CSRF de la session).
+    Route::get('push/status', [PushSubscriptionController::class, 'status'])->name('push.status');
+    Route::post('push/subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1')->name('push.subscriptions.store');
+    Route::delete('push/subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push.subscriptions.destroy');
 
     Route::get('avatar/{user}', [AvatarController::class, 'show'])->name('avatar.show');
 

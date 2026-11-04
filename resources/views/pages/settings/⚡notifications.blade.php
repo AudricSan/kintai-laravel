@@ -70,6 +70,25 @@ new #[Title('Notification settings')] class extends Component {
     <flux:heading level="2" class="sr-only">{{ __('Notification settings') }}</flux:heading>
 
     <x-pages::settings.layout :heading="__('Notifications')" :subheading="__('Choose how you are notified. The bell always receives every notification.')">
+        {{-- Web Push de CET appareil : piloté par resources/js/push.js (wire:ignore : l'état affiché ne doit pas être réinitialisé par Livewire). --}}
+        <div wire:ignore data-push-panel class="mb-8 space-y-3" data-test="push-panel">
+            <flux:heading>{{ __('Notifications on this device') }}</flux:heading>
+
+            <div data-push-state="unconfigured" hidden><flux:text size="sm">{{ __('Push notifications are not enabled on this instance.') }}</flux:text></div>
+            <div data-push-state="unsupported" hidden><flux:text size="sm">{{ __('This browser does not support push notifications.') }}</flux:text></div>
+            <div data-push-state="ios" hidden><flux:text size="sm">{{ __('On iPhone and iPad, add this application to your home screen to receive push notifications.') }}</flux:text></div>
+            <div data-push-state="denied" hidden><flux:text size="sm">{{ __('Notifications are blocked for this site. Allow them in your browser settings, then reload the page.') }}</flux:text></div>
+            <div data-push-state="error" hidden><flux:text size="sm" class="text-red-600">{{ __('Push notifications could not be set up on this device. Try again.') }}</flux:text></div>
+            <div data-push-state="disabled" hidden class="flex flex-wrap items-center gap-3">
+                <flux:text size="sm">{{ __('Push notifications are off on this device.') }}</flux:text>
+                <flux:button type="button" size="sm" data-push-enable data-test="push-enable">{{ __('Enable notifications on this device') }}</flux:button>
+            </div>
+            <div data-push-state="enabled" hidden class="flex flex-wrap items-center gap-3">
+                <flux:text size="sm">{{ __('Push notifications are on for this device.') }}</flux:text>
+                <flux:button type="button" size="sm" data-push-disable data-test="push-disable">{{ __('Disable notifications on this device') }}</flux:button>
+            </div>
+        </div>
+
         <form wire:submit="save" class="space-y-8">
             @foreach ($grid as $category => $types)
                 <div class="space-y-2" wire:key="category-{{ $category }}" data-test="category-{{ $category }}">
