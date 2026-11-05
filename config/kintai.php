@@ -104,4 +104,21 @@ return [
         'credentials_path' => env('FCM_CREDENTIALS_PATH', ''),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sauvegardes
+    |--------------------------------------------------------------------------
+    |
+    | `path` : dossier des archives (hors du dossier public, jamais servi). `max_uncompressed_bytes` : taille
+    | décompressée maximale acceptée à la restauration (protège d'une archive piégée). `max_entries` : nombre
+    | maximal d'entrées d'une archive.
+    |
+    */
+
+    'backups' => [
+        'path' => storage_path('app/private/backups'),
+        'max_uncompressed_bytes' => 2 * 1024 * 1024 * 1024,
+        'max_entries' => 50000,
+    ],
+
 ];

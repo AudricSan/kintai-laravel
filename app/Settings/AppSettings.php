@@ -3,6 +3,7 @@
 namespace App\Settings;
 
 use App\Models\AppSetting;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -272,6 +273,38 @@ class AppSettings
     public function notificationsRetentionDays(): int
     {
         return $this->int('notifications.retention_days');
+    }
+
+    // -- Sauvegardes --------------------------------------------------------------------------------------------
+
+    /** Sauvegarde automatique quotidienne activée ? */
+    public function backupAutoEnabled(): bool
+    {
+        return $this->bool('backup.auto_enabled');
+    }
+
+    /** Nombre de sauvegardes conservées par la rotation ; 0 = illimité. */
+    public function backupMaxKeep(): int
+    {
+        return max(0, $this->int('backup.max_keep'));
+    }
+
+    /** Dernière sauvegarde automatique réussie (jamais : null). */
+    public function backupLastSuccessAt(): ?CarbonImmutable
+    {
+        $value = $this->string('backup.last_success_at');
+
+        try {
+            return $value === '' ? null : CarbonImmutable::parse($value);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** Message du dernier échec de la sauvegarde automatique ('' après un succès). */
+    public function backupLastFailure(): string
+    {
+        return $this->string('backup.last_failure');
     }
 
     // -- Web Push -----------------------------------------------------------------------------------------------

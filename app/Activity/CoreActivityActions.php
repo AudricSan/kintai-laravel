@@ -64,6 +64,15 @@ final class CoreActivityActions
                 'settings.vapid_regenerated' => 'Web Push keys regenerated',
                 'settings.mail_tested' => 'Test email sent',
             ],
+            'Backups and data' => [
+                'backup.created' => 'Backup created',
+                'backup.downloaded' => 'Backup downloaded',
+                'backup.restored' => 'Backup restored',
+                'backup.deleted' => 'Backup deleted',
+                'backup.deleted_all' => 'All backups deleted',
+                'backup.settings_updated' => 'Backup settings updated',
+                'app.data_reset' => 'Data reset',
+            ],
             'Activity log' => [
                 'activity.exported' => 'Activity log exported',
                 'activity.purged' => 'Activity log purged',

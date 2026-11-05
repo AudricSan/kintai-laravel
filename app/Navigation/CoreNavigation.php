@@ -41,6 +41,8 @@ final class CoreNavigation
         $registry->register(new NavigationItem('roles', 'Roles', 'roles.index', 'shield-check', NavigationRegistry::SECTION_SYSTEM, 10, 'manage-roles', hideable: false, current: ['roles.*']));
         // Réglages de l'instance : Owner seulement. Libellé distinct de « Settings » (réglages personnels du compte).
         $registry->register(new NavigationItem('instance-settings', 'Instance settings', 'settings.app', 'adjustments-horizontal', NavigationRegistry::SECTION_SYSTEM, 30, 'manage-settings', hideable: false, current: ['settings.app']));
+        // Sauvegardes et réinitialisation des données : Owner seulement.
+        $registry->register(new NavigationItem('backups', 'Backups', 'backups.index', 'archive-box', NavigationRegistry::SECTION_SYSTEM, 40, 'manage-settings', hideable: false, current: ['backups.*', 'data-reset.index']));
         // Journal d'audit : visible de qui a `stores.view` (un gérant ne voit que ses magasins).
         $registry->register(new NavigationItem('activity', 'Activity log', 'activity.index', 'clipboard-document-list', NavigationRegistry::SECTION_SYSTEM, 20, 'stores.view', current: ['activity.*']));
 

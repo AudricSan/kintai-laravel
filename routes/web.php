@@ -1,7 +1,9 @@
 <?php
 
+use App\Backups\BackupManager;
 use App\Http\Controllers\ActivityExportController;
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\BackupDownloadController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\NotificationOpenController;
 use App\Http\Controllers\NotificationUnsubscribeController;
@@ -84,6 +86,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Réglages de l'instance (Owner seulement).
     Route::livewire('admin/settings', 'pages::admin.settings')->middleware('can:manage-settings')->name('settings.app');
+
+    // Sauvegardes et réinitialisation des données (Owner seulement). Le téléchargement n'accepte qu'un nom d'archive au motif strict.
+    Route::middleware('can:manage-settings')->group(function () {
+        Route::livewire('admin/backups', 'pages::admin.backups')->name('backups.index');
+        Route::get('admin/backups/{backup}/download', BackupDownloadController::class)
+            ->where('backup', BackupManager::ROUTE_PATTERN)
+            ->middleware('throttle:20,1')
+            ->name('backups.download');
+        Route::livewire('admin/data-reset', 'pages::admin.data-reset')->name('data-reset.index');
+    });
 
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {
         Route::livewire('/', 'pages::roles.index')->name('roles.index');

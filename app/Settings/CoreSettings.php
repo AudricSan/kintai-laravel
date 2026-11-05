@@ -20,6 +20,8 @@ final class CoreSettings
 
     public const ACTIVITY_RETENTION_MAX = 3650;
 
+    public const BACKUP_MAX_KEEP_MAX = 365;
+
     public const NOTIFICATIONS_RETENTION_MIN = 7;
 
     public const NOTIFICATIONS_RETENTION_MAX = 3650;
@@ -56,6 +58,12 @@ final class CoreSettings
             new SettingDefinition('api.rate_limit', $int, 300, 0, self::API_RATE_LIMIT_MAX, config: 'kintai.api.rate_limit'),
             new SettingDefinition('activity.retention_days', $int, 180, 0, self::ACTIVITY_RETENTION_MAX, config: 'kintai.activity.retention_days'),
             new SettingDefinition('notifications.retention_days', $int, 90, self::NOTIFICATIONS_RETENTION_MIN, self::NOTIFICATIONS_RETENTION_MAX, config: 'kintai.notifications.retention_days'),
+
+            // Sauvegardes : `last_success_at` (ISO 8601) et `last_failure` sont écrits par la sauvegarde automatique.
+            new SettingDefinition('backup.auto_enabled', $bool, true),
+            new SettingDefinition('backup.max_keep', $int, 14, 0, self::BACKUP_MAX_KEEP_MAX),
+            new SettingDefinition('backup.last_success_at', $string, ''),
+            new SettingDefinition('backup.last_failure', $string, ''),
 
             // Web Push : la clé privée est chiffrée en base.
             new SettingDefinition('webpush.public_key', $string, '', config: 'kintai.webpush.public_key'),
