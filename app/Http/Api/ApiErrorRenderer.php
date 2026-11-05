@@ -3,6 +3,7 @@
 namespace App\Http\Api;
 
 use App\Exceptions\ApiException;
+use App\Exceptions\ShiftWarningsException;
 use App\Http\Middleware\SetApiLocale;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -18,7 +19,7 @@ use Throwable;
  * (champ => messages) pour une validation. Toujours du JSON, quel que soit l'en-tête `Accept`.
  *
  * Codes : unauthenticated (401), forbidden (403), not_found (404), method_not_allowed (405), validation_failed (422),
- * too_many_requests (429, avec `Retry-After`), server_error (500, sans détail hors du mode debug), bad_request (autre
+ * shift_warnings (409, avec `warnings`), too_many_requests (429, avec `Retry-After`), server_error (500, sans détail hors du mode debug), bad_request (autre
  * erreur 4xx), plus les codes propres à un endpoint (`ApiException`).
  */
 final class ApiErrorRenderer
@@ -35,6 +36,16 @@ final class ApiErrorRenderer
 
         if ($e instanceof ValidationException) {
             return self::json(422, 'validation_failed', $e->getMessage(), ['errors' => $e->errors()]);
+        }
+
+        if ($e instanceof ShiftWarningsException) {
+            return self::json(409, 'shift_warnings', __('This shift raises warnings. Send it again with the force option to save it anyway.'), [
+                'warnings' => array_map(fn ($issue): array => [
+                    'kind' => $issue->kind->value,
+                    'message' => $issue->message,
+                    'conflicting_shift_id' => $issue->conflictingShiftId,
+                ], $e->issues),
+            ]);
         }
 
         if ($e instanceof ApiException) {

@@ -679,5 +679,8 @@
     "This notification type is unknown.": "Ce type de notification est inconnu.",
     "A calendar link already exists for this store: regenerate it instead.": "Un lien de calendrier existe déjà pour ce magasin : régénérez-le.",
     "My layout": "Ma disposition",
-    "The credentials do not match any account.": "Ces identifiants ne correspondent à aucun compte."
+    "The credentials do not match any account.": "Ces identifiants ne correspondent à aucun compte.",
+    "This shift raises warnings. Send it again with the force option to save it anyway.": "Ce shift déclenche des avertissements. Renvoyez-le avec l'option force pour l'enregistrer malgré tout.",
+    "This employee already has a personal rate for this shift type.": "Cet employé a déjà un taux personnel pour ce type de shift.",
+    "The period cannot exceed :days days.": "La période ne peut pas dépasser :days jours."
 }

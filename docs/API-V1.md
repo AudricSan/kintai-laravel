@@ -4,8 +4,8 @@ Contrat public et stable pour l'application mobile (décision 8 du plan). Une ap
 instance de Kintai par son adresse (`https://exemple.org`) : elle appelle d'abord `GET /api/v1/ping` pour reconnaître
 l'instance, puis `POST /api/v1/auth/login` pour obtenir un jeton.
 
-Cette page décrit le socle et les endpoints du compte (tranche 7a). Les endpoints des utilisateurs, taux, magasins, membres,
-types de shift, shifts, disponibilités et du journal sont ajoutés par la tranche 7b.
+Cette page décrit le socle et les endpoints du compte (tranche 7a), puis les ressources métier (tranche 7b : utilisateurs, taux,
+magasins, membres, types de shift, shifts, disponibilités, journal et exports) à partir de « Ressources métier ».
 
 ## Principes
 
@@ -57,7 +57,8 @@ Une erreur de validation (`422`) ajoute `errors` (champ => liste de messages) :
 | 403 | `password_change_required` | Mot de passe trop court, à changer sur le site |
 | 404 | `not_found` | Route ou ressource inconnue, ou ressource d'un autre utilisateur (notifications, jetons) |
 | 405 | `method_not_allowed` | Méthode non permise (en-tête `Allow`) |
-| 422 | `validation_failed` | Données invalides (`errors`) |
+| 409 | `shift_warnings` | Avertissements sur un shift (`warnings`) : renvoyer avec `force: true` pour passer |
+| 422 | `validation_failed` | Données invalides ou règle métier (`errors`) |
 | 429 | `too_many_requests` | Trop de requêtes (en-tête `Retry-After`, en secondes) |
 | 500 | `server_error` | Erreur du serveur, sans détail (le mode debug ajoute `exception` et `detail`) |
 
@@ -303,3 +304,277 @@ Droit : jeton valide, et être membre du magasin (`404` sinon).
 Droit : jeton valide. Export RGPD des données personnelles : `generated_at`, `identity`, `profile`, `memberships`, `roles`, `shifts`,
 `availabilities`, `notification_preferences` (JSON, sans enveloppe `data`). Jamais de mot de passe, de secret 2FA, de jeton ni de code
 de récupération. Journalisé (`export.personal_data`).
+
+# Ressources métier (tranche 7b)
+
+Les endpoints ci-dessous réutilisent les actions de l'interface web (`app/Actions/*`) : droits, plafond de rôle, protection des
+Owners, unicités et avertissements de shift sont **les mêmes** que sur le site, et les notifications et le journal d'activité sont
+produits par les mêmes écouteurs (l'acteur du journal est l'utilisateur du jeton).
+
+Conventions communes :
+
+- Un droit manquant répond `403 forbidden`. Une règle métier répond `422 validation_failed` (`errors`, champ => messages ; une
+  règle sans champ précis utilise la clé `shift`, `delete`, `store`…). Une ressource **hors du périmètre** de l'acteur (autre
+  magasin que son rôle ne voit pas) répond `404 not_found`, comme une ressource inconnue. Sans le droit de lecture du tout, `403`.
+- Les listes sont paginées (`page`, `per_page`). Les booléens de requête s'écrivent `1` ou `0`.
+- `PUT` accepte un enregistrement **partiel** : une clé absente garde sa valeur actuelle (`PATCH` est équivalent).
+- Les taux horaires sont des chaînes à deux décimales (`"1250.50"`) ; seul `cost` (coût d'un shift) est un nombre.
+
+## Utilisateurs (employés)
+
+Représentation : `id`, `name`, `first_name`, `last_name`, `furigana_first_name`, `furigana_last_name`, `email`,
+`employee_code`, `color`, `locale`, `is_active`, `is_owner`, `must_change_password`, `has_avatar`, `created_at`, `stores`
+(`id`, `name`, `code`, `staff_code`, `hire_date`, `contract_type`, `is_active`), puis, sur les endpoints à un seul utilisateur,
+`roles` (`id`, `name`, `slug`, `is_system`, `is_manager`, `store_id` ; `null` = rôle global) et `profile` (données RH : `gender`,
+`birth_date`, `address`, `postal_code`, `phone`, `mobile_phone`, `tax_classification`, `education`, `guarantor_name`, `guarantor_phone`).
+Jamais de mot de passe, de secret 2FA ni de jeton.
+
+| Méthode et URL | Droit |
+|---|---|
+| `GET /users` | `employees.view`. Sans restriction : tous les comptes ; sinon, les membres des magasins de l'acteur. Filtres : `search` (nom, e-mail, code), `store_id`, `is_active` |
+| `GET /users/{user}` | soi-même, ou `employees.view` sur un magasin de l'employé (un Owner n'est vu que par un Owner) |
+| `POST /users` | `employees.create` (magasin dans le périmètre) |
+| `PUT /users/{user}` | `employees.update` (même règle d'accès) |
+| `DELETE /users/{user}` | `employees.delete` ; **anonymise** le compte (l'historique reste rattaché) ; `204` |
+| `POST /users/{user}/reset-password` | `employees.update` |
+
+Ici, comme pour tous les endpoints `/users/{user}/...`, un utilisateur hors de portée de l'acteur répond `403` (et non `404`) avant
+toute recherche du compte.
+
+- `POST /users` : `first_name`, `last_name`, `furigana_first_name`, `furigana_last_name` (requis), `name`, `email`, `employee_code`
+  (majuscules, `A-Z 0-9 _ -`, unique), `color` (`#RRGGBB`), `password`, `store_id` (requis si l'acteur est restreint), `role_id`
+  (défaut : `employee`), `is_owner` (Owner seulement). Réponse `201` avec `data`. Sans `password`, le compte reçoit le mot de passe
+  provisoire et `data.temporary_password` (`"0000"`) est ajouté **à cette réponse seulement** (le compte devra le changer).
+  Erreurs `422` : code ou e-mail déjà pris, rôle au-dessus des droits de l'acteur (`role_id`), magasin hors périmètre (`store_id`).
+- `PUT /users/{user}` : mêmes champs d'identité, plus `is_active`, `is_owner`, les champs RH du `profile` à plat et
+  `store_roles` (objet `{ "<id magasin>": <id rôle> }`). Erreurs `422` : désactiver ou supprimer le dernier Owner actif ou soi-même,
+  rôle au-dessus des droits, changer ses propres rôles quand on n'est pas Owner. `403` : toucher à la case Owner sans l'être.
+- `POST /users/{user}/reset-password` : sans corps, mot de passe provisoire (`200`, `{"data": {"temporary_password": "0000",
+  "must_change_password": true}}`, renvoyé cette seule fois). Avec `password` (règles de mot de passe du site) et `must_change`
+  (vrai par défaut) : mot de passe choisi, rien n'est renvoyé (`204`). Dans les deux cas, les jetons de l'employé sont révoqués.
+
+### Taux horaires personnels : `/users/{user}/rates`
+
+Un taux est le taux horaire d'un employé pour un type de shift ; **son identifiant est celui du type de shift**.
+
+```json
+{ "data": { "id": 4, "shift_type_id": 4, "shift_type": { "id": 4, "name": "Night", "code": "NIGHT" },
+  "hourly_rate": "1250.50", "default_hourly_rate": "1000.00" } }
+```
+
+| Méthode et URL | Droit | Corps |
+|---|---|---|
+| `GET /users/{user}/rates`, `GET /users/{user}/rates/{rate}` | soi-même, ou `payroll.view` sur un magasin de l'employé | |
+| `POST /users/{user}/rates` | `employees.update` | `shift_type_id`, `hourly_rate` (`201`) |
+| `PUT /users/{user}/rates/{rate}` | `employees.update` | `hourly_rate` |
+| `DELETE /users/{user}/rates/{rate}` | `employees.update` | `204` |
+
+`422` : taux déjà défini (`POST`, champ `shift_type_id`), type de shift non rattaché à un magasin commun à l'employé et à l'acteur
+(clé `rates.<id>`), taux négatif, non numérique ou à plus de deux décimales. `404` : taux inexistant.
+
+## Magasins
+
+Représentation : `id`, `name`, `code`, `timezone`, `currency`, `currency_symbol_style`, `locale`, `is_active`, `week_start_day`,
+adresse (`address_street`, `address_city`, `address_postal`, `address_country`), `phone`, `email`, `low_staff_hour_start`,
+`low_staff_hour_end`, `min_staff_per_day`, `min_shift_minutes`, `max_shift_minutes`, `created_at` et `features` (objet clé de
+fonctionnalité => activée).
+
+| Méthode et URL | Droit |
+|---|---|
+| `GET /stores` | `stores.view` ; les magasins du périmètre ; filtre `is_active` |
+| `GET /stores/{store}` | `stores.view` sur ce magasin (`404` hors périmètre) |
+| `POST /stores` | `stores.create` **sans restriction de magasin** ; `201` |
+| `PUT /stores/{store}` | `stores.update` sur ce magasin |
+| `DELETE /stores/{store}` | `stores.delete` sans restriction ; suppression douce, le code est libéré ; `204` |
+
+`POST` : `code` (`A-Z 0-9 _ -`, 2 à 20, unique parmi les magasins actifs), `name`, `timezone` (défaut : celui de l'application),
+`currency` (`EUR`, `USD`, `JPY`, `GBP`, `CHF`, `KRW` ; défaut `EUR`), `currency_symbol_style` (`kanji` ou `international`), `locale`,
+coordonnées, `is_active` (vrai), `week_start_day` (1 à 7, défaut 1), `low_staff_hour_start` / `low_staff_hour_end` (0 à 23),
+`min_staff_per_day` (0), `min_shift_minutes` (120), `max_shift_minutes` (480, au moins égal au minimum) et `features` (objet partiel
+clé => booléen ; toutes actives par défaut). `422` : code déjà pris, fuseau inconnu, bornes de durée incohérentes.
+
+### Membres : `/stores/{store}/members`
+
+```json
+{ "data": { "id": 7, "name": "Sato Hana", "first_name": "Hana", "last_name": "Sato", "email": "hana@example.com",
+  "employee_code": "HS01", "color": "#3B82F6", "store_id": 1, "staff_code": "S-2", "hire_date": "2026-01-05",
+  "contract_type": "part-time", "is_active": true, "account_is_active": true,
+  "roles": [ { "id": 3, "name": "Employee", "slug": "employee" } ] } }
+```
+
+| Méthode et URL | Droit |
+|---|---|
+| `GET /stores/{store}/members`, `GET /stores/{store}/members/{user}` | `employees.view` sur le magasin (`404` si le magasin est hors périmètre). Filtres : `is_active`, `search` |
+| `POST /stores/{store}/members` | `employees.update` sur le magasin ; `201` |
+| `PUT /stores/{store}/members/{user}` | `employees.update` |
+| `DELETE /stores/{store}/members/{user}` | `employees.update` ; retire l'appartenance et les rôles dans ce magasin, les shifts restent ; `204` |
+
+`POST` : `user_id` (requis, compte actif), `role_id` (défaut `employee`), `staff_code` (unique dans le magasin), `hire_date`,
+`contract_type`. `PUT` : `staff_code`, `hire_date`, `contract_type`, `is_active` et `role_id` (changement de rôle). `422` : déjà membre,
+compte inactif, code déjà pris, rôle au-dessus des droits de l'acteur, modifier ou retirer **soi-même** quand on n'est pas Owner.
+`403` : ajouter un Owner sans l'être.
+
+## Types de shift
+
+Représentation : `id`, `name`, `code`, `starts_at` et `ends_at` (heures locales `"H:i"` ; une fin avant le début passe minuit),
+`hourly_rate`, `color`, `sort_order`, `is_active`, `store_ids`.
+
+| Méthode et URL | Droit |
+|---|---|
+| `GET /shift-types` | `shifts.view` ; les types d'au moins un magasin visible. Filtres : `store_id`, `is_active` |
+| `GET /shift-types/{type}` | `shifts.view` (`404` si aucun de ses magasins n'est visible) |
+| `POST /shift-types` | `shifts.update` ; `201` |
+| `PUT /shift-types/{type}` | `shifts.update` sur **tous** les magasins du type |
+| `DELETE /shift-types/{type}` | idem ; `204` |
+| `POST /shift-types/{type}/stores/{store}` | `shifts.update` sur le magasin ; rattache le type (sans effet s'il l'est déjà) ; `200` avec le type |
+| `DELETE /shift-types/{type}/stores/{store}` | idem ; détache le type (sans effet s'il ne l'est pas) |
+
+`POST` / `PUT` : `code` (`A-Z 0-9 _ -`), `name`, `starts_at`, `ends_at` (différent du début), `hourly_rate`, `color` (`#RRGGBB`),
+`sort_order`, `is_active`, `store_ids` (au moins un, dans le périmètre de l'acteur). `422` : plage nulle, magasin hors périmètre,
+suppression d'un type utilisé par un shift, même supprimé (clé `delete` : désactivez-le), détacher le dernier magasin (clé `store`).
+`403` : modifier un type partagé avec un magasin que l'acteur ne gère pas.
+
+## Shifts
+
+Représentation :
+
+```json
+{ "data": {
+  "id": 12, "store_id": 1, "user_id": 7, "is_open": false, "shift_type_id": 4,
+  "starts_at": "2026-11-02T00:00:00Z", "ends_at": "2026-11-02T08:00:00Z",
+  "local": { "date": "2026-11-02", "start": "09:00", "end": "17:00", "crosses_midnight": false },
+  "pause_minutes": 60, "duration_minutes": 480, "net_minutes": 420, "notes": null,
+  "replaced_by_id": null, "is_deleted": false, "deleted_at": null,
+  "created_by": 2, "created_at": "...", "updated_at": "...",
+  "store": { "id": 1, "name": "Alpha", "currency": "JPY" },
+  "user": { "id": 7, "name": "Sato Hana", "color": "#3B82F6" },
+  "shift_type": { "id": 4, "name": "Day", "code": "DAY", "color": "#3B82F6" },
+  "hourly_rate_override": null, "net_minutes_override": null, "cost": 7000 } }
+```
+
+**Heures.** En **entrée**, un shift se décrit en heures **locales de l'instance** (le fuseau de `GET /ping`) : `shift_date`
+(`YYYY-MM-DD`, jour de rattachement), `start_time` et `end_time` (`HH:MM`). Une fin non postérieure au début passe minuit
+(`22:00` -> `06:00`) ; début et fin égaux sont refusés. En **sortie**, `starts_at` / `ends_at` sont des instants ISO en UTC et
+`local` redonne les mêmes heures dans le fuseau de l'instance (`date`, `start`, `end`, `crosses_midnight`).
+
+**Coût.** `cost` (nombre, dans la devise du magasin), `hourly_rate_override` et `net_minutes_override` ne sont présents qu'avec
+`payroll.view` sur le magasin du shift ; un employé ne voit jamais le coût de ses shifts. Les surcharges ne se posent qu'avec
+`payroll.generate`.
+
+**Périmètre.** Avec `shifts.view`, on voit les shifts des magasins où l'on a ce droit, plus ses propres shifts. **Sans `shifts.view`**
+(un employé), on ne voit que ses propres shifts (hors corbeille) : `GET /shifts` (défaut, ou `user_id` = soi-même) et
+`GET /shifts/{shift}` ; `user_id` d'un autre ou `open=1` répondent `403`, le shift d'un autre `404`. Toute écriture exige le droit
+de l'action sur le magasin du shift (`403`) et un shift dans le périmètre `shifts.view` (`404`).
+
+**Avertissements.** Les avertissements du garde-fou (chevauchement d'un même employé `overlap`, employé indisponible
+`unavailable`, durée hors bornes du magasin `too_short` / `too_long`) interrompent `POST /shifts`, `PUT /shifts/{shift}`,
+`/move` et `/replace` avec **`409 shift_warnings`** tant que `"force": true` n'est pas envoyé ; rien n'est enregistré :
+
+```json
+{ "error": "This shift raises warnings. ...", "code": "shift_warnings",
+  "warnings": [ { "kind": "overlap", "message": "...", "conflicting_shift_id": 9 } ] }
+```
+
+`kind` : `overlap`, `unavailable`, `too_short`, `too_long` (liste ouverte : un bundle peut en ajouter). Avec `"force": true`
+l'opération passe. Un congé approuvé (`time_off`, bundle de congés) **bloque** : `422` sur `user_id`, même avec `force`.
+
+| Méthode et URL | Droit | Réponse |
+|---|---|---|
+| `GET /shifts` | voir Périmètre | `200`, liste paginée |
+| `GET /shifts/{shift}` | voir Périmètre | `200` |
+| `POST /shifts` | `shifts.create` sur le magasin | `201` |
+| `PUT /shifts/{shift}` | `shifts.update` (sur le magasin, et sur le nouveau s'il change) | `200` |
+| `DELETE /shifts/{shift}` | `shifts.delete` ; envoie à la corbeille | `204` ; `422` si déjà supprimé |
+| `POST /shifts/{shift}/move` | `shifts.update` | `200` |
+| `POST /shifts/{shift}/restore` | `shifts.delete` | `200` ; `422` si non supprimé ou si son remplaçant est actif |
+| `POST /shifts/{shift}/replace` | `shifts.update` | `201` avec le remplaçant |
+| `POST /shifts/bulk-delete` | `shifts.delete` sur chaque shift | `200` `{"data": {"deleted": 2}}` |
+| `GET /shifts/conflicts` | `shifts.view` | `200` |
+| `POST /shifts/conflicts/resolve` | `shifts.update` sur les deux shifts | `200`, ou `204` |
+
+- `GET /shifts` : filtres `store_id`, `user_id`, `from` et `to` (jours locaux `YYYY-MM-DD`, sur `shift_date`), `open=1` (shifts
+  ouverts), `trashed` (`with` : corbeille incluse ; `only` : corbeille seule ; réservé aux détenteurs de `shifts.view`). Trié par jour
+  puis heure de début. `422` : date invalide ou `to` avant `from`.
+- `POST` / `PUT` : `store_id`, `user_id` (`null` = shift ouvert), `shift_date`, `start_time`, `end_time`, `pause_minutes`
+  (0 à 1440), `notes` (2000 caractères), `hourly_rate_override`, `net_minutes_override`, `force`. À la modification, une clé absente
+  garde sa valeur. `422` : champ invalide, magasin inconnu, employé qui n'est pas membre actif du magasin (`user_id`), congé.
+- `POST .../move` : `shift_date`, `start_time`, `end_time`, `user_id` (`null` = shift ouvert), `force` ; le reste du shift est conservé.
+- `POST .../replace` : saisie du **remplaçant** (mêmes champs que `POST /shifts`). Les champs absents, `user_id` compris, reprennent ceux de l'ancien
+  shift ; seul un `user_id: null` explicite donne un shift ouvert. L'ancien shift part à la corbeille (`replaced_by_id`) et le
+  remplaçant reprend son identifiant de calendrier iCal. `422` si l'ancien shift est supprimé.
+- `POST /shifts/bulk-delete` : `ids` (1 à 500 entiers). **Tout ou rien** : un seul shift interdit répond `403` sans rien supprimer ;
+  les identifiants inconnus ou déjà supprimés sont ignorés.
+- `GET /shifts/conflicts` : `store_id`, `from`, `to` (défaut : le mois en cours ; 93 jours au plus, sinon `422`). Réponse :
+  `{"data": {"overlaps": [ {"overlap_minutes", "keep_id", "first": <shift>, "second": <shift>} ], "too_short": [<shift>], "too_long": [<shift>]}}`
+  (`keep_id` : le plus récent, celui que garde la résolution).
+- `POST /shifts/conflicts/resolve` : `first_id`, `second_id`. Garde le plus récent, remplace l'autre : `200` avec le shift gardé.
+  `204` si l'un des deux a déjà disparu. `422` (clé `shift`) si les deux shifts ne se chevauchent pas.
+
+Chaque opération produit les mêmes notifications (attribution, modification, suppression, réassignation, remplacement,
+restauration) et les mêmes entrées de journal (`shift.created`, `shift.updated`, `shift.deleted`, `shift.restored`, `shift.replaced`)
+que sur le site.
+
+## Disponibilités
+
+Une disponibilité est une ligne par jour ISO de la semaine (`day_of_week` : 1 = lundi ... 7 = dimanche), par employé et par
+magasin : `id`, `user_id`, `store_id`, `day_of_week`, `is_available`, `start`, `end` (`"H:i"` ou `null`). Information
+seulement : le planning prévient (`unavailable`), il ne bloque pas.
+
+### `GET /api/v1/availabilities`
+
+Droit : on lit les siennes ; avec `shifts.view`, celles des magasins visibles en plus. Filtres `user_id` (sans `shifts.view`,
+un autre employé répond `403`) et `store_id`. Liste paginée, triée par employé, magasin, jour.
+
+### `PUT /api/v1/users/{user}/availabilities/{store}`
+
+Remplace la **semaine entière** de l'employé pour ce magasin. **Soi-même seulement** (`{user}` = l'utilisateur du jeton), membre du
+magasin : sinon `403`, même pour un Owner. `404` si le magasin n'existe pas.
+
+```json
+{ "days": { "1": { "available": true, "start": "09:00", "end": "17:00" },
+            "2": { "available": true },
+            "7": { "available": false } } }
+```
+
+Les jours absents deviennent indisponibles ; une plage (`start` + `end`, différents) n'a de sens que pour un jour disponible.
+Réponse `200` : les sept lignes. `422` : jour hors 1 à 7, début sans fin, début égal à la fin.
+
+Écart avec l'ancienne API : elle exposait un CRUD par identifiant (`POST|PUT|DELETE /availabilities/{id}`) ; le modèle actuel
+remplace toujours la semaine entière, d'où ce seul `PUT` par magasin. Ces anciennes URL n'existent pas.
+
+## Journal d'activité
+
+### `GET /api/v1/activity`
+
+Droit : `stores.view`. Un gérant restreint ne voit que les entrées de ses magasins (jamais celles qui n'ont pas de magasin :
+connexions, employés, rôles) ; un Owner ou un droit sans restriction voit tout. Filtres : `action` (clé, ex. `shift.created`),
+`actor` (identifiant d'utilisateur), `store` (identifiant), `from` et `to` (`YYYY-MM-DD`, jours locaux). Plus récentes d'abord, paginé.
+
+```json
+{ "data": [ { "id": 31, "action": "shift.created", "label": "Shift created",
+  "actor": { "id": 2, "name": "Manager" }, "store": { "id": 1, "name": "Alpha" },
+  "subject": { "type": "Shift", "id": 12 }, "target": "Shift #12",
+  "details": [ { "label": "Employee", "value": "Sato Hana" } ],
+  "properties": { "employee": "Sato Hana" }, "ip_address": "203.0.113.5", "created_at": "2026-11-02T01:00:00Z" } ] }
+```
+
+`label`, `target` et `details` sont traduits (langue de la requête) ; `action` et `properties` sont stables. Aucun secret n'y figure
+(filtrés à l'écriture).
+
+## Exports
+
+Les jeux de données de la page « Exports » du site, avec les mêmes droits (par jeu de données et par magasin) ; chaque
+téléchargement est journalisé (`export.downloaded`).
+
+### `GET /api/v1/exports`
+
+Les jeux que l'utilisateur peut exporter : `{"data": [ {"key", "label", "formats", "has_period", "per_employee", "store_ids",
+"self_service"} ]}`. `store_ids` : magasins où il peut exporter les données des autres ; `self_service` : il peut exporter ses propres
+données (`target=me`).
+
+### `GET /api/v1/exports/{dataset}`
+
+Téléchargement d'un fichier. `format` (requis : `csv`, `xlsx`, `pdf` ou `ics`, parmi les `formats` du jeu), `target` (`me` : mes
+données ; sinon les magasins), `stores[]` (défaut : tous les magasins permis), `users[]`, `from` et `to` (`YYYY-MM-DD`, pour les jeux
+à période, 366 jours au plus). `403` : périmètre non permis ; `404` : jeu inconnu ; `422` : format non disponible, période invalide,
+export trop gros pour ce format (clé `export`). Il n'y a pas de format JSON ici : pour ses propres données, voir `me/data-export`.

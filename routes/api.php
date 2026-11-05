@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AccessTokenController;
+use App\Http\Controllers\Api\V1\ActivityController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\DashboardPrefsController;
+use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\IcalTokenController;
 use App\Http\Controllers\Api\V1\MeExportController;
 use App\Http\Controllers\Api\V1\NavigationPrefsController;
@@ -10,6 +13,13 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\PingController;
 use App\Http\Controllers\Api\V1\PushTokenController;
+use App\Http\Controllers\Api\V1\ShiftConflictController;
+use App\Http\Controllers\Api\V1\ShiftController;
+use App\Http\Controllers\Api\V1\ShiftTypeController;
+use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\StoreMemberController;
+use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\UserRateController;
 use App\Http\Middleware\EnsureApiAccountIsActive;
 use App\Http\Middleware\SetApiLocale;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +61,53 @@ Route::prefix('v1')->name('api.v1.')->middleware([SetApiLocale::class, 'throttle
             Route::get('schedule-export', [MeExportController::class, 'schedule'])->name('schedule_export');
             Route::get('data-export', [MeExportController::class, 'data'])->name('data_export');
         });
+
+        // Utilisateurs, taux personnels, disponibilités.
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('users/{user}', [UserController::class, 'show'])->whereNumber('user')->name('users.show');
+        Route::put('users/{user}', [UserController::class, 'update'])->whereNumber('user')->name('users.update');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->whereNumber('user')->name('users.destroy');
+        Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->whereNumber('user')->name('users.reset_password');
+        Route::put('users/{user}/availabilities/{store}', [AvailabilityController::class, 'update'])->whereNumber(['user', 'store'])->name('users.availabilities.update');
+
+        Route::prefix('users/{user}/rates')->whereNumber(['user', 'rate'])->name('users.rates.')->group(function (): void {
+            Route::get('/', [UserRateController::class, 'index'])->name('index');
+            Route::post('/', [UserRateController::class, 'store'])->name('store');
+            Route::get('{rate}', [UserRateController::class, 'show'])->name('show');
+            Route::put('{rate}', [UserRateController::class, 'update'])->name('update');
+            Route::delete('{rate}', [UserRateController::class, 'destroy'])->name('destroy');
+        });
+
+        // Magasins et membres.
+        Route::apiResource('stores', StoreController::class)->parameters(['stores' => 'store'])->whereNumber('store')->names('stores');
+        Route::apiResource('stores.members', StoreMemberController::class)->parameters(['stores' => 'store', 'members' => 'user'])->whereNumber(['store', 'user'])->names('stores.members');
+
+        // Types de shift.
+        Route::apiResource('shift-types', ShiftTypeController::class)->parameters(['shift-types' => 'type'])->whereNumber('type')->names('shift_types');
+        Route::post('shift-types/{type}/stores/{store}', [ShiftTypeController::class, 'attach'])->whereNumber(['type', 'store'])->name('shift_types.stores.attach');
+        Route::delete('shift-types/{type}/stores/{store}', [ShiftTypeController::class, 'detach'])->whereNumber(['type', 'store'])->name('shift_types.stores.detach');
+
+        // Shifts (les routes fixes avant `shifts/{shift}`).
+        Route::get('shifts/conflicts', [ShiftConflictController::class, 'index'])->name('shifts.conflicts');
+        Route::post('shifts/conflicts/resolve', [ShiftConflictController::class, 'resolve'])->name('shifts.conflicts.resolve');
+        Route::post('shifts/bulk-delete', [ShiftController::class, 'bulkDelete'])->name('shifts.bulk_delete');
+        Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('shifts', [ShiftController::class, 'store'])->name('shifts.store');
+        Route::prefix('shifts/{shift}')->whereNumber('shift')->name('shifts.')->group(function (): void {
+            Route::get('/', [ShiftController::class, 'show'])->name('show');
+            Route::put('/', [ShiftController::class, 'update'])->name('update');
+            Route::delete('/', [ShiftController::class, 'destroy'])->name('destroy');
+            Route::post('move', [ShiftController::class, 'move'])->name('move');
+            Route::post('restore', [ShiftController::class, 'restore'])->name('restore');
+            Route::post('replace', [ShiftController::class, 'replace'])->name('replace');
+        });
+
+        Route::get('exports', [ExportController::class, 'index'])->name('exports.index');
+        Route::get('exports/{dataset}', [ExportController::class, 'download'])->name('exports.download');
+
+        Route::get('availabilities', [AvailabilityController::class, 'index'])->name('availabilities.index');
+        Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
 
         Route::prefix('users/{user}')->whereNumber('user')->name('users.')->group(function (): void {
             Route::get('notification-preferences', [NotificationPreferenceController::class, 'show'])->name('notification_preferences.show');

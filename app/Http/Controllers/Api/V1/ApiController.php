@@ -14,6 +14,19 @@ use Illuminate\Http\Request;
  */
 abstract class ApiController extends Controller
 {
+    protected function authorizer(): Authorizer
+    {
+        return app(Authorizer::class);
+    }
+
+    /**
+     * Taille de page demandée (`per_page`, de 1 à 100, 20 par défaut).
+     */
+    protected function perPage(Request $request): int
+    {
+        return min(max((int) $request->query('per_page', 20), 1), 100);
+    }
+
     protected function actor(Request $request): User
     {
         $user = $request->user('sanctum');
