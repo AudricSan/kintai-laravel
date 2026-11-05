@@ -82,6 +82,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('export', ActivityExportController::class)->name('activity.export');
     });
 
+    // Réglages de l'instance (Owner seulement).
+    Route::livewire('admin/settings', 'pages::admin.settings')->middleware('can:manage-settings')->name('settings.app');
+
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {
         Route::livewire('/', 'pages::roles.index')->name('roles.index');
         Route::livewire('create', 'pages::roles.form')->name('roles.create');

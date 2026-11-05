@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Push\VapidKeys;
+use App\Settings\AppSettings;
 use Illuminate\Console\Command;
+use Throwable;
 
 /**
  * Génère la paire de clés VAPID de l'instance et l'écrit dans `.env`, comme `key:generate`.
@@ -46,6 +48,13 @@ class GenerateWebPushKeysCommand extends Command
         $contents = $this->set($this->set($contents, 'VAPID_PUBLIC_KEY', $keys['public']), 'VAPID_PRIVATE_KEY', $keys['private']);
 
         file_put_contents($path, $contents);
+
+        // Des clés enregistrées par l'Owner dans les réglages primeraient sur celles du fichier : on les retire.
+        try {
+            app(AppSettings::class)->forget('webpush.public_key', 'webpush.private_key');
+        } catch (Throwable) {
+            // Table des réglages absente (avant la migration) : rien à retirer.
+        }
 
         $this->components->info('VAPID keys set successfully.');
 

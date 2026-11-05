@@ -12,6 +12,9 @@
                     </span>
                     <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
                 </a>
+                @if ($subtitle = app(\App\Settings\AppSettings::class)->subtitle())
+                    <flux:text class="text-center" data-test="app-subtitle">{{ $subtitle }}</flux:text>
+                @endif
                 <div class="flex flex-col gap-6">
                     {{ $slot }}
                 </div>

@@ -60,13 +60,14 @@ Une erreur de validation (`422`) ajoute `errors` (champ => liste de messages) :
 | 409 | `shift_warnings` | Avertissements sur un shift (`warnings`) : renvoyer avec `force: true` pour passer |
 | 422 | `validation_failed` | Données invalides ou règle métier (`errors`) |
 | 429 | `too_many_requests` | Trop de requêtes (en-tête `Retry-After`, en secondes) |
+| 503 | `maintenance` | Mode maintenance activé par l'Owner (en-tête `Retry-After`) ; `GET /api/v1/ping` et les jetons d'Owner restent servis |
 | 500 | `server_error` | Erreur du serveur, sans détail (le mode debug ajoute `exception` et `detail`) |
 
 Les clients se fient à `code`, jamais au texte de `error`. Un code nouveau peut apparaître sur un endpoint ; ceux du tableau ne changent pas.
 
 ## Limites
 
-- **300 requêtes par minute et par jeton** (par adresse IP pour une requête sans jeton valide), `kintai.api.rate_limit` / `KINTAI_API_RATE_LIMIT`.
+- **300 requêtes par minute et par jeton** (par adresse IP pour une requête sans jeton valide), réglable par l'Owner (écran « Réglages de l'instance », 0 = sans limite), sinon `kintai.api.rate_limit` / `KINTAI_API_RATE_LIMIT`.
   Les requêtes refusées pour jeton invalide ne sont pas comptées par jeton.
 - **Connexion** : les limiteurs de la connexion web : 5 tentatives par minute pour un même identifiant + code magasin + IP, et 20 par minute par IP.
 

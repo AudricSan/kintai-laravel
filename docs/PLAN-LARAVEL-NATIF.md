@@ -156,6 +156,10 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 ### Phase 8 : Qualité et livraison
 - Revue de sécurité (reprise de l'[audit du 31/10/2026](archive/Audit_Kintai_Migration_Laravel_Securite_2026-10-31.md)), documentation (`README`, [`DEPLOIEMENT`](archive/DEPLOIEMENT.md)), changelog, version
   majeure.
+- CSP complète (`script-src` avec nonce). La tranche 9a n'émet qu'une CSP de base (`frame-ancestors 'self'`,
+  `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, voir `App\Http\Middleware\SecurityHeaders`) : Alpine en
+  build standard exige `unsafe-eval`, il faut donc passer aux builds CSP de Livewire/Alpine (ou accepter `unsafe-eval`)
+  avant de restreindre les scripts. Les en-têtes déjà posés par une réponse (service worker, iCal, API) priment.
 
 ### Phase 9 : Serveur d'auto-déploiement (après livraison)
 - Conçu avec la refonte du serveur de licence (chantier séparé).

@@ -49,6 +49,9 @@ use App\Profile\ProfileSectionRegistry;
 use App\Push\MinishlinkWebPushSender;
 use App\Push\WebPushSender;
 use App\Requests\PendingRequestRegistry;
+use App\Settings\AppSettings;
+use App\Settings\CoreSettings;
+use App\Settings\RuntimeSettings;
 use App\Stores\StoreFeatureRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -81,6 +84,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationTypeRegistry::class);
         $this->app->singleton(ActivityActionRegistry::class);
         $this->app->singleton(ExportDatasetRegistry::class);
+        // Réglages de l'instance : le Core déclare les siens ici, les bundles et les autres tranches y ajoutent les leurs.
+        $this->app->singleton(AppSettings::class, function (): AppSettings {
+            $settings = new AppSettings;
+            CoreSettings::registerIn($settings);
+
+            return $settings;
+        });
+        $this->app->singleton(RuntimeSettings::class);
         $this->app->bind(WebPushSender::class, MinishlinkWebPushSender::class);
         $this->app->scoped(NavigationMenu::class);
         // Sans bundle de congés, personne n'est en congé ; le bundle timeoff remplace cette liaison.
@@ -105,6 +116,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerActivityLog();
         $this->registerExportDatasets();
         $this->registerRateLimiters();
+        // En dernier : les réglages de l'Owner (langue, fuseau, expéditeur, URL publique) remplacent la configuration.
+        $this->app->make(RuntimeSettings::class)->apply();
     }
 
     /**
@@ -117,7 +130,8 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Flux iCal public : 60 lectures par minute et par adresse IP (un agenda relit environ une fois par heure).
-     * API v1 : 300 requêtes par minute et par jeton, ou par adresse IP sans jeton (`kintai.api.rate_limit`).
+     * API v1 : requêtes par minute et par jeton, ou par adresse IP sans jeton (réglage `api.rate_limit`, 300 par défaut ;
+     * 0 = sans limite).
      */
     private function registerRateLimiters(): void
     {
@@ -125,7 +139,9 @@ class AppServiceProvider extends ServiceProvider
             $token = $request->user('sanctum')?->currentAccessToken();
             $key = $token instanceof PersonalAccessToken ? 'token:'.$token->getKey() : 'ip:'.$request->ip();
 
-            return Limit::perMinute((int) config('kintai.api.rate_limit', 300))->by($key);
+            $perMinute = app(AppSettings::class)->apiRateLimit();
+
+            return $perMinute === 0 ? Limit::none() : Limit::perMinute($perMinute)->by($key);
         });
 
         RateLimiter::for('ical', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->ip()));

@@ -27,3 +27,9 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @fluxAppearance
+
+{{-- Thème de l'Owner (réglages > Apparence) : variables CSS construites à partir de couleurs #rrggbb validées. --}}
+@php($themeCss = app(\App\Settings\AppSettings::class)->themeCss())
+@if ($themeCss !== '')
+    <style data-kintai-theme>{!! $themeCss !!}</style>
+@endif

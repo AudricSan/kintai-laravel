@@ -2,8 +2,11 @@
 
 namespace App\Push;
 
+use App\Settings\AppSettings;
+
 /**
- * Clés VAPID de l'instance, lues dans la configuration (`kintai.webpush`). Sans clés, le Web Push est désactivé.
+ * Clés VAPID de l'instance, lues dans les réglages (`webpush.*` : base, la clé privée y est chiffrée, sinon
+ * `kintai.webpush` de la configuration). Sans clés, le Web Push est désactivé.
  */
 class VapidKeys
 {
@@ -12,12 +15,12 @@ class VapidKeys
 
     public function publicKey(): ?string
     {
-        return $this->setting('public_key');
+        return $this->nonEmpty(app(AppSettings::class)->webPushPublicKey());
     }
 
     public function privateKey(): ?string
     {
-        return $this->setting('private_key');
+        return $this->nonEmpty(app(AppSettings::class)->webPushPrivateKey());
     }
 
     public function isConfigured(): bool
@@ -30,7 +33,7 @@ class VapidKeys
      */
     public function subject(): string
     {
-        $explicit = $this->setting('subject');
+        $explicit = $this->nonEmpty(config('kintai.webpush.subject'));
 
         if ($explicit !== null) {
             return $explicit;
@@ -83,10 +86,8 @@ class VapidKeys
         ];
     }
 
-    private function setting(string $key): ?string
+    private function nonEmpty(mixed $value): ?string
     {
-        $value = config('kintai.webpush.'.$key);
-
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 }

@@ -5,6 +5,13 @@
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
+        {{-- Message de l'Owner (annonce, maintenance) et contact de support : réglages > Organisation. --}}
+        @if ($loginNotice = app(\App\Settings\AppSettings::class)->loginNotice())
+            <flux:callout icon="information-circle" data-test="login-notice">
+                <flux:callout.text class="whitespace-pre-line">{{ $loginNotice }}</flux:callout.text>
+            </flux:callout>
+        @endif
+
         <x-passkey-verify />
 
         <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-6">
@@ -58,5 +65,11 @@
                 </flux:button>
             </div>
         </form>
+
+        @if ($supportEmail = app(\App\Settings\AppSettings::class)->supportEmail())
+            <flux:text class="text-center text-sm" data-test="login-support">
+                {{ __('Need help?') }} <flux:link href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</flux:link>
+            </flux:text>
+        @endif
     </div>
 </x-layouts::auth>

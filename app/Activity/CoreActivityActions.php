@@ -59,6 +59,11 @@ final class CoreActivityActions
                 'ical.token_regenerated' => 'Calendar link generated',
                 'ical.token_deleted' => 'Calendar link deleted',
             ],
+            'Settings' => [
+                'settings.updated' => 'Instance settings updated',
+                'settings.vapid_regenerated' => 'Web Push keys regenerated',
+                'settings.mail_tested' => 'Test email sent',
+            ],
             'Activity log' => [
                 'activity.exported' => 'Activity log exported',
                 'activity.purged' => 'Activity log purged',

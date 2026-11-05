@@ -2,6 +2,7 @@
 
 namespace App\Actions\Notifications;
 
+use App\Settings\AppSettings;
 use Illuminate\Notifications\DatabaseNotification;
 
 /**
@@ -16,11 +17,12 @@ class PurgeNotifications
     public const RETENTION_DEFAULT = 90;
 
     /**
-     * Rétention configurée (`kintai.notifications.retention_days`), ramenée entre 7 et 3650 jours.
+     * Rétention réglée (`notifications.retention_days` : réglages de l'instance, sinon configuration), ramenée entre
+     * 7 et 3650 jours.
      */
     public static function retentionDays(): int
     {
-        $days = (int) config('kintai.notifications.retention_days', self::RETENTION_DEFAULT);
+        $days = app(AppSettings::class)->notificationsRetentionDays();
 
         return max(self::RETENTION_MIN, min(self::RETENTION_MAX, $days > 0 ? $days : self::RETENTION_DEFAULT));
     }

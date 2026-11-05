@@ -2,6 +2,8 @@
 
 use App\Http\Api\ApiErrorRenderer;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetUserLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,10 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // Le « one-click » des clients de messagerie poste sans jeton CSRF : la signature du lien fait foi.
         $middleware->validateCsrfTokens(except: ['notifications/unsubscribe']);
 
+        // En-têtes de sécurité sur toutes les réponses (web, API, iCal, santé).
+        $middleware->append(SecurityHeaders::class);
+
         $middleware->web(append: [
             AuthenticateSession::class,
             EnsureAccountIsActive::class,
             SetUserLocale::class,
+            // Après la session : l'Owner connecté garde l'accès pendant la maintenance. L'API a le sien (routes/api.php).
+            MaintenanceMode::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -16,6 +16,10 @@
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
 
+            @if ($subtitle = app(\App\Settings\AppSettings::class)->subtitle())
+                <flux:text size="sm" class="-mt-2 truncate px-2" data-test="app-subtitle">{{ $subtitle }}</flux:text>
+            @endif
+
             <flux:sidebar.nav>
                 @foreach ($navigation as $section)
                     <flux:sidebar.group :heading="$section['heading'] !== null ? __($section['heading']) : null" class="grid" data-test="nav-section-{{ $section['key'] }}">

@@ -5,6 +5,7 @@ namespace App\Actions\Activity;
 use App\Activity\ActivityLogger;
 use App\Models\ActivityEntry;
 use App\Models\User;
+use App\Settings\AppSettings;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -20,11 +21,11 @@ class PurgeActivityEntries
     public function __construct(private readonly ActivityLogger $logger) {}
 
     /**
-     * Jours de conservation de la purge automatique (`kintai.activity.retention_days`) ; 0 = illimité.
+     * Jours de conservation de la purge automatique (réglage `activity.retention_days`) ; 0 = illimité.
      */
     public static function retentionDays(): int
     {
-        return max(0, (int) config('kintai.activity.retention_days', 180));
+        return app(AppSettings::class)->activityRetentionDays();
     }
 
     /**

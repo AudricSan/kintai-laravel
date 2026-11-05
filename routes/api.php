@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\StoreMemberController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserRateController;
 use App\Http\Middleware\EnsureApiAccountIsActive;
+use App\Http\Middleware\MaintenanceMode;
 use App\Http\Middleware\SetApiLocale;
 use Illuminate\Support\Facades\Route;
 
@@ -37,7 +38,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('v1')->name('api.v1.')->middleware([SetApiLocale::class, 'throttle:api'])->group(function (): void {
+Route::prefix('v1')->name('api.v1.')->middleware([SetApiLocale::class, MaintenanceMode::class, 'throttle:api'])->group(function (): void {
     // Public.
     Route::get('ping', PingController::class)->name('ping');
     // Mêmes limiteurs que la connexion web : par identifiant + magasin + IP, et par IP.
