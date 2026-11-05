@@ -49,7 +49,7 @@ class DemoBundleServiceProvider extends BundleServiceProvider
             Livewire::component('demo-widget', DemoWidget::class);
         }
 
-        $this->permissions('demo', ['view', 'manage']);
+        $this->permissions('demo', ['view', 'manage'], ['manager' => ['view', 'manage'], 'employee' => ['view']]);
         $this->storeFeature('demo', 'Demo feature');
         $this->navigation(new NavigationItem(
             key: 'demo', label: 'Demo', route: 'demo.index', icon: 'beaker',

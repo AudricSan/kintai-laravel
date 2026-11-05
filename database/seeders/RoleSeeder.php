@@ -19,7 +19,7 @@ class RoleSeeder extends Seeder
         foreach (CorePermissions::MANAGER_DEFAULTS as $permission) {
             $manager->permissions()->updateOrCreate(['permission' => $permission], ['all_stores' => false]);
         }
-        $manager->permissions()->whereNotIn('permission', CorePermissions::MANAGER_DEFAULTS)->delete();
+        $manager->permissions()->whereNotIn('permission', CorePermissions::MANAGER_DEFAULTS)->whereIn('permission', CorePermissions::all())->delete();
 
         $this->role('employee', 'Employee', ['color' => '#6B7280']);
     }

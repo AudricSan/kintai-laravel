@@ -44,6 +44,26 @@ L'utilisateur est toujours désigné par `Illuminate\Contracts\Auth\Authenticata
 connaît aucun modèle du Core. Un bundle lit les modèles du Core (`App\Models\...`) directement s'il en a besoin : le
 contrat ne le promet pas, ces modèles évoluent avec le Core.
 
+## Droits par défaut des rôles (depuis 1.2)
+
+`permissions($category, $actions, $defaults)` accepte en troisième argument les actions accordées par défaut aux rôles du
+seeder, par exemple `['manager' => ['view', 'create', 'manage'], 'employee' => ['view']]` (seuls `manager` et `employee`
+sont admis, et seulement des actions déclarées). Le Core les applique à la **première** activation du bundle par
+l'Owner : jamais au rôle Owner ni aux rôles personnalisés, sans modifier une permission déjà présente, avec une ligne de
+journal `bundle.permissions_granted`. Les slugs déjà initialisés sont mémorisés (réglage `bundles.initialized`) : désactiver
+puis réactiver ne remet pas des droits que l'Owner a retirés. `BundleServiceProvider::defaultPermissions()` les expose.
+
+## API d'un bundle (depuis 1.2)
+
+Un bundle qui a un `routes/api.php` (et qui est activé) l'expose sous `/api/v1/<slug>`, routes nommées `api.v1.<slug>.*`.
+Les routes passent par la pile de l'API du Core (groupe `BundleServiceProvider::API_MIDDLEWARE`) : langue de la requête
+(`Accept-Language`), mode maintenance, limiteur `api`, jeton Sanctum obligatoire et compte actif. Les erreurs ont le
+format de l'API du Core `{"error", "code"}` : validation (422 `validation_failed`), refus (`AuthorizationException`, 403
+`forbidden`), introuvable (404 `not_found`), et `Api\ApiException` pour un code propre au bundle
+(`throw new ApiException(409, 'already_decided', __('...'))`). `Api\ApiController` est une base de contrôleur
+(`actor($request)`, `perPage($request)`) sans dépendance à `App\` ; les listes se paginent et se rendent avec une `JsonResource`
+comme celles du Core. Voir « API des bundles » dans `docs/API-V1.md`.
+
 ## Activation
 
 `BundleServiceProvider` (voir sa documentation) charge les migrations toujours, et les vues, traductions, routes et

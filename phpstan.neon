@@ -12,5 +12,7 @@ parameters:
         - packages/contracts/src/
         - packages/bundles/team-directory/src
         - packages/bundles/notebook/src
+        - packages/bundles/timeoff/src
+        - packages/bundles/timeclock/src
 
     level: 6

@@ -76,6 +76,8 @@ final class CoreSettings
 
             // Bundles activés par l'Owner : liste JSON de slugs (aucun à l'installation).
             new SettingDefinition('bundles.enabled', $string, '[]'),
+            // Bundles déjà initialisés (droits par défaut accordés aux rôles à leur première activation) : liste JSON de slugs.
+            new SettingDefinition('bundles.initialized', $string, '[]'),
 
             // Web Push : la clé privée est chiffrée en base.
             new SettingDefinition('webpush.public_key', $string, '', config: 'kintai.webpush.public_key'),

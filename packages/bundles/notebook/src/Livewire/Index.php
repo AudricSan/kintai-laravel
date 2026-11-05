@@ -6,11 +6,9 @@ use App\Models\User;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Kintai\Bundles\Notebook\Actions\NoteActions;
 use Kintai\Bundles\Notebook\Models\NotebookEntry;
 use Kintai\Bundles\Notebook\NotebookAccess;
-use Kintai\Bundles\Notebook\NotebookServiceProvider;
-use Kintai\Contracts\Activity\ActivityRecorder;
 use Kintai\Contracts\Notifications\Notifier;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -19,7 +17,7 @@ use Livewire\Component;
 
 /**
  * Page du carnet : liste des notes visibles, publication, modification, suppression (après confirmation) et
- * épinglage. Les droits sont revérifiés à chaque action (voir `NotebookAccess`).
+ * épinglage. Les droits sont revérifiés à chaque action (voir `NotebookAccess` et `NoteActions`).
  */
 #[Title('Notebook')]
 class Index extends Component
@@ -71,35 +69,17 @@ class Index extends Component
         return app(NotebookAccess::class);
     }
 
-    public function publish(ActivityRecorder $activity, Notifier $notifier): void
+    public function publish(NoteActions $actions): void
     {
-        $user = $this->user();
         $storeId = ctype_digit($this->storeId) ? (int) $this->storeId : null;
-        abort_unless($this->access()->canCreateIn($user, $storeId), 403);
+        abort_unless($this->access()->canCreateIn($this->user(), $storeId), 403);
 
         $validated = $this->validate([
             'content' => ['required', 'string', 'max:5000'],
             'expiresOn' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $entry = NotebookEntry::create([
-            'author_id' => $user->id,
-            'store_id' => $storeId,
-            'content' => trim($validated['content']),
-            'pinned' => false,
-            'expires_on' => $validated['expiresOn'] ?: null,
-        ]);
-
-        $activity->record('notebook.created', $entry, $storeId, ['organization_wide' => $storeId === null], $user);
-
-        $recipients = $this->access()->recipients($entry);
-        if ($recipients !== []) {
-            $notifier->notify(
-                $recipients, NotebookServiceProvider::NOTIFICATION, 'New note from :author: ":excerpt"',
-                ['author' => $user->name, 'excerpt' => Str::limit(str_replace(["\r", "\n"], ' ', $entry->content), 80)],
-                route('notebook.index', ['highlight' => $entry->id], false), $entry->id,
-            );
-        }
+        $actions->publish($this->user(), $storeId, $validated['content'], $validated['expiresOn'] ?: null);
 
         $this->reset('content', 'expiresOn');
         Flux::toast(variant: 'success', text: __('Note published.'));
@@ -119,7 +99,7 @@ class Index extends Component
         $this->reset('editingId', 'editContent', 'editExpiresOn');
     }
 
-    public function saveEditing(ActivityRecorder $activity): void
+    public function saveEditing(NoteActions $actions): void
     {
         $entry = $this->findEditable($this->editingId);
 
@@ -128,14 +108,7 @@ class Index extends Component
             'editExpiresOn' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $entry->content = trim($validated['editContent']);
-        $entry->expires_on = $validated['editExpiresOn'] ?: null;
-        $changed = array_keys($entry->getDirty());
-        $entry->save();
-
-        if ($changed !== []) {
-            $activity->record('notebook.updated', $entry, $entry->store_id, ['fields' => $changed], $this->user());
-        }
+        $actions->update($this->user(), $entry, $validated['editContent'], $validated['editExpiresOn'] ?: null);
 
         $this->cancelEditing();
         Flux::toast(variant: 'success', text: __('Note updated.'));
@@ -148,27 +121,18 @@ class Index extends Component
         Flux::modal('confirm-note-deletion')->show();
     }
 
-    public function delete(ActivityRecorder $activity): void
+    public function delete(NoteActions $actions): void
     {
-        $entry = $this->findEditable($this->deletingId);
-
-        $entry->delete();
-        $activity->record('notebook.deleted', $entry, $entry->store_id, ['organization_wide' => $entry->store_id === null], $this->user());
+        $actions->delete($this->user(), $this->findEditable($this->deletingId));
 
         $this->reset('deletingId');
         Flux::modal('confirm-note-deletion')->close();
         Flux::toast(variant: 'success', text: __('Note deleted.'));
     }
 
-    public function togglePin(int $id, ActivityRecorder $activity): void
+    public function togglePin(int $id, NoteActions $actions): void
     {
-        $entry = $this->findVisible($id);
-        abort_unless($this->access()->canManage($this->user(), $entry), 403);
-
-        $entry->pinned = ! $entry->pinned;
-        $entry->save();
-
-        $activity->record('notebook.pinned', $entry, $entry->store_id, ['pinned' => $entry->pinned], $this->user());
+        $actions->togglePin($this->user(), $this->findVisible($id));
     }
 
     private function findVisible(int $id): NotebookEntry

@@ -956,5 +956,6 @@
     "The bundle disappears from the menu, the dashboards, the roles and the stores. None of its data is deleted: enabling it again brings everything back.": "Le bundle disparaît du menu, des tableaux de bord, des rôles et des magasins. Aucune de ses données n'est supprimée : le réactiver remet tout en place.",
     "The bundle appears in the menu, the dashboards, the roles and the store features. Grant its permissions to roles from the Roles screen.": "Le bundle apparaît dans le menu, les tableaux de bord, les rôles et les fonctionnalités des magasins. Accordez ses permissions aux rôles depuis l'écran des rôles.",
     "Bundle enabled": "Bundle activé",
-    "Bundle disabled": "Bundle désactivé"
+    "Bundle disabled": "Bundle désactivé",
+    "Bundle default permissions granted": "Droits par défaut du bundle accordés"
 }

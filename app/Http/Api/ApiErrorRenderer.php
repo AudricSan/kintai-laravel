@@ -2,7 +2,6 @@
 
 namespace App\Http\Api;
 
-use App\Exceptions\ApiException;
 use App\Exceptions\ShiftWarningsException;
 use App\Http\Middleware\SetApiLocale;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -11,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Api\ApiException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 

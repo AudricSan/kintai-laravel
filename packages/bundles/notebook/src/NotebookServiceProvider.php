@@ -37,7 +37,7 @@ class NotebookServiceProvider extends BundleServiceProvider
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     public function description(): string
@@ -53,7 +53,8 @@ class NotebookServiceProvider extends BundleServiceProvider
             Livewire::component('notebook.employee-widget', EmployeeWidget::class);
         }
 
-        $this->permissions('notebook', ['view', 'create', 'manage']);
+        // Par défaut (première activation) : les gérants gèrent le carnet, les employés le lisent.
+        $this->permissions('notebook', ['view', 'create', 'manage'], ['manager' => ['view', 'create', 'manage'], 'employee' => ['view']]);
         $this->storeFeature(self::FEATURE, 'Notebook');
         $this->navigation(new NavigationItem(
             key: 'notebook', label: 'Notebook', route: 'notebook.index', icon: 'book-open',

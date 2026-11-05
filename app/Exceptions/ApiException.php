@@ -2,18 +2,10 @@
 
 namespace App\Exceptions;
 
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Kintai\Contracts\Api\ApiException as ContractApiException;
 
 /**
  * Erreur de l'API avec son code stable (`{"error": ..., "code": ...}`). Le message est déjà traduit dans la langue de la requête.
+ * Même classe que celle du contrat, que les bundles lèvent : le rendu des erreurs ne connaît que celle du contrat.
  */
-class ApiException extends HttpException
-{
-    /**
-     * @param  array<string, string>  $headers
-     */
-    public function __construct(int $status, public readonly string $errorCode, string $message, array $headers = [])
-    {
-        parent::__construct($status, $message, null, $headers);
-    }
-}
+class ApiException extends ContractApiException {}

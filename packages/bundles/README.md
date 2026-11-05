@@ -94,6 +94,11 @@ Les migrations d'un bundle sont chargées dès l'installation ; les tests qui s'
 `$this->artisan('migrate')` après `enableBundle()`. Le bundle de démonstration
 `tests/Fixtures/Bundles/DemoBundle` montre le branchement complet.
 
+Un bundle peut aussi avoir un `routes/api.php` (API mobile : `/api/v1/<slug>`, noms `api.v1.<slug>.*`, pile et erreurs de
+l'API du Core, contrôleurs étendant `Kintai\Contracts\Api\ApiController`) et déclarer des droits par défaut pour les rôles
+`manager` et `employee` (troisième argument de `permissions()`, accordés à la première activation). Voir le
+[contrat](../contracts/README.md).
+
 ## Installation sans terminal
 
 Les archives de release contiennent les bundles officiels dans `vendor/` : l'Owner les active ou les désactive dans

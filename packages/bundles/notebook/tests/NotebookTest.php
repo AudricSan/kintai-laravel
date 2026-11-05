@@ -2,6 +2,7 @@
 
 namespace Kintai\Bundles\Notebook\Tests;
 
+use App\Actions\Bundles\EnableBundle;
 use App\Bundles\BundleManager;
 use App\Models\ActivityEntry;
 use App\Models\Store;
@@ -9,8 +10,10 @@ use App\Models\StoreFeature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Kintai\Bundles\Notebook\Models\NotebookEntry;
+use Kintai\Bundles\Notebook\NotebookServiceProvider;
 use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Kintai\Contracts\Authorization\PermissionRegistry;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
@@ -468,6 +471,22 @@ class NotebookTest extends TestCase
 
         $this->actingAs($this->userWith(['notebook.view'], [$this->a]))->get(route('dashboard'))->assertSee(route('notebook.index'), false);
         $this->actingAs($this->employeeOf($this->a))->get(route('dashboard'))->assertDontSee(route('notebook.index'), false);
+    }
+
+    public function test_the_first_activation_gives_managers_full_rights_and_employees_the_read_right(): void
+    {
+        app(EnableBundle::class)->handle($this->owner(), 'notebook');
+        $this->app->register(NotebookServiceProvider::class, true);
+
+        $manager = $this->managerOf($this->a);
+        $this->a->members()->attach($manager);
+        $employee = $this->employeeOf($this->a);
+
+        foreach (['notebook.view', 'notebook.create', 'notebook.manage'] as $permission) {
+            $this->assertTrue(Gate::forUser($manager)->allows($permission, $this->a), $permission);
+        }
+        $this->assertTrue(Gate::forUser($employee)->allows('notebook.view', $this->a));
+        $this->assertFalse(Gate::forUser($employee)->allows('notebook.create', $this->a));
     }
 
     public function test_disabling_the_bundle_keeps_the_notes(): void

@@ -73,6 +73,7 @@ final class CoreActivityActions
             'Bundles' => [
                 'bundle.enabled' => 'Bundle enabled',
                 'bundle.disabled' => 'Bundle disabled',
+                'bundle.permissions_granted' => 'Bundle default permissions granted',
             ],
             'Backups and data' => [
                 'backup.created' => 'Backup created',

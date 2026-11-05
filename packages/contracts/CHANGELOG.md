@@ -2,6 +2,16 @@
 
 Versionnement sémantique, voir le README.
 
+## 1.2.0
+
+### Ajouté
+- `permissions($category, $actions, $defaults)` : droits par défaut des rôles `manager` et `employee`, accordés par le Core à la
+  première activation du bundle (`BundleServiceProvider::defaultPermissions()`, `DEFAULT_ROLES`).
+- API des bundles : `routes/api.php` chargé sous `/api/v1/<slug>` (noms `api.v1.<slug>.*`) avec la pile de l'API du Core
+  (`BundleServiceProvider::API_MIDDLEWARE`), `Api\ApiController` (base de contrôleur) et `Api\ApiException` (erreur avec code
+  stable, déjà rendue par le Core).
+- Le contrat requiert en plus `illuminate/auth`, `illuminate/http`, `illuminate/routing` et `symfony/http-kernel` (déjà présents dans le Core).
+
 ## 1.1.0
 
 ### Ajouté

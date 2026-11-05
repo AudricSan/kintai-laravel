@@ -9,6 +9,7 @@ Notes d'équipe : un message pour un magasin ou pour toute l'organisation, épin
 - Journal : `notebook.created`, `notebook.updated`, `notebook.deleted`, `notebook.pinned`.
 - Données : table `notebook_entries` (`expires_on` = dernier jour affiché, fuseau de l'instance). Désactiver le bundle les conserve.
 - Traductions : `lang/fr.json`, `lang/ja.json`.
-- Abandonné : l'API REST `/api/v1/notebook-entries` (le contrat n'a pas de point d'extension pour l'API).
+- API REST pour l'application mobile : `/api/v1/notebook/entries` (liste, lecture, création, modification, suppression, épinglage), voir `docs/API-V1.md` (l'ancienne URL `/api/v1/notebook-entries` devient `/api/v1/notebook/entries`).
+- Droits par défaut à la première activation : gérants `view`, `create`, `manage` ; employés `view`.
 
 Tests : `php artisan test --testsuite=Bundles`.

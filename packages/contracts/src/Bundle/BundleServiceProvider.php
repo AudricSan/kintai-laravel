@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Kintai\Contracts\Authorization\PermissionRegistry;
 use Kintai\Contracts\Contract;
@@ -61,6 +62,18 @@ use ReflectionClass;
  */
 abstract class BundleServiceProvider extends ServiceProvider
 {
+    /** Rôles du Core auxquels un bundle peut accorder des permissions par défaut. */
+    public const DEFAULT_ROLES = ['manager', 'employee'];
+
+    /**
+     * Groupe de middleware de l'API des bundles, défini par le Core : langue de la requête, maintenance, limiteur,
+     * authentification par jeton (Sanctum) et compte actif. Préfixe d'URL `api/v1/<slug>`, noms `api.v1.<slug>.*`.
+     */
+    public const API_MIDDLEWARE = 'kintai-api';
+
+    /** @var array<string, list<string>> */
+    private array $defaultPermissions = [];
+
     /**
      * Identifiant stable : minuscules, chiffres et tirets (`timeoff`, `shift-swap`). Préfixe des routes, espace de noms
      * des vues et des traductions, clé dans la liste des bundles activés.
@@ -161,11 +174,48 @@ abstract class BundleServiceProvider extends ServiceProvider
     }
 
     /**
+     * Déclare les permissions `catégorie.action` du bundle.
+     *
+     * `$defaults` (depuis le contrat 1.2) : les actions accordées par défaut aux rôles `manager` et `employee` du Core,
+     * par exemple `['manager' => ['view', 'create', 'manage'], 'employee' => ['view']]`. Le Core ne les applique qu'à la
+     * première activation du bundle par l'Owner (jamais au rôle Owner ni aux rôles personnalisés, jamais à une
+     * réactivation : les droits que l'Owner a retirés ensuite ne reviennent pas).
+     *
      * @param  list<string>  $actions
+     * @param  array<string, list<string>>  $defaults  Slug de rôle (`manager`, `employee`) => actions de la catégorie.
+     *
+     * @throws InvalidArgumentException Rôle autre que `manager` ou `employee`, ou action non déclarée.
      */
-    protected function permissions(string $category, array $actions): void
+    protected function permissions(string $category, array $actions, array $defaults = []): void
     {
+        $this->defaultPermissions = [];
+
+        foreach ($defaults as $role => $roleActions) {
+            if (! in_array($role, self::DEFAULT_ROLES, true)) {
+                throw new InvalidArgumentException("Default permissions can only target the roles [manager, employee], [{$role}] given.");
+            }
+
+            foreach ($roleActions as $action) {
+                if (! in_array($action, $actions, true)) {
+                    throw new InvalidArgumentException("The default permission [{$category}.{$action}] is not declared.");
+                }
+
+                $this->defaultPermissions[$role][] = $category.'.'.$action;
+            }
+        }
+
         $this->whenEnabled(fn () => $this->app->make(PermissionRegistry::class)->register($category, $actions));
+    }
+
+    /**
+     * Permissions accordées par défaut aux rôles du Core à la première activation, par slug de rôle (clés
+     * `catégorie.action`). Disponible une fois le bundle démarré, activé ou non.
+     *
+     * @return array<string, list<string>>
+     */
+    public function defaultPermissions(): array
+    {
+        return $this->defaultPermissions;
     }
 
     protected function notificationTypes(NotificationType ...$types): void
@@ -274,6 +324,20 @@ abstract class BundleServiceProvider extends ServiceProvider
         if (is_dir($path = $this->basePath('lang'))) {
             $this->loadTranslationsFrom($path, $this->slug());
             $this->loadJsonTranslationsFrom($path);
+        }
+
+        if (is_file($path = $this->basePath('routes/api.php')) && ! $this->app->routesAreCached()) {
+            // API (depuis le contrat 1.2) : mêmes règles que l'API du Core, sous `/api/v1/<slug>`.
+            $this->app->booted(function () use ($path): void {
+                Route::middleware(['api', self::API_MIDDLEWARE])
+                    ->prefix('api/v1/'.$this->slug())
+                    ->name('api.v1.'.$this->slug().'.')
+                    ->group($path);
+
+                $routes = $this->app->make('router')->getRoutes();
+                $routes->refreshNameLookups();
+                $routes->refreshActionLookups();
+            });
         }
 
         if (is_file($path = $this->basePath('routes/web.php')) && ! $this->app->routesAreCached()) {

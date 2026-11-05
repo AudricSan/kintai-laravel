@@ -13,6 +13,9 @@ use App\Dashboard\CoreWidgets;
 use App\Dashboard\DefaultDashboardWidgetRegistry;
 use App\Exports\CoreExportDatasets;
 use App\Exports\DefaultExportDatasetRegistry;
+use App\Http\Middleware\EnsureApiAccountIsActive;
+use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\SetApiLocale;
 use App\Listeners\RecordActivity;
 use App\Listeners\RemovePushSubscriptionOnLogout;
 use App\Listeners\SendShiftNotifications;
@@ -56,6 +59,7 @@ use Illuminate\Validation\Rules\Password;
 use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Kintai\Contracts\Activity\ActivityRecorder;
 use Kintai\Contracts\Bundle\BundleActivation;
+use Kintai\Contracts\Bundle\BundleServiceProvider;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
 use Kintai\Contracts\Events\EmployeeCreated;
 use Kintai\Contracts\Events\EmployeePasswordReset;
@@ -152,6 +156,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->registerBundleApiMiddleware();
         $this->registerProfileSections();
         $this->registerStoreFeatures();
         $this->registerNavigation();
@@ -166,6 +171,21 @@ class AppServiceProvider extends ServiceProvider
         $this->registerRateLimiters();
         // En dernier : les réglages de l'Owner (langue, fuseau, expéditeur, URL publique) remplacent la configuration.
         $this->app->make(RuntimeSettings::class)->apply();
+    }
+
+    /**
+     * Pile de l'API des bundles (`routes/api.php` d'un bundle) : la même que l'API du Core (langue, maintenance,
+     * limiteur, jeton Sanctum, compte actif).
+     */
+    private function registerBundleApiMiddleware(): void
+    {
+        $this->app->make('router')->middlewareGroup(BundleServiceProvider::API_MIDDLEWARE, [
+            SetApiLocale::class,
+            MaintenanceMode::class,
+            'throttle:api',
+            'auth:sanctum',
+            EnsureApiAccountIsActive::class,
+        ]);
     }
 
     /**

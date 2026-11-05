@@ -579,3 +579,122 @@ Téléchargement d'un fichier. `format` (requis : `csv`, `xlsx`, `pdf` ou `ics`,
 données ; sinon les magasins), `stores[]` (défaut : tous les magasins permis), `users[]`, `from` et `to` (`YYYY-MM-DD`, pour les jeux
 à période, 366 jours au plus). `403` : périmètre non permis ; `404` : jeu inconnu ; `422` : format non disponible, période invalide,
 export trop gros pour ce format (clé `export`). Il n'y a pas de format JSON ici : pour ses propres données, voir `me/data-export`.
+
+# API des bundles
+
+Un bundle activé peut exposer sa propre API sous `/api/v1/<slug>` (routes nommées `api.v1.<slug>.*`). Elle suit toutes les
+règles de cette API : jeton « Bearer » obligatoire, `Accept-Language`, mode maintenance (503 `maintenance`), limiteur
+(`429 too_many_requests`), compte désactivé (`401`), format d'erreur `{error, code}` (`validation_failed`, `forbidden`, `not_found`,
+`method_not_allowed`…), listes paginées (`data`, `links`, `meta`, `per_page` de 1 à 100). Un bundle désactivé n'a aucune route :
+`404 not_found`. Les bundles activés sont annoncés par `GET /api/v1/ping` (`bundle:<slug>`), les fonctionnalités de magasin
+par leur clé. Les droits sont ceux des écrans du bundle (portée magasin comprise).
+
+Différence avec l'ancienne version : les routes d'un bundle sont toutes sous `/api/v1/<slug>/...` (par exemple l'ancien
+`/api/v1/notebook-entries` devient `/api/v1/notebook/entries`).
+
+## Carnet (`notebook`)
+
+Droits : `notebook.view` pour lire, `notebook.create` pour publier, l'auteur ou `notebook.manage` pour modifier et supprimer,
+`notebook.manage` pour épingler. Une note hors du périmètre de l'appelant (magasin sans le droit, fonctionnalité `notebook`
+désactivée sur le magasin) est introuvable (404). Les notes de toute l'organisation (`store_id` nul) sont visibles de tout lecteur.
+
+Une note : `id`, `content`, `pinned`, `store_id` (nul = toute l'organisation), `store_name`, `author` (`id`, `name`), `expires_on`
+(`YYYY-MM-DD`, dernier jour affiché, nul = sans expiration), `expired`, `created_at`, `updated_at` (ISO 8601), `can_edit`, `can_pin`.
+
+### `GET /api/v1/notebook/entries`
+Notes visibles, épinglées d'abord puis les plus récentes. Filtres : `store_id`, `pinned` (booléen), `include_expired` (booléen,
+défaut faux). `403` sans `notebook.view`.
+
+### `GET /api/v1/notebook/entries/{id}`
+Une note. `404` si elle n'est pas visible.
+
+### `POST /api/v1/notebook/entries`
+Corps : `content` (requis, 5000 caractères au plus), `store_id` (nul ou absent = toute l'organisation, qui exige `notebook.create`
+sans restriction de magasin), `expires_on` (`YYYY-MM-DD`). `201` avec la note ; `403` hors périmètre ; `422` validation. Les lecteurs
+de la note reçoivent la notification `notebook_entry_created`.
+
+### `PUT /api/v1/notebook/entries/{id}`
+Change `content` et/ou `expires_on` (une clé absente garde sa valeur) ; le magasin, l'auteur et l'épinglage ne changent pas.
+
+### `DELETE /api/v1/notebook/entries/{id}`
+`204`.
+
+### `POST /api/v1/notebook/entries/{id}/pin`
+Épingle la note, ou la désépingle si elle l'est. Exige `notebook.manage` sur le magasin de la note (sans restriction de magasin
+pour une note de toute l'organisation).
+
+## Congés (`timeoff`)
+
+Chacun voit et dépose ses propres demandes (membre actif d'un magasin où la fonctionnalité `timeoff` est activée), et peut annuler
+une demande en attente. Les gérants voient et traitent celles de leurs magasins : `timeoff.view` (lire), `timeoff.create` (saisir un
+congé pour un employé, approuvé d'emblée), `timeoff.update` (corriger), `timeoff.approve` (approuver, refuser), `timeoff.delete`
+(supprimer). Une demande hors du périmètre de l'appelant est introuvable (404). Les congés approuvés bloquent les shifts de l'employé
+sur ces jours (avertissement bloquant, voir Shifts) et sont publiés dans son flux iCal.
+
+Une demande : `id`, `user` (`id`, `name`), `store` (`id`, `name`), `type` (`vacation`, `sick`, `personal`, `unpaid`, `other`), `status`
+(`pending`, `approved`, `refused`, `cancelled`), `start_date`, `end_date` (`YYYY-MM-DD`, bornes incluses), `reason`, `admin_note`,
+`processed_by`, `processed_at`, `created_at`, `can_cancel`, `can_decide`.
+
+### `GET /api/v1/timeoff/requests`
+Les siennes et celles des magasins où l'on a `timeoff.view`, plus récentes d'abord. Filtres : `store_id`, `user_id`, `status`, `type`,
+`from`, `to` (`YYYY-MM-DD` : demandes qui touchent la période). `422` pour une valeur invalide.
+
+### `GET /api/v1/timeoff/requests/{id}`
+### `POST /api/v1/timeoff/requests`
+Corps : `store_id`, `type`, `start_date` (requis), `end_date` (défaut : `start_date`, pas avant le début), `reason`, `user_id`.
+Sans `user_id` (ou le sien) : demande `pending` pour soi, les approbateurs du magasin sont prévenus ; `422` si l'on n'est pas membre du
+magasin. Avec le `user_id` d'un autre employé : exige `timeoff.create` sur le magasin, congé `approved` d'emblée (`403`, `404` employé inconnu,
+`422` employé hors du magasin). Les champs `status`, `processed_by`, `id` du corps sont ignorés.
+
+### `PUT /api/v1/timeoff/requests/{id}`
+Exige `timeoff.update`. Change `type`, `start_date`, `end_date`, `reason`, `admin_note` (une clé absente garde sa valeur) ; jamais l'employé,
+le magasin ni le statut.
+
+### `POST /api/v1/timeoff/requests/{id}/approve` et `/refuse`
+Exige `timeoff.approve`. Corps facultatif : `admin_note`. `422` (clé `request`) si la demande n'est plus en attente. L'employé est notifié.
+
+### `POST /api/v1/timeoff/requests/{id}/cancel`
+L'employé annule sa demande en attente (`422` sinon, `404` si ce n'est pas la sienne).
+
+### `DELETE /api/v1/timeoff/requests/{id}`
+Exige `timeoff.delete`, même pour un congé approuvé. `204`.
+
+Différence avec l'ancienne version : `/api/v1/timeoff-requests` devient `/api/v1/timeoff/requests`, et le statut se change par `approve`,
+`refuse` ou `cancel` (plus par un `PUT` avec `status`).
+
+## Pointage (`timeclock`)
+
+Chacun pointe et lit ses propres pointages (membre actif d'un magasin où la fonctionnalité `timeclock` est activée). Les gérants lisent
+ceux de leurs magasins avec `timeclock.view`, les corrigent avec `timeclock.update` et les suppriment avec `timeclock.delete`. Un
+pointage hors du périmètre de l'appelant est introuvable (404).
+
+Un pointage : `id`, `user` (`id`, `name`), `store` (`id`, `name`), `shift_id`, `date` (jour local de l'entrée), `clock_in_at`,
+`clock_out_at` (ISO 8601, nul tant que l'employé est en poste), `duration_minutes`, `late_minutes` (retard à l'entrée sur le shift
+rattaché, nul sous le seuil de `timeclock.late_threshold_minutes`, 5 par défaut), `running`, `notes`, `can_edit`, `can_delete`.
+
+### `POST /api/v1/timeclock/clock-in`
+Corps facultatif : `store_id` (défaut : le premier magasin de l'employé), `client_time` (ISO 8601, heure réelle d'un geste fait hors
+ligne ; crue de 24 h dans le passé à 2 min dans le futur, sinon l'heure du serveur est utilisée). `201` avec le pointage. `409
+already_clocked_in` si un pointage est déjà en cours ; `422` si l'employé n'est pas membre du magasin choisi (ou d'aucun magasin).
+
+### `POST /api/v1/timeclock/clock-out`
+Corps facultatif : `client_time`. Ferme le pointage en cours et calcule sa durée. `404 not_clocked_in` s'il n'y en a pas. Une sortie
+antérieure à l'entrée est remplacée par l'heure du serveur.
+
+### `GET /api/v1/timeclock/active`
+Le pointage en cours de l'appelant : `{"data": {...}}`, ou `{"data": null}`.
+
+### `GET /api/v1/timeclock/entries`
+Les siens et ceux des magasins où l'on a `timeclock.view`, plus récents d'abord. Filtres : `store_id`, `user_id`, `from`, `to`
+(`YYYY-MM-DD`, jour de l'entrée), `active` (booléen : en cours ou terminés).
+
+### `GET /api/v1/timeclock/entries/{id}`
+### `PUT /api/v1/timeclock/entries/{id}`
+Exige `timeclock.update`. Change `clock_in_at`, `clock_out_at` (nul = remet le pointage en cours, refusé si l'employé en a déjà un),
+`notes` ; une clé absente garde sa valeur. `422` si la sortie précède l'entrée.
+
+### `DELETE /api/v1/timeclock/entries/{id}`
+Exige `timeclock.delete`. `204`.
+
+Différence avec l'ancienne version : `/api/v1/timeclocks/clock-in` devient `/api/v1/timeclock/clock-in` (idem `clock-out`), et la
+liste `/api/v1/timeclocks` devient `/api/v1/timeclock/entries`.

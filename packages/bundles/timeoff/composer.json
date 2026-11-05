@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-timeoff",
+    "description": "Congés pour Kintai : demandes des employés, validation par les gérants, congés approuvés pris en compte par le planning et le flux iCal.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\Timeoff\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\Timeoff\\TimeoffServiceProvider"
+            ]
+        }
+    }
+}
