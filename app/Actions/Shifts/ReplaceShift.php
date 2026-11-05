@@ -40,13 +40,14 @@ class ReplaceShift implements ShiftReplacer
 
     /**
      * @param  Shift|array<string, mixed>  $replacement  Shift existant, ou saisie d'un nouveau shift (voir ShiftPreparer).
+     * @param  list<int>  $ignoreShiftIds  Autres shifts qui disparaissent avec cette opération (échange) : ils ne comptent pas dans les chevauchements.
      * @return Shift Le remplaçant.
      *
      * @throws AuthorizationException
      * @throws ValidationException
      * @throws ShiftWarningsException
      */
-    public function handle(User $actor, Shift $old, Shift|array $replacement, bool $force = false): Shift
+    public function handle(User $actor, Shift $old, Shift|array $replacement, bool $force = false, array $ignoreShiftIds = []): Shift
     {
         $this->authorize($actor, 'shifts.update', $old->store_id);
 
@@ -61,7 +62,7 @@ class ReplaceShift implements ShiftReplacer
                 throw ValidationException::withMessages(['shift' => __('The replacement shift must be another active shift.')]);
             }
         } else {
-            $replacement = $this->preparer->prepare($actor, $replacement, null, $force, [$old->id]);
+            $replacement = $this->preparer->prepare($actor, $replacement, null, $force, [$old->id, ...$ignoreShiftIds]);
         }
 
         $old->replaceWith($replacement);

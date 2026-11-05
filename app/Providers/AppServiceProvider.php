@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Actions\Shifts\ExchangeShifts;
 use App\Actions\Shifts\ReplaceShift;
 use App\Activity\ActivityLogger;
 use App\Activity\CoreActivityActions;
@@ -94,6 +95,7 @@ use Kintai\Contracts\Planning\TimeOffProvider;
 use Kintai\Contracts\Profile\ProfileSectionRegistry;
 use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Kintai\Contracts\Settings\Settings;
+use Kintai\Contracts\Shifts\ShiftExchanger;
 use Kintai\Contracts\Shifts\ShiftReplacer;
 use Kintai\Contracts\Stores\ColleagueDirectory;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
@@ -119,6 +121,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ExportDatasetRegistry::class, DefaultExportDatasetRegistry::class);
         $this->app->bind(ActivityRecorder::class, ActivityLogger::class);
         $this->app->bind(ShiftReplacer::class, ReplaceShift::class);
+        $this->app->bind(ShiftExchanger::class, ExchangeShifts::class);
         $this->app->bind(ColleagueDirectory::class, StoreColleagueDirectory::class);
         $this->app->bind(Notifier::class, UserNotifier::class);
         // Réglages de l'instance : le Core déclare les siens ici, les bundles et les autres tranches y ajoutent les leurs.

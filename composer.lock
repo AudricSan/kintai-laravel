@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3564950b349392e475fca6d1a2df202f",
+    "content-hash": "4ddc71bacbb0a1703e8b251502972b6d",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1323,6 +1323,74 @@
             }
         },
         {
+            "name": "kintai/bundle-shift-claim",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/shift-claim",
+                "reference": "fd6b404bb3f259549f432b62a4c727759360022c"
+            },
+            "require": {
+                "kintai/contracts": "^1.3",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\ShiftClaim\\ShiftClaimServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\ShiftClaim\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Reprise de shifts ouverts pour Kintai : shifts ouverts et cédés proposés aux employés, candidatures, validation par un gérant, shift attribué par le Core.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-shift-swap",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/shift-swap",
+                "reference": "81dcffc4439927a8274dd7c71aeba7326c5da7e3"
+            },
+            "require": {
+                "kintai/contracts": "^1.3",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\ShiftSwap\\ShiftSwapServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\ShiftSwap\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Échanges de shifts pour Kintai : proposition à un collègue, acceptation, validation par un gérant, échange appliqué par le Core.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "kintai/bundle-team-directory",
             "version": "1.0.0",
             "dist": {
@@ -1426,11 +1494,11 @@
         },
         {
             "name": "kintai/contracts",
-            "version": "1.2.0",
+            "version": "1.3.0",
             "dist": {
                 "type": "path",
                 "url": "packages/contracts",
-                "reference": "0a355a8149c56fb09d39e4790f39ecee4a13d862"
+                "reference": "2a463434ab5076e20298e44567247d12e36f0968"
             },
             "require": {
                 "illuminate/auth": "^13.0",

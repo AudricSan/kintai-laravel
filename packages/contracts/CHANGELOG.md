@@ -2,6 +2,15 @@
 
 Versionnement sémantique, voir le README.
 
+## 1.3.0
+
+### Ajouté
+- `Shifts\ShiftExchanger` (service du Core) : échange atomique de deux shifts entre deux employés. Chacun est remplacé par un nouveau
+  shift de même créneau qui appartient à l'autre (voir `ShiftReplacer`) ; les garde-fous du planning s'appliquent aux deux affectations
+  à la fois, en tenant compte de l'échange. Ajout compatible : seul le Core implémente l'interface.
+- `Shifts\ShiftWarnings` : interface (étend `Throwable`) de l'exception d'avertissements du planning que lèvent `ShiftReplacer` et
+  `ShiftExchanger` tant que `$force` est faux. Un bundle l'attrape pour demander une confirmation, sans connaître la classe du Core.
+
 ## 1.2.0
 
 ### Ajouté

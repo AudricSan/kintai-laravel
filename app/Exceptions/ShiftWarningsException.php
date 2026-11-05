@@ -3,12 +3,13 @@
 namespace App\Exceptions;
 
 use App\Planning\ShiftIssue;
+use Kintai\Contracts\Shifts\ShiftWarnings;
 use RuntimeException;
 
 /**
  * Le shift déclenche des avertissements : rien n'est enregistré tant que l'acteur ne confirme pas (`force`).
  */
-class ShiftWarningsException extends RuntimeException
+class ShiftWarningsException extends RuntimeException implements ShiftWarnings
 {
     /**
      * @param  list<ShiftIssue>  $issues

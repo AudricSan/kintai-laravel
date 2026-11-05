@@ -698,3 +698,38 @@ Exige `timeclock.delete`. `204`.
 
 Différence avec l'ancienne version : `/api/v1/timeclocks/clock-in` devient `/api/v1/timeclock/clock-in` (idem `clock-out`), et la
 liste `/api/v1/timeclocks` devient `/api/v1/timeclock/entries`.
+
+## Échanges de shifts (`shift-swap`)
+
+Un employé propose l'un de ses shifts à venir contre un shift à venir d'un collègue du même magasin (membre actif, fonctionnalité `swaps`
+activée) ; le collègue accepte ou refuse ; un gérant approuve (le Core échange les deux shifts) ou refuse. Droits des gérants :
+`swaps.view`, `swaps.create` (appliquer d'emblée un échange), `swaps.update` (motif), `swaps.approve` (plus `shifts.update` et
+`shifts.create` du magasin, vérifiés par le Core), `swaps.delete`. Une demande hors du périmètre de l'appelant est introuvable (404).
+
+Une demande : `id`, `store`, `requester`, `target` (`id`, `name`), `requester_shift`, `target_shift` (`id`, `date`, `start`, `end`),
+`status` (`pending`, `accepted` = appliqué, `refused`, `cancelled`), `stage` (`waiting_colleague`, `waiting_manager`, ou le statut),
+`reason`, `accepted_at`, `approved_by`, `approved_at`, `created_at`, `can_answer`, `can_cancel`, `can_approve`, `can_refuse`, `can_delete`.
+
+- `GET /api/v1/shift-swap/requests` : les siennes (demandeur ou collègue) et celles des magasins où l'on a `swaps.view`. Filtres : `store_id`, `status`, `stage`, `mine`.
+- `GET /api/v1/shift-swap/requests/{id}`.
+- `POST /api/v1/shift-swap/requests` : `requester_shift_id` (un de ses shifts), `target_shift_id`, `reason`. `201`. `403` si le premier shift n'est pas le sien ; `422` (autre magasin, shift passé, shift déjà dans une demande en attente, collègue absent du magasin...).
+- `POST /api/v1/shift-swap/requests/apply` : gérant (`swaps.create`), mêmes champs plus `force` ; échange appliqué d'emblée. `201`.
+- `POST .../{id}/accept`, `.../decline` (le collègue), `.../cancel` (le demandeur, tant que la demande est en attente).
+- `POST .../{id}/approve` (`force` facultatif) et `.../refuse` : `swaps.approve`. L'approbation exige que le collègue ait accepté. Si le planning relève des avertissements, `409 shift_warnings` (liste `warnings`) et rien n'est écrit ; renvoyer avec `force: true` les confirme. Un congé approuvé bloque (`422`). Un shift modifié, supprimé ou réaffecté depuis la demande, ou une décision déjà prise : `422`.
+- `PUT .../{id}` : `reason` d'une demande en attente (`swaps.update`). `DELETE .../{id}` : `swaps.delete` ; un échange appliqué est défait par le Core si les shifts n'ont pas bougé. `204`.
+
+## Reprise de shifts (`shift-claim`)
+
+La bourse regroupe les shifts à venir sans employé (ouverts) et ceux qu'un gérant propose. Un employé membre actif d'un magasin où la
+fonctionnalité `open_shifts` est activée y candidate ; un gérant retient une candidature (le Core attribue le shift). Droits des gérants :
+`open_shifts.view`, `open_shifts.publish` (proposer ou retirer un shift), `open_shifts.approve` (plus `shifts.update` et `shifts.create`).
+Un shift hors des magasins de l'appelant est introuvable (404).
+
+Un shift de la bourse : `id`, `date`, `start`, `end`, `store`, `holder` (nul si ouvert), `offered`, `note`, `my_claim` (`id`, `status`), `can_claim`, `can_unoffer`.
+Une candidature : `id`, `shift`, `store`, `applicant`, `status` (`pending`, `approved`, `rejected`, `withdrawn`), `note`, `resolved_by`, `resolved_at`, `created_at`, `can_withdraw`, `can_decide`.
+
+- `GET /api/v1/shift-claim/open-shifts` : la bourse (filtre `store_id`).
+- `POST /api/v1/shift-claim/open-shifts/{shift}/claim` : `note`. `201`. `404` hors de ses magasins ; `422` (shift plus disponible, son propre shift, déjà candidat, congé approuvé).
+- `GET /api/v1/shift-claim/claims` (filtres `store_id`, `shift_id`, `status`, `mine`) et `GET .../claims/{id}`.
+- `POST .../claims/{id}/withdraw` (le candidat), `.../approve` (`force` facultatif ; `409 shift_warnings` comme pour les échanges) et `.../reject`.
+- `POST /api/v1/shift-claim/shifts/{shift}/offer` : `note` ; propose un shift attribué à venir (`open_shifts.publish`). `201`. `DELETE` du même chemin le retire (les candidatures en attente sont retirées). `204`.
