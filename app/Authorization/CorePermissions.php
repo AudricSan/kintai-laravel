@@ -2,6 +2,8 @@
 
 namespace App\Authorization;
 
+use Kintai\Contracts\Authorization\PermissionRegistry;
+
 /**
  * Permissions déclarées par le Core de l'application.
  */

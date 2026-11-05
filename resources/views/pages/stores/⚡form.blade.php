@@ -11,7 +11,7 @@ use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\Store;
 use App\Models\User;
-use App\Stores\StoreFeatureRegistry;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use App\Support\Locales;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Builder;

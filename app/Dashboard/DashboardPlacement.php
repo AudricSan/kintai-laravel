@@ -2,6 +2,9 @@
 
 namespace App\Dashboard;
 
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\WidgetSize;
+
 /**
  * Un widget à sa place dans une disposition résolue.
  */

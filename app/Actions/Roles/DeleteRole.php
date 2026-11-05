@@ -2,12 +2,12 @@
 
 namespace App\Actions\Roles;
 
-use App\Events\RoleDeleted;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\RoleDeleted;
 
 class DeleteRole
 {

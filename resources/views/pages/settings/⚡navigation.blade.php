@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Navigation\SaveNavigationPreferences;
-use App\Navigation\NavigationItem;
+use Kintai\Contracts\Navigation\NavigationItem;
 use App\Navigation\NavigationMenu;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;

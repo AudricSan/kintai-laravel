@@ -7,6 +7,7 @@ use App\Push\VapidKeys;
 use App\Settings\AppSettings;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\DB;
+use Kintai\Contracts\System\SystemAlert;
 
 /**
  * Détecteurs d'alertes système du Core, tous locaux (aucun appel réseau : ils tournent aussi pendant la visite d'un Owner).

@@ -3,8 +3,6 @@
 namespace App\Actions\Roles;
 
 use App\Authorization\Authorizer;
-use App\Authorization\PermissionRegistry;
-use App\Events\RoleSaved;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -14,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Authorization\PermissionRegistry;
+use Kintai\Contracts\Events\RoleSaved;
 
 /**
  * Crée ou modifie un rôle et ses permissions (réservé à l'Owner). Le slug est fixé à la création.

@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Activity\PurgeActivityEntries;
-use App\Activity\ActivityActionRegistry;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
 use App\Activity\ActivityDetails;
 use App\Activity\ActivityQuery;
 use Flux\Flux;

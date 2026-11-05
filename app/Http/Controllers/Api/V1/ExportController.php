@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Exports\DownloadExport;
 use App\Exports\ExportAccess;
-use App\Exports\ExportDatasetRegistry;
 use App\Exports\ExportTooLargeException;
 use App\Exports\ExportWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

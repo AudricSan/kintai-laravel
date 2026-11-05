@@ -10,6 +10,8 @@ use App\Settings\AppSettings;
 use Closure;
 use Illuminate\Support\Facades\Cache;
 use InvalidArgumentException;
+use Kintai\Contracts\System\SystemAlert;
+use Kintai\Contracts\System\SystemAlertRegistry;
 use Throwable;
 
 /**
@@ -27,7 +29,7 @@ use Throwable;
  * Deux déclencheurs : la commande planifiée `kintai:system:alerts` (toutes les heures) et `runIfDue()`, appelé quand un Owner
  * charge une page, pour les instances dont le planificateur ne tourne pas.
  */
-class SystemAlerts
+class SystemAlerts implements SystemAlertRegistry
 {
     /** Nature de l'objet désigné par les notifications d'alerte (« lu » automatique à la résolution). */
     public const REFERENCE_TYPE = 'system';

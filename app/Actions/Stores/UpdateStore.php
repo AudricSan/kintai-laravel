@@ -2,12 +2,12 @@
 
 namespace App\Actions\Stores;
 
-use App\Events\StoreUpdated;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\StoreUpdated;
 
 /**
  * Modifie les réglages d'un magasin et ses fonctionnalités.

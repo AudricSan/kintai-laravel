@@ -8,11 +8,11 @@ use App\Models\AppSetting;
 use App\Push\VapidKeys;
 use App\Settings\AppSettings;
 use App\Settings\CoreSettings;
-use App\Settings\SettingDefinition;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
+use Kintai\Contracts\Settings\SettingDefinition;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 

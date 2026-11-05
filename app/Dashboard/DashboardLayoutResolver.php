@@ -6,6 +6,9 @@ use App\Models\DashboardLayout;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
+use Kintai\Contracts\Dashboard\WidgetSize;
 
 /**
  * Disposition affichée : disposition personnelle active > disposition du premier rôle de l'utilisateur qui en a une

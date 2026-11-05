@@ -3,12 +3,12 @@
 namespace App\Actions\Stores;
 
 use App\Authorization\Authorizer;
-use App\Events\StoreMemberRemoved;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\StoreMemberRemoved;
 
 /**
  * Retire un employé d'un magasin : l'appartenance et ses rôles dans ce magasin disparaissent, ses shifts restent.

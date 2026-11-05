@@ -2,7 +2,6 @@
 
 namespace App\Actions;
 
-use App\Events\UserAnonymized;
 use App\Models\IcalToken;
 use App\Models\RoleAssignment;
 use App\Models\User;
@@ -10,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Kintai\Contracts\Events\UserAnonymized;
 
 /**
  * Efface l'identité d'un utilisateur puis le met à la corbeille. L'historique (shifts…) reste rattaché.

@@ -3,13 +3,13 @@
 namespace App\Exports\Datasets;
 
 use App\Exports\AbstractExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportScope;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Planning\ShiftWageCalculator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportScope;
 
 /**
  * « Hours and costs » : le coût estimé de chaque shift, calculé comme partout ailleurs par `ShiftWageCalculator`

@@ -2,7 +2,7 @@
 
 use App\Actions\Roles\ManageRoleHolders;
 use App\Actions\Roles\SaveRole;
-use App\Authorization\PermissionRegistry;
+use Kintai\Contracts\Authorization\PermissionRegistry;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\User;

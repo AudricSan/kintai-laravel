@@ -2,6 +2,9 @@
 
 namespace App\Exports;
 
+use Kintai\Contracts\Exports\ExportDataset;
+use Kintai\Contracts\Exports\ExportScope;
+
 /**
  * Jeu de données qui sait aussi se publier en calendrier (format `ics`).
  */

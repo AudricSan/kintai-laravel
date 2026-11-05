@@ -4,12 +4,12 @@ namespace App\Actions\Exports;
 
 use App\Activity\ActivityLogger;
 use App\Exports\Datasets\ShiftsDataset;
-use App\Exports\ExportScope;
 use App\Exports\ExportWriter;
 use App\Models\Store;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Exports\ExportScope;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

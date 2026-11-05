@@ -6,6 +6,8 @@ use App\Models\NotificationPreference;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Date;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 
 /**
  * Préférences de notification : par type et par canal (push, e-mail), plus les heures silencieuses.

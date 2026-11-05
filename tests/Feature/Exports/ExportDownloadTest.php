@@ -3,9 +3,6 @@
 namespace Tests\Feature\Exports;
 
 use App\Exports\AbstractExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportDatasetRegistry;
-use App\Exports\ExportScope;
 use App\Exports\ExportWriter;
 use App\Models\ActivityEntry;
 use App\Models\Shift;
@@ -14,6 +11,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
+use Kintai\Contracts\Exports\ExportScope;
 use Livewire\Livewire;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;

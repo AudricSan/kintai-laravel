@@ -2,12 +2,12 @@
 
 namespace App\Actions;
 
-use App\Events\ProfileUpdated;
 use App\Models\User;
 use App\Support\Locales;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Kintai\Contracts\Events\ProfileUpdated;
 
 /**
  * Enregistre ce que l'employé gère lui-même : langue, choix de partage et coordonnées personnelles.

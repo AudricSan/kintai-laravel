@@ -4,7 +4,6 @@ namespace Tests\Feature\Employees;
 
 use App\Actions\Employees\DeleteEmployee;
 use App\Actions\Employees\ResetEmployeePassword;
-use App\Events\EmployeePasswordReset;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\User;
@@ -13,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Kintai\Contracts\Events\EmployeePasswordReset;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;

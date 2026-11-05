@@ -2,6 +2,8 @@
 
 namespace App\Activity;
 
+use Kintai\Contracts\Activity\ActivityActionRegistry;
+
 /**
  * Actions de journal du Core. Les bundles déclarent les leurs dans `ActivityActionRegistry`.
  */
@@ -67,6 +69,10 @@ final class CoreActivityActions
                 'cron.token_revoked' => 'Scheduled tasks token revoked',
                 'docs.synced' => 'Documentation synchronized',
                 'support.issue_reported' => 'Problem reported',
+            ],
+            'Bundles' => [
+                'bundle.enabled' => 'Bundle enabled',
+                'bundle.disabled' => 'Bundle disabled',
             ],
             'Backups and data' => [
                 'backup.created' => 'Backup created',

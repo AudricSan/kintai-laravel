@@ -2,15 +2,16 @@
 
 namespace Tests\Unit;
 
-use App\Stores\StoreFeatureRegistry;
+use App\Stores\DefaultStoreFeatureRegistry;
 use InvalidArgumentException;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Tests\TestCase;
 
 class StoreFeatureRegistryTest extends TestCase
 {
     public function test_registers_features_in_order_and_refuses_duplicates(): void
     {
-        $registry = new StoreFeatureRegistry;
+        $registry = new DefaultStoreFeatureRegistry;
         $registry->register('shifts', 'Planning');
         $registry->register('payroll', 'Payroll');
 

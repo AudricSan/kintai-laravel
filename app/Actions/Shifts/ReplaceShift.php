@@ -3,12 +3,14 @@
 namespace App\Actions\Shifts;
 
 use App\Authorization\Authorizer;
-use App\Events\ShiftReplaced;
 use App\Exceptions\ShiftWarningsException;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftReplaced;
+use Kintai\Contracts\Shifts\ShiftReplacer;
 
 /**
  * Opération « remplacer » du Core (docs/SCHEMA-CIBLE.md, section Remplacement) : l'ancien shift part à la corbeille
@@ -17,12 +19,24 @@ use Illuminate\Validation\ValidationException;
  * - Remplaçant donné en saisie (tableau) : il est créé et reprend l'`ical_uid` de l'ancien, séquence + 1.
  * - Remplaçant déjà existant (Shift) : personne ne change d'`ical_uid`.
  */
-class ReplaceShift
+class ReplaceShift implements ShiftReplacer
 {
     public function __construct(
         private readonly Authorizer $authorizer,
         private readonly ShiftPreparer $preparer,
     ) {}
+
+    /**
+     * Point d'entrée des bundles (contrat `ShiftReplacer`) : travaille sur des identifiants.
+     */
+    public function replace(Authenticatable $actor, int $shiftId, int|array $replacement, bool $force = false): int
+    {
+        $user = $actor instanceof User ? $actor : User::query()->findOrFail($actor->getAuthIdentifier());
+        $old = Shift::query()->withTrashed()->findOrFail($shiftId);
+        $replacement = is_int($replacement) ? Shift::query()->withTrashed()->findOrFail($replacement) : $replacement;
+
+        return $this->handle($user, $old, $replacement, $force)->id;
+    }
 
     /**
      * @param  Shift|array<string, mixed>  $replacement  Shift existant, ou saisie d'un nouveau shift (voir ShiftPreparer).

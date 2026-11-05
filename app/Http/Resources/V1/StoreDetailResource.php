@@ -3,8 +3,8 @@
 namespace App\Http\Resources\V1;
 
 use App\Models\Store;
-use App\Stores\StoreFeatureRegistry;
 use Illuminate\Http\Request;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 
 /**
  * Magasin avec ses réglages et ses fonctionnalités (clé du registre => activée).

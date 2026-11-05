@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Dashboard;
 
-use App\Dashboard\DashboardWidget;
-use App\Dashboard\DashboardWidgetRegistry;
 use App\Models\DashboardLayout;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
 use Livewire\Livewire;
 use RuntimeException;
 use Tests\Concerns\CreatesAccess;

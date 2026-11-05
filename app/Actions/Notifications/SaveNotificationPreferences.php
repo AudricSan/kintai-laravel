@@ -4,9 +4,9 @@ namespace App\Actions\Notifications;
 
 use App\Models\User;
 use App\Notifications\NotificationPreferences;
-use App\Notifications\NotificationType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Notifications\NotificationType;
 
 class SaveNotificationPreferences
 {

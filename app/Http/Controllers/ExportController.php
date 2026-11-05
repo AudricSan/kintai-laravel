@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Actions\Exports\DownloadExport;
 use App\Exports\ExportAccess;
-use App\Exports\ExportDatasetRegistry;
 use App\Exports\ExportTooLargeException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

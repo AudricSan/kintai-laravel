@@ -3,13 +3,13 @@
 namespace App\Actions\Stores;
 
 use App\Models\Store;
-use App\Stores\StoreFeatureRegistry;
 use App\Support\Locales;
 use App\Support\StoreTimezone;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 
 /**
  * Normalisation, validation et enregistrement des réglages d'un magasin, communs à la création et à l'édition.

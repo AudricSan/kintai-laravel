@@ -3,11 +3,11 @@
 namespace Tests\Feature\Requests;
 
 use App\Models\User;
-use App\Requests\PendingRequestProvider;
-use App\Requests\PendingRequestRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
 use InvalidArgumentException;
+use Kintai\Contracts\Requests\PendingRequestProvider;
+use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Livewire\Livewire;
 use RuntimeException;
 use Tests\Concerns\CreatesAccess;

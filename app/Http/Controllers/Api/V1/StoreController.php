@@ -7,13 +7,13 @@ use App\Actions\Stores\DeleteStore;
 use App\Actions\Stores\UpdateStore;
 use App\Http\Resources\V1\StoreDetailResource;
 use App\Models\Store;
-use App\Stores\StoreFeatureRegistry;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 
 /**
  * Magasins. Un magasin hors du périmètre de l'acteur (`stores.view`) est introuvable (404) ; sans `stores.view` nulle part, 403.

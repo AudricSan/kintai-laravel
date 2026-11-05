@@ -3,10 +3,10 @@
 namespace App\Exports\Datasets;
 
 use App\Exports\AbstractExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportScope;
 use App\Models\Availability;
 use Illuminate\Database\Eloquent\Builder;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportScope;
 
 /**
  * « Availability » : les créneaux hebdomadaires déclarés par chaque employé, un par ligne.

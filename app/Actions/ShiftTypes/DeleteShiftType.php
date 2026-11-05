@@ -2,12 +2,12 @@
 
 namespace App\Actions\ShiftTypes;
 
-use App\Events\ShiftTypeDeleted;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftTypeDeleted;
 
 /**
  * Supprime définitivement un type de shift qu'aucun shift (même supprimé) n'utilise ; sinon il se désactive.

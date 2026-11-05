@@ -4,12 +4,12 @@ namespace App\Actions\Exports;
 
 use App\Activity\ActivityLogger;
 use App\Exports\CalendarExportDataset;
-use App\Exports\ExportDataset;
-use App\Exports\ExportScope;
 use App\Exports\ExportTooLargeException;
 use App\Exports\ExportWriter;
 use App\Models\Store;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Exports\ExportDataset;
+use Kintai\Contracts\Exports\ExportScope;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

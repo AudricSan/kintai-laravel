@@ -3,9 +3,11 @@
 namespace App\Activity;
 
 use App\Models\ActivityEntry;
-use App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
+use Kintai\Contracts\Activity\ActivityRecorder;
 use Throwable;
 
 /**
@@ -21,7 +23,7 @@ use Throwable;
  *
  * Le bundle déclare aussi le libellé de ses actions dans `ActivityActionRegistry`.
  */
-class ActivityLogger
+class ActivityLogger implements ActivityRecorder
 {
     /** Fragments de clé (insensibles à la casse) dont la valeur n'est jamais journalisée. */
     private const FORBIDDEN_KEY_FRAGMENTS = ['password', 'passwd', 'token', 'secret', 'recovery_code', 'two_factor', 'api_key', 'authorization', 'cookie'];
@@ -29,7 +31,7 @@ class ActivityLogger
     /**
      * @param  array<string, mixed>  $properties  Contexte lisible : noms, avant / après…
      */
-    public function record(string $action, ?Model $subject = null, ?int $storeId = null, array $properties = [], ?User $actor = null): ?ActivityEntry
+    public function record(string $action, ?Model $subject = null, ?int $storeId = null, array $properties = [], ?Authenticatable $actor = null): ?ActivityEntry
     {
         return $this->write($action, $subject?->getMorphClass(), $subject?->getKey(), $storeId, $properties, $actor);
     }
@@ -39,7 +41,7 @@ class ActivityLogger
      *
      * @param  array<string, mixed>  $properties
      */
-    public function recordFor(string $action, string $subjectType, int $subjectId, ?int $storeId = null, array $properties = [], ?User $actor = null): ?ActivityEntry
+    public function recordFor(string $action, string $subjectType, int $subjectId, ?int $storeId = null, array $properties = [], ?Authenticatable $actor = null): ?ActivityEntry
     {
         return $this->write($action, $subjectType, $subjectId, $storeId, $properties, $actor);
     }
@@ -81,7 +83,7 @@ class ActivityLogger
     /**
      * @param  array<string, mixed>  $properties
      */
-    private function write(string $action, ?string $subjectType, int|string|null $subjectId, ?int $storeId, array $properties, ?User $actor): ?ActivityEntry
+    private function write(string $action, ?string $subjectType, int|string|null $subjectId, ?int $storeId, array $properties, ?Authenticatable $actor): ?ActivityEntry
     {
         try {
             $actor ??= Auth::user();
@@ -89,7 +91,7 @@ class ActivityLogger
             $userAgent = $request->userAgent();
 
             return ActivityEntry::query()->create([
-                'actor_id' => $actor?->getKey(),
+                'actor_id' => $actor?->getAuthIdentifier(),
                 'action' => mb_substr($action, 0, 100),
                 'subject_type' => $subjectType === null ? null : mb_substr($subjectType, 0, 100),
                 'subject_id' => $subjectId === null ? null : (int) $subjectId,

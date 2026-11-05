@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Notifications\DatabaseNotification;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 
 /**
  * Texte d'une notification dans la langue courante : la base ne garde que des clés de traduction et des

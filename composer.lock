@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e0827cd9daa85297ee7d4e7ac897e9b4",
+    "content-hash": "2985e70697f8e78f3301e886a2174d0c",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1287,6 +1287,37 @@
                 }
             ],
             "time": "2026-08-24T17:13:02+00:00"
+        },
+        {
+            "name": "kintai/contracts",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/contracts",
+                "reference": "9966c38330b005aacb03f12c3487ff45b2e7d162"
+            },
+            "require": {
+                "illuminate/container": "^13.0",
+                "illuminate/contracts": "^13.0",
+                "illuminate/database": "^13.0",
+                "illuminate/support": "^13.0",
+                "nesbot/carbon": "^3.8",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Contracts\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Contrat entre le Core de Kintai et ses bundles : registres, objets valeur, interfaces et événements.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "laravel/chisel",

@@ -3,7 +3,6 @@
 namespace Tests\Feature\Actions;
 
 use App\Actions\AnonymizeUser;
-use App\Events\UserAnonymized;
 use App\Models\EmployeeProfile;
 use App\Models\Shift;
 use App\Models\Store;
@@ -12,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Kintai\Contracts\Events\UserAnonymized;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;

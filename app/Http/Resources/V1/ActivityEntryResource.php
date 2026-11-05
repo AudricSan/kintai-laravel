@@ -2,12 +2,12 @@
 
 namespace App\Http\Resources\V1;
 
-use App\Activity\ActivityActionRegistry;
 use App\Activity\ActivityDetails;
 use App\Models\ActivityEntry;
 use App\Support\ApiDate;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
 
 /**
  * Entrée du journal d'activité. `label`, `target` et `details` sont traduits dans la langue de la requête ;

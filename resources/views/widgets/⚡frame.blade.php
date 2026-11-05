@@ -1,6 +1,6 @@
 <?php
 
-use App\Dashboard\DashboardWidgetRegistry;
+use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
 use Livewire\Component;
 
 /**

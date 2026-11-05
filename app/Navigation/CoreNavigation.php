@@ -2,8 +2,9 @@
 
 namespace App\Navigation;
 
-use App\Models\User;
-use App\Requests\PendingRequestRegistry;
+use Kintai\Contracts\Navigation\NavigationItem;
+use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Requests\PendingRequestRegistry;
 
 /**
  * Entrées de menu du Core.
@@ -28,7 +29,7 @@ final class CoreNavigation
         // Sans fournisseur enregistré (aucun bundle de demandes), l'entrée n'a rien à montrer.
         $registry->register(new NavigationItem(
             'requests', 'Requests', 'requests.index', 'inbox-stack', NavigationRegistry::SECTION_REQUESTS, 10,
-            visible: fn (User $user): bool => ! $requests->isEmpty(),
+            visible: fn (): bool => ! $requests->isEmpty(),
         ));
 
         // Ouvert à tout utilisateur connecté : chacun peut au moins exporter ses propres données.
@@ -48,6 +49,8 @@ final class CoreNavigation
         $registry->register(new NavigationItem('backups', 'Backups', 'backups.index', 'archive-box', NavigationRegistry::SECTION_SYSTEM, 40, 'manage-settings', hideable: false, current: ['backups.*', 'data-reset.index']));
         // Tâches planifiées et jetons de l'appel HTTP : Owner seulement.
         $registry->register(new NavigationItem('scheduled-tasks', 'Scheduled tasks', 'scheduled-tasks.index', 'command-line', NavigationRegistry::SECTION_SYSTEM, 50, 'manage-settings', hideable: false, current: ['scheduled-tasks.*']));
+        // Bundles installés, à activer ou désactiver : Owner seulement.
+        $registry->register(new NavigationItem('bundles', 'Bundles', 'bundles.index', 'puzzle-piece', NavigationRegistry::SECTION_SYSTEM, 45, 'manage-settings', hideable: false, current: ['bundles.*']));
         // Journal d'audit : visible de qui a `stores.view` (un gérant ne voit que ses magasins).
         $registry->register(new NavigationItem('activity', 'Activity log', 'activity.index', 'clipboard-document-list', NavigationRegistry::SECTION_SYSTEM, 20, 'stores.view', current: ['activity.*']));
 

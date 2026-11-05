@@ -9,8 +9,8 @@ use App\Actions\Dashboard\SaveRoleDashboardLayout;
 use App\Authorization\Authorizer;
 use App\Dashboard\DashboardLayoutResolver;
 use App\Dashboard\DashboardPlacement;
-use App\Dashboard\DashboardWidget;
-use App\Dashboard\WidgetSize;
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\WidgetSize;
 use App\Models\DashboardLayout;
 use App\Models\Role;
 use Flux\Flux;
@@ -94,7 +94,7 @@ new #[Title('Dashboard')] class extends Component {
             return;
         }
 
-        $widget = app(\App\Dashboard\DashboardWidgetRegistry::class)->get($key);
+        $widget = app(\Kintai\Contracts\Dashboard\DashboardWidgetRegistry::class)->get($key);
         $this->draft[] = ['widget' => $key, 'size' => ($widget?->size ?? WidgetSize::Medium)->value];
     }
 
@@ -192,7 +192,7 @@ new #[Title('Dashboard')] class extends Component {
     {
         $user = Auth::user();
         $resolver = app(DashboardLayoutResolver::class);
-        $registry = app(\App\Dashboard\DashboardWidgetRegistry::class);
+        $registry = app(\Kintai\Contracts\Dashboard\DashboardWidgetRegistry::class);
         $drafted = array_column($this->draft, 'widget');
 
         return [

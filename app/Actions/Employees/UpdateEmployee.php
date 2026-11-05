@@ -6,7 +6,6 @@ use App\Actions\Stores\StoreRoleManager;
 use App\Authorization\Authorizer;
 use App\Authorization\OwnerGuard;
 use App\Concerns\EmployeeValidationRules;
-use App\Events\EmployeeUpdated;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -14,6 +13,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\EmployeeUpdated;
 
 /**
  * Enregistre l'identité, les données RH, l'état du compte, la case Owner et le rôle par magasin d'un employé.

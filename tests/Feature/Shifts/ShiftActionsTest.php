@@ -8,11 +8,6 @@ use App\Actions\Shifts\DeleteShifts;
 use App\Actions\Shifts\MoveShift;
 use App\Actions\Shifts\RestoreShift;
 use App\Actions\Shifts\UpdateShift;
-use App\Contracts\Planning\TimeOffChecker;
-use App\Events\ShiftCreated;
-use App\Events\ShiftDeleted;
-use App\Events\ShiftRestored;
-use App\Events\ShiftUpdated;
 use App\Exceptions\ShiftWarningsException;
 use App\Models\Availability;
 use App\Models\Shift;
@@ -26,6 +21,11 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftCreated;
+use Kintai\Contracts\Events\ShiftDeleted;
+use Kintai\Contracts\Events\ShiftRestored;
+use Kintai\Contracts\Events\ShiftUpdated;
+use Kintai\Contracts\Planning\TimeOffChecker;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 
@@ -93,7 +93,7 @@ class ShiftActionsTest extends TestCase
         {
             public function __construct(private readonly bool $result) {}
 
-            public function hasApprovedTimeOff(User $user, CarbonInterface $date): bool
+            public function hasApprovedTimeOff(int $userId, CarbonInterface $date): bool
             {
                 return $this->result;
             }

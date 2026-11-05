@@ -8,6 +8,8 @@ use App\Notifications\Channels\WebPushChannel;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\URL;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Symfony\Component\Mime\Email;
 
 /**

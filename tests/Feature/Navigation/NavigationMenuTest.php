@@ -5,12 +5,12 @@ namespace Tests\Feature\Navigation;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\UserNavPref;
-use App\Navigation\NavigationItem;
 use App\Navigation\NavigationMenu;
-use App\Navigation\NavigationRegistry;
-use App\Requests\PendingRequestProvider;
-use App\Requests\PendingRequestRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Navigation\NavigationItem;
+use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Requests\PendingRequestProvider;
+use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 

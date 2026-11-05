@@ -4,18 +4,19 @@ namespace App\Providers;
 
 use App\Authorization\Authorizer;
 use App\Authorization\CorePermissions;
-use App\Authorization\PermissionRegistry;
+use App\Authorization\DefaultPermissionRegistry;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Kintai\Contracts\Authorization\PermissionRegistry;
 
 class AuthServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(PermissionRegistry::class);
+        $this->app->singleton(PermissionRegistry::class, DefaultPermissionRegistry::class);
         $this->app->scoped(Authorizer::class);
     }
 

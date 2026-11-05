@@ -4,13 +4,13 @@ namespace App\Actions\Employees;
 
 use App\Actions\RevokeUserSessions;
 use App\Authorization\PasswordDefaults;
-use App\Events\EmployeePasswordReset;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\EmployeePasswordReset;
 
 /**
  * Réinitialise (mot de passe par défaut) ou redéfinit le mot de passe d'un employé, et révoque ses sessions.

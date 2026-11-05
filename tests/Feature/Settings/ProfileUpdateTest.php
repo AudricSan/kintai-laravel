@@ -4,8 +4,8 @@ namespace Tests\Feature\Settings;
 
 use App\Models\EmployeeProfile;
 use App\Models\User;
-use App\Profile\ProfileSectionRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Profile\ProfileSectionRegistry;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;

@@ -2,13 +2,13 @@
 
 namespace App\Ical;
 
-use App\Contracts\Planning\TimeOffProvider;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Kintai\Contracts\Planning\TimeOffProvider;
 
 /**
  * Contenu du flux iCal d'un employé pour un magasin : ses shifts de la période, les shifts supprimés depuis moins de
@@ -59,7 +59,7 @@ class IcalFeedBuilder
                 $calendar->addShift($shift, cancelled: $shift->trashed());
             }
 
-            foreach ($this->timeOff->approvedFor($user, $store, $from, $to) as $period) {
+            foreach ($this->timeOff->approvedFor($user->id, $store->id, $from, $to) as $period) {
                 $calendar->addTimeOff($period, $store->name);
             }
 

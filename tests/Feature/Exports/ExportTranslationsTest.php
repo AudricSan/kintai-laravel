@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Exports;
 
-use App\Activity\ActivityActionRegistry;
 use App\Activity\ActivityDetails;
-use App\Exports\ExportDatasetRegistry;
 use App\Models\Store;
 use App\Models\User;
-use App\Profile\ProfileSectionRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
+use Kintai\Contracts\Profile\ProfileSectionRegistry;
 use Tests\TestCase;
 
 /**

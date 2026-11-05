@@ -3,10 +3,10 @@
 namespace App\Exports\Datasets;
 
 use App\Exports\AbstractExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportScope;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportScope;
 
 /**
  * « Shift types » : un type par ligne et par magasin où il est activé. Les taux horaires n'y figurent pas : ce sont des

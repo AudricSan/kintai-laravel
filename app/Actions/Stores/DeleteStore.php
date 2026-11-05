@@ -2,11 +2,11 @@
 
 namespace App\Actions\Stores;
 
-use App\Events\StoreDeleted;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Kintai\Contracts\Events\StoreDeleted;
 
 /**
  * Supprime un magasin (suppression douce) : réservé à qui a `stores.delete` sans restriction de magasin.

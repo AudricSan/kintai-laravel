@@ -2,7 +2,10 @@
 
 namespace App\Dashboard;
 
-use App\Requests\PendingRequestRegistry;
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
+use Kintai\Contracts\Dashboard\WidgetSize;
+use Kintai\Contracts\Requests\PendingRequestRegistry;
 
 /**
  * Widgets du Core. Les statistiques, la rentabilité et l'absentéisme appartiennent au bundle `analytics`.

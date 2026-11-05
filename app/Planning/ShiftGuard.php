@@ -2,9 +2,9 @@
 
 namespace App\Planning;
 
-use App\Contracts\Planning\TimeOffChecker;
 use App\Models\Shift;
 use App\Models\Store;
+use Kintai\Contracts\Planning\TimeOffChecker;
 
 /**
  * Garde-fous d'un shift avant enregistrement. Renvoie tous les problèmes à la fois : le congé approuvé bloque,
@@ -30,7 +30,7 @@ class ShiftGuard
         $issues = [];
         $user = $shift->user_id === null ? null : $shift->user;
 
-        if ($user !== null && $checkSchedule && $this->timeOff->hasApprovedTimeOff($user, $shift->shift_date)) {
+        if ($user !== null && $checkSchedule && $this->timeOff->hasApprovedTimeOff($user->id, $shift->shift_date)) {
             $issues[] = new ShiftIssue(ShiftIssueKind::TimeOff, __(':name has approved time off on :date.', [
                 'name' => $user->name,
                 'date' => $shift->shift_date->toDateString(),

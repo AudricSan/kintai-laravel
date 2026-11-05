@@ -4,13 +4,13 @@ namespace Tests\Feature\Employees;
 
 use App\Actions\Employees\CreateEmployee;
 use App\Authorization\Authorizer;
-use App\Events\EmployeeCreated;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Kintai\Contracts\Events\EmployeeCreated;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;

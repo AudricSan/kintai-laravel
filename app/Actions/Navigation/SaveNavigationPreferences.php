@@ -4,9 +4,9 @@ namespace App\Actions\Navigation;
 
 use App\Models\User;
 use App\Models\UserNavPref;
-use App\Navigation\NavigationItem;
 use App\Navigation\NavigationMenu;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Navigation\NavigationItem;
 
 class SaveNavigationPreferences
 {

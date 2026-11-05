@@ -6,6 +6,7 @@ use App\Models\RoleAssignment;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Kintai\Contracts\Authorization\PermissionRegistry;
 
 /**
  * Droits effectifs d'un utilisateur, calculés avec l'`Authorizer` (la seule source de vérité) : ceux valables sur tous

@@ -2,11 +2,8 @@
 
 namespace App\Exports\Datasets;
 
-use App\Contracts\Planning\TimeOffProvider;
 use App\Exports\AbstractExportDataset;
 use App\Exports\CalendarExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportScope;
 use App\Exports\ExportWriter;
 use App\Ical\IcalCalendar;
 use App\Models\Shift;
@@ -14,6 +11,9 @@ use App\Models\Store;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportScope;
+use Kintai\Contracts\Planning\TimeOffProvider;
 
 /**
  * « Shifts » : un shift assigné par ligne, par ordre chronologique (shifts supprimés et shifts ouverts exclus).
@@ -126,7 +126,7 @@ class ShiftsDataset extends AbstractExportDataset implements CalendarExportDatas
         $employee = $scope->userIds === null || count($scope->userIds) !== 1 ? null : User::query()->find($scope->userIds[0]);
         if ($employee !== null) {
             foreach (Store::query()->whereIn('id', $scope->storeIds)->orderBy('name')->get() as $store) {
-                foreach ($this->timeOff->approvedFor($employee, $store, $scope->from, $scope->to) as $period) {
+                foreach ($this->timeOff->approvedFor($employee->id, $store->id, $scope->from, $scope->to) as $period) {
                     $calendar->addTimeOff($period, $store->name);
                 }
             }

@@ -7,12 +7,12 @@ use App\Actions\Dashboard\SaveDashboardLayout;
 use App\Authorization\Authorizer;
 use App\Dashboard\DashboardLayoutResolver;
 use App\Dashboard\DashboardPlacement;
-use App\Dashboard\DashboardWidget;
 use App\Models\DashboardLayout;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Kintai\Contracts\Dashboard\DashboardWidget;
 
 /**
  * Disposition d'un tableau de bord (`dashboard` : `manager` ou `employee`, par défaut celui de l'utilisateur) : la

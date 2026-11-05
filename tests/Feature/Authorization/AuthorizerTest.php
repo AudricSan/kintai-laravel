@@ -3,8 +3,8 @@
 namespace Tests\Feature\Authorization;
 
 use App\Authorization\Authorizer;
+use App\Authorization\DefaultPermissionRegistry;
 use App\Authorization\OwnerGuard;
-use App\Authorization\PermissionRegistry;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use InvalidArgumentException;
+use Kintai\Contracts\Authorization\PermissionRegistry;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 
@@ -282,7 +283,7 @@ class AuthorizerTest extends TestCase
         $this->assertArrayHasKey('shifts', $registry->categories());
         $this->assertContains('payroll.export', $registry->all());
 
-        $fresh = new PermissionRegistry;
+        $fresh = new DefaultPermissionRegistry;
         $fresh->register('leave', ['request', 'approve']);
         $this->assertSame(['leave' => ['request', 'approve']], $fresh->categories());
         $this->assertSame(['leave.request', 'leave.approve'], $fresh->all());

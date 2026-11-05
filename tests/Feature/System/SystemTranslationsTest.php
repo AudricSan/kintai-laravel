@@ -2,14 +2,14 @@
 
 namespace Tests\Feature\System;
 
-use App\Activity\ActivityActionRegistry;
 use App\Models\Role;
 use App\Models\User;
-use App\Navigation\NavigationRegistry;
-use App\Notifications\NotificationTypeRegistry;
 use App\System\CoreSystemAlerts;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
+use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Tests\TestCase;
 
 /**

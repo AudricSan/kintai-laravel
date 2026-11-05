@@ -32,7 +32,15 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
    contrat (interfaces, événements, registres) vit dans un package `kintai/contracts` versionné en semver ; un bundle
    déclare `"kintai/contracts": "^1.0"` et Composer refuse un bundle incompatible. Chaque point d'extension est créé
    **avec le domaine du Core qui l'utilise**, et le Core s'en sert lui-même pour ses propres widgets, entrées de menu,
-   etc.
+   etc. *État réel (05/11/2026, étape 5a)* : le package `packages/contracts` existe (`Kintai\Contracts`, version 1.0.0,
+   [README](../packages/contracts/README.md)). Il contient une interface par registre (menu, widgets, sections du profil,
+   demandes en attente, fonctionnalités de magasin, permissions, types de notification, actions du journal, jeux
+   d'export, alertes système), `Settings` et `ActivityRecorder`, les objets valeur, `TimeOffChecker` /
+   `TimeOffProvider` (ils prennent des identifiants), `ShiftReplacer`, les 24 événements du Core (identifiants
+   seulement) et la base `BundleServiceProvider`. Les implémentations restent dans `app/` (`Default*Registry`,
+   `AppSettings`, `ActivityLogger`, `ReplaceShift`…) et sont liées aux interfaces dans `AppServiceProvider` ; le contrat
+   n'a aucune dépendance vers `App\` (test `tests/Unit/Contracts`). L'activation est gérée par `App\Bundles\BundleManager`
+   (réglage `bundles.enabled`, aucun bundle activé à l'installation) et l'écran Owner « Bundles ».
 5. **Installation et mise à jour depuis le navigateur, conservées.** Des clients sont en hébergement mutualisé sans
    terminal : assistant d'installation web et mise à jour depuis les releases GitHub (archive construite par la CI,
    `vendor/` inclus, migrations lancées par `Artisan::call`), en plus des commandes `php artisan`. Même besoin pour les
@@ -160,8 +168,24 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
   - Installation sans terminal : les archives de release construites par la CI contiennent les bundles officiels dans
     `vendor/` ; l'Owner les active ou désactive dans l'interface, puis par magasin (fonctionnalités). Pas de Composer ni
     de téléchargement de code depuis le web ; un bundle tiers s'installe par `composer require`.
-- Étapes : extraction du contrat et gestion de l'activation des bundles, puis les 13 bundles un par un (migrations,
-  vues, traductions, routes, commandes, tâches planifiées, configuration publiable, tests).
+- Étapes :
+  - [x] 5a. Extraction du contrat et gestion de l'activation des bundles.
+    - `packages/contracts` (`kintai/contracts` 1.0.0, branché en dépôt `path` à `symlink`) : interfaces des registres,
+      objets valeur, événements, `ShiftReplacer`, `Contract::VERSION` et `Contract::satisfies()` (contraintes `^`, `~`,
+      `1.*`, intervalles), classe `BundleServiceProvider` (identité `slug/name/version/description`, `requiredContract()`,
+      aides d'enregistrement gardées par l'activation, migrations toujours chargées, vues/traductions/routes seulement si
+      activé, routes préfixées `/<slug>` avec les noms `<slug>.*` et les middleware `web` + `auth`).
+    - Core : `App\Bundles\BundleManager` (découverte des `BundleServiceProvider` enregistrés par l'auto-découverte
+      Laravel, état dans `bundles.enabled`, refus d'un bundle dont la version majeure du contrat diffère, suppression du
+      cache de routes à chaque changement), actions `EnableBundle` / `DisableBundle` (journal `bundle.enabled`,
+      `bundle.disabled`), écran Owner « Bundles » (section système), `GET /api/v1/ping` liste `bundle:<slug>`.
+    - Un changement d'état s'applique à la requête suivante (les bundles se branchent au démarrage) ; l'écran recharge la
+      page. Les routes d'un bundle n'existent que s'il est activé : après `php artisan route:cache`, une activation
+      supprime le fichier de cache.
+    - Bundle de démonstration `tests/Fixtures/Bundles/DemoBundle` et `packages/bundles/` (voir son
+      [README](../packages/bundles/README.md)).
+  - [ ] 5b et suivantes : les 13 bundles un par un (migrations, vues, traductions, routes, commandes, tâches planifiées,
+    configuration publiable, tests).
 
 ### Phase 6 : Installation et mise à jour
 - `php artisan kintai:install` et assistant d'installation web.
@@ -193,6 +217,9 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 
 ## Points encore ouverts
 
-1. Bundles : organisation tranchée le 05/11/2026 (voir phase 5) ; reste à fixer, à la première extraction, la façon
-   de tester un bundle (suite du Core qui charge le bundle, ou Testbench).
+1. ~~Bundles : organisation et façon de tester.~~ Tranché (05/11/2026) : organisation en phase 5 ; les tests de chaque
+   bundle vivent dans `packages/bundles/<slug>/tests` et tournent dans la suite de l'application (testsuite `Bundles` de
+   `phpunit.xml`, comprise dans `php artisan test`), sans Testbench : ils étendent `Tests\TestCase` et activent le bundle
+   avec `Tests\Concerns\InstallsBundles::enableBundle()`. Raison : les bundles s'appuient sur le Core réel (modèles,
+   rôles, registres), un environnement Testbench le simulerait mal et doublerait la configuration.
 2. Fonctionnalités à abandonner : l'inventaire de la phase 0 servira à les proposer.

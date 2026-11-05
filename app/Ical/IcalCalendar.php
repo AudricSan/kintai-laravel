@@ -2,10 +2,10 @@
 
 namespace App\Ical;
 
-use App\Contracts\Planning\TimeOffPeriod;
 use App\Models\Shift;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Kintai\Contracts\Planning\TimeOffPeriod;
 
 /**
  * Construit un VCALENDAR (RFC 5545) : un VEVENT par shift, en UTC, plus les congés en journée entière.

@@ -2,6 +2,9 @@
 
 namespace App\Notifications;
 
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
+
 /**
  * Types de notification du Core. Les bundles déclarent les leurs.
  */

@@ -4,6 +4,8 @@ namespace App\Navigation;
 
 use App\Models\User;
 use App\Models\UserNavPref;
+use Kintai\Contracts\Navigation\NavigationItem;
+use Kintai\Contracts\Navigation\NavigationRegistry;
 
 /**
  * Menu d'un utilisateur : entrées du registre visibles pour lui, moins celles qu'il a masquées, et barre mobile du

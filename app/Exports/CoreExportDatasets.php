@@ -9,6 +9,7 @@ use App\Exports\Datasets\ShiftsDataset;
 use App\Exports\Datasets\ShiftTypesDataset;
 use App\Exports\Datasets\StoresDataset;
 use Illuminate\Contracts\Container\Container;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
 
 /**
  * Jeux de données exportables du Core. Les bundles déclarent les leurs dans `ExportDatasetRegistry`.

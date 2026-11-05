@@ -3,8 +3,8 @@
 use App\Actions\Notifications\SaveNotificationPreferences;
 use App\Actions\Notifications\SendTestNotification;
 use App\Notifications\NotificationPreferences;
-use App\Notifications\NotificationType;
-use App\Notifications\NotificationTypeRegistry;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;

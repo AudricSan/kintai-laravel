@@ -9,5 +9,6 @@ parameters:
         - config/
         - database/
         - routes/
+        - packages/contracts/src/
 
     level: 6

@@ -3,8 +3,6 @@
 namespace App\Actions\ShiftTypes;
 
 use App\Authorization\Authorizer;
-use App\Events\ShiftTypeCreated;
-use App\Events\ShiftTypeUpdated;
 use App\Models\ShiftType;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -13,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftTypeCreated;
+use Kintai\Contracts\Events\ShiftTypeUpdated;
 
 /**
  * Crée ou modifie un type de shift et ses magasins.

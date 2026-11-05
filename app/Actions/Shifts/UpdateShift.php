@@ -2,12 +2,12 @@
 
 namespace App\Actions\Shifts;
 
-use App\Events\ShiftUpdated;
 use App\Exceptions\ShiftWarningsException;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftUpdated;
 
 /**
  * Modifie un shift. Les clés absentes de la saisie gardent leur valeur ; `ical_sequence` s'incrémente

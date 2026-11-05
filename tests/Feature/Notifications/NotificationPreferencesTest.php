@@ -7,15 +7,16 @@ use App\Actions\Notifications\SendTestNotification;
 use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Notifications\CoreNotificationTypes;
+use App\Notifications\DefaultNotificationTypeRegistry;
 use App\Notifications\KintaiNotification;
 use App\Notifications\NotificationPreferences;
-use App\Notifications\NotificationType;
-use App\Notifications\NotificationTypeRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -64,7 +65,7 @@ class NotificationPreferencesTest extends TestCase
 
     public function test_duplicates_are_rejected_and_bundles_can_register(): void
     {
-        $registry = new NotificationTypeRegistry;
+        $registry = new DefaultNotificationTypeRegistry;
         $registry->register(new NotificationType('timeoff_approved', 'Time off approved', 'requests', 'sun', mail: true));
 
         $this->assertSame(['requests'], array_keys($registry->grid()));

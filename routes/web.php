@@ -100,6 +100,8 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:20,1')
             ->name('backups.download');
         Route::livewire('admin/data-reset', 'pages::admin.data-reset')->name('data-reset.index');
+        // Bundles installés : activation et désactivation.
+        Route::livewire('admin/bundles', 'pages::admin.bundles')->name('bundles.index');
         // Tâches planifiées et jetons de l'appel HTTP `/cron/run` (hébergement sans terminal).
         Route::livewire('admin/scheduled-tasks', 'pages::admin.scheduled-tasks')->name('scheduled-tasks.index');
     });

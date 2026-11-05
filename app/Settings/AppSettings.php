@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Kintai\Contracts\Settings\SettingDefinition;
+use Kintai\Contracts\Settings\Settings;
 use Throwable;
 
 /**
@@ -20,7 +22,7 @@ use Throwable;
  * secrets sont chiffrés en base. Lecture : cache de requête + `Cache` (invalidé à chaque écriture). Une base ou un cache
  * indisponibles (avant la migration par exemple) ne cassent jamais la lecture : on retombe sur la configuration.
  */
-class AppSettings
+class AppSettings implements Settings
 {
     private const CACHE_KEY = 'kintai.app_settings';
 

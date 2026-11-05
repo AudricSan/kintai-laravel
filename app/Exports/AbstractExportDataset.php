@@ -4,6 +4,8 @@ namespace App\Exports;
 
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Kintai\Contracts\Exports\ExportDataset;
+use Kintai\Contracts\Exports\ExportScope;
 
 /**
  * Jeu de données construit sur une seule requête, déjà bornée par le périmètre, triée et stable.

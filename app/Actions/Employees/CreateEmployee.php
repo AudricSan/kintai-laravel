@@ -5,7 +5,6 @@ namespace App\Actions\Employees;
 use App\Authorization\Authorizer;
 use App\Authorization\PasswordDefaults;
 use App\Concerns\EmployeeValidationRules;
-use App\Events\EmployeeCreated;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -15,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\EmployeeCreated;
 
 /**
  * Crée un employé, son appartenance à un magasin et son rôle. Réutilisable (formulaire, import Excel…).

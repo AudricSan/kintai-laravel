@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Notifications\SaveNotificationPreferences;
 use App\Models\User;
 use App\Notifications\NotificationPreferences;
-use App\Notifications\NotificationType;
-use App\Notifications\NotificationTypeRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 
 /**
  * Préférences de notification : par type et par canal (`push`, `mail`), plus les heures silencieuses.

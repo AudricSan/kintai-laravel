@@ -2,9 +2,9 @@
 
 namespace App\Actions;
 
-use App\Events\PasswordChanged;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Kintai\Contracts\Events\PasswordChanged;
 
 /**
  * Change le mot de passe de l'utilisateur connecté : les autres sessions sont déconnectées

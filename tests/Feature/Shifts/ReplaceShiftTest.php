@@ -5,7 +5,6 @@ namespace Tests\Feature\Shifts;
 use App\Actions\Shifts\ReplaceShift;
 use App\Actions\Shifts\ResolveConflict;
 use App\Actions\Shifts\RestoreShift;
-use App\Events\ShiftReplaced;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
@@ -14,6 +13,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftReplaced;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 

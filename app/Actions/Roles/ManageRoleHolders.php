@@ -3,7 +3,6 @@
 namespace App\Actions\Roles;
 
 use App\Authorization\OwnerGuard;
-use App\Events\RoleHoldersChanged;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\Store;
@@ -12,6 +11,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\RoleHoldersChanged;
 
 /**
  * Titulaires d'un rôle : attribution et retrait (réservés à l'Owner).

@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Notifications\NotificationPreferences;
-use App\Notifications\NotificationType;
-use App\Notifications\NotificationTypeRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 
 /**
  * Désabonnement d'un type d'e-mail par le lien signé des messages (canal e-mail seulement ; la cloche reste).

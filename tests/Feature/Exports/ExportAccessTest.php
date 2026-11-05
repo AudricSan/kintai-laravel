@@ -4,10 +4,6 @@ namespace Tests\Feature\Exports;
 
 use App\Exports\AbstractExportDataset;
 use App\Exports\ExportAccess;
-use App\Exports\ExportColumn;
-use App\Exports\ExportDataset;
-use App\Exports\ExportDatasetRegistry;
-use App\Exports\ExportScope;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -15,6 +11,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportDataset;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
+use Kintai\Contracts\Exports\ExportScope;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 

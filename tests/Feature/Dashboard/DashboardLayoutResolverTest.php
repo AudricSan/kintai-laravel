@@ -4,16 +4,16 @@ namespace Tests\Feature\Dashboard;
 
 use App\Dashboard\DashboardLayoutResolver;
 use App\Dashboard\DashboardPlacement;
-use App\Dashboard\DashboardWidget;
-use App\Dashboard\DashboardWidgetRegistry;
-use App\Dashboard\WidgetSize;
 use App\Models\DashboardLayout;
 use App\Models\Store;
 use App\Models\StoreFeature;
 use App\Models\User;
-use App\Requests\PendingRequestProvider;
-use App\Requests\PendingRequestRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
+use Kintai\Contracts\Dashboard\WidgetSize;
+use Kintai\Contracts\Requests\PendingRequestProvider;
+use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 

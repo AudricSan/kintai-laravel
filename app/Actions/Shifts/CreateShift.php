@@ -2,12 +2,12 @@
 
 namespace App\Actions\Shifts;
 
-use App\Events\ShiftCreated;
 use App\Exceptions\ShiftWarningsException;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftCreated;
 
 /**
  * Crée un shift (ouvert si `user_id` est null). Les avertissements du garde-fou lèvent ShiftWarningsException

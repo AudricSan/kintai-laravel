@@ -3,12 +3,12 @@
 namespace App\Actions\Shifts;
 
 use App\Authorization\Authorizer;
-use App\Events\ShiftRestored;
 use App\Exceptions\ShiftRestoreException;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftRestored;
 
 /**
  * Restaure un shift de la corbeille (`shifts.delete`, le droit inverse de la suppression). Refusé tant que son

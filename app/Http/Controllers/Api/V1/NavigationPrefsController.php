@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Navigation\SaveNavigationPreferences;
 use App\Models\User;
-use App\Navigation\NavigationItem;
 use App\Navigation\NavigationMenu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Kintai\Contracts\Navigation\NavigationItem;
 
 /**
  * Préférences de navigation : entrées masquées et entrées de la barre mobile du bas.

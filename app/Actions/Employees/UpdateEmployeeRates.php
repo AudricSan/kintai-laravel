@@ -3,7 +3,6 @@
 namespace App\Actions\Employees;
 
 use App\Authorization\Authorizer;
-use App\Events\EmployeeRatesUpdated;
 use App\Models\ShiftType;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -11,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\EmployeeRatesUpdated;
 
 /**
  * Taux horaires personnels d'un employé, par type de shift.

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Activity\ActivityActionRegistry;
 use App\Activity\ActivityDetails;
 use App\Activity\ActivityLogger;
 use App\Activity\ActivityQuery;
 use App\Models\ActivityEntry;
 use Illuminate\Http\Request;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

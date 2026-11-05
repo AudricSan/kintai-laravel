@@ -60,7 +60,7 @@ new #[Title('Exports')] class extends Component {
     }
 
     /**
-     * @param  array<string, array{dataset: \App\Exports\ExportDataset, stores: list<int>, self: bool}>  $available
+     * @param  array<string, array{dataset: \Kintai\Contracts\Exports\ExportDataset, stores: list<int>, self: bool}>  $available
      */
     private function resetChoices(array $available): void
     {

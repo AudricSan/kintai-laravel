@@ -7,6 +7,7 @@ use App\Models\Store;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Kintai\Contracts\Dashboard\DashboardWidget;
 
 /**
  * Magasins visibles d'un utilisateur sur ses tableaux de bord : un gérant restreint ne voit que les siens.

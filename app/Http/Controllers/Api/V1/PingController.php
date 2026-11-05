@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Bundles\BundleManager;
 use App\Http\Controllers\Controller;
 use App\Push\FcmClient;
 use App\Push\VapidKeys;
-use App\Stores\StoreFeatureRegistry;
 use Illuminate\Http\JsonResponse;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Laravel\Fortify\Features;
 
 /**
@@ -15,7 +16,7 @@ use Laravel\Fortify\Features;
  */
 class PingController extends Controller
 {
-    public function __invoke(FcmClient $fcm, VapidKeys $webPush, StoreFeatureRegistry $storeFeatures): JsonResponse
+    public function __invoke(FcmClient $fcm, VapidKeys $webPush, StoreFeatureRegistry $storeFeatures, BundleManager $bundles): JsonResponse
     {
         $features = ['ical'];
 
@@ -34,6 +35,11 @@ class PingController extends Controller
         // Fonctionnalités de magasin déclarées au registre (planning, et celles des bundles installés).
         foreach ($storeFeatures->keys() as $key) {
             $features[] = $key;
+        }
+
+        // Bundles activés, préfixés (`bundle:timeoff`) pour ne pas se confondre avec les fonctionnalités de magasin.
+        foreach ($bundles->enabledSlugs() as $slug) {
+            $features[] = 'bundle:'.$slug;
         }
 
         return response()->json([

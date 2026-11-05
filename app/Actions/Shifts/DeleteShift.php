@@ -3,11 +3,11 @@
 namespace App\Actions\Shifts;
 
 use App\Authorization\Authorizer;
-use App\Events\ShiftDeleted;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftDeleted;
 
 /**
  * Envoie un shift à la corbeille (`shifts.delete` sur son magasin).

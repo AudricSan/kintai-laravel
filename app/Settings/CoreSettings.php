@@ -2,6 +2,8 @@
 
 namespace App\Settings;
 
+use Kintai\Contracts\Settings\SettingDefinition;
+
 /**
  * Réglages du Core. Les bundles (et les tranches suivantes : sauvegardes, alertes système…) déclarent les leurs
  * avec `AppSettings::register()`.
@@ -71,6 +73,9 @@ final class CoreSettings
 
             // Documentation intégrée : date (ISO 8601) de la dernière synchronisation réussie du wiki.
             new SettingDefinition('docs.last_sync_at', $string, ''),
+
+            // Bundles activés par l'Owner : liste JSON de slugs (aucun à l'installation).
+            new SettingDefinition('bundles.enabled', $string, '[]'),
 
             // Web Push : la clé privée est chiffrée en base.
             new SettingDefinition('webpush.public_key', $string, '', config: 'kintai.webpush.public_key'),

@@ -2,15 +2,15 @@
 
 namespace Tests\Feature\Stores;
 
-use App\Events\StoreCreated;
-use App\Events\StoreDeleted;
-use App\Events\StoreUpdated;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Kintai\Contracts\Events\StoreCreated;
+use Kintai\Contracts\Events\StoreDeleted;
+use Kintai\Contracts\Events\StoreUpdated;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;

@@ -3,7 +3,6 @@
 namespace App\Actions\Stores;
 
 use App\Authorization\Authorizer;
-use App\Events\StoreMemberUpdated;
 use App\Models\Store;
 use App\Models\StoreMembership;
 use App\Models\User;
@@ -11,6 +10,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\StoreMemberUpdated;
 
 /**
  * Modifie la fiche d'un membre dans un magasin : code, embauche, contrat, état et rôle.

@@ -3,12 +3,12 @@
 namespace App\Actions\ShiftTypes;
 
 use App\Authorization\Authorizer;
-use App\Events\ShiftTypeUpdated;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\ShiftTypeUpdated;
 
 /**
  * Active ou désactive un type pour un magasin (rattachement), même si le type est partagé avec d'autres magasins.

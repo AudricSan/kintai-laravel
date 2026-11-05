@@ -3,10 +3,10 @@
 namespace App\Exports\Datasets;
 
 use App\Exports\AbstractExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportScope;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportScope;
 
 /**
  * « Employees » : une ligne par appartenance (employé x magasin) avec l'identité et les coordonnées. Jamais de mot de

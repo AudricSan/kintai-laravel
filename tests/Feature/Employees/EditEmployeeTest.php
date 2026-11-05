@@ -3,11 +3,11 @@
 namespace Tests\Feature\Employees;
 
 use App\Authorization\Authorizer;
-use App\Events\EmployeeUpdated;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Kintai\Contracts\Events\EmployeeUpdated;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;

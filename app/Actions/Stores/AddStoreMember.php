@@ -3,7 +3,6 @@
 namespace App\Actions\Stores;
 
 use App\Authorization\Authorizer;
-use App\Events\StoreMemberAdded;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -12,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\StoreMemberAdded;
 
 /**
  * Ajoute un utilisateur actif à un magasin avec son rôle (par défaut `employee`).

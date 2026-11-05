@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Ical;
 
-use App\Contracts\Planning\TimeOffPeriod;
-use App\Contracts\Planning\TimeOffProvider;
 use App\Models\IcalToken;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -14,6 +12,8 @@ use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Testing\TestResponse;
+use Kintai\Contracts\Planning\TimeOffPeriod;
+use Kintai\Contracts\Planning\TimeOffProvider;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 
@@ -221,7 +221,7 @@ class IcalFeedTest extends TestCase
     {
         $this->app->bind(TimeOffProvider::class, fn () => new class implements TimeOffProvider
         {
-            public function approvedFor(User $user, Store $store, CarbonInterface $from, CarbonInterface $to): array
+            public function approvedFor(int $userId, int $storeId, CarbonInterface $from, CarbonInterface $to): array
             {
                 return [new TimeOffPeriod('timeoff-7', '2026-11-20', '2026-11-22')];
             }

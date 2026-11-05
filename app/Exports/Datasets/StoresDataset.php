@@ -3,10 +3,10 @@
 namespace App\Exports\Datasets;
 
 use App\Exports\AbstractExportDataset;
-use App\Exports\ExportColumn;
-use App\Exports\ExportScope;
 use App\Models\Store;
 use Illuminate\Database\Eloquent\Builder;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportScope;
 
 /**
  * « Stores » : une ligne par magasin autorisé. Pas de réglage interne.

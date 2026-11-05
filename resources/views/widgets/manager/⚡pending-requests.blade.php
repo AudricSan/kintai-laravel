@@ -1,6 +1,6 @@
 <?php
 
-use App\Requests\PendingRequestRegistry;
+use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 

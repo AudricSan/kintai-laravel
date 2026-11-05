@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Activity;
 
-use App\Activity\ActivityActionRegistry;
 use App\Activity\ActivityDetails;
 use App\Models\ActivityEntry;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
+use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Tests\TestCase;
 
 class ActivityMaintenanceTest extends TestCase

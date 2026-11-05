@@ -1,0 +1,21 @@
+{
+    "name": "kintai/contracts",
+    "description": "Contrat entre le Core de Kintai et ses bundles : registres, objets valeur, interfaces et événements.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "illuminate/container": "^13.0",
+        "illuminate/contracts": "^13.0",
+        "illuminate/database": "^13.0",
+        "illuminate/support": "^13.0",
+        "nesbot/carbon": "^3.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Contracts\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}

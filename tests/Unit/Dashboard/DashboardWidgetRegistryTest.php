@@ -2,10 +2,10 @@
 
 namespace Tests\Unit\Dashboard;
 
-use App\Dashboard\DashboardWidget;
-use App\Dashboard\DashboardWidgetRegistry;
-use App\Dashboard\WidgetSize;
+use App\Dashboard\DefaultDashboardWidgetRegistry;
 use InvalidArgumentException;
+use Kintai\Contracts\Dashboard\DashboardWidget;
+use Kintai\Contracts\Dashboard\WidgetSize;
 use PHPUnit\Framework\TestCase;
 
 class DashboardWidgetRegistryTest extends TestCase
@@ -17,7 +17,7 @@ class DashboardWidgetRegistryTest extends TestCase
 
     public function test_duplicate_keys_are_refused(): void
     {
-        $registry = new DashboardWidgetRegistry;
+        $registry = new DefaultDashboardWidgetRegistry;
         $registry->register($this->widget('a'));
 
         $this->expectException(InvalidArgumentException::class);
@@ -27,12 +27,12 @@ class DashboardWidgetRegistryTest extends TestCase
     public function test_unknown_audience_is_refused(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        (new DashboardWidgetRegistry)->register($this->widget('a', 'admin'));
+        (new DefaultDashboardWidgetRegistry)->register($this->widget('a', 'admin'));
     }
 
     public function test_widgets_are_filtered_by_audience_and_sorted_by_order_then_registration(): void
     {
-        $registry = new DashboardWidgetRegistry;
+        $registry = new DefaultDashboardWidgetRegistry;
         $registry->register($this->widget('c', order: 30));
         $registry->register($this->widget('a', order: 10));
         $registry->register($this->widget('mine', DashboardWidget::EMPLOYEE, 5));

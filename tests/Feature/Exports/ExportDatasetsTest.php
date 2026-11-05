@@ -2,10 +2,6 @@
 
 namespace Tests\Feature\Exports;
 
-use App\Exports\ExportColumn;
-use App\Exports\ExportDataset;
-use App\Exports\ExportDatasetRegistry;
-use App\Exports\ExportScope;
 use App\Models\Availability;
 use App\Models\EmployeeProfile;
 use App\Models\Shift;
@@ -14,6 +10,10 @@ use App\Models\Store;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Exports\ExportColumn;
+use Kintai\Contracts\Exports\ExportDataset;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
+use Kintai\Contracts\Exports\ExportScope;
 use Tests\Concerns\CreatesAccess;
 use Tests\TestCase;
 

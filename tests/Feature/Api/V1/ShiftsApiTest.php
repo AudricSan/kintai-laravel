@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Contracts\Planning\TimeOffChecker;
 use App\Models\Availability;
 use App\Models\Shift;
 use App\Models\ShiftType;
@@ -10,6 +9,7 @@ use App\Models\Store;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Planning\TimeOffChecker;
 use Tests\Concerns\CreatesAccess;
 use Tests\Concerns\UsesApi;
 use Tests\TestCase;
@@ -85,7 +85,7 @@ class ShiftsApiTest extends TestCase
         {
             public function __construct(private readonly bool $result) {}
 
-            public function hasApprovedTimeOff(User $user, CarbonInterface $date): bool
+            public function hasApprovedTimeOff(int $userId, CarbonInterface $date): bool
             {
                 return $this->result;
             }

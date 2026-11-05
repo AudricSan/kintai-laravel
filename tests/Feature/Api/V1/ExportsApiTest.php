@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Exports\ExportDatasetRegistry;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
 use Tests\Concerns\CreatesAccess;
 use Tests\Concerns\UsesApi;
 use Tests\TestCase;

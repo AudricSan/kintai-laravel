@@ -2,16 +2,17 @@
 
 namespace Tests\Unit\Navigation;
 
-use App\Navigation\NavigationItem;
-use App\Navigation\NavigationRegistry;
+use App\Navigation\DefaultNavigationRegistry;
 use InvalidArgumentException;
+use Kintai\Contracts\Navigation\NavigationItem;
+use Kintai\Contracts\Navigation\NavigationRegistry;
 use PHPUnit\Framework\TestCase;
 
 class NavigationRegistryTest extends TestCase
 {
     public function test_duplicate_keys_are_refused(): void
     {
-        $registry = new NavigationRegistry;
+        $registry = new DefaultNavigationRegistry;
         $registry->register(new NavigationItem('a', 'A', 'a.index', 'home', NavigationRegistry::SECTION_PLANNING));
 
         $this->expectException(InvalidArgumentException::class);
@@ -20,7 +21,7 @@ class NavigationRegistryTest extends TestCase
 
     public function test_unknown_sections_are_refused(): void
     {
-        $registry = new NavigationRegistry;
+        $registry = new DefaultNavigationRegistry;
 
         $this->expectException(InvalidArgumentException::class);
         $registry->register(new NavigationItem('a', 'A', 'a.index', 'home', 'nowhere'));
@@ -28,7 +29,7 @@ class NavigationRegistryTest extends TestCase
 
     public function test_registered_keys_are_known(): void
     {
-        $registry = new NavigationRegistry;
+        $registry = new DefaultNavigationRegistry;
         $registry->register(new NavigationItem('a', 'A', 'a.index', 'home', NavigationRegistry::SECTION_MAIN));
 
         $this->assertTrue($registry->has('a'));

@@ -2,12 +2,12 @@
 
 namespace App\Actions\Stores;
 
-use App\Events\StoreCreated;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Events\StoreCreated;
 
 /**
  * Crée un magasin : réservé à qui a `stores.create` sans restriction de magasin.

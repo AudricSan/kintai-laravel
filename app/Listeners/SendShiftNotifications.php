@@ -2,16 +2,16 @@
 
 namespace App\Listeners;
 
-use App\Events\ShiftCreated;
-use App\Events\ShiftDeleted;
-use App\Events\ShiftReplaced;
-use App\Events\ShiftRestored;
-use App\Events\ShiftUpdated;
 use App\Models\Shift;
 use App\Models\Store;
 use App\Models\User;
 use App\Notifications\KintaiNotification;
 use Carbon\CarbonImmutable;
+use Kintai\Contracts\Events\ShiftCreated;
+use Kintai\Contracts\Events\ShiftDeleted;
+use Kintai\Contracts\Events\ShiftReplaced;
+use Kintai\Contracts\Events\ShiftRestored;
+use Kintai\Contracts\Events\ShiftUpdated;
 use Throwable;
 
 /**
