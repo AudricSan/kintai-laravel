@@ -74,7 +74,19 @@ class BundlesScreenTest extends TestCase
 
     public function test_with_no_bundle_installed_it_says_so(): void
     {
+        // Les bundles officiels sont installés par Composer : on simule une installation sans aucun bundle.
+        $this->partialMock(BundleManager::class, fn ($mock) => $mock->shouldReceive('installed')->andReturn([]));
+
         $this->actingAs($this->owner())->get(route('bundles.index'))->assertOk()->assertSee('No bundle is installed.');
+    }
+
+    public function test_the_official_bundles_installed_by_composer_are_listed_and_disabled_by_default(): void
+    {
+        $this->actingAs($this->owner())->get(route('bundles.index'))
+            ->assertOk()->assertSee('Team directory')->assertSee('Notebook')
+            ->assertSee('team-directory')->assertSee('notebook');
+
+        $this->assertSame([], app(BundleManager::class)->enabledSlugs());
     }
 
     public function test_no_bundle_is_enabled_by_default(): void

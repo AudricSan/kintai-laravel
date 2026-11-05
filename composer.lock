@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2985e70697f8e78f3301e886a2174d0c",
+    "content-hash": "a209481de840ac58325b1a644743c544",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1289,12 +1289,80 @@
             "time": "2026-08-24T17:13:02+00:00"
         },
         {
-            "name": "kintai/contracts",
+            "name": "kintai/bundle-notebook",
             "version": "1.0.0",
             "dist": {
                 "type": "path",
+                "url": "packages/bundles/notebook",
+                "reference": "a0970e17faed97cf6a6fbe3f571985b9f434d7c7"
+            },
+            "require": {
+                "kintai/contracts": "^1.1",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\Notebook\\NotebookServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\Notebook\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Carnet de notes d'équipe pour Kintai : messages par magasin ou pour toute l'organisation, épinglage, expiration.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-team-directory",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/team-directory",
+                "reference": "0af0d7bc4f458d9787ee97c970b01f32c4a7cf95"
+            },
+            "require": {
+                "kintai/contracts": "^1.1",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\TeamDirectory\\TeamDirectoryServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\TeamDirectory\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Annuaire des collègues et profil d'équipe (bio, compétences, langues, loisirs) pour Kintai.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/contracts",
+            "version": "1.1.0",
+            "dist": {
+                "type": "path",
                 "url": "packages/contracts",
-                "reference": "9966c38330b005aacb03f12c3487ff45b2e7d162"
+                "reference": "241856a9133f95363a3095221ca022ea22967c33"
             },
             "require": {
                 "illuminate/container": "^13.0",

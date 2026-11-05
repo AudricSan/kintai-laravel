@@ -7,7 +7,7 @@ satisfait pas la contrainte déclarée par son provider (`requiredContract()`).
 Ce package ne dépend jamais de l'application (`App\`) : seulement de PHP et des composants `illuminate/*` qu'il utilise
 (`support`, `contracts`, `container`, `database`) et de Carbon. Un test (`tests/Unit/Contracts`) le vérifie.
 
-Version courante : `Kintai\Contracts\Contract::VERSION` (1.0.0).
+Version courante : `Kintai\Contracts\Contract::VERSION` (1.1.0).
 
 ## Points d'extension
 
@@ -30,6 +30,8 @@ services injectés (interfaces du contrat) et par les événements que le Core �
 | Alertes système de l'Owner | `System\SystemAlertRegistry` | `SystemAlert` | `systemAlert()` |
 | Congés (garde-fou du planning, iCal) | `Planning\TimeOffChecker`, `Planning\TimeOffProvider` (le bundle remplace la liaison par défaut du Core) | `TimeOffPeriod` | |
 | Remplacer un shift | `Shifts\ShiftReplacer` | | |
+| Collègues d'un utilisateur et coordonnées partagées (depuis 1.1) | `Stores\ColleagueDirectory` (service du Core) | `Colleague` | |
+| Envoyer une notification (depuis 1.1) | `Notifications\Notifier` (service du Core) | | |
 | Événements du Core | `Events\*` (ne portent que des identifiants) | | `listen()` |
 
 Événements : `EmployeeCreated`, `EmployeeUpdated`, `EmployeePasswordReset`, `EmployeeRatesUpdated`,

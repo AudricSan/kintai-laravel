@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-notebook",
+    "description": "Carnet de notes d'équipe pour Kintai : messages par magasin ou pour toute l'organisation, épinglage, expiration.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\Notebook\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\Notebook\\NotebookServiceProvider"
+            ]
+        }
+    }
+}

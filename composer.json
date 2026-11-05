@@ -11,6 +11,8 @@
     "license": "AGPL-3.0-only",
     "require": {
         "php": "^8.3",
+        "kintai/bundle-notebook": "^1.0",
+        "kintai/bundle-team-directory": "^1.0",
         "kintai/contracts": "^1.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
