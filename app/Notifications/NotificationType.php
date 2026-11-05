@@ -38,6 +38,7 @@ final class NotificationType
      * @param  bool  $mail  Canal e-mail activé par défaut.
      * @param  string|null  $referenceType  Nature de l'objet désigné par `reference_id` (pour « lu » automatique).
      * @param  bool  $internal  Type technique : absent de la grille des préférences, canaux par défaut toujours appliqués.
+     * @param  bool  $ownerOnly  Type adressé aux Owners (alertes système) : seule leur grille de préférences le propose.
      */
     public function __construct(
         public readonly string $key,
@@ -48,6 +49,7 @@ final class NotificationType
         public readonly bool $mail = false,
         public readonly ?string $referenceType = null,
         public readonly bool $internal = false,
+        public readonly bool $ownerOnly = false,
     ) {
         if (preg_match('/^[a-z][a-z0-9_]{1,60}$/', $key) !== 1) {
             throw new InvalidArgumentException("Notification type [{$key}] is invalid (lowercase letters, digits and underscores).");

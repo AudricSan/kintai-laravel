@@ -39,6 +39,11 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('push/subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push.subscriptions.destroy');
 
     // Exports : droits décidés par jeu de données et par magasin (ExportAccess), chacun exporte au moins ses données.
+    // Documentation intégrée (wiki GitHub synchronisé) et signalement de problème : ouverts à tout utilisateur connecté.
+    // Sans nom de page, `/docs` renvoie vers la première page (ou dit que la documentation n'est pas encore là).
+    Route::livewire('docs/{page?}', 'pages::docs.show')->name('docs.show');
+    Route::livewire('support/report-issue', 'pages::support.report-issue')->name('support.report-issue');
+
     Route::livewire('exports', 'pages::exports.index')->name('exports.index');
     Route::get('exports/download', ExportController::class)->middleware('throttle:30,1')->name('exports.download');
 
@@ -95,6 +100,8 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:20,1')
             ->name('backups.download');
         Route::livewire('admin/data-reset', 'pages::admin.data-reset')->name('data-reset.index');
+        // Tâches planifiées et jetons de l'appel HTTP `/cron/run` (hébergement sans terminal).
+        Route::livewire('admin/scheduled-tasks', 'pages::admin.scheduled-tasks')->name('scheduled-tasks.index');
     });
 
     Route::prefix('roles')->middleware('can:manage-roles')->group(function () {

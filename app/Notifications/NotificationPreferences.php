@@ -68,7 +68,7 @@ class NotificationPreferences
     }
 
     /**
-     * Grille complète de l'utilisateur : type => canal => actif, pour les types non internes.
+     * Grille complète de l'utilisateur : type => canal => actif, pour les types non internes qui concernent l'utilisateur.
      *
      * @return array<string, array<string, bool>>
      */
@@ -78,7 +78,7 @@ class NotificationPreferences
             ->mapWithKeys(fn (NotificationPreference $row): array => [$row->type.'|'.$row->channel => $row->enabled]);
 
         $matrix = [];
-        foreach ($this->types->grid() as $types) {
+        foreach ($this->types->grid($user) as $types) {
             foreach ($types as $type) {
                 foreach (NotificationType::CHANNELS as $channel) {
                     $matrix[$type->key][$channel] = (bool) ($overrides[$type->key.'|'.$channel] ?? $type->defaultFor($channel));

@@ -3,6 +3,7 @@
 use App\Http\Api\ApiErrorRenderer;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\RunSystemAlertsOnVisit;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetUserLocale;
 use Illuminate\Foundation\Application;
@@ -19,9 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        // Flux iCal public : hors du groupe `web`, donc sans session ni cookie.
+        // Flux iCal public et appel des tâches planifiées : hors du groupe `web`, donc sans session ni cookie.
         then: function (): void {
             Route::middleware([])->group(base_path('routes/ical.php'));
+            // Appel HTTP des tâches planifiées : idem, sans session ni cookie.
+            Route::middleware([])->group(base_path('routes/cron.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -37,6 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
             SetUserLocale::class,
             // Après la session : l'Owner connecté garde l'accès pendant la maintenance. L'API a le sien (routes/api.php).
             MaintenanceMode::class,
+            // Filet sans planificateur : alertes système vérifiées quand un Owner charge une page (après la réponse).
+            RunSystemAlertsOnVisit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

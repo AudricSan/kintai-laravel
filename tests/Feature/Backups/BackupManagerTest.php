@@ -51,7 +51,7 @@ class BackupManagerTest extends TestCase
         $this->assertSame('sqlite', $manifest['driver']);
         $this->assertSame('database.sqlite', $manifest['database_file']);
         $this->assertSame(config('kintai.version'), $manifest['app_version']);
-        $this->assertSame('2026_11_07_000001_create_app_settings_table', $manifest['last_migration']);
+        $this->assertSame('2026_11_08_000001_create_cron_tables', $manifest['last_migration']);
         $this->assertSame(1, $manifest['files']);
         $this->assertGreaterThan(0, $manifest['size']);
         $this->assertSame('manual', $manifest['trigger']);

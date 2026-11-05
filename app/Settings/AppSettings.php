@@ -307,6 +307,26 @@ class AppSettings
         return $this->string('backup.last_failure');
     }
 
+    // -- Alertes système et documentation ---------------------------------------------------------------------
+
+    /** Dernière passe des alertes système (horodatage Unix ; 0 = jamais). */
+    public function systemAlertsLastRun(): int
+    {
+        return max(0, $this->int('system.alerts_last_run'));
+    }
+
+    /** Dernière synchronisation réussie du wiki (jamais : null). */
+    public function docsLastSyncAt(): ?CarbonImmutable
+    {
+        $value = $this->string('docs.last_sync_at');
+
+        try {
+            return $value === '' ? null : CarbonImmutable::parse($value);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     // -- Web Push -----------------------------------------------------------------------------------------------
 
     public function webPushPublicKey(): string

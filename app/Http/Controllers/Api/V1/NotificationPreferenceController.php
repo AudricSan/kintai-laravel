@@ -75,7 +75,7 @@ class NotificationPreferenceController extends ApiController
         $matrix = $preferences->matrix($user);
         $list = [];
 
-        foreach (app(NotificationTypeRegistry::class)->grid() as $category => $types) {
+        foreach (app(NotificationTypeRegistry::class)->grid($user) as $category => $types) {
             foreach ($types as $type) {
                 $list[] = [
                     'type' => $type->key,

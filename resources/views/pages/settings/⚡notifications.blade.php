@@ -60,7 +60,7 @@ new #[Title('Notification settings')] class extends Component {
 
     public function with(): array
     {
-        return ['grid' => app(NotificationTypeRegistry::class)->grid()];
+        return ['grid' => app(NotificationTypeRegistry::class)->grid(Auth::user())];
     }
 }; ?>
 

@@ -34,6 +34,9 @@ final class CoreNavigation
         // Ouvert à tout utilisateur connecté : chacun peut au moins exporter ses propres données.
         $registry->register(new NavigationItem('exports', 'Exports', 'exports.index', 'arrow-down-tray', $main, 20));
 
+        // Ouverts à tout utilisateur connecté.
+        $registry->register(new NavigationItem('docs', 'Documentation', 'docs.show', 'book-open', $main, 30, current: ['docs.show']));
+
         $registry->register(new NavigationItem('employees', 'Employees', 'employees.index', 'users', $hr, 10, 'employees.view', current: ['employees.*']));
         $registry->register(new NavigationItem('stores', 'Stores', 'stores.index', 'building-storefront', $hr, 20, 'stores.view', current: ['stores.*']));
 
@@ -43,10 +46,14 @@ final class CoreNavigation
         $registry->register(new NavigationItem('instance-settings', 'Instance settings', 'settings.app', 'adjustments-horizontal', NavigationRegistry::SECTION_SYSTEM, 30, 'manage-settings', hideable: false, current: ['settings.app']));
         // Sauvegardes et réinitialisation des données : Owner seulement.
         $registry->register(new NavigationItem('backups', 'Backups', 'backups.index', 'archive-box', NavigationRegistry::SECTION_SYSTEM, 40, 'manage-settings', hideable: false, current: ['backups.*', 'data-reset.index']));
+        // Tâches planifiées et jetons de l'appel HTTP : Owner seulement.
+        $registry->register(new NavigationItem('scheduled-tasks', 'Scheduled tasks', 'scheduled-tasks.index', 'command-line', NavigationRegistry::SECTION_SYSTEM, 50, 'manage-settings', hideable: false, current: ['scheduled-tasks.*']));
         // Journal d'audit : visible de qui a `stores.view` (un gérant ne voit que ses magasins).
         $registry->register(new NavigationItem('activity', 'Activity log', 'activity.index', 'clipboard-document-list', NavigationRegistry::SECTION_SYSTEM, 20, 'stores.view', current: ['activity.*']));
 
         $registry->register(new NavigationItem('notifications', 'Notifications', 'notifications.index', 'bell', NavigationRegistry::SECTION_ACCOUNT, 5, current: ['notifications.index']));
+
+        $registry->register(new NavigationItem('report-issue', 'Report a problem', 'support.report-issue', 'flag', NavigationRegistry::SECTION_ACCOUNT, 20, current: ['support.report-issue']));
 
         $registry->register(new NavigationItem(
             'settings', 'Settings', 'profile.edit', 'cog', NavigationRegistry::SECTION_ACCOUNT, 10,

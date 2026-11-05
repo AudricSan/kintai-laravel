@@ -28,6 +28,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Alertes système
+    |--------------------------------------------------------------------------
+    |
+    | `system_alerts_on_visit` : vérifier les alertes système (au plus une fois par heure) quand un Owner charge
+    | une page, pour les instances dont le planificateur ne tourne pas. Désactivé par les tests.
+    |
+    */
+
+    'system_alerts_on_visit' => filter_var(env('KINTAI_SYSTEM_ALERTS_ON_VISIT', true), FILTER_VALIDATE_BOOL),
+
+    /*
+    |--------------------------------------------------------------------------
     | API v1
     |--------------------------------------------------------------------------
     |
@@ -119,6 +131,37 @@ return [
         'path' => storage_path('app/private/backups'),
         'max_uncompressed_bytes' => 2 * 1024 * 1024 * 1024,
         'max_entries' => 50000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Documentation intégrée
+    |--------------------------------------------------------------------------
+    |
+    | `repository` : dépôt GitHub (« compte/dépôt ») dont le wiki est synchronisé par `kintai:docs:sync`.
+    | `path` : dossier local des pages synchronisées (hors du dossier public).
+    |
+    */
+
+    'docs' => [
+        'repository' => env('KINTAI_DOCS_REPOSITORY', 'AudricSan/Kintai'),
+        'path' => storage_path('app/docs'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Signalement de problème
+    |--------------------------------------------------------------------------
+    |
+    | `repository` : dépôt GitHub qui reçoit les signalements. `github_token` : jeton (portée « public_repo »
+    | suffit) pour créer l'issue depuis l'application ; sans lui, l'utilisateur est renvoyé vers le formulaire
+    | de création GitHub pré-rempli.
+    |
+    */
+
+    'support' => [
+        'repository' => env('KINTAI_SUPPORT_REPOSITORY', 'AudricSan/Kintai'),
+        'github_token' => env('GITHUB_ISSUES_TOKEN'),
     ],
 
 ];

@@ -63,6 +63,10 @@ final class CoreActivityActions
                 'settings.updated' => 'Instance settings updated',
                 'settings.vapid_regenerated' => 'Web Push keys regenerated',
                 'settings.mail_tested' => 'Test email sent',
+                'cron.token_created' => 'Scheduled tasks token created',
+                'cron.token_revoked' => 'Scheduled tasks token revoked',
+                'docs.synced' => 'Documentation synchronized',
+                'support.issue_reported' => 'Problem reported',
             ],
             'Backups and data' => [
                 'backup.created' => 'Backup created',

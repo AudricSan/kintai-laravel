@@ -23,6 +23,16 @@ class VapidKeys
         return $this->nonEmpty(app(AppSettings::class)->webPushPrivateKey());
     }
 
+    /**
+     * Extensions PHP qu'exige le Web Push (chiffrement, requêtes HTTP, chaînes multi-octets) et qui ne sont pas chargées.
+     *
+     * @return list<string>
+     */
+    public static function missingExtensions(): array
+    {
+        return array_values(array_filter(['openssl', 'curl', 'mbstring'], fn (string $extension): bool => ! extension_loaded($extension)));
+    }
+
     public function isConfigured(): bool
     {
         return $this->publicKey() !== null && $this->privateKey() !== null;

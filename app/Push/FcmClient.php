@@ -91,6 +91,20 @@ class FcmClient
     }
 
     /**
+     * Le fichier du compte de service est-il présent et exploitable (JSON avec adresse et clé privée) ?
+     */
+    public function hasReadableCredentials(): bool
+    {
+        try {
+            $this->credentials();
+        } catch (RuntimeException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * @throws RuntimeException Compte de service illisible ou échange refusé.
      */
     public function accessToken(): string

@@ -137,7 +137,18 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
     jeton (`403 password_change_required`, comme la production ; validé le 05/11/2026).
   - [x] 8. Synchronisation Google : rien dans le Core, le bundle `google-calendar` se branche sur les événements des
     shifts, les sections du profil, les types de notifications et le planificateur de Laravel.
-  - [ ] 9. Administration.
+  - [x] 9. Administration, en trois tranches :
+    - [x] 9a. Réglages de l'instance en base (service typé, secrets chiffrés), écran de l'Owner, mode maintenance, en-têtes
+      de sécurité.
+    - [x] 9b. Sauvegardes en PHP pur (SQLite et MySQL/MariaDB), restauration, sauvegarde automatique avec rotation,
+      réinitialisation des données avec sauvegarde préalable.
+    - [x] 9c. Alertes système de l'Owner (registre de détecteurs, déduplication par état, commande horaire et passe à la
+      visite d'un Owner), tâches planifiées sans terminal (`/cron/run` à jeton haché, écran « Tâches planifiées »),
+      documentation intégrée synchronisée depuis le wiki GitHub, signalement de problème vers GitHub.
+    - Reporté à la phase 6 : alertes de mise à jour du Core, des bundles et de licence (`core_update_available`,
+      `bundle_update_available`, `license_quota`, détecteurs réseau à enregistrer dans `App\System\SystemAlerts`) et
+      réinitialisation d'usine (réinstallation).
+    - Abandonné : mascotte et journal d'accès (le journal d'activité couvre l'audit).
 
 ### Phase 5 : Bundles officiels (dépôt `kintai-bundles`)
 - Le contrat (`kintai/contracts`) existe déjà, construit en phase 4 avec les domaines du Core.

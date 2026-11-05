@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Authorization\Authorizer;
+use App\Models\User;
 use InvalidArgumentException;
 
 /**
@@ -50,18 +52,19 @@ class NotificationTypeRegistry
 
     /**
      * Types de la grille des préférences (hors types internes), groupés par catégorie dans l'ordre des catégories ;
-     * les catégories vides sont omises.
+     * les catégories vides sont omises. Les types réservés aux Owners n'apparaissent que dans la grille d'un Owner.
      *
      * @return array<string, list<NotificationType>>
      */
-    public function grid(): array
+    public function grid(?User $user = null): array
     {
         $grid = [];
+        $isOwner = $user !== null && app(Authorizer::class)->isOwner($user);
 
         foreach (NotificationType::CATEGORIES as $category) {
             $types = array_values(array_filter(
                 $this->types,
-                fn (NotificationType $type): bool => $type->category === $category && ! $type->internal,
+                fn (NotificationType $type): bool => $type->category === $category && ! $type->internal && ($isOwner || ! $type->ownerOnly),
             ));
 
             if ($types !== []) {

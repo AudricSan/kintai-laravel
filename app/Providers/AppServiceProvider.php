@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Activity\ActivityActionRegistry;
 use App\Activity\CoreActivityActions;
+use App\Authorization\Authorizer;
 use App\Contracts\Planning\TimeOffChecker;
 use App\Contracts\Planning\TimeOffProvider;
+use App\Cron\RecordScheduledTaskRun;
 use App\Dashboard\CoreWidgets;
 use App\Dashboard\DashboardWidgetRegistry;
 use App\Events\EmployeeCreated;
@@ -42,6 +44,7 @@ use App\Navigation\CoreNavigation;
 use App\Navigation\NavigationMenu;
 use App\Navigation\NavigationRegistry;
 use App\Notifications\CoreNotificationTypes;
+use App\Notifications\NotificationInbox;
 use App\Notifications\NotificationTypeRegistry;
 use App\Planning\NullTimeOffChecker;
 use App\Planning\NullTimeOffProvider;
@@ -53,12 +56,16 @@ use App\Settings\AppSettings;
 use App\Settings\CoreSettings;
 use App\Settings\RuntimeSettings;
 use App\Stores\StoreFeatureRegistry;
+use App\System\CoreSystemAlerts;
+use App\System\SystemAlerts;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -92,6 +99,14 @@ class AppServiceProvider extends ServiceProvider
             return $settings;
         });
         $this->app->singleton(RuntimeSettings::class);
+        // Alertes système : le Core déclare ses détecteurs, les bundles et la phase des mises à jour y ajoutent les leurs.
+        // Portée requête / tâche (comme l'Authorizer qu'elle utilise).
+        $this->app->scoped(SystemAlerts::class, function ($app): SystemAlerts {
+            $alerts = new SystemAlerts($app->make(AppSettings::class), $app->make(Authorizer::class), $app->make(NotificationInbox::class));
+            CoreSystemAlerts::registerIn($alerts);
+
+            return $alerts;
+        });
         $this->app->bind(WebPushSender::class, MinishlinkWebPushSender::class);
         $this->app->scoped(NavigationMenu::class);
         // Sans bundle de congés, personne n'est en congé ; le bundle timeoff remplace cette liaison.
@@ -113,6 +128,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerNotificationTypes();
         $this->registerShiftNotifications();
         Event::listen(Logout::class, RemovePushSubscriptionOnLogout::class);
+        Event::listen(ScheduledTaskFinished::class, [RecordScheduledTaskRun::class, 'finished']);
+        Event::listen(ScheduledTaskFailed::class, [RecordScheduledTaskRun::class, 'failed']);
         $this->registerActivityLog();
         $this->registerExportDatasets();
         $this->registerRateLimiters();
@@ -143,6 +160,10 @@ class AppServiceProvider extends ServiceProvider
 
             return $perMinute === 0 ? Limit::none() : Limit::perMinute($perMinute)->by($key);
         });
+
+        // Appel HTTP des tâches planifiées : un service en ligne appelle chaque minute ; 30 par minute et par adresse IP laissent la marge
+        // d'une relance, et freinent la recherche d'un jeton.
+        RateLimiter::for('cron', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->ip()));
 
         RateLimiter::for('ical', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->ip()));
     }

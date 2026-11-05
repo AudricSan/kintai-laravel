@@ -40,6 +40,7 @@ final class ActivityDetails
         'from' => 'From',
         'to' => 'To',
         'device' => 'Device',
+        'issue_created' => 'Issue created on GitHub',
     ];
 
     private const CHANGES = ['added' => 'Added', 'removed' => 'Removed'];
@@ -51,6 +52,7 @@ final class ActivityDetails
         'Shift' => 'Shift',
         'ShiftType' => 'Shift type',
         'Role' => 'Role',
+        'CronToken' => 'Scheduled tasks token',
     ];
 
     /**

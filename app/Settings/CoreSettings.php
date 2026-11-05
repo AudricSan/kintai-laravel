@@ -65,6 +65,13 @@ final class CoreSettings
             new SettingDefinition('backup.last_success_at', $string, ''),
             new SettingDefinition('backup.last_failure', $string, ''),
 
+            // Alertes système : état mémorisé (type => clé de l'alerte, JSON) et date de la dernière passe (horodatage Unix).
+            new SettingDefinition('system.alerts_state', $string, ''),
+            new SettingDefinition('system.alerts_last_run', $int, 0, 0),
+
+            // Documentation intégrée : date (ISO 8601) de la dernière synchronisation réussie du wiki.
+            new SettingDefinition('docs.last_sync_at', $string, ''),
+
             // Web Push : la clé privée est chiffrée en base.
             new SettingDefinition('webpush.public_key', $string, '', config: 'kintai.webpush.public_key'),
             new SettingDefinition('webpush.private_key', $string, '', encrypted: true, config: 'kintai.webpush.private_key'),
