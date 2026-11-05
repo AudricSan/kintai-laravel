@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-store-photos",
+    "description": "Photos de magasin pour Kintai : envoi sécurisé, stockage privé, consultation par magasin, rétention.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\StorePhotos\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\StorePhotos\\StorePhotosServiceProvider"
+            ]
+        }
+    }
+}

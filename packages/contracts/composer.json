@@ -3,7 +3,7 @@
     "description": "Contrat entre le Core de Kintai et ses bundles : registres, objets valeur, interfaces et événements.",
     "type": "library",
     "license": "AGPL-3.0-only",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "require": {
         "php": "^8.3",
         "illuminate/auth": "^13.0",

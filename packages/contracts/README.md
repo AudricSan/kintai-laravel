@@ -7,7 +7,7 @@ satisfait pas la contrainte déclarée par son provider (`requiredContract()`).
 Ce package ne dépend jamais de l'application (`App\`) : seulement de PHP et des composants `illuminate/*` qu'il utilise
 (`support`, `contracts`, `container`, `database`) et de Carbon. Un test (`tests/Unit/Contracts`) le vérifie.
 
-Version courante : `Kintai\Contracts\Contract::VERSION` (1.3.0).
+Version courante : `Kintai\Contracts\Contract::VERSION` (1.4.0).
 
 ## Points d'extension
 
@@ -32,6 +32,8 @@ services injectés (interfaces du contrat) et par les événements que le Core �
 | Remplacer un shift | `Shifts\ShiftReplacer` | | |
 | Échanger deux shifts (depuis 1.3) | `Shifts\ShiftExchanger` (service du Core, atomique, garde-fous des deux affectations) ; `Shifts\ShiftWarnings` (exception d'avertissements à confirmer) | | |
 | Collègues d'un utilisateur et coordonnées partagées (depuis 1.1) | `Stores\ColleagueDirectory` (service du Core) | `Colleague` | |
+| Fichiers téléversés dans les sauvegardes (depuis 1.4) | `Backups\BackupFileRegistry` (service du Core) | | `backupFiles()` |
+| Pastille de compteur dans le menu (depuis 1.4) | argument `badge` de `NavigationItem` | | |
 | Envoyer une notification (depuis 1.1) | `Notifications\Notifier` (service du Core) | | |
 | Événements du Core | `Events\*` (ne portent que des identifiants) | | `listen()` |
 

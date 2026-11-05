@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Kintai\Contracts\Backups\BackupFileRegistry;
 use Throwable;
 use ZipArchive;
 
@@ -37,7 +38,7 @@ class BackupManager
 
     public const NOTE_MAX = 200;
 
-    public function __construct(private readonly ?DatabaseDumper $dumper = null) {}
+    public function __construct(private readonly ?DatabaseDumper $dumper = null, private readonly ?BackupFileRegistry $files = null) {}
 
     /**
      * Dumper du pilote en cours.
@@ -212,10 +213,27 @@ class BackupManager
         return $deleted;
     }
 
-    /** Dossier des fichiers téléversés sauvegardés (disque privé `local`). */
+    /** Dossier des avatars sauvegardés (disque privé `local`). */
     public function avatarsDirectory(): string
     {
         return Storage::disk('local')->path('avatars');
+    }
+
+    /**
+     * Dossiers de fichiers téléversés sauvegardés : les avatars, et ceux que les bundles déclarent
+     * (`BackupFileRegistry`, même bundle désactivé).
+     *
+     * @return array<string, string> clé de l'archive (`files/<clé>/`) => chemin du dossier
+     */
+    public function fileAreas(): array
+    {
+        $areas = [DefaultBackupFileRegistry::AVATARS => $this->avatarsDirectory()];
+
+        foreach (($this->files ?? app(BackupFileRegistry::class))->all() as $key => $directory) {
+            $areas[$key] = Storage::disk('local')->path($directory);
+        }
+
+        return $areas;
     }
 
     /**
@@ -277,14 +295,17 @@ class BackupManager
         }
 
         $files = [];
-        $avatars = $this->avatarsDirectory();
 
-        if (is_dir($avatars) && ! is_link($avatars)) {
-            foreach (scandir($avatars) ?: [] as $name) {
-                $path = $avatars.DIRECTORY_SEPARATOR.$name;
+        foreach ($this->fileAreas() as $key => $directory) {
+            if (! is_dir($directory) || is_link($directory)) {
+                continue;
+            }
 
-                if (preg_match('/^(?!\.)[A-Za-z0-9._-]{1,200}\.(?:jpe?g|png|gif|webp)$/i', $name) === 1 && is_file($path) && ! is_link($path)) {
-                    $files[$name] = $path;
+            foreach (scandir($directory) ?: [] as $name) {
+                $path = $directory.DIRECTORY_SEPARATOR.$name;
+
+                if (preg_match(BackupArchive::NAME_PATTERN, $name) === 1 && is_file($path) && ! is_link($path)) {
+                    $files[BackupArchive::FILES_ROOT.$key.'/'.$name] = $path;
                 }
             }
         }
@@ -311,8 +332,8 @@ class BackupManager
         $zip->addFile($database, $dumper->fileName());
         $zip->addFromString(BackupArchive::MANIFEST, (string) json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-        foreach ($files as $name => $path) {
-            $zip->addFile($path, BackupArchive::FILES_PREFIX.$name);
+        foreach ($files as $entry => $path) {
+            $zip->addFile($path, $entry);
         }
 
         if (! $zip->close()) {

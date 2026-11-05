@@ -2,6 +2,16 @@
 
 Versionnement sémantique, voir le README.
 
+## 1.4.0
+
+### Ajouté
+- `Backups\BackupFileRegistry` (service du Core) et l'aide `BundleServiceProvider::backupFiles($directory)` : un bundle déclare un
+  sous-dossier du disque privé `local` (fichiers image à plat) que le Core inclut dans les sauvegardes (`files/<slug>/` dans l'archive,
+  mêmes contrôles stricts que pour les avatars) et remet en place à la restauration. Valable bundle désactivé : ses données restent
+  sauvegardées. Ajout compatible : seul le Core implémente l'interface.
+- `NavigationItem` : argument optionnel `badge` (`Closure(Authenticatable): int`) et `badgeFor()` : pastille de compteur à côté de
+  l'entrée du menu (menu latéral et barre mobile), absente à zéro.
+
 ## 1.3.0
 
 ### Ajouté

@@ -16,12 +16,20 @@ final class BackupArchive
 
     public const MANIFEST = 'backup.json';
 
+    public const FILES_ROOT = 'files/';
+
     public const FILES_PREFIX = 'files/avatars/';
+
+    /** Nom d'un fichier téléversé : pas de séparateur, pas de point en tête, extension d'image. */
+    public const NAME_PATTERN = '/^(?!\.)[A-Za-z0-9._-]{1,200}\.(?:jpe?g|png|gif|webp)$/i';
 
     private const DATABASE_FILES = ['database.sqlite' => 'sqlite', 'database.sql' => 'mysql'];
 
-    /** Nom d'un fichier téléversé : pas de séparateur, pas de point en tête, extension d'image. */
-    private const FILE_PATTERN = '#^files/avatars/(?!\.)[A-Za-z0-9._-]{1,200}\.(?:jpe?g|png|gif|webp)$#i';
+    /** Entrée d'un fichier téléversé : `files/<zone>/<nom>` (zone : avatars ou dossier d'un bundle), un seul niveau. */
+    private const FILE_PATTERN = '#^files/([a-z0-9][a-z0-9-]{0,39})/((?!\.)[A-Za-z0-9._-]{1,200}\.(?i:jpe?g|png|gif|webp))$#';
+
+    /** Dossier d'une zone dans l'archive (entrée de répertoire tolérée). */
+    private const DIRECTORY_PATTERN = '#^files/(?:[a-z0-9][a-z0-9-]{0,39}/)?$#';
 
     /** Taille maximale du manifeste. */
     private const MANIFEST_MAX_BYTES = 65536;
@@ -124,7 +132,7 @@ final class BackupArchive
 
             $name = $stat['name'];
 
-            if ($name === 'files/' || $name === 'files/avatars/') {
+            if (preg_match(self::DIRECTORY_PATTERN, $name) === 1) {
                 continue;
             }
 

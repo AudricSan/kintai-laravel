@@ -23,6 +23,8 @@ final class NavigationItem
      * @param  bool  $hideable  L'utilisateur peut la masquer dans ses préférences.
      * @param  list<string>  $current  Motifs de noms de routes pour lesquels l'entrée est la page courante
      *                                 (par défaut : la route de l'entrée).
+     * @param  (Closure(Authenticatable): int)|null  $badge  Compteur affiché à côté de l'entrée (depuis le contrat 1.4) ;
+     *                                                       absent ou zéro : pas de pastille.
      */
     public function __construct(
         public readonly string $key,
@@ -35,6 +37,7 @@ final class NavigationItem
         private readonly ?Closure $visible = null,
         public readonly bool $hideable = true,
         public readonly array $current = [],
+        private readonly ?Closure $badge = null,
     ) {}
 
     public function isVisibleTo(Authenticatable $user): bool
@@ -44,6 +47,14 @@ final class NavigationItem
         }
 
         return $this->visible === null || (bool) ($this->visible)($user);
+    }
+
+    /**
+     * Valeur de la pastille de l'entrée pour cet utilisateur (0 = aucune).
+     */
+    public function badgeFor(Authenticatable $user): int
+    {
+        return $this->badge === null ? 0 : max(0, (int) ($this->badge)($user));
     }
 
     public function isCurrent(): bool

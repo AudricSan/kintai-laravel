@@ -733,3 +733,28 @@ Une candidature : `id`, `shift`, `store`, `applicant`, `status` (`pending`, `app
 - `GET /api/v1/shift-claim/claims` (filtres `store_id`, `shift_id`, `status`, `mine`) et `GET .../claims/{id}`.
 - `POST .../claims/{id}/withdraw` (le candidat), `.../approve` (`force` facultatif ; `409 shift_warnings` comme pour les échanges) et `.../reject`.
 - `POST /api/v1/shift-claim/shifts/{shift}/offer` : `note` ; propose un shift attribué à venir (`open_shifts.publish`). `201`. `DELETE` du même chemin le retire (les candidatures en attente sont retirées). `204`.
+
+## Messagerie (`messaging`)
+
+Libre-service, sans permission : tout membre actif d'un magasin où la fonctionnalité `messages` est activée écrit à ses collègues
+de ce magasin. Confidentialité stricte : on ne lit que les conversations dont on est participant, quel que soit son rôle (l'Owner et les
+gérants ne lisent pas les messages des autres). Une conversation dont on n'est pas participant est introuvable (`404`), comme une
+conversation absente. Les destinataires (à la création ou par `participants`) doivent être des collègues du magasin de la conversation,
+sinon `422` (`recipientIds` ou `user_id`). On ne supprime que ses propres messages (`403` sinon). Supprimer une conversation ne la retire
+que de sa liste ; elle revient si quelqu'un y répond, et elle est effacée quand plus personne ne la voit.
+
+Une conversation : `id`, `subject`, `store` (`id`, `name`), `creator_id`, `unread`, `messages_count`, `last_message_at`, `last_message`
+(`sender`, `sent_at`), `created_at`, et `participants` (`user` : `id`, `name`) sur la conversation seule. Un message : `id`, `thread_id`,
+`sender` (`id`, `name`), `body` (nul si le message a été effacé à l'anonymisation de son auteur), `erased`, `sent_at`, `mine`.
+
+- `GET /api/v1/messaging/threads` : ses conversations, les plus récentes d'abord. Filtres : `tab` (`inbox`, `sent`, `unread`), `store_id`.
+- `GET /api/v1/messaging/unread` : `{"data": {"unread": n}}`, le nombre de conversations non lues (le compteur du menu).
+- `POST /api/v1/messaging/threads` : `store_id`, `subject` (255 au plus), `body` (5000 au plus), `recipient_ids` (au moins un). `201`. Les
+  destinataires reçoivent la notification `message_received` (jamais l'auteur).
+- `GET /api/v1/messaging/threads/{id}` : la conversation et ses participants.
+- `GET /api/v1/messaging/threads/{id}/messages` : les messages, du plus ancien au plus récent (paginé) ; les lire marque la conversation lue.
+- `POST /api/v1/messaging/threads/{id}/messages` : `body`. `201`. Les autres participants reçoivent `message_received`. `422` si l'on ne peut
+  plus écrire dans le magasin (fonctionnalité désactivée, départ du magasin).
+- `DELETE /api/v1/messaging/threads/{id}` : retire la conversation de sa liste. `204`.
+- `DELETE /api/v1/messaging/messages/{id}` : supprime son propre message. `204`.
+- `GET /api/v1/messaging/threads/{id}/participants` et `POST .../participants` (`user_id`, un collègue du magasin ; il voit l'historique). `201`.

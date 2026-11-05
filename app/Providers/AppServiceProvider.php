@@ -8,6 +8,7 @@ use App\Activity\ActivityLogger;
 use App\Activity\CoreActivityActions;
 use App\Activity\DefaultActivityActionRegistry;
 use App\Authorization\Authorizer;
+use App\Backups\DefaultBackupFileRegistry;
 use App\Bundles\BundleManager;
 use App\Cron\RecordScheduledTaskRun;
 use App\Dashboard\CoreWidgets;
@@ -59,6 +60,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Kintai\Contracts\Activity\ActivityRecorder;
+use Kintai\Contracts\Backups\BackupFileRegistry;
 use Kintai\Contracts\Bundle\BundleActivation;
 use Kintai\Contracts\Bundle\BundleServiceProvider;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
@@ -113,6 +115,7 @@ class AppServiceProvider extends ServiceProvider
         // Points d'extension du contrat `kintai/contracts` : le Core lie chaque interface à son registre en mémoire (un par processus).
         $this->app->singleton(ProfileSectionRegistry::class, DefaultProfileSectionRegistry::class);
         $this->app->singleton(StoreFeatureRegistry::class, DefaultStoreFeatureRegistry::class);
+        $this->app->singleton(BackupFileRegistry::class, DefaultBackupFileRegistry::class);
         $this->app->singleton(NavigationRegistry::class, DefaultNavigationRegistry::class);
         $this->app->singleton(PendingRequestRegistry::class, DefaultPendingRequestRegistry::class);
         $this->app->singleton(DashboardWidgetRegistry::class, DefaultDashboardWidgetRegistry::class);

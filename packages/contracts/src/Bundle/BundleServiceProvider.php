@@ -10,6 +10,7 @@ use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use Kintai\Contracts\Activity\ActivityActionRegistry;
 use Kintai\Contracts\Authorization\PermissionRegistry;
+use Kintai\Contracts\Backups\BackupFileRegistry;
 use Kintai\Contracts\Contract;
 use Kintai\Contracts\Dashboard\DashboardWidget;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
@@ -254,6 +255,17 @@ abstract class BundleServiceProvider extends ServiceProvider
     protected function storeFeature(string $key, string $label): void
     {
         $this->whenEnabled(fn () => $this->app->make(StoreFeatureRegistry::class)->register($key, $label));
+    }
+
+    /**
+     * Dossier de fichiers téléversés du bundle (sous-dossier du disque privé `local`) à inclure dans les sauvegardes
+     * (depuis le contrat 1.4 ; voir `BackupFileRegistry`). Sa clé dans l'archive est le slug du bundle. Contrairement aux
+     * autres aides, il vaut aussi bundle désactivé : désactiver ne supprime aucune donnée, les fichiers restent donc
+     * sauvegardés et restaurés avec la base.
+     */
+    protected function backupFiles(string $directory): void
+    {
+        $this->app->make(BackupFileRegistry::class)->register($this->slug(), $directory);
     }
 
     /**

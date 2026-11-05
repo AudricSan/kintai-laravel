@@ -90,41 +90,44 @@ class BackupRestorer
      */
     private function restoreFiles(array $entries, \ZipArchive $zip, string $work): void
     {
-        $directory = $this->manager->avatarsDirectory();
-
-        if (! is_dir($directory) && ! @mkdir($directory, 0775, true) && ! is_dir($directory)) {
-            throw new BackupException(__('The uploaded files could not be restored.'));
-        }
-
-        $restored = [];
-
-        foreach (array_keys($entries) as $entry) {
-            if (! str_starts_with($entry, BackupArchive::FILES_PREFIX)) {
-                continue;
+        // Seuls les dossiers déclarés (avatars, bundles) sont restaurés ; les entrées d'une zone inconnue (bundle absent)
+        // ont été validées par `BackupArchive` mais sont ignorées.
+        foreach ($this->manager->fileAreas() as $key => $directory) {
+            if (is_link($directory) || (! is_dir($directory) && ! @mkdir($directory, 0775, true) && ! is_dir($directory))) {
+                throw new BackupException(__('The uploaded files could not be restored.'));
             }
 
-            $name = substr($entry, strlen(BackupArchive::FILES_PREFIX));
-            $temporary = $work.DIRECTORY_SEPARATOR.'file_'.bin2hex(random_bytes(4));
-            BackupArchive::extract($zip, $entry, $temporary);
+            $restored = [];
+            $prefix = BackupArchive::FILES_ROOT.$key.'/';
 
-            $target = $directory.DIRECTORY_SEPARATOR.$name;
-
-            if (is_link($target) || ! @rename($temporary, $target)) {
-                if (! is_link($target) && @copy($temporary, $target)) {
-                    @unlink($temporary);
-                } else {
-                    throw new BackupException(__('The uploaded files could not be restored.'));
+            foreach (array_keys($entries) as $entry) {
+                if (! str_starts_with($entry, $prefix)) {
+                    continue;
                 }
+
+                $name = substr($entry, strlen($prefix));
+                $temporary = $work.DIRECTORY_SEPARATOR.'file_'.bin2hex(random_bytes(4));
+                BackupArchive::extract($zip, $entry, $temporary);
+
+                $target = $directory.DIRECTORY_SEPARATOR.$name;
+
+                if (is_link($target) || ! @rename($temporary, $target)) {
+                    if (! is_link($target) && @copy($temporary, $target)) {
+                        @unlink($temporary);
+                    } else {
+                        throw new BackupException(__('The uploaded files could not be restored.'));
+                    }
+                }
+
+                $restored[$name] = true;
             }
 
-            $restored[$name] = true;
-        }
+            foreach (scandir($directory) ?: [] as $name) {
+                $path = $directory.DIRECTORY_SEPARATOR.$name;
 
-        foreach (scandir($directory) ?: [] as $name) {
-            $path = $directory.DIRECTORY_SEPARATOR.$name;
-
-            if (! isset($restored[$name]) && $name !== '.' && $name !== '..' && is_file($path) && ! str_starts_with($name, '.')) {
-                @unlink($path);
+                if (! isset($restored[$name]) && $name !== '.' && $name !== '..' && is_file($path) && ! str_starts_with($name, '.')) {
+                    @unlink($path);
+                }
             }
         }
     }

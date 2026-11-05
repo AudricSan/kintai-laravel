@@ -24,7 +24,7 @@
                 @foreach ($navigation as $section)
                     <flux:sidebar.group :heading="$section['heading'] !== null ? __($section['heading']) : null" class="grid" data-test="nav-section-{{ $section['key'] }}">
                         @foreach ($section['items'] as $item)
-                            <flux:sidebar.item :icon="$item->icon" :href="route($item->route)" :current="$item->isCurrent()" wire:navigate data-test="nav-item-{{ $item->key }}">
+                            <flux:sidebar.item :icon="$item->icon" :href="route($item->route)" :current="$item->isCurrent()" :badge="($count = $item->badgeFor(auth()->user())) > 0 ? $count : null" wire:navigate data-test="nav-item-{{ $item->key }}">
                                 {{ __($item->label) }}
                             </flux:sidebar.item>
                         @endforeach
@@ -117,7 +117,12 @@
                     ])
                     data-test="bottom-nav-{{ $item->key }}"
                 >
-                    <flux:icon :name="$item->icon" class="size-5" />
+                    <span class="relative">
+                        <flux:icon :name="$item->icon" class="size-5" />
+                        @if (($count = $item->badgeFor(auth()->user())) > 0)
+                            <span class="absolute -right-2 -top-1 rounded-full bg-red-600 px-1 text-[10px] leading-4 text-white" data-test="bottom-nav-badge-{{ $item->key }}">{{ $count }}</span>
+                        @endif
+                    </span>
                     <span class="max-w-full truncate">{{ __($item->label) }}</span>
                 </a>
             @endforeach

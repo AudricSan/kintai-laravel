@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4ddc71bacbb0a1703e8b251502972b6d",
+    "content-hash": "f9768b42d6ec6d597aa67197514de788",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1289,6 +1289,40 @@
             "time": "2026-08-24T17:13:02+00:00"
         },
         {
+            "name": "kintai/bundle-messaging",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/messaging",
+                "reference": "e27d9cc1d63dc5dec2bab90b787cec030d3023c7"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\Messaging\\MessagingServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\Messaging\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Messagerie interne pour Kintai : conversations entre collègues d'un magasin, non-lus, notifications.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "kintai/bundle-notebook",
             "version": "1.1.0",
             "dist": {
@@ -1385,6 +1419,40 @@
                 "AGPL-3.0-only"
             ],
             "description": "Échanges de shifts pour Kintai : proposition à un collègue, acceptation, validation par un gérant, échange appliqué par le Core.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-store-photos",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/store-photos",
+                "reference": "51347236a6a32157379c1775c4fd84589e7ec957"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\StorePhotos\\StorePhotosServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\StorePhotos\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Photos de magasin pour Kintai : envoi sécurisé, stockage privé, consultation par magasin, rétention.",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1494,11 +1562,11 @@
         },
         {
             "name": "kintai/contracts",
-            "version": "1.3.0",
+            "version": "1.4.0",
             "dist": {
                 "type": "path",
                 "url": "packages/contracts",
-                "reference": "2a463434ab5076e20298e44567247d12e36f0968"
+                "reference": "0471be47c1e7e94e040f931cf50faa2125aa6af5"
             },
             "require": {
                 "illuminate/auth": "^13.0",

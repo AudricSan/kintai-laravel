@@ -11,9 +11,11 @@ parameters:
         - routes/
         - packages/contracts/src/
         - packages/bundles/team-directory/src
+        - packages/bundles/messaging/src
         - packages/bundles/notebook/src
         - packages/bundles/shift-claim/src
         - packages/bundles/shift-swap/src
+        - packages/bundles/store-photos/src
         - packages/bundles/timeoff/src
         - packages/bundles/timeclock/src
 
