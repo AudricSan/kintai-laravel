@@ -150,10 +150,18 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
       réinitialisation d'usine (réinstallation).
     - Abandonné : mascotte et journal d'accès (le journal d'activité couvre l'audit).
 
-### Phase 5 : Bundles officiels (dépôt `kintai-bundles`)
-- Le contrat (`kintai/contracts`) existe déjà, construit en phase 4 avec les domaines du Core.
-- Les 13 bundles, un par un : migrations, vues, traductions, routes, commandes, tâches planifiées, configuration
-  publiable, tests.
+### Phase 5 : Bundles officiels
+- Organisation (validée le 05/11/2026, remplace le dépôt `kintai-bundles` de la décision 2) :
+  - Les bundles vivent dans ce dépôt, `packages/bundles/<slug>`, chacun package Composer (`kintai/bundle-<slug>`)
+    branché en dépôt local (`path`) ; publiés par tag `<slug>-vX.Y.Z` comme le prévoit déjà `KintaiBundle/registry.json`.
+    Séparation en dépôt dédié plus tard si besoin.
+  - Le contrat est un package local `packages/contracts` (`kintai/contracts`, namespace `Kintai\Contracts`, semver) :
+    registres, objets valeur et interfaces aujourd'hui dans `app/`. Le Core et chaque bundle en dépendent.
+  - Installation sans terminal : les archives de release construites par la CI contiennent les bundles officiels dans
+    `vendor/` ; l'Owner les active ou désactive dans l'interface, puis par magasin (fonctionnalités). Pas de Composer ni
+    de téléchargement de code depuis le web ; un bundle tiers s'installe par `composer require`.
+- Étapes : extraction du contrat et gestion de l'activation des bundles, puis les 13 bundles un par un (migrations,
+  vues, traductions, routes, commandes, tâches planifiées, configuration publiable, tests).
 
 ### Phase 6 : Installation et mise à jour
 - `php artisan kintai:install` et assistant d'installation web.
@@ -185,6 +193,6 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 
 ## Points encore ouverts
 
-1. Bundles (phase 5, après le Core) : organisation du dépôt (repartir de `KintaiBundle` existant ou dépôt neuf),
-   dépendance aux modèles du Core, façon de les tester.
+1. Bundles : organisation tranchée le 05/11/2026 (voir phase 5) ; reste à fixer, à la première extraction, la façon
+   de tester un bundle (suite du Core qui charge le bundle, ou Testbench).
 2. Fonctionnalités à abandonner : l'inventaire de la phase 0 servira à les proposer.
