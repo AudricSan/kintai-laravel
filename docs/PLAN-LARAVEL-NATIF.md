@@ -124,6 +124,20 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 ### Phase 4 : Core, par tranches verticales
 - Un domaine à la fois, dans l'ordre de la section 9 de l'inventaire : modèles, `FormRequest`, contrôleurs fins, vues Blade/Livewire, `JsonResource`, tests.
 - Réponses dédiées pour CSV, PDF, iCal ; exceptions via `bootstrap/app.php`.
+- Avancement (05/11/2026) :
+  - [x] 1. Identité : profil, employés, rôles (Owner seulement), traduction française.
+  - [x] 2. Magasins et membres, types de shift.
+  - [x] 3. Shifts (garde-fous, remplacement, conflits), calcul des coûts, disponibilités ; écrans du planning (liste,
+    calendrier, frise avec création rapide et glisser-déposer, impression, vues employé).
+  - [x] 4. Tableau de bord (registre des widgets, dispositions personnelles et par rôle) et menu (registre, préférences,
+    barre mobile) ; demandes en attente (registre, vide sans bundle).
+  - [x] 5. Notifications (base, e-mail, Web Push, FCM, préférences, heures silencieuses), journal d'activité.
+  - [x] 6. Exports (registre de jeux de données, CSV/Excel/PDF/ICS), flux iCal (jeton haché), exports personnels.
+  - [x] 7. API v1 (Sanctum, documentation `docs/API-V1.md`) ; un mot de passe de moins de 8 caractères ne reçoit pas de
+    jeton (`403 password_change_required`, comme la production ; validé le 05/11/2026).
+  - [x] 8. Synchronisation Google : rien dans le Core, le bundle `google-calendar` se branche sur les événements des
+    shifts, les sections du profil, les types de notifications et le planificateur de Laravel.
+  - [ ] 9. Administration.
 
 ### Phase 5 : Bundles officiels (dépôt `kintai-bundles`)
 - Le contrat (`kintai/contracts`) existe déjà, construit en phase 4 avec les domaines du Core.
