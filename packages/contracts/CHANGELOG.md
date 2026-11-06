@@ -2,6 +2,17 @@
 
 Versionnement sémantique, voir le README.
 
+## 1.5.0
+
+### Ajouté
+- `Employees\AccountActivation` (service du Core) : `deactivate($userId, $actorId = null)` et `reactivate($userId)`, qui renvoient si l'état
+  a changé. Le Core applique ses garde-fous (droit `employees.update` sur l'employé, pas soi-même sauf Owner, jamais le dernier Owner
+  actif) et révoque sessions et jetons d'un compte désactivé ; sans acteur (tâche planifiée), seule la règle du dernier Owner joue.
+  Un refus lève une `AuthorizationException`. Ajout compatible : seul le Core implémente l'interface.
+- `Employees\EmployeeActionRegistry` (service du Core), `EmployeeAction` et l'aide `BundleServiceProvider::employeeActions()` : un bundle
+  ajoute une action (lien vers une route nommée, qui reçoit `?user=<id>`) sur chaque ligne de la liste des employés et sur la fiche,
+  visible selon `visible(Authenticatable $viewer, int $employeeId)`. Sans effet tant que le bundle n'est pas activé.
+
 ## 1.4.0
 
 ### Ajouté

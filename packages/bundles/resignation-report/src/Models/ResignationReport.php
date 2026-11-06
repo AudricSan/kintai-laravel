@@ -26,6 +26,7 @@ use Kintai\Bundles\ResignationReport\Database\Factories\ResignationReportFactory
  * @property string|null $resignation_notice
  * @property string|null $notes
  * @property string|null $person_in_charge
+ * @property Carbon|null $deactivated_at
  * @property int|null $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -57,7 +58,7 @@ class ResignationReport extends Model
      */
     protected function casts(): array
     {
-        return ['resignation_date' => 'date:Y-m-d'];
+        return ['resignation_date' => 'date:Y-m-d', 'deactivated_at' => 'datetime'];
     }
 
     /**

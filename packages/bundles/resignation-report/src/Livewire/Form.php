@@ -16,7 +16,9 @@ use Livewire\Component;
  * Création (`resignation_reports.create`) et modification (`resignation_reports.update`, sur un rapport visible) d'un rapport
  * de démission. À la création, le magasin se choisit parmi ceux où l'on peut créer ; ensuite il ne change plus. L'employé
  * lié, facultatif, doit appartenir au magasin ; le choisir préremplit numéro et nom (`?user=` à l'ouverture aussi). Le
- * rapport ne désactive aucun compte. Les droits sont revérifiés à l'enregistrement.
+ * rapport désactive le compte lié à la date de départ : il faut pouvoir modifier cet employé (`employees.update`), et un refus d'un
+ * garde-fou du Core (soi-même, dernier Owner) est une erreur de validation qui annule l'enregistrement. Les droits sont
+ * revérifiés à l'enregistrement.
  */
 #[Title('Resignation report')]
 class Form extends Component
@@ -64,11 +66,21 @@ class Form extends Component
         abort_if($stores === [], 403);
 
         $requested = request()->integer('store');
+        $requestedUser = request()->integer('user');
         $this->storeId = isset($stores[$requested]) ? $requested : (int) array_key_first($stores);
+
+        // Sans magasin demandé, `?user=` ouvre le formulaire dans le premier magasin permis où l'employé est membre.
+        if (! isset($stores[$requested]) && $requestedUser > 0) {
+            foreach (array_keys($stores) as $storeId) {
+                if (isset($access->members($storeId)[$requestedUser])) {
+                    $this->storeId = $storeId;
+                    break;
+                }
+            }
+        }
         $this->values['resignation_date'] = now((string) config('kintai.timezone', 'UTC'))->toDateString();
         $this->values['person_in_charge'] = $user->name;
 
-        $requestedUser = request()->integer('user');
         if ($requestedUser > 0 && isset($access->members($this->storeId)[$requestedUser])) {
             $this->userId = (string) $requestedUser;
             $this->fillFromEmployee();

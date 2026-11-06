@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "require": {
         "php": "^8.3",
-        "kintai/contracts": "^1.4"
+        "kintai/contracts": "^1.5"
     },
     "autoload": {
         "psr-4": {

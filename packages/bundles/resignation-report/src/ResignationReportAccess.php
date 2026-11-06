@@ -85,6 +85,38 @@ class ResignationReportAccess
     }
 
     /**
+     * Peut modifier cet employé dans ce magasin (`employees.update` du Core, portée magasin) : condition pour lier un
+     * rapport à son compte, puisque le rapport le désactive à la date de départ.
+     */
+    public function canManageEmployee(User $user, int $storeId, int $employeeId): bool
+    {
+        $employee = User::query()->find($employeeId);
+
+        return $employee !== null
+            && $this->allows($user, 'employees.update', $storeId)
+            && $this->authorizer->canActOnUser($user, 'employees.update', $employee);
+    }
+
+    /**
+     * L'utilisateur peut créer un rapport dans un magasin de l'employé : condition d'affichage de l'action « Licencier »
+     * (un raccourci : le formulaire et l'enregistrement revérifient tout).
+     */
+    public function canCreateFor(User $user, int $employeeId): bool
+    {
+        if ($user->id === $employeeId) {
+            return false;
+        }
+
+        foreach (array_keys($this->storesWith($user, 'resignation_reports.create')) as $storeId) {
+            if (isset($this->members($storeId)[$employeeId])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Rapports que l'utilisateur peut ouvrir : ceux des magasins où il a `view`, et seulement ceux-là.
      *
      * @return Builder<ResignationReport>

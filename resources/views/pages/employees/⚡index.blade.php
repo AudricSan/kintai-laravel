@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Kintai\Contracts\Employees\EmployeeActionRegistry;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -133,6 +134,8 @@ new #[Title('Employees')] class extends Component {
             'ownerIds' => $ownerIds,
             'canCreate' => $authorizer->allows($actor, 'employees.create'),
             'unrestricted' => $ids === null,
+            'actions' => $employees->getCollection()
+                ->mapWithKeys(fn (User $employee): array => [$employee->id => app(EmployeeActionRegistry::class)->actionsFor($actor, $employee->id)])->all(),
             'editableIds' => $employees->getCollection()
                 ->filter(fn (User $employee): bool => $authorizer->canActOnUser($actor, 'employees.view', $employee))
                 ->pluck('id')->all(),
@@ -176,6 +179,7 @@ new #[Title('Employees')] class extends Component {
             <flux:table.column sortable :sorted="$sortBy === 'email'" :direction="$sortDirection" wire:click="sort('email')">{{ __('Email') }}</flux:table.column>
             <flux:table.column>{{ __('Stores') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')">{{ __('Status') }}</flux:table.column>
+            <flux:table.column></flux:table.column>
         </flux:table.columns>
         <flux:table.rows>
             @forelse ($employees as $employee)
@@ -199,10 +203,15 @@ new #[Title('Employees')] class extends Component {
                             {{ $employee->is_active ? __('Active') : __('Inactive') }}
                         </flux:badge>
                     </flux:table.cell>
+                    <flux:table.cell>
+                        @foreach ($actions[$employee->id] ?? [] as $action)
+                            <flux:button size="sm" variant="filled" :icon="$action->icon" :href="$action->url($employee->id)" wire:navigate data-test="employee-action-{{ $action->key }}">{{ __($action->label) }}</flux:button>
+                        @endforeach
+                    </flux:table.cell>
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="6">{{ __('No employee found.') }}</flux:table.cell>
+                    <flux:table.cell colspan="7">{{ __('No employee found.') }}</flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>

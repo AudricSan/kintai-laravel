@@ -17,6 +17,7 @@ class TranslationsTest extends TestCase
     private const DECLARED = [
         'Resignation reports', 'Resignation report created', 'Resignation report updated', 'Resignation report deleted', 'Resignation report viewed',
         'Resignation report of each employee per store, with preview and PDF.',
+        'Dismiss', 'Resignation: account deactivated', 'Resignation: account reactivated', 'Resignation: account deactivation refused',
     ];
 
     /**

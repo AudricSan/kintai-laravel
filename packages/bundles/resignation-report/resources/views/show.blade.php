@@ -4,6 +4,7 @@
         __('Employee') => [
             __('Employee number') => $report->employee_number,
             __('Employee name') => $report->employee_name,
+            __('Account') => $report->user_id === null ? null : ($report->deactivated_at !== null ? __('Deactivated on').' '.$report->deactivated_at->timezone($tz)->format('Y-m-d') : ($report->employee?->is_active === false ? __('Deactivated') : __('Active'))),
         ],
         __('Resignation') => [
             __('Resignation date') => $report->resignation_date?->format('Y-m-d'),
@@ -22,6 +23,9 @@
         <div class="flex flex-wrap gap-2">
             <flux:button variant="filled" :href="route('resignation-report.index', ['store' => $report->store_id])" wire:navigate>{{ __('Back') }}</flux:button>
             <flux:button variant="filled" icon="document-text" :href="route('resignation-report.pdf', $report->id)" target="_blank" data-test="pdf-link">{{ __('PDF') }}</flux:button>
+            @if ($canReactivate)
+                <flux:button variant="filled" icon="arrow-path" wire:click="reactivateAccount" wire:confirm="{{ __('Reactivate this employee account?') }}" data-test="reactivate-account-button">{{ __('Reactivate the account') }}</flux:button>
+            @endif
             @if ($canUpdate)
                 <flux:button variant="filled" icon="pencil-square" :href="route('resignation-report.edit', $report->id)" wire:navigate data-test="edit-report-button">{{ __('Edit') }}</flux:button>
             @endif

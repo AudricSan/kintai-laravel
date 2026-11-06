@@ -57,6 +57,14 @@ class Show extends Component
         $this->redirectRoute('resignation-report.index', ['store' => $report->store_id], navigate: true);
     }
 
+    public function reactivateAccount(ResignationReportActions $actions): void
+    {
+        $report = $this->report();
+        $actions->reactivateAccount($this->user(), $report);
+
+        Flux::toast(variant: 'success', text: __('Account reactivated.'));
+    }
+
     public function render(): View
     {
         $user = $this->user();
@@ -67,6 +75,8 @@ class Show extends Component
             'report' => $report,
             'canUpdate' => $access->canUpdate($user, $report),
             'canDelete' => $access->canDelete($user, $report),
+            'canReactivate' => $report->user_id !== null && $report->employee?->is_active === false && $report->employee->deleted_at === null
+                && $access->canUpdate($user, $report) && $access->canManageEmployee($user, $report->store_id, $report->user_id),
         ]);
     }
 }

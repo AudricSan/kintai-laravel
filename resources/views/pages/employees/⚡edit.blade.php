@@ -17,6 +17,7 @@ use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Kintai\Contracts\Employees\EmployeeActionRegistry;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -298,6 +299,7 @@ new #[Title('Edit employee')] class extends Component {
             'shiftTypes' => $canUpdate ? app(UpdateEmployeeRates::class)->eligibleShiftTypes($actor, $user) : collect(),
             'defaultPassword' => PasswordDefaults::DEFAULT_PASSWORD,
             'icalStores' => $canUpdate ? $stores->filter(fn ($store): bool => $authorizer->allows($actor, 'employees.update', $store)) : collect(),
+            'actions' => app(EmployeeActionRegistry::class)->actionsFor($actor, $user->id),
             'icalLinked' => IcalToken::query()->where('user_id', $user->id)->pluck('store_id')->all(),
         ];
     }
@@ -310,6 +312,9 @@ new #[Title('Edit employee')] class extends Component {
             <flux:heading size="xl">{{ $employee->name }}</flux:heading>
             <flux:subheading>{{ $employee->email ?? $employee->employee_code }}</flux:subheading>
         </div>
+        @foreach ($actions as $action)
+            <flux:button :icon="$action->icon" :href="$action->url($employee->id)" wire:navigate variant="filled" data-test="employee-action-{{ $action->key }}">{{ __($action->label) }}</flux:button>
+        @endforeach
         <flux:button :href="route('employees.index')" wire:navigate variant="filled">{{ __('Back to employees') }}</flux:button>
     </div>
 

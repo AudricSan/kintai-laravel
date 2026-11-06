@@ -26,6 +26,7 @@
                         <flux:select.option :value="$id">{{ $name }}</flux:select.option>
                     @endforeach
                 </flux:select>
+                <flux:text class="sm:col-span-2">{{ __('The linked account is deactivated on the resignation date (at once if the date is reached or empty). Changing the date to a later one reactivates it.') }}</flux:text>
                 <flux:input wire:model="values.employee_number" :label="__('Employee number')" />
                 <flux:input wire:model="values.employee_name" :label="__('Employee name')" />
             </div>

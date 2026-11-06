@@ -14,6 +14,8 @@ use Kintai\Contracts\Backups\BackupFileRegistry;
 use Kintai\Contracts\Contract;
 use Kintai\Contracts\Dashboard\DashboardWidget;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
+use Kintai\Contracts\Employees\EmployeeAction;
+use Kintai\Contracts\Employees\EmployeeActionRegistry;
 use Kintai\Contracts\Exports\ExportDataset;
 use Kintai\Contracts\Exports\ExportDatasetRegistry;
 use Kintai\Contracts\Navigation\NavigationItem;
@@ -159,6 +161,20 @@ abstract class BundleServiceProvider extends ServiceProvider
 
             foreach ($items as $item) {
                 $registry->register($item);
+            }
+        });
+    }
+
+    /**
+     * Actions affichées sur chaque ligne de la liste des employés et sur la fiche (depuis le contrat 1.5).
+     */
+    protected function employeeActions(EmployeeAction ...$actions): void
+    {
+        $this->whenEnabled(function () use ($actions): void {
+            $registry = $this->app->make(EmployeeActionRegistry::class);
+
+            foreach ($actions as $action) {
+                $registry->register($action);
             }
         });
     }

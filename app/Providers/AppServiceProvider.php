@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Actions\Employees\SetAccountActivation;
 use App\Actions\Shifts\ExchangeShifts;
 use App\Actions\Shifts\ReplaceShift;
 use App\Activity\ActivityLogger;
@@ -13,6 +14,7 @@ use App\Bundles\BundleManager;
 use App\Cron\RecordScheduledTaskRun;
 use App\Dashboard\CoreWidgets;
 use App\Dashboard\DefaultDashboardWidgetRegistry;
+use App\Employees\DefaultEmployeeActionRegistry;
 use App\Exports\CoreExportDatasets;
 use App\Exports\DefaultExportDatasetRegistry;
 use App\Http\Middleware\EnsureApiAccountIsActive;
@@ -64,6 +66,8 @@ use Kintai\Contracts\Backups\BackupFileRegistry;
 use Kintai\Contracts\Bundle\BundleActivation;
 use Kintai\Contracts\Bundle\BundleServiceProvider;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
+use Kintai\Contracts\Employees\AccountActivation;
+use Kintai\Contracts\Employees\EmployeeActionRegistry;
 use Kintai\Contracts\Events\EmployeeCreated;
 use Kintai\Contracts\Events\EmployeePasswordReset;
 use Kintai\Contracts\Events\EmployeeRatesUpdated;
@@ -117,6 +121,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(StoreFeatureRegistry::class, DefaultStoreFeatureRegistry::class);
         $this->app->singleton(BackupFileRegistry::class, DefaultBackupFileRegistry::class);
         $this->app->singleton(NavigationRegistry::class, DefaultNavigationRegistry::class);
+        $this->app->singleton(EmployeeActionRegistry::class, DefaultEmployeeActionRegistry::class);
         $this->app->singleton(PendingRequestRegistry::class, DefaultPendingRequestRegistry::class);
         $this->app->singleton(DashboardWidgetRegistry::class, DefaultDashboardWidgetRegistry::class);
         $this->app->singleton(NotificationTypeRegistry::class, DefaultNotificationTypeRegistry::class);
@@ -125,6 +130,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ActivityRecorder::class, ActivityLogger::class);
         $this->app->bind(ShiftReplacer::class, ReplaceShift::class);
         $this->app->bind(ShiftExchanger::class, ExchangeShifts::class);
+        $this->app->bind(AccountActivation::class, SetAccountActivation::class);
         $this->app->bind(ColleagueDirectory::class, StoreColleagueDirectory::class);
         $this->app->bind(Notifier::class, UserNotifier::class);
         // Réglages de l'instance : le Core déclare les siens ici, les bundles et les autres tranches y ajoutent les leurs.

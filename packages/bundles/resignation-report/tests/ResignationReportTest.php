@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Kintai\Bundles\ResignationReport\Models\ResignationReport;
 use Kintai\Contracts\Authorization\PermissionRegistry;
+use Kintai\Contracts\Employees\EmployeeActionRegistry;
 use Kintai\Contracts\Navigation\NavigationRegistry;
 use Livewire\Livewire;
 use LogicException;
@@ -22,7 +23,7 @@ use Tests\TestCase;
 
 /**
  * Rapports de démission : portée magasin, une permission par action sur chaque surface (routes, composants, PDF), journal
- * sans donnée personnelle, anonymisation, bundle désactivé. Le rapport ne désactive aucun compte.
+ * sans donnée personnelle, anonymisation, bundle désactivé. La désactivation du compte lié est couverte par `ResignationDeactivationTest`.
  */
 class ResignationReportTest extends TestCase
 {
@@ -93,6 +94,7 @@ class ResignationReportTest extends TestCase
     {
         $this->assertFalse(app(PermissionRegistry::class)->has('resignation_reports.view'));
         $this->assertFalse(app(NavigationRegistry::class)->has('resignation-report'));
+        $this->assertFalse(app(EmployeeActionRegistry::class)->has('resignation-report.dismiss'));
 
         $this->actingAs($this->owner())->get('/resignation-report')->assertNotFound();
         $this->assertTrue(Schema::hasTable('resignation_reports'));
@@ -100,7 +102,7 @@ class ResignationReportTest extends TestCase
 
     public function test_the_form_covers_exactly_the_columns_of_the_table(): void
     {
-        $columns = array_diff(Schema::getColumnListing('resignation_reports'), ['id', 'store_id', 'user_id', 'created_by', 'created_at', 'updated_at']);
+        $columns = array_diff(Schema::getColumnListing('resignation_reports'), ['id', 'store_id', 'user_id', 'created_by', 'deactivated_at', 'created_at', 'updated_at']);
 
         $this->assertEqualsCanonicalizing(array_values($columns), ResignationReport::FIELDS);
         $this->assertEqualsCanonicalizing(ResignationReport::FIELDS, array_values(array_diff((new ResignationReport)->getFillable(), ['store_id', 'user_id', 'created_by'])));
@@ -212,7 +214,7 @@ class ResignationReportTest extends TestCase
     public function test_a_holder_of_create_creates_a_report(): void
     {
         $this->enable();
-        $creator = $this->holder(['resignation_reports.view', 'resignation_reports.create'], $this->a);
+        $creator = $this->holder(['resignation_reports.view', 'resignation_reports.create', 'employees.update'], $this->a);
         $ana = $this->employeeOf($this->a);
 
         Livewire::actingAs($creator)->test('resignation-report.form')
@@ -275,17 +277,6 @@ class ResignationReportTest extends TestCase
             ->set('values.resignation_date', 'not-a-date')->set('values.reason', str_repeat('x', 5001))
             ->call('save')->assertHasErrors(['values.resignation_date', 'values.reason']);
         $this->assertSame(0, ResignationReport::count());
-    }
-
-    public function test_a_report_never_changes_an_account(): void
-    {
-        $this->enable();
-        $manager = $this->managerOf($this->a);
-        $ana = $this->employeeOf($this->a);
-
-        Livewire::actingAs($manager)->test('resignation-report.form')->set('userId', (string) $ana->id)->set('values.resignation_date', '2000-01-01')->call('save')->assertHasNoErrors();
-
-        $this->assertTrue($ana->fresh()->is_active);
     }
 
     public function test_updating_needs_update_and_never_moves_the_report_to_another_store(): void

@@ -20,6 +20,8 @@ return new class extends Migration
             $table->text('resignation_notice')->nullable();
             $table->text('notes')->nullable();
             $table->string('person_in_charge')->nullable();
+            // Date où le rapport a désactivé le compte lié : le rapport n'est appliqué qu'une fois.
+            $table->timestamp('deactivated_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
