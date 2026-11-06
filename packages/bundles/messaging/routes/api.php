@@ -4,7 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Kintai\Bundles\Messaging\Http\MessageController;
 
 // Préfixe `api/v1/messaging`, noms `api.v1.messaging.*`, pile de l'API du Core (jeton Sanctum, langue, limiteur, compte actif).
-// Libre-service : chacun ne voit que les conversations dont il est participant (sinon 404).
+// Permissions `messaging.view/send/create` (403 sans elles) ; en plus, chacun ne voit que les conversations dont il est
+// participant (sinon 404).
 Route::whereNumber(['thread', 'message'])->group(function (): void {
     Route::get('threads', [MessageController::class, 'threads'])->name('threads.index');
     Route::get('unread', [MessageController::class, 'unread'])->name('unread');

@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Kintai\Bundles\Timeclock\Models\Timeclock;
+use Kintai\Bundles\Timeclock\OvertimeTracker;
 use Kintai\Bundles\Timeclock\TimeclockAccess;
 use Kintai\Bundles\Timeclock\TimeclockActions;
 use Livewire\Attributes\Locked;
@@ -152,6 +153,8 @@ class Manage extends Component
             'user' => $user,
             'stores' => $access->storesWith($user, 'timeclock.view'),
             'threshold' => $access->lateThreshold(),
+            'overtime' => app(OvertimeTracker::class),
+            'isOwner' => $access->isOwner($user),
         ]);
     }
 }

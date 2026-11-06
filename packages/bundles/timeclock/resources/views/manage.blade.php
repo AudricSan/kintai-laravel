@@ -1,7 +1,12 @@
 <section class="w-full space-y-6 p-4">
-    <div>
-        <flux:heading size="xl">{{ __('Time clock entries') }}</flux:heading>
-        <flux:subheading>{{ __('Clock-ins and clock-outs of the stores you manage') }}</flux:subheading>
+    <div class="flex items-center justify-between gap-4">
+        <div>
+            <flux:heading size="xl">{{ __('Time clock entries') }}</flux:heading>
+            <flux:subheading>{{ __('Clock-ins and clock-outs of the stores you manage') }}</flux:subheading>
+        </div>
+        @if ($isOwner)
+            <flux:button variant="filled" :href="route('timeclock.settings')" wire:navigate data-test="settings-link">{{ __('Overtime settings') }}</flux:button>
+        @endif
     </div>
 
     <div class="flex flex-wrap gap-3">
@@ -48,7 +53,12 @@
                             {{ $entry->localOut()?->format('H:i') }}
                         @endif
                     </flux:table.cell>
-                    <flux:table.cell>{{ $entry->duration_minutes ?? '' }}</flux:table.cell>
+                    <flux:table.cell>
+                        {{ $entry->duration_minutes ?? '' }}
+                        @if (($extra = $overtime->forEntry($entry)) > 0)
+                            <flux:badge size="sm" color="amber" data-test="overtime-badge">{{ __('Overtime: :minutes min', ['minutes' => $extra]) }}</flux:badge>
+                        @endif
+                    </flux:table.cell>
                     <flux:table.cell>
                         <div class="flex gap-2">
                             @if ($access->canUpdate($user, $entry))

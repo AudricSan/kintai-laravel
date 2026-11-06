@@ -30,6 +30,8 @@ class Compose extends Component
 
     public function mount(): void
     {
+        abort_unless($this->access()->can($this->user(), 'messaging.create'), 403);
+
         $stores = $this->access()->composeStores($this->user());
         abort_if($stores === [], 404);
 

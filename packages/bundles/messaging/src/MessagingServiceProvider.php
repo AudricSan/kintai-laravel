@@ -19,7 +19,7 @@ use Livewire\Livewire;
 
 /**
  * Messagerie interne : conversations entre collègues d'un magasin, lues par leurs seuls participants, avec compteur de
- * non-lus. Libre-service (aucun droit à accorder : voir `MessagingAccess`), fonctionnalité de magasin `messages`.
+ * non-lus. Droits `messaging.view/send/create` (voir `MessagingAccess`), fonctionnalité de magasin `messages`.
  */
 class MessagingServiceProvider extends BundleServiceProvider
 {
@@ -41,7 +41,7 @@ class MessagingServiceProvider extends BundleServiceProvider
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     public function description(): string
@@ -63,19 +63,24 @@ class MessagingServiceProvider extends BundleServiceProvider
             Livewire::component('messaging.unread-widget', UnreadWidget::class);
         }
 
+        // Tous les rôles du Core gardent la messagerie telle qu'elle était : lire, répondre et ouvrir une conversation.
+        $this->permissions('messaging', ['view', 'send', 'create'], [
+            'manager' => ['view', 'send', 'create'],
+            'employee' => ['view', 'send', 'create'],
+        ]);
         $this->storeFeature(self::FEATURE, 'Messaging');
 
         $usable = fn (Authenticatable $user): bool => $user instanceof User && $this->app->make(MessagingAccess::class)->canUse($user);
 
         $this->navigation(new NavigationItem(
             key: 'messaging', label: 'Messages', route: 'messaging.index', icon: 'chat-bubble-left-right',
-            section: NavigationRegistry::SECTION_REQUESTS, order: 40, visible: $usable, current: ['messaging.*'],
+            section: NavigationRegistry::SECTION_REQUESTS, order: 40, permission: 'messaging.view', visible: $usable, current: ['messaging.*'],
             badge: fn (Authenticatable $user): int => $user instanceof User ? $this->app->make(MessagingAccess::class)->unreadCount($user) : 0,
         ));
         foreach ([DashboardWidget::EMPLOYEE, DashboardWidget::MANAGER] as $audience) {
             $this->widgets(new DashboardWidget(
                 key: 'messaging.'.$audience, label: 'Unread messages', audience: $audience, component: 'messaging.unread-widget',
-                size: WidgetSize::Small, order: 45, when: $usable,
+                permission: 'messaging.view', size: WidgetSize::Small, order: 45, when: $usable,
             ));
         }
         $this->notificationTypes(new NotificationType(self::NOTIFICATION, 'New message', 'messages', 'chat-bubble-left-right', push: true, referenceType: 'message_thread'));

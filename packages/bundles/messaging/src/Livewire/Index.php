@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Kintai\Bundles\Messaging\MessagingAccess;
 use Kintai\Bundles\Messaging\MessagingActions;
+use Kintai\Bundles\Messaging\Models\MessageThread;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -32,6 +33,7 @@ class Index extends Component
 
     public function mount(): void
     {
+        abort_unless($this->access()->can($this->user(), 'messaging.view'), 403);
         abort_unless($this->access()->canUse($this->user()), 404);
 
         if (! in_array($this->tab, self::TABS, true)) {
@@ -52,10 +54,18 @@ class Index extends Component
         return app(MessagingAccess::class);
     }
 
-    public function confirmHiding(int $id): void
+    private function thread(int $id): MessageThread
     {
         $thread = $this->access()->thread($this->user(), $id);
         abort_if($thread === null, 404);
+        abort_unless($this->access()->canView($this->user(), $thread), 403);
+
+        return $thread;
+    }
+
+    public function confirmHiding(int $id): void
+    {
+        $thread = $this->thread($id);
 
         $this->hidingId = $thread->id;
         Flux::modal('confirm-thread-hiding')->show();
@@ -63,10 +73,7 @@ class Index extends Component
 
     public function hide(MessagingActions $actions): void
     {
-        $thread = $this->access()->thread($this->user(), $this->hidingId);
-        abort_if($thread === null, 404);
-
-        $actions->hide($this->user(), $thread);
+        $actions->hide($this->user(), $this->thread($this->hidingId));
 
         $this->reset('hidingId');
         Flux::modal('confirm-thread-hiding')->close();

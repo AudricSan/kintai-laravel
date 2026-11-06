@@ -35,6 +35,20 @@
         <flux:heading size="lg">{{ __('This week') }}</flux:heading>
         <flux:text data-test="week-total">{{ __('Total: :hours h :minutes min', ['hours' => intdiv($weekMinutes, 60), 'minutes' => $weekMinutes % 60]) }}</flux:text>
 
+        @if ($overtime)
+            <div class="flex flex-wrap items-center gap-2" data-test="week-overtime">
+                <flux:badge size="sm" :color="$overtime->overtimeMinutes() > 0 ? 'amber' : 'zinc'">{{ __('Overtime: :hours h :minutes min', ['hours' => intdiv($overtime->overtimeMinutes(), 60), 'minutes' => $overtime->overtimeMinutes() % 60]) }}</flux:badge>
+                <flux:text size="sm">
+                    @if ($rules->dailyMinutes > 0)
+                        {{ __('Daily threshold: :hours h', ['hours' => $rules->dailyMinutes / 60]) }}
+                    @endif
+                    @if ($rules->weeklyMinutes > 0)
+                        {{ __('Weekly threshold: :hours h', ['hours' => $rules->weeklyMinutes / 60]) }}
+                    @endif
+                </flux:text>
+            </div>
+        @endif
+
         @if ($week->isEmpty())
             <flux:text data-test="no-entries">{{ __('No time clock entries.') }}</flux:text>
         @else
@@ -58,7 +72,12 @@
                                 @endif
                             </flux:table.cell>
                             <flux:table.cell>{{ $entry->localOut()?->format('H:i') ?? __('Running') }}</flux:table.cell>
-                            <flux:table.cell>{{ $entry->duration_minutes ?? '' }}</flux:table.cell>
+                            <flux:table.cell>
+                                {{ $entry->duration_minutes ?? '' }}
+                                @if ($overtime && ($extra = $overtime->forEntry($entry->id)) > 0)
+                                    <flux:badge size="sm" color="amber" data-test="overtime-badge">{{ __('Overtime: :minutes min', ['minutes' => $extra]) }}</flux:badge>
+                                @endif
+                            </flux:table.cell>
                         </flux:table.row>
                     @endforeach
                 </flux:table.rows>

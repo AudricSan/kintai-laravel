@@ -2,12 +2,15 @@
 
 namespace Kintai\Bundles\Messaging\Tests;
 
+use App\Bundles\BundleManager;
+use App\Bundles\DefaultPermissionGrant;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Kintai\Bundles\Messaging\Models\MessageThread;
 use Kintai\Bundles\Messaging\Models\ThreadMessage;
 use Kintai\Bundles\Messaging\Models\ThreadParticipant;
+use LogicException;
 use Tests\Concerns\CreatesAccess;
 use Tests\Concerns\InstallsBundles;
 use Tests\Concerns\UsesApi;
@@ -35,7 +38,16 @@ class MessagingApiTest extends TestCase
         $this->seedRoles();
         $this->a = Store::factory()->create(['name' => 'Alpha']);
         $this->b = Store::factory()->create(['name' => 'Beta']);
+        $this->enableMessaging();
+    }
+
+    /**
+     * Active le bundle comme le fait l'Owner : les droits par défaut des rôles manager et employee sont accordés.
+     */
+    private function enableMessaging(): void
+    {
         $this->enableBundle('messaging');
+        app(DefaultPermissionGrant::class)->grantOnFirstActivation(app(BundleManager::class)->find('messaging') ?? throw new LogicException);
     }
 
     /**

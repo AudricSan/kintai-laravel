@@ -8,6 +8,7 @@ use Kintai\Bundles\Timeclock\Livewire\EmployeeWidget;
 use Kintai\Bundles\Timeclock\Livewire\Manage;
 use Kintai\Bundles\Timeclock\Livewire\ManagerWidget;
 use Kintai\Bundles\Timeclock\Livewire\MyClock;
+use Kintai\Bundles\Timeclock\Livewire\Settings as OvertimeSettings;
 use Kintai\Bundles\Timeclock\Models\Timeclock;
 use Kintai\Contracts\Bundle\BundleServiceProvider;
 use Kintai\Contracts\Dashboard\DashboardWidget;
@@ -15,6 +16,7 @@ use Kintai\Contracts\Dashboard\WidgetSize;
 use Kintai\Contracts\Events\UserAnonymized;
 use Kintai\Contracts\Navigation\NavigationItem;
 use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Notifications\NotificationType;
 use Kintai\Contracts\Settings\SettingDefinition;
 use Livewire\Livewire;
 
@@ -40,7 +42,7 @@ class TimeclockServiceProvider extends BundleServiceProvider
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     public function description(): string
@@ -55,12 +57,25 @@ class TimeclockServiceProvider extends BundleServiceProvider
             Livewire::component('timeclock.manage', Manage::class);
             Livewire::component('timeclock.manager-widget', ManagerWidget::class);
             Livewire::component('timeclock.employee-widget', EmployeeWidget::class);
+            Livewire::component('timeclock.settings', OvertimeSettings::class);
         }
 
         // Les gérants consultent et corrigent ; les employés pointent et lisent leurs pointages sans permission.
         $this->permissions('timeclock', ['view', 'update', 'delete'], ['manager' => ['view', 'update', 'delete']]);
         $this->storeFeature(self::FEATURE, 'Time clock');
-        $this->settings(new SettingDefinition('timeclock.late_threshold_minutes', SettingDefinition::TYPE_INT, 5, 0, 240));
+        // Heures supplémentaires : désactivées par défaut. Les seuils (0 = pas de seuil) sont des valeurs de départ, la
+        // réglementation varie selon les pays ; semaine du lundi par défaut (0 = dimanche … 6 = samedi).
+        $this->settings(
+            new SettingDefinition('timeclock.late_threshold_minutes', SettingDefinition::TYPE_INT, 5, 0, 240),
+            new SettingDefinition('timeclock.overtime_enabled', SettingDefinition::TYPE_BOOL, false),
+            new SettingDefinition('timeclock.overtime_daily_hours', SettingDefinition::TYPE_INT, 8, 0, 24),
+            new SettingDefinition('timeclock.overtime_weekly_hours', SettingDefinition::TYPE_INT, 40, 0, 168),
+            new SettingDefinition('timeclock.overtime_week_start', SettingDefinition::TYPE_INT, 1, 0, 6),
+        );
+        $this->notificationTypes(
+            new NotificationType(OvertimeTracker::EMPLOYEE_ALERT, 'Overtime threshold reached', 'planning', 'clock', push: true, referenceType: 'timeclock'),
+            new NotificationType(OvertimeTracker::MANAGER_ALERT, 'Employee overtime threshold reached', 'planning', 'clock', push: true, referenceType: 'timeclock'),
+        );
 
         $hasStore = fn (Authenticatable $user): bool => $user instanceof User && $this->app->make(TimeclockAccess::class)->memberStores($user) !== [];
 
@@ -90,6 +105,7 @@ class TimeclockServiceProvider extends BundleServiceProvider
             'timeclock.clock_out' => 'Clock-out',
             'timeclock.edited' => 'Time clock entry edited',
             'timeclock.deleted' => 'Time clock entry deleted',
+            'timeclock.settings_updated' => 'Overtime settings updated',
         ] as $key => $label) {
             $this->activityAction($key, $label, 'Time clock');
         }

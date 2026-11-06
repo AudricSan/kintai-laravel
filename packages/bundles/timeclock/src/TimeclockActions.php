@@ -19,6 +19,8 @@ use Kintai\Contracts\Api\ApiException;
  * ce qui compte pour la paie ; elle n'est crue que dans une fenêtre raisonnable (24 h dans le passé, 2 min dans le
  * futur pour la dérive d'horloge), sinon l'heure du serveur est utilisée.
  *
+ * Après une sortie ou une correction, les seuils d'heures supplémentaires franchis sont signalés (`OvertimeTracker`).
+ *
  * Erreurs : `ApiException` 409 `already_clocked_in`, 404 `not_clocked_in` ; `ValidationException` pour un magasin
  * invalide ou des heures incohérentes ; `AuthorizationException` pour un refus.
  */
@@ -27,6 +29,7 @@ class TimeclockActions
     public function __construct(
         private readonly TimeclockAccess $access,
         private readonly ActivityRecorder $activity,
+        private readonly OvertimeTracker $overtime,
     ) {}
 
     /**
@@ -100,6 +103,7 @@ class TimeclockActions
         $entry->save();
 
         $this->activity->record('timeclock.clock_out', $entry, $entry->store_id, $this->offline($at, $now) + ['minutes' => $entry->duration_minutes], $employee);
+        $this->overtime->check($entry);
 
         return $entry;
     }
@@ -134,6 +138,7 @@ class TimeclockActions
 
         if ($changed !== []) {
             $this->activity->record('timeclock.edited', $entry, $entry->store_id, ['fields' => $changed], $actor);
+            $this->overtime->check($entry);
         }
 
         return $entry;

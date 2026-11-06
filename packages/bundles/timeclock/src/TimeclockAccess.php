@@ -114,6 +114,30 @@ class TimeclockAccess
         return Timeclock::query()->when($ids !== null, fn (Builder $q) => $q->whereIn('store_id', $ids ?? []));
     }
 
+    public function isOwner(User $user): bool
+    {
+        return $this->authorizer->isOwner($user);
+    }
+
+    /**
+     * Utilisateurs actifs, membres actifs du magasin, qui ont la permission : destinataires des notifications.
+     *
+     * @return list<User>
+     */
+    public function holders(int $storeId, string $permission): array
+    {
+        $members = StoreMembership::query()->where('store_id', $storeId)->where('is_active', true)->pluck('user_id');
+        $holders = [];
+
+        foreach (User::query()->whereIn('id', $members)->where('is_active', true)->get() as $candidate) {
+            if ($this->authorizer->allows($candidate, $permission, $storeId)) {
+                $holders[] = $candidate;
+            }
+        }
+
+        return $holders;
+    }
+
     /**
      * Seuil de retard en minutes (réglage `timeclock.late_threshold_minutes`).
      */

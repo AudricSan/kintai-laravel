@@ -3,7 +3,7 @@
     "description": "Pointage pour Kintai : entrée et sortie des employés rattachées à leur shift, historique, gestion par les gérants, export.",
     "type": "library",
     "license": "AGPL-3.0-only",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "require": {
         "php": "^8.3",
         "kintai/contracts": "^1.2"

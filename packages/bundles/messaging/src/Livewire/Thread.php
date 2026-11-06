@@ -55,6 +55,7 @@ class Thread extends Component
     {
         $thread = $this->access()->thread($this->user(), $id);
         abort_if($thread === null, 404);
+        abort_unless($this->access()->canView($this->user(), $thread), 403);
 
         return $thread;
     }
@@ -76,6 +77,7 @@ class Thread extends Component
 
     public function confirmMessageDeletion(int $messageId): void
     {
+        $this->thread($this->threadId);
         $message = ThreadMessage::query()->where('thread_id', $this->threadId)->find($messageId);
         abort_if($message === null || $message->sender_id !== $this->user()->id, 404);
 
@@ -98,6 +100,7 @@ class Thread extends Component
 
     public function confirmHiding(): void
     {
+        $this->thread($this->threadId);
         Flux::modal('confirm-thread-hiding')->show();
     }
 

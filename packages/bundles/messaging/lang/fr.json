@@ -50,6 +50,9 @@
     "Unread": "Non lus",
     "Unread messages": "Messages non lus",
     "Write to one or more colleagues of a store": "Écrire à un ou plusieurs collègues d'un magasin",
+    "You are not allowed to read messages.": "Vous n'avez pas le droit de lire les messages.",
+    "You are not allowed to send messages.": "Vous n'avez pas le droit d'envoyer des messages.",
+    "You are not allowed to start a conversation.": "Vous n'avez pas le droit d'ouvrir une conversation.",
     "You can no longer write in this conversation.": "Vous ne pouvez plus écrire dans cette conversation.",
     "You cannot send messages in this store.": "Vous ne pouvez pas envoyer de messages dans ce magasin.",
     "Your reply...": "Votre réponse..."

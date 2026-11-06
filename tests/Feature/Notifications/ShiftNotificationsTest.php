@@ -174,7 +174,8 @@ class ShiftNotificationsTest extends TestCase
 
         app(RestoreShift::class)->handle($this->manager, $shift->refresh());
 
-        $this->assertSame(['shift_deleted', 'shift_assigned'], $this->types($this->emma));
+        // Les deux notifications partent dans la même seconde : l'ordre n'est pas garanti, seul l'ensemble compte.
+        $this->assertEqualsCanonicalizing(['shift_deleted', 'shift_assigned'], $this->types($this->emma));
     }
 
     public function test_replacing_with_another_slot_for_the_same_employee_sends_a_single_update(): void

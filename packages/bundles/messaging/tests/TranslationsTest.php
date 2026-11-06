@@ -19,6 +19,7 @@ class TranslationsTest extends TestCase
         ':sender replied in: :subject', 'Conversation started', 'Reply sent', 'Message deleted',
         'Conversation removed from a list', 'Conversation deleted', 'Participant added to a conversation',
         'Internal messaging between the members of a store: private conversations, unread counter, notifications.',
+        'You are not allowed to read messages.', 'You are not allowed to send messages.', 'You are not allowed to start a conversation.',
     ];
 
     /**

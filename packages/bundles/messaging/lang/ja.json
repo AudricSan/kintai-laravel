@@ -50,6 +50,9 @@
     "Unread": "未読",
     "Unread messages": "未読のメッセージ",
     "Write to one or more colleagues of a store": "店舗の同僚に1人または複数人へメッセージを送ります",
+    "You are not allowed to read messages.": "メッセージを読む権限がありません。",
+    "You are not allowed to send messages.": "メッセージを送信する権限がありません。",
+    "You are not allowed to start a conversation.": "会話を開始する権限がありません。",
     "You can no longer write in this conversation.": "この会話には書き込めなくなりました。",
     "You cannot send messages in this store.": "この店舗ではメッセージを送れません。",
     "Your reply...": "返信を入力..."

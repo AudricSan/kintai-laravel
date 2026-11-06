@@ -3,6 +3,8 @@
 namespace Kintai\Bundles\Messaging\Tests;
 
 use App\Actions\AnonymizeUser;
+use App\Bundles\BundleManager;
+use App\Bundles\DefaultPermissionGrant;
 use App\Models\ActivityEntry;
 use App\Models\Store;
 use App\Models\StoreFeature;
@@ -22,6 +24,7 @@ use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Livewire\Livewire;
+use LogicException;
 use Tests\Concerns\CreatesAccess;
 use Tests\Concerns\InstallsBundles;
 use Tests\TestCase;
@@ -50,6 +53,15 @@ class MessagingTest extends TestCase
         $this->b = Store::factory()->create(['name' => 'Beta']);
     }
 
+    /**
+     * Active le bundle comme le fait l'Owner : les droits par défaut des rôles manager et employee sont accordés.
+     */
+    private function enableMessaging(): void
+    {
+        $this->enableBundle('messaging');
+        app(DefaultPermissionGrant::class)->grantOnFirstActivation(app(BundleManager::class)->find('messaging') ?? throw new LogicException);
+    }
+
     private function actions(): MessagingActions
     {
         return app(MessagingActions::class);
@@ -60,7 +72,7 @@ class MessagingTest extends TestCase
      */
     private function trio(): array
     {
-        $this->enableBundle('messaging');
+        $this->enableMessaging();
 
         return [
             $this->employeeOf($this->a, ['name' => 'Alice Sender']),
@@ -78,7 +90,7 @@ class MessagingTest extends TestCase
 
     public function test_the_bundle_plugs_into_the_core_when_enabled(): void
     {
-        $this->enableBundle('messaging');
+        $this->enableMessaging();
 
         $this->assertTrue(app(StoreFeatureRegistry::class)->has('messages'));
         $this->assertTrue(app(NavigationRegistry::class)->has('messaging'));
@@ -98,14 +110,14 @@ class MessagingTest extends TestCase
 
     public function test_guests_are_sent_to_the_login_page(): void
     {
-        $this->enableBundle('messaging');
+        $this->enableMessaging();
 
         $this->get('/messaging')->assertRedirect(route('login'));
     }
 
     // -- Envoyer -------------------------------------------------------------------------------------------------
 
-    public function test_an_employee_starts_a_conversation_without_any_permission(): void
+    public function test_an_employee_starts_a_conversation_with_the_default_rights(): void
     {
         [$alice, $bob, $carl] = $this->trio();
 
@@ -413,9 +425,9 @@ class MessagingTest extends TestCase
 
     public function test_a_user_without_store_or_conversation_has_no_messaging(): void
     {
-        $this->enableBundle('messaging');
+        $this->enableMessaging();
         $loner = User::factory()->create();
 
-        $this->actingAs($loner)->get('/messaging')->assertNotFound();
+        $this->actingAs($loner)->get('/messaging')->assertForbidden();
     }
 }

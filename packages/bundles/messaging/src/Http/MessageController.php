@@ -28,6 +28,7 @@ class MessageController extends ApiController
     public function threads(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
+        $this->authorizeAny($user, 'messaging.view');
         $filters = $request->validate(['tab' => ['nullable', Rule::in(['inbox', 'sent', 'unread'])], 'store_id' => ['nullable', 'integer']]);
 
         $threads = $this->access->listing($user, $filters['tab'] ?? 'inbox')
@@ -43,7 +44,10 @@ class MessageController extends ApiController
 
     public function unread(Request $request): JsonResponse
     {
-        return response()->json(['data' => ['unread' => $this->access->unreadCount($this->user($request))]]);
+        $user = $this->user($request);
+        $this->authorizeAny($user, 'messaging.view');
+
+        return response()->json(['data' => ['unread' => $this->access->unreadCount($user)]]);
     }
 
     public function show(Request $request, int $thread): MessageResource
@@ -61,6 +65,7 @@ class MessageController extends ApiController
     public function store(Request $request): JsonResponse
     {
         $user = $this->user($request);
+        $this->authorizeAny($user, 'messaging.create');
         $data = $request->validate([
             'store_id' => ['required', 'integer'],
             'subject' => ['required', 'string', 'max:'.MessagingActions::SUBJECT_MAX],
@@ -126,6 +131,8 @@ class MessageController extends ApiController
             abort(404);
         }
 
+        $this->find($user, $model->thread_id);
+
         $this->actions->deleteMessage($user, $model);
 
         return response()->noContent();
@@ -159,9 +166,20 @@ class MessageController extends ApiController
         return $user;
     }
 
+    /**
+     * Refus (403) sans la permission, pour aucun magasin, avant toute autre vérification.
+     */
+    private function authorizeAny(User $user, string $permission): void
+    {
+        abort_unless($this->access->can($user, $permission), 403);
+    }
+
     private function find(User $user, int $thread): MessageThread
     {
-        return $this->access->thread($user, $thread) ?? abort(404);
+        $model = $this->access->thread($user, $thread) ?? abort(404);
+        abort_unless($this->access->canView($user, $model), 403);
+
+        return $model;
     }
 
     private function unreadFor(User $user, MessageThread $thread): bool

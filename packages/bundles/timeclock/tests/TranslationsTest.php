@@ -15,6 +15,11 @@ class TranslationsTest extends TestCase
 {
     /** @var list<string> Libellés traduits par le Core (menu, section du profil, titres, journal, fonctionnalité). */
     private const DECLARED = [
+        'Overtime (min)', 'Overtime settings', 'Overtime settings updated', 'Overtime threshold reached', 'Employee overtime threshold reached',
+        'You have reached the daily overtime threshold of :threshold h on :date (:worked worked, :overtime of overtime).',
+        'You have reached the weekly overtime threshold of :threshold h for the week starting :date (:worked worked, :overtime of overtime).',
+        ':employee has reached the daily overtime threshold of :threshold h on :date (:worked worked, :overtime of overtime).',
+        ':employee has reached the weekly overtime threshold of :threshold h for the week starting :date (:worked worked, :overtime of overtime).',
         'Time clock', 'Time clock entries', 'Active clock-ins', 'Clock-in', 'Clock-out', 'Time clock entry edited', 'Time clock entry deleted',        'Date', 'Duration (min)', 'Employee', 'Store', 'Notes',        'Employee clock-in and clock-out tied to their shift, history, and management of time clock entries.',
     ];
 

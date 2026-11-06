@@ -38,10 +38,15 @@ class MessagingActions
      *
      * @param  list<int>  $recipientIds  Collègues du magasin (l'expéditeur et les doublons sont écartés).
      *
+     * @throws AuthorizationException Sans `messaging.create` pour ce magasin.
      * @throws ValidationException Magasin où l'on ne peut pas écrire, destinataire qui n'est pas un collègue visible, champ vide.
      */
     public function start(User $sender, int $storeId, string $subject, string $body, array $recipientIds): MessageThread
     {
+        if (! $this->access->can($sender, 'messaging.create')) {
+            throw new AuthorizationException(__('You are not allowed to start a conversation.'));
+        }
+
         $subject = trim($subject);
         $body = trim($body);
         $recipientIds = array_values(array_unique(array_filter(array_map('intval', $recipientIds), fn (int $id): bool => $id > 0 && $id !== $sender->id)));
@@ -54,6 +59,10 @@ class MessagingActions
 
         if (! $this->access->canWriteIn($sender, $storeId)) {
             throw ValidationException::withMessages(['storeId' => __('You cannot send messages in this store.')]);
+        }
+
+        if (! $this->access->canIn($sender, 'messaging.create', $storeId)) {
+            throw new AuthorizationException(__('You are not allowed to start a conversation.'));
         }
 
         $allowed = array_map(fn ($colleague): int => $colleague->id, $this->access->recipients($sender, $storeId));
@@ -85,10 +94,13 @@ class MessagingActions
     /**
      * Répond dans la conversation : elle redevient non lue, et réapparaît, chez ceux qui l'avaient masquée.
      *
+     * @throws AuthorizationException Sans `messaging.send` pour le magasin de la conversation.
      * @throws ValidationException
      */
     public function reply(User $sender, MessageThread $thread, string $body): ThreadMessage
     {
+        $this->assertCan($sender, 'messaging.send', $thread, 'You are not allowed to send messages.');
+
         $body = trim($body);
         $this->assertBody($body);
 
@@ -127,6 +139,8 @@ class MessagingActions
      */
     public function markRead(User $user, MessageThread $thread): void
     {
+        $this->assertCan($user, 'messaging.view', $thread, 'You are not allowed to read messages.');
+
         ThreadParticipant::query()->where('thread_id', $thread->id)->where('user_id', $user->id)->where('is_read', false)
             ->update(['is_read' => true, 'last_read_at' => Carbon::now()]);
     }
@@ -143,6 +157,7 @@ class MessagingActions
         }
 
         $thread = $message->thread;
+        $this->assertCan($actor, 'messaging.view', $thread, 'You are not allowed to read messages.');
         $message->delete();
         $this->activity->record('message.deleted', $thread, $thread->store_id, ['message_id' => $message->id], $actor);
     }
@@ -155,6 +170,8 @@ class MessagingActions
      */
     public function hide(User $user, MessageThread $thread): bool
     {
+        $this->assertCan($user, 'messaging.view', $thread, 'You are not allowed to read messages.');
+
         $erased = DB::transaction(function () use ($user, $thread): bool {
             ThreadParticipant::query()->where('thread_id', $thread->id)->where('user_id', $user->id)
                 ->update(['hidden_at' => Carbon::now(), 'is_read' => true]);
@@ -180,10 +197,13 @@ class MessagingActions
     /**
      * Ajoute un collègue du magasin de la conversation (il y voit tout l'historique).
      *
+     * @throws AuthorizationException Sans `messaging.send` pour le magasin de la conversation.
      * @throws ValidationException
      */
     public function addParticipant(User $actor, MessageThread $thread, int $userId): ThreadParticipant
     {
+        $this->assertCan($actor, 'messaging.send', $thread, 'You are not allowed to send messages.');
+
         $allowed = array_map(fn ($colleague): int => $colleague->id, $this->access->recipients($actor, $thread->store_id));
 
         if (! in_array($userId, $allowed, true)) {
@@ -210,6 +230,16 @@ class MessagingActions
     public function eraseMessagesOf(int $userId): void
     {
         ThreadMessage::query()->where('sender_id', $userId)->whereNull('erased_at')->update(['body' => '', 'erased_at' => Carbon::now()]);
+    }
+
+    /**
+     * @throws AuthorizationException
+     */
+    private function assertCan(User $user, string $permission, MessageThread $thread, string $message): void
+    {
+        if (! $this->access->canIn($user, $permission, $thread->store_id)) {
+            throw new AuthorizationException(__($message));
+        }
     }
 
     /**

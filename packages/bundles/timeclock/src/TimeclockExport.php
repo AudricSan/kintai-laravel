@@ -54,6 +54,7 @@ class TimeclockExport implements ExportDataset
             new ExportColumn('clock_in', 'Clock-in', ExportColumn::TIME),
             new ExportColumn('clock_out', 'Clock-out', ExportColumn::TIME),
             new ExportColumn('minutes', 'Duration (min)', ExportColumn::INTEGER),
+            new ExportColumn('overtime_minutes', 'Overtime (min)', ExportColumn::INTEGER),
             new ExportColumn('notes', 'Notes'),
         ];
     }
@@ -71,6 +72,7 @@ class TimeclockExport implements ExportDataset
     public function rows(ExportScope $scope): iterable
     {
         $timezone = (string) config('kintai.timezone', 'UTC');
+        $overtime = app(OvertimeTracker::class);
 
         foreach ($this->query($scope)->orderBy('timeclocks.shift_date')->orderBy('timeclocks.clock_in_at')->orderBy('timeclocks.id')->cursor() as $row) {
             yield [
@@ -80,6 +82,7 @@ class TimeclockExport implements ExportDataset
                 'clock_in' => $this->local($row->clock_in_at, $timezone),
                 'clock_out' => $row->clock_out_at === null ? null : $this->local($row->clock_out_at, $timezone),
                 'minutes' => $row->duration_minutes === null ? null : (int) $row->duration_minutes,
+                'overtime_minutes' => $overtime->rules()->active() ? $overtime->cachedReport((int) $row->user_id, Carbon::parse($row->clock_in_at, 'UTC'))->forEntry((int) $row->id) : null,
                 'notes' => $row->notes,
             ];
         }
@@ -99,7 +102,7 @@ class TimeclockExport implements ExportDataset
             ->whereDate('timeclocks.shift_date', '>=', $scope->from->toDateString())
             ->whereDate('timeclocks.shift_date', '<=', $scope->to->toDateString())
             ->select([
-                'timeclocks.shift_date', 'timeclocks.clock_in_at', 'timeclocks.clock_out_at', 'timeclocks.duration_minutes', 'timeclocks.notes',
+                'timeclocks.id', 'timeclocks.user_id', 'timeclocks.shift_date', 'timeclocks.clock_in_at', 'timeclocks.clock_out_at', 'timeclocks.duration_minutes', 'timeclocks.notes',
                 'stores.name as store_name', 'users.name as user_name',
             ]);
 
