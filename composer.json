@@ -11,8 +11,11 @@
     "license": "AGPL-3.0-only",
     "require": {
         "php": "^8.3",
+        "kintai/bundle-daily-report": "^1.0",
         "kintai/bundle-messaging": "^1.0",
         "kintai/bundle-notebook": "^1.0",
+        "kintai/bundle-planning-check": "^1.0",
+        "kintai/bundle-salary-report": "^1.0",
         "kintai/bundle-shift-claim": "^1.0",
         "kintai/bundle-shift-swap": "^1.0",
         "kintai/bundle-store-photos": "^1.0",

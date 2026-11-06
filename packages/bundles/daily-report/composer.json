@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-daily-report",
+    "description": "Rapports journaliers pour Kintai : ventes, clients, coût du personnel et pertes par magasin, brouillon, soumis puis validé, PDF et envoi par e-mail.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\DailyReport\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\DailyReport\\DailyReportServiceProvider"
+            ]
+        }
+    }
+}

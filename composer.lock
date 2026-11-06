@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f9768b42d6ec6d597aa67197514de788",
+    "content-hash": "963151b2d96ca8acd5ffda9ba340efd1",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1289,6 +1289,40 @@
             "time": "2026-08-24T17:13:02+00:00"
         },
         {
+            "name": "kintai/bundle-daily-report",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/daily-report",
+                "reference": "8165f57c7bcc8e69b9e1e5d91936a8216ce97d9a"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\DailyReport\\DailyReportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\DailyReport\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Rapports journaliers pour Kintai : ventes, clients, coût du personnel et pertes par magasin, brouillon, soumis puis validé, PDF et envoi par e-mail.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "kintai/bundle-messaging",
             "version": "1.0.0",
             "dist": {
@@ -1351,6 +1385,74 @@
                 "AGPL-3.0-only"
             ],
             "description": "Carnet de notes d'équipe pour Kintai : messages par magasin ou pour toute l'organisation, épinglage, expiration.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-planning-check",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/planning-check",
+                "reference": "f96045b804d80dc8d635cb235b1ce142119317c5"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\PlanningCheck\\PlanningCheckServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\PlanningCheck\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Validation du planning de demain pour Kintai : le gérant confirme les shifts du lendemain, un valideur approuve, le PDF part par e-mail, escalade en cas de retard.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-salary-report",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/salary-report",
+                "reference": "0423a63024e06cf9f74927c29be6d947b53d63db"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\SalaryReport\\SalaryReportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\SalaryReport\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Rapports de salaire pour Kintai : rapport mensuel d'un magasin ou d'un employé calculé depuis les shifts, retenues, PDF et exports, avec des droits dédiés par action.",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1494,11 +1596,11 @@
         },
         {
             "name": "kintai/bundle-timeclock",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "dist": {
                 "type": "path",
                 "url": "packages/bundles/timeclock",
-                "reference": "57f99b5a0f6c4d6d52ba6caa72881709ae1808de"
+                "reference": "0baea2d0753aa754ab11ed1c3eb61e13da5e0a4f"
             },
             "require": {
                 "kintai/contracts": "^1.2",
