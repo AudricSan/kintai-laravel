@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f39b71e6145f517af302b42c7a8731a9",
+    "content-hash": "b0ba94bb5ce4c916590deaccbe6b942b",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1323,6 +1323,40 @@
             }
         },
         {
+            "name": "kintai/bundle-google-calendar",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/google-calendar",
+                "reference": "188f59c335e794c4e4e4a3c41f1f508ca40c4a4e"
+            },
+            "require": {
+                "kintai/contracts": "^1.5",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\GoogleCalendar\\GoogleCalendarServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\GoogleCalendar\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Synchronisation Google Agenda pour Kintai : shifts et congés approuvés de chaque employé dans un agenda dédié, de Kintai vers Google uniquement.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "kintai/bundle-hiring-report",
             "version": "1.0.0",
             "dist": {
@@ -1464,10 +1498,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/bundles/resignation-report",
-                "reference": "b8f958de7301d6c96617b271ba7494ef2e86fd15"
+                "reference": "efd842de8bd828095c0db8de0c3c2c72fdadfd43"
             },
             "require": {
-                "kintai/contracts": "^1.4",
+                "kintai/contracts": "^1.5",
                 "php": "^8.3"
             },
             "type": "library",
@@ -1732,11 +1766,11 @@
         },
         {
             "name": "kintai/contracts",
-            "version": "1.4.0",
+            "version": "1.5.0",
             "dist": {
                 "type": "path",
                 "url": "packages/contracts",
-                "reference": "0471be47c1e7e94e040f931cf50faa2125aa6af5"
+                "reference": "3be53ef7585d0e713db9cf79ea26e72bfcbfde21"
             },
             "require": {
                 "illuminate/auth": "^13.0",

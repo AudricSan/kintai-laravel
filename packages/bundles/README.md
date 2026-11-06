@@ -33,11 +33,11 @@ packages/bundles/timeoff/
         "kintai/contracts": "^1.0"
     },
     "autoload": {
-        "psr-4": { "Kintai\\Bundle\\Timeoff\\": "src/" }
+        "psr-4": { "Kintai\\Bundles\\Timeoff\\": "src/" }
     },
     "extra": {
         "laravel": {
-            "providers": ["Kintai\\Bundle\\Timeoff\\TimeoffServiceProvider"]
+            "providers": ["Kintai\\Bundles\\Timeoff\\TimeoffServiceProvider"]
         }
     }
 }
@@ -98,6 +98,19 @@ Un bundle peut aussi avoir un `routes/api.php` (API mobile : `/api/v1/<slug>`, n
 l'API du Core, contrôleurs étendant `Kintai\Contracts\Api\ApiController`) et déclarer des droits par défaut pour les rôles
 `manager` et `employee` (troisième argument de `permissions()`, accordés à la première activation). Voir le
 [contrat](../contracts/README.md).
+
+Un bundle qui a besoin d'une tâche planifiée la déclare dans `bootBundle()`, seulement s'il est activé, avec un nom stable
+(l'écran « Tâches planifiées » du Core l'affiche et `/cron/run` l'exécute comme les tâches du Core) :
+
+```php
+if ($this->isEnabled()) {
+    $this->commands([SyncCommand::class]);
+    $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('timeoff:sync')->everyMinute()->name('timeoff:sync')->withoutOverlapping());
+}
+```
+
+Un réglage d'instance se déclare avec `settings(new SettingDefinition(..., encrypted: true))` (secrets chiffrés en base) et
+se lit par le contrat `Settings`. Exemple complet de bundle lié à un service extérieur : [`google-calendar`](google-calendar/README.md).
 
 ## Installation sans terminal
 

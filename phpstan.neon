@@ -11,6 +11,7 @@ parameters:
         - routes/
         - packages/contracts/src/
         - packages/bundles/daily-report/src
+        - packages/bundles/google-calendar/src
         - packages/bundles/team-directory/src
         - packages/bundles/messaging/src
         - packages/bundles/notebook/src

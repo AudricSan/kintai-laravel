@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-google-calendar",
+    "description": "Synchronisation Google Agenda pour Kintai : shifts et congés approuvés de chaque employé dans un agenda dédié, de Kintai vers Google uniquement.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\GoogleCalendar\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\GoogleCalendar\\GoogleCalendarServiceProvider"
+            ]
+        }
+    }
+}

@@ -71,6 +71,7 @@ store-photos, daily-report, planning-check, salary-report, hiring-report, resign
 
 **À sortir du Core vers des bundles (validé le 04/11/2026)** :
 - **Synchronisation Google Agenda** → bundle `google-calendar` : service extérieur, OAuth, file de synchronisation.
+  Porté (06/11/2026), voir le suivi de la phase 5.
 - **Import Excel de planning** → bundle `planning-import` : algorithme lié au format de fichier des clients.
 - **Statistiques, rentabilité, rapports par employé** (`StoreStatsService`, widgets financier et absentéisme) →
   bundle `analytics` ; le Core garde le calcul des coûts et l'aperçu du coût dans le formulaire de shift.
@@ -193,6 +194,15 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
       `resignation_reports.*`, rapports supprimés à `UserAnonymized`, aperçu et PDF mPDF ; la désactivation du compte
       à la date de démission, la réactivation et les exports multi-magasins du legacy ne sont pas repris : pas de contrat
       Core pour agir sur un compte). 13 sur 13 portés.
+    - Suivi, bundles sortis du Core : **google-calendar** (06/11/2026, `kintai/bundle-google-calendar`, contrat ^1.5) :
+      liaison OAuth (code + PKCE, `state` en session à usage unique) de chacun à son compte Google, client HTTP de
+      Laravel (`Http::fake()` en test), jeton de rafraîchissement chiffré (cast `encrypted`), réglages de l'instance
+      (identifiant et secret client chiffré, page Owner `manage-settings`, URI de redirection tirée de l'URL publique),
+      synchronisation Kintai vers Google des shifts (écouteurs `ShiftCreated/Updated/Deleted/Restored/Replaced`) et des
+      congés approuvés (`TimeOffProvider::approvedFor`, par magasin), file et réconciliation par la tâche
+      `google-calendar:sync` (déclarée par le bundle, chaque minute, aussi exécutée par `/cron/run`), révocation du jeton
+      notifiée à l'utilisateur, nettoyage à `UserAnonymized`. Aucun code Google dans le Core ni dans `packages/contracts`.
+      Le flux d'abonnement iCal n'est pas repris (le Core a le sien).
 
 ### Phase 6 : Installation et mise à jour
 - `php artisan kintai:install` et assistant d'installation web.
