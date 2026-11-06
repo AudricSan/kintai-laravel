@@ -20,6 +20,8 @@ parameters:
         - packages/bundles/store-photos/src
         - packages/bundles/timeoff/src
         - packages/bundles/timeclock/src
+        - packages/bundles/hiring-report/src
+        - packages/bundles/resignation-report/src
         - packages/bundles/salary-report/src
 
     level: 6

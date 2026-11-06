@@ -184,8 +184,15 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
       supprime le fichier de cache.
     - Bundle de démonstration `tests/Fixtures/Bundles/DemoBundle` et `packages/bundles/` (voir son
       [README](../packages/bundles/README.md)).
-  - [ ] 5b et suivantes : les 13 bundles un par un (migrations, vues, traductions, routes, commandes, tâches planifiées,
+  - [x] 5b et suivantes : les 13 bundles un par un (migrations, vues, traductions, routes, commandes, tâches planifiées,
     configuration publiable, tests).
+    - Suivi : portés (`packages/bundles/<slug>`) : notebook, team-directory, timeoff, timeclock, shift-swap, shift-claim,
+      messaging, store-photos, daily-report, planning-check, salary-report, **hiring-report** (droits
+      `hiring_reports.*` ; rapport créé à `EmployeeCreated` pour chaque magasin de l'employé, supprimé à
+      `UserAnonymized`, aperçu et PDF mPDF, aucune donnée personnelle dans le journal), **resignation-report** (droits
+      `resignation_reports.*`, rapports supprimés à `UserAnonymized`, aperçu et PDF mPDF ; la désactivation du compte
+      à la date de démission, la réactivation et les exports multi-magasins du legacy ne sont pas repris : pas de contrat
+      Core pour agir sur un compte). 13 sur 13 portés.
 
 ### Phase 6 : Installation et mise à jour
 - `php artisan kintai:install` et assistant d'installation web.

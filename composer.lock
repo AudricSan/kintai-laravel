@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "963151b2d96ca8acd5ffda9ba340efd1",
+    "content-hash": "f39b71e6145f517af302b42c7a8731a9",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1323,6 +1323,40 @@
             }
         },
         {
+            "name": "kintai/bundle-hiring-report",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/hiring-report",
+                "reference": "4b3e166faf0fbb2363f724c9c69cbe9ae10e3f19"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\HiringReport\\HiringReportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\HiringReport\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Rapports d'embauche pour Kintai : fiche d'embauche d'un employé par magasin, créée à la création de l'employé, avec aperçu et PDF.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "kintai/bundle-messaging",
             "version": "1.0.0",
             "dist": {
@@ -1419,6 +1453,40 @@
                 "AGPL-3.0-only"
             ],
             "description": "Validation du planning de demain pour Kintai : le gérant confirme les shifts du lendemain, un valideur approuve, le PDF part par e-mail, escalade en cas de retard.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-resignation-report",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/resignation-report",
+                "reference": "b8f958de7301d6c96617b271ba7494ef2e86fd15"
+            },
+            "require": {
+                "kintai/contracts": "^1.4",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\ResignationReport\\ResignationReportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\ResignationReport\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Rapports de démission pour Kintai : rapport de départ d'un employé par magasin (date, motif, préavis, remarques, responsable), avec aperçu et PDF.",
             "transport-options": {
                 "symlink": true,
                 "relative": true
