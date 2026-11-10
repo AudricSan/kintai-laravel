@@ -10,6 +10,7 @@ parameters:
         - database/
         - routes/
         - packages/contracts/src/
+        - packages/bundles/analytics/src
         - packages/bundles/daily-report/src
         - packages/bundles/google-calendar/src
         - packages/bundles/team-directory/src

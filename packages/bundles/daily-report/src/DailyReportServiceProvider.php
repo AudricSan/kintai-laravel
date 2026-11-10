@@ -20,6 +20,7 @@ use Kintai\Contracts\Navigation\NavigationItem;
 use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Notifications\NotificationType;
 use Kintai\Contracts\Requests\PendingRequestProvider;
+use Kintai\Contracts\Sales\DailySalesProvider;
 use Livewire\Livewire;
 
 /**
@@ -59,7 +60,7 @@ class DailyReportServiceProvider extends BundleServiceProvider
 
     public function requiredContract(): string
     {
-        return '^1.4';
+        return '^1.6';
     }
 
     protected function bootBundle(): void
@@ -74,6 +75,9 @@ class DailyReportServiceProvider extends BundleServiceProvider
             Livewire::component('daily-report.manager-widget', ManagerWidget::class);
 
             $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('kintai:auto-validate')->hourly()->name('kintai:auto-validate')->withoutOverlapping());
+
+            // Le Core n'a aucune vente tant que ce bundle n'est pas là.
+            $this->app->bind(DailySalesProvider::class, DailyReportSales::class);
         }
 
         // Les gérants rédigent, soumettent et valident ; la suppression reste à l'Owner (ou à un rôle sur mesure).

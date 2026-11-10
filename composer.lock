@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "115ee4d23030a54474886600be7145ae",
+    "content-hash": "a72529e5d5bf71e5a45a45f41190f537",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1289,15 +1289,49 @@
             "time": "2026-08-24T17:13:02+00:00"
         },
         {
+            "name": "kintai/bundle-analytics",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/analytics",
+                "reference": "dd17ddb70f200aa33fa76b2de1bda2fa9695d13e"
+            },
+            "require": {
+                "kintai/contracts": "^1.6",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\Analytics\\AnalyticsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\Analytics\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Statistiques pour Kintai : statistiques de magasin et d'employé, rentabilité, comparaison multi-magasins.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "kintai/bundle-daily-report",
             "version": "1.0.0",
             "dist": {
                 "type": "path",
                 "url": "packages/bundles/daily-report",
-                "reference": "8165f57c7bcc8e69b9e1e5d91936a8216ce97d9a"
+                "reference": "3ba2ad8853e32d6a27f11a0f9aca870a3307fea5"
             },
             "require": {
-                "kintai/contracts": "^1.4",
+                "kintai/contracts": "^1.6",
                 "php": "^8.3"
             },
             "type": "library",
@@ -1801,11 +1835,11 @@
         },
         {
             "name": "kintai/contracts",
-            "version": "1.5.0",
+            "version": "1.6.0",
             "dist": {
                 "type": "path",
                 "url": "packages/contracts",
-                "reference": "3be53ef7585d0e713db9cf79ea26e72bfcbfde21"
+                "reference": "e50ffb8bc27045a368f1363e7bc94f0e3bdde7a9"
             },
             "require": {
                 "illuminate/auth": "^13.0",

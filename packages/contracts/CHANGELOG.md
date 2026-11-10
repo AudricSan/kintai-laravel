@@ -2,6 +2,15 @@
 
 Versionnement sémantique, voir le README.
 
+## 1.6.0
+
+### Ajouté
+- `Sales\DailySalesProvider` et `Sales\DailySales` : les ventes journalières d'un magasin (date, statut, chiffre d'affaires, coût de
+  main-d'œuvre saisi, clients, pertes) sur une période, éventuellement limitées à certains statuts. Le Core n'a pas de ventes : il lie une
+  implémentation vide (`available()` faux) et le bundle daily-report la remplace tant qu'il est activé, comme `TimeOffChecker`. Un bundle
+  (analytics : rentabilité) lit les ventes par cette interface sans connaître les tables du fournisseur. Ajout compatible : nouvelle
+  interface, aucun bundle existant n'est touché.
+
 ## 1.5.0
 
 ### Ajouté

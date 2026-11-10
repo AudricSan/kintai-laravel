@@ -12,6 +12,7 @@ Le rapport d'un magasin pour un jour : ventes, nombre de clients, coût du perso
 - Notifications : `daily_report_submitted` (valideurs du magasin, auteur exclu), `daily_report_validated` (auteur, s'il n'a pas validé lui-même), lues à l'ouverture du rapport. Menu avec pastille (rapports à valider), page « Demandes », widget « Rapports à valider ».
 - Journal : `daily_report.created`, `.updated`, `.submitted`, `.validated`, `.auto_validated`, `.mail_sent`, `.deleted`, `.settings_updated`, `.pdf_exported` (jamais le contenu des notes).
 - API mobile : `/api/v1/daily-report/reports` (voir `docs/API-V1.md`).
+- Ventes : activé, le bundle fournit les ventes journalières au contrat (`DailySalesProvider`, `src/DailyReportSales.php`), utilisées par la rentabilité du bundle analytics ; sans lui, le Core renvoie « aucune vente ».
 - Données : tables `daily_reports` et `daily_report_settings`. Les notes d'un auteur sont effacées à l'anonymisation de son compte (les chiffres restent) ; désactiver le bundle conserve tout.
 - Traductions : `lang/fr.json`, `lang/ja.json`.
 

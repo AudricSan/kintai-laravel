@@ -7,7 +7,7 @@ satisfait pas la contrainte déclarée par son provider (`requiredContract()`).
 Ce package ne dépend jamais de l'application (`App\`) : seulement de PHP et des composants `illuminate/*` qu'il utilise
 (`support`, `contracts`, `container`, `database`) et de Carbon. Un test (`tests/Unit/Contracts`) le vérifie.
 
-Version courante : `Kintai\Contracts\Contract::VERSION` (1.5.0).
+Version courante : `Kintai\Contracts\Contract::VERSION` (1.6.0).
 
 ## Points d'extension
 
@@ -36,6 +36,7 @@ services injectés (interfaces du contrat) et par les événements que le Core �
 | Pastille de compteur dans le menu (depuis 1.4) | argument `badge` de `NavigationItem` | | |
 | Désactiver / réactiver un compte (depuis 1.5) | `Employees\AccountActivation` (service du Core, garde-fous Owner, sessions révoquées) | | |
 | Actions sur les lignes des employés (depuis 1.5) | `Employees\EmployeeActionRegistry` (service du Core) | `EmployeeAction` | `employeeActions()` |
+| Ventes journalières (depuis 1.6) | `Sales\DailySalesProvider` (le bundle daily-report remplace la liaison par défaut du Core, vide) | `DailySales` | |
 | Envoyer une notification (depuis 1.1) | `Notifications\Notifier` (service du Core) | | |
 | Événements du Core | `Events\*` (ne portent que des identifiants) | | `listen()` |
 

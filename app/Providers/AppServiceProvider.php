@@ -37,6 +37,7 @@ use App\Profile\DefaultProfileSectionRegistry;
 use App\Push\MinishlinkWebPushSender;
 use App\Push\WebPushSender;
 use App\Requests\DefaultPendingRequestRegistry;
+use App\Sales\NullDailySalesProvider;
 use App\Settings\AppSettings;
 use App\Settings\CoreSettings;
 use App\Settings\RuntimeSettings;
@@ -100,6 +101,7 @@ use Kintai\Contracts\Planning\TimeOffChecker;
 use Kintai\Contracts\Planning\TimeOffProvider;
 use Kintai\Contracts\Profile\ProfileSectionRegistry;
 use Kintai\Contracts\Requests\PendingRequestRegistry;
+use Kintai\Contracts\Sales\DailySalesProvider;
 use Kintai\Contracts\Settings\Settings;
 use Kintai\Contracts\Shifts\ShiftExchanger;
 use Kintai\Contracts\Shifts\ShiftReplacer;
@@ -160,6 +162,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TimeOffChecker::class, NullTimeOffChecker::class);
         // Idem pour les congés publiés dans le flux iCal.
         $this->app->bind(TimeOffProvider::class, NullTimeOffProvider::class);
+        // Sans bundle de rapports journaliers, pas de ventes ; le bundle daily-report remplace cette liaison.
+        $this->app->bind(DailySalesProvider::class, NullDailySalesProvider::class);
     }
 
     /**

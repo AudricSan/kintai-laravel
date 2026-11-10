@@ -16,7 +16,7 @@ use InvalidArgumentException;
  */
 final class Contract
 {
-    public const VERSION = '1.5.0';
+    public const VERSION = '1.6.0';
 
     /**
      * La version courante du contrat satisfait-elle la contrainte ? Syntaxe acceptée (comme Composer, sous-ensemble) :
