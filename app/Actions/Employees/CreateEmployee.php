@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 use Kintai\Contracts\Events\EmployeeCreated;
 
 /**
- * Crée un employé, son appartenance à un magasin et son rôle. Réutilisable (formulaire, import Excel…).
+ * Crée un employé, son appartenance à un magasin et son rôle. Réutilisable : formulaire, import de planning d'un bundle (source `import`).
  */
 class CreateEmployee
 {

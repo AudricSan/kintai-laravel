@@ -16,6 +16,7 @@ parameters:
         - packages/bundles/messaging/src
         - packages/bundles/notebook/src
         - packages/bundles/planning-check/src
+        - packages/bundles/planning-import/src
         - packages/bundles/shift-claim/src
         - packages/bundles/shift-swap/src
         - packages/bundles/store-photos/src

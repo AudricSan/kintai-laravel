@@ -17,6 +17,7 @@
         "kintai/bundle-messaging": "^1.0",
         "kintai/bundle-notebook": "^1.0",
         "kintai/bundle-planning-check": "^1.0",
+        "kintai/bundle-planning-import": "^1.0",
         "kintai/bundle-resignation-report": "^1.0",
         "kintai/bundle-salary-report": "^1.0",
         "kintai/bundle-shift-claim": "^1.0",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b0ba94bb5ce4c916590deaccbe6b942b",
+    "content-hash": "115ee4d23030a54474886600be7145ae",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1487,6 +1487,41 @@
                 "AGPL-3.0-only"
             ],
             "description": "Validation du planning de demain pour Kintai : le gérant confirme les shifts du lendemain, un valideur approuve, le PDF part par e-mail, escalade en cas de retard.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "kintai/bundle-planning-import",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "packages/bundles/planning-import",
+                "reference": "1038f3543f23c07865dde6d6162e6dc8ff96ecc3"
+            },
+            "require": {
+                "kintai/contracts": "^1.5",
+                "php": "^8.3",
+                "phpoffice/phpspreadsheet": "^5.10"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kintai\\Bundles\\PlanningImport\\PlanningImportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kintai\\Bundles\\PlanningImport\\": "src/"
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Import de planning Excel pour Kintai : envoi, aperçu, confirmation, détection en trois phases, alias de noms et réglages par magasin.",
             "transport-options": {
                 "symlink": true,
                 "relative": true

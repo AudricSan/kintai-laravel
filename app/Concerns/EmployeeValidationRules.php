@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 
 /**
- * Règles communes à la création et à l'édition d'un employé (formulaires Livewire, actions, futur import).
+ * Règles communes à la création et à l'édition d'un employé (formulaires Livewire, actions, import de planning d'un bundle).
  */
 trait EmployeeValidationRules
 {
