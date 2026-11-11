@@ -16,6 +16,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Installation
+    |--------------------------------------------------------------------------
+    |
+    | `enforce` : tant que Kintai n'est pas installé, toute page web renvoie vers l'assistant `/install`.
+    | `lock` : chemin du fichier verrou posé en fin d'installation (par défaut `storage/app/installed`).
+    |
+    */
+
+    'install' => [
+        'enforce' => (bool) env('KINTAI_INSTALL_ENFORCE', true),
+        'lock' => env('KINTAI_INSTALL_LOCK'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Version
     |--------------------------------------------------------------------------
     |

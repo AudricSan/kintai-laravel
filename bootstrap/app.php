@@ -3,6 +3,7 @@
 use App\Http\Api\ApiErrorRenderer;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\RedirectToInstaller;
 use App\Http\Middleware\RunSystemAlertsOnVisit;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetUserLocale;
@@ -34,6 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // En-têtes de sécurité sur toutes les réponses (web, API, iCal, santé).
         $middleware->append(SecurityHeaders::class);
 
+        // Tant que Kintai n'est pas installé : tout renvoie vers /install, sans base (sessions et cache en fichier).
+        $middleware->web(prepend: [RedirectToInstaller::class]);
+
         $middleware->web(append: [
             AuthenticateSession::class,
             EnsureAccountIsActive::class,
@@ -45,6 +49,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['db_password']);
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

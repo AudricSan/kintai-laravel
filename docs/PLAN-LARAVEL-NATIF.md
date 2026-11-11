@@ -218,7 +218,15 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
       Le flux d'abonnement iCal n'est pas repris (le Core a le sien).
 
 ### Phase 6 : Installation et mise à jour
-- `php artisan kintai:install` et assistant d'installation web.
+- [x] 6a. Installateur : `php artisan kintai:install` et assistant d'installation web (`/install`).
+  - Suivi (11/11/2026) : cœur partagé `App\Install\Installer` (prérequis `InstallRequirements`, `.env` créé depuis
+    `.env.example` sans jamais écraser un `.env` existant, clé d'application, base SQLite ou MySQL/MariaDB vérifiée avant
+    toute écriture, migrations, `RoleSeeder`, premier Owner, verrou `storage/app/installed`) ; un Owner déjà en base
+    compte aussi comme installé. Commande : options `--name --email --password --db-*`, questions sinon, `--force` pour
+    remplacer la base d'un `.env` déjà réglé, `--local` pour garder APP_ENV=local. Web : middleware `RedirectToInstaller`
+    (tout renvoie vers `/install`, session et cache en fichier, `.env` et clé préparés) et `EnsureNotInstalled` (404 une
+    fois installé) ; CSRF natif, page Blade autonome en français, pas de limiteur de débit (le cache n'a pas encore de
+    base). Réglages `kintai.install.enforce` (désactivé en test) et `kintai.install.lock`.
 - Mise à jour web depuis les releases GitHub (canaux release/beta/alpha), et CI qui construit l'archive de release.
 - Licence (client) sur le serveur de licence actuel.
 

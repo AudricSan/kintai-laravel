@@ -5,14 +5,23 @@ use App\Http\Controllers\ActivityExportController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BackupDownloadController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\Install\InstallController;
 use App\Http\Controllers\NotificationOpenController;
 use App\Http\Controllers\NotificationUnsubscribeController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\TimelinePrintController;
+use App\Http\Middleware\EnsureNotInstalled;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
+
+// Assistant d'installation : 404 une fois Kintai installé (verrou `storage/app/installed`). Pas de limiteur de débit :
+// il s'appuie sur le cache, et il n'y a pas encore de base de données.
+Route::middleware(EnsureNotInstalled::class)->prefix('install')->name('install.')->group(function () {
+    Route::get('/', [InstallController::class, 'show'])->name('show');
+    Route::post('/', [InstallController::class, 'store'])->name('store');
+});
 
 // Désabonnement e-mail : sans connexion, protégé par la signature du lien (sans expiration, comme l'ancienne version).
 // Le POST sert aussi au « one-click » des clients de messagerie (en-tête List-Unsubscribe-Post), exclu du CSRF.
