@@ -1,0 +1,78 @@
+name: release
+
+# Construit l'archive de mise à jour `kintai-X.Y.Z.zip` (+ `.sha256`) quand un tag `vX.Y.Z` est poussé, puis crée la
+# release GitHub que l'écran « Mises à jour » du Core consulte. Un tag avec pré-version (v1.2.0-beta.1, -rc.1, -alpha.1)
+# crée une pré-release : elle n'est proposée qu'aux canaux beta/alpha.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Archive de release
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      # COMPOSER_MIRROR_PATH_REPOS copie packages/ dans vendor/ au lieu de créer des liens symboliques, que l'archive
+      # de mise à jour refuse.
+      - name: Install PHP dependencies (production)
+        env:
+          COMPOSER_MIRROR_PATH_REPOS: '1'
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Build front-end assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build release archive
+        env:
+          TAG: ${{ github.ref_name }}
+        run: php tools/release/build.php "$TAG" --output=dist
+
+      - name: Check the archive with the application's own validator
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php -r '
+            require "vendor/autoload.php";
+            $app = require "bootstrap/app.php";
+            $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            $version = ltrim(getenv("TAG"), "v");
+            $info = App\Update\ReleaseArchive::inspect("dist/kintai-{$version}.zip", App\Update\Version::parse($version));
+            echo "OK {$info["files"]} fichiers, {$info["bytes"]} octets\n";
+          '
+          cd dist && sha256sum --check "kintai-${TAG#v}.zip.sha256"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" dist/kintai-*.zip dist/kintai-*.zip.sha256 \
+            --repo "$GITHUB_REPOSITORY" --title "Kintai ${TAG#v}" --generate-notes $prerelease
