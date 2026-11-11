@@ -242,7 +242,7 @@ new #[Title('Backups')] class extends Component {
                             {{ $backup->note }}
                             @if ($backup->trigger === 'scheduled')
                                 <flux:badge size="sm" inset="top bottom">{{ __('Automatic') }}</flux:badge>
-                            @elseif ($backup->trigger === 'safety' || $backup->trigger === 'reset')
+                            @elseif (in_array($backup->trigger, ['safety', 'reset', 'update'], true))
                                 <flux:badge size="sm" color="amber" inset="top bottom">{{ __('Safety') }}</flux:badge>
                             @endif
                             @unless ($backup->valid)

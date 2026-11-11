@@ -84,6 +84,12 @@ final class CoreActivityActions
                 'backup.settings_updated' => 'Backup settings updated',
                 'app.data_reset' => 'Data reset',
             ],
+            'Updates' => [
+                'update.applied' => 'Update applied',
+                'update.rolled_back' => 'Update rolled back',
+                'update.cancelled' => 'Update cancelled',
+                'update.channel_changed' => 'Update channel changed',
+            ],
             'Activity log' => [
                 'activity.exported' => 'Activity log exported',
                 'activity.purged' => 'Activity log purged',

@@ -43,6 +43,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mise à jour
+    |--------------------------------------------------------------------------
+    |
+    | `repository` : dépôt GitHub (« compte/dépôt ») dont les releases fournissent les mises à jour du Core.
+    | `channel` : canal suivi (release : versions stables ; beta : + beta et rc ; alpha : tout).
+    | `max_download_bytes` : taille maximale de l'archive téléchargée. `max_entries` et `max_uncompressed_bytes` :
+    | nombre d'entrées et taille décompressée maximaux de l'archive. `timeout` : délai (secondes) des appels à GitHub.
+    |
+    */
+
+    'update' => [
+        'repository' => env('KINTAI_UPDATE_REPOSITORY', 'AudricSan/kintai-laravel'),
+        'channel' => env('KINTAI_UPDATE_CHANNEL', 'release'),
+        'max_download_bytes' => 200 * 1024 * 1024,
+        'max_entries' => 50000,
+        'max_uncompressed_bytes' => 1024 * 1024 * 1024,
+        'timeout' => 15,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Alertes système
     |--------------------------------------------------------------------------
     |

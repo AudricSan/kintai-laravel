@@ -3,6 +3,7 @@
 namespace App\Settings;
 
 use App\Models\AppSetting;
+use App\Update\UpdateChannel;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
@@ -307,6 +308,14 @@ class AppSettings implements Settings
     public function backupLastFailure(): string
     {
         return $this->string('backup.last_failure');
+    }
+
+    // -- Mises à jour -------------------------------------------------------------------------------------------
+
+    /** Canal de mise à jour suivi ; un réglage invalide retombe sur les versions stables. */
+    public function updateChannel(): UpdateChannel
+    {
+        return UpdateChannel::tryFrom($this->string('update.channel')) ?? UpdateChannel::Release;
     }
 
     // -- Alertes système et documentation ---------------------------------------------------------------------

@@ -36,6 +36,8 @@ class BackupManager
 
     public const TRIGGER_RESET = 'reset';
 
+    public const TRIGGER_UPDATE = 'update';
+
     public const NOTE_MAX = 200;
 
     public function __construct(private readonly ?DatabaseDumper $dumper = null, private readonly ?BackupFileRegistry $files = null) {}

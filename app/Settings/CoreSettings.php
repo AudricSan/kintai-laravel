@@ -67,6 +67,9 @@ final class CoreSettings
             new SettingDefinition('backup.last_success_at', $string, ''),
             new SettingDefinition('backup.last_failure', $string, ''),
 
+            // Mises à jour : canal suivi (release, beta ou alpha), défaut `kintai.update.channel`.
+            new SettingDefinition('update.channel', $string, 'release', config: 'kintai.update.channel'),
+
             // Alertes système : état mémorisé (type => clé de l'alerte, JSON) et date de la dernière passe (horodatage Unix).
             new SettingDefinition('system.alerts_state', $string, ''),
             new SettingDefinition('system.alerts_last_run', $int, 0, 0),

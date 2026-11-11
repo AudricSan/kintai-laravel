@@ -227,7 +227,10 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
     (tout renvoie vers `/install`, session et cache en fichier, `.env` et clé préparés) et `EnsureNotInstalled` (404 une
     fois installé) ; CSRF natif, page Blade autonome en français, pas de limiteur de débit (le cache n'a pas encore de
     base). Réglages `kintai.install.enforce` (désactivé en test) et `kintai.install.lock`.
-- Mise à jour web depuis les releases GitHub (canaux release/beta/alpha), et CI qui construit l'archive de release.
+- [x] 6b. Mise à jour web depuis les releases GitHub (canaux release/beta/alpha) : portage terminé ; la CI qui construit l'archive de release reste à faire (6c).
+  - Suivi (11/11/2026) : `App\Update` : `Version` et `UpdateChannel` (semver, pré-versions), `ReleaseClient` (API des releases, liste blanche d'URL, choix par semver), `ReleaseDownloader` (plafond, SHA-256 `.sha256`, jeton jamais envoyé aux téléchargements), `ReleaseArchive` (zip-slip, liens, doublons, chemins interdits `.env` `storage/` `*.sqlite` `bootstrap/cache`, manifeste `kintai-release.json` avec `version`, `min_php`, `min_from_version`), `UpdateApplier` (machine à états `idle > staged > swapped > done`, `failed`, `rolled_back` persistée dans `storage/app/updates/state.json` ; sauvegarde, maintenance, remplacement fichier par fichier avec copie des anciens, fichiers obsolètes via `installed-files.json`, migrations dans une requête neuve, retour arrière idempotent fichiers puis base). Écran Owner `/admin/updates` (Livewire), application et fin par contrôleurs simples hors Livewire (code mélangé après le remplacement), commande `kintai:update` (`--check --channel --yes --rollback --finish`), audit `update.*`, réglage `update.channel`.
+  - Format d'archive attendu par la CI (6c) : `kintai-X.Y.Z.zip` + `kintai-X.Y.Z.zip.sha256`, à la racine ou sous un dossier unique, avec `vendor/` ; sans `.env`, sans `storage/` (sauf `.gitkeep`), sans `bootstrap/cache/*.php`, sans `.git`.
+  - Limites connues : la somme prouve l'intégrité, pas l'auteur (signature possible en phase 8) ; dépôt privé non pris en charge ; remplacement non testé sur un vrai disque ni contre un vrai GitHub (à vérifier avant livraison).
 - Licence (client) sur le serveur de licence actuel.
 
 ### Phase 7 : Outil de migration (hors application)

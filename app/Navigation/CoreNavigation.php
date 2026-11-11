@@ -47,6 +47,8 @@ final class CoreNavigation
         $registry->register(new NavigationItem('instance-settings', 'Instance settings', 'settings.app', 'adjustments-horizontal', NavigationRegistry::SECTION_SYSTEM, 30, 'manage-settings', hideable: false, current: ['settings.app']));
         // Sauvegardes et réinitialisation des données : Owner seulement.
         $registry->register(new NavigationItem('backups', 'Backups', 'backups.index', 'archive-box', NavigationRegistry::SECTION_SYSTEM, 40, 'manage-settings', hideable: false, current: ['backups.*', 'data-reset.index']));
+        // Mises à jour du Core : Owner seulement.
+        $registry->register(new NavigationItem('updates', 'Updates', 'updates.index', 'arrow-path', NavigationRegistry::SECTION_SYSTEM, 42, 'manage-settings', hideable: false, current: ['updates.*']));
         // Tâches planifiées et jetons de l'appel HTTP : Owner seulement.
         $registry->register(new NavigationItem('scheduled-tasks', 'Scheduled tasks', 'scheduled-tasks.index', 'command-line', NavigationRegistry::SECTION_SYSTEM, 50, 'manage-settings', hideable: false, current: ['scheduled-tasks.*']));
         // Bundles installés, à activer ou désactiver : Owner seulement.

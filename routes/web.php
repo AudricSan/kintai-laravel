@@ -11,6 +11,8 @@ use App\Http\Controllers\NotificationUnsubscribeController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\PwaController;
 use App\Http\Controllers\TimelinePrintController;
+use App\Http\Controllers\UpdateApplyController;
+use App\Http\Controllers\UpdateFinishController;
 use App\Http\Middleware\EnsureNotInstalled;
 use Illuminate\Support\Facades\Route;
 
@@ -108,6 +110,11 @@ Route::middleware(['auth'])->group(function () {
             ->where('backup', BackupManager::ROUTE_PATTERN)
             ->middleware('throttle:20,1')
             ->name('backups.download');
+        // Mises à jour du Core : l'application et la fin ne passent pas par Livewire (voir UpdateApplyController).
+        Route::livewire('admin/updates', 'pages::admin.updates')->name('updates.index');
+        Route::post('admin/updates/apply', UpdateApplyController::class)->name('updates.apply');
+        Route::get('admin/updates/finish', [UpdateFinishController::class, 'show'])->name('updates.finish.show');
+        Route::post('admin/updates/finish', [UpdateFinishController::class, 'store'])->name('updates.finish');
         Route::livewire('admin/data-reset', 'pages::admin.data-reset')->name('data-reset.index');
         // Bundles installés : activation et désactivation.
         Route::livewire('admin/bundles', 'pages::admin.bundles')->name('bundles.index');
