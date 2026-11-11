@@ -6,15 +6,13 @@ use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\User;
-use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Kintai\Bundles\Analytics\AnalyticsAccess;
 use Kintai\Bundles\Analytics\StoreStatsService;
-use Kintai\Contracts\Planning\TimeOffPeriod;
-use Kintai\Contracts\Planning\TimeOffProvider;
+use Kintai\Bundles\Timeoff\Models\TimeoffRequest;
 use Tests\Concerns\CreatesAccess;
 use Tests\Concerns\InstallsBundles;
 use Tests\TestCase;
@@ -55,6 +53,14 @@ class StoreStatsTest extends TestCase
     private function service(): StoreStatsService
     {
         return app(StoreStatsService::class);
+    }
+
+    private function leave(User $user, string $status, string $start, string $end, string $type = 'vacation', ?Store $store = null): TimeoffRequest
+    {
+        return TimeoffRequest::create([
+            'user_id' => $user->id, 'store_id' => ($store ?? $this->store)->id, 'type' => $type, 'status' => $status,
+            'start_date' => $start, 'end_date' => $end,
+        ]);
     }
 
     private function day(int $daysAgo): string
@@ -306,20 +312,10 @@ class StoreStatsTest extends TestCase
 
     public function test_absences_come_from_the_approved_time_off_of_the_contract(): void
     {
+        $this->enableBundle('timeoff');
         $second = $this->employeeOf($this->store);
-        $user = $this->user;
-        $this->app->bind(TimeOffProvider::class, fn () => new class($user->id) implements TimeOffProvider
-        {
-            public function __construct(private int $userId) {}
-
-            public function approvedFor(int $userId, int $storeId, CarbonInterface $from, CarbonInterface $to): array
-            {
-                return $userId === $this->userId ? [
-                    new TimeOffPeriod('timeoff-1', '2026-11-05', '2026-11-07'),
-                    new TimeOffPeriod('timeoff-2', '2026-09-01', '2026-09-03'),
-                ] : [];
-            }
-        });
+        $this->leave($this->user, 'approved', '2026-11-05', '2026-11-07');
+        $this->leave($this->user, 'approved', '2026-09-01', '2026-09-03');
 
         $stats = $this->service()->storeStats($this->store->id, 30);
 
@@ -330,6 +326,29 @@ class StoreStatsTest extends TestCase
         $this->assertSame(0, $stats['timeoffsByStatus']['pending']);
         $this->assertCount(2, $stats['memberIds']);
         $this->assertContains($second->id, $stats['memberIds']);
+    }
+
+    public function test_leave_requests_are_counted_by_status_and_type_but_only_approved_ones_make_absence_days(): void
+    {
+        $this->enableBundle('timeoff');
+        $second = $this->employeeOf($this->store);
+        $this->leave($this->user, 'pending', '2026-11-02', '2026-11-02', 'vacation');
+        $this->leave($this->user, 'approved', '2026-11-05', '2026-11-06', 'sick');
+        $this->leave($second, 'approved', '2026-11-08', '2026-11-08', 'sick');
+        $this->leave($second, 'refused', '2026-11-09', '2026-11-12', 'personal');
+        $this->leave($second, 'cancelled', '2026-11-10', '2026-11-10', 'unpaid');
+        // Hors période, d'un autre magasin ou d'un non-membre : ignorés.
+        $this->leave($this->user, 'pending', '2026-08-01', '2026-08-01');
+        $this->leave($this->user, 'pending', '2026-11-03', '2026-11-03', 'other', Store::factory()->create());
+        $this->leave(User::factory()->create(), 'pending', '2026-11-03', '2026-11-03');
+
+        $stats = $this->service()->storeStats($this->store->id, 30);
+
+        $this->assertSame(['pending' => 1, 'approved' => 2, 'refused' => 1, 'cancelled' => 1], $stats['timeoffsByStatus']);
+        $this->assertSame(['sick' => 2, 'vacation' => 1, 'personal' => 1, 'unpaid' => 1], $stats['timeoffsByType']);
+        $this->assertSame([$this->user->id => 1, $second->id => 1], $stats['timeoffsByUser']);
+        $this->assertSame(3, $stats['approvedDays']);
+        $this->assertSame(5.0, $stats['absRate']);
     }
 
     public function test_without_a_time_off_bundle_there_is_no_absence(): void

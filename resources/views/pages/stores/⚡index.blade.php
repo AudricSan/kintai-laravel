@@ -5,6 +5,7 @@ use App\Models\Store;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Kintai\Contracts\Stores\StoreActionRegistry;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -76,9 +77,13 @@ new #[Title('Stores')] class extends Component {
         };
         $query->orderBy('code')->orderBy('id');
 
+        $stores = $query->paginate(25);
+
         return [
-            'stores' => $query->paginate(25),
+            'stores' => $stores,
             'canCreate' => $authorizer->hasUnrestricted($actor, 'stores.create'),
+            'actions' => $stores->getCollection()
+                ->mapWithKeys(fn (Store $store): array => [$store->id => app(StoreActionRegistry::class)->actionsFor($actor, $store->id)])->all(),
         ];
     }
 }; ?>
@@ -104,6 +109,7 @@ new #[Title('Stores')] class extends Component {
             <flux:table.column sortable :sorted="$sortBy === 'name'" :direction="$sortDirection" wire:click="sort('name')">{{ __('Name') }}</flux:table.column>
             <flux:table.column>{{ __('Members') }}</flux:table.column>
             <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')">{{ __('Status') }}</flux:table.column>
+            <flux:table.column></flux:table.column>
         </flux:table.columns>
         <flux:table.rows>
             @forelse ($stores as $store)
@@ -118,10 +124,15 @@ new #[Title('Stores')] class extends Component {
                             {{ $store->is_active ? __('Active') : __('Inactive') }}
                         </flux:badge>
                     </flux:table.cell>
+                    <flux:table.cell>
+                        @foreach ($actions[$store->id] ?? [] as $action)
+                            <flux:button size="sm" variant="filled" :icon="$action->icon" :href="$action->url($store->id)" wire:navigate data-test="store-action-{{ $action->key }}">{{ __($action->label) }}</flux:button>
+                        @endforeach
+                    </flux:table.cell>
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="4">{{ __('No store found.') }}</flux:table.cell>
+                    <flux:table.cell colspan="5">{{ __('No store found.') }}</flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>

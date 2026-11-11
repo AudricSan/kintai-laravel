@@ -18,6 +18,7 @@ use Kintai\Contracts\Navigation\NavigationItem;
 use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Notifications\NotificationType;
 use Kintai\Contracts\Requests\PendingRequestProvider;
+use Kintai\Contracts\Shifts\ShiftSwapStatistics;
 use Livewire\Livewire;
 
 /**
@@ -61,7 +62,7 @@ class ShiftSwapServiceProvider extends BundleServiceProvider
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     public function description(): string
@@ -71,7 +72,7 @@ class ShiftSwapServiceProvider extends BundleServiceProvider
 
     public function requiredContract(): string
     {
-        return '^1.3';
+        return '^1.7';
     }
 
     protected function bootBundle(): void
@@ -82,6 +83,9 @@ class ShiftSwapServiceProvider extends BundleServiceProvider
             Livewire::component('shift-swap.manage', Manage::class);
             Livewire::component('shift-swap.manager-widget', ManagerWidget::class);
             Livewire::component('shift-swap.employee-widget', EmployeeWidget::class);
+
+            // Le Core ne connaît aucun échange tant que ce bundle n'est pas là : les statistiques d'un autre bundle le lisent par le contrat.
+            $this->app->bind(ShiftSwapStatistics::class, SwapStatistics::class);
         }
 
         // Les gérants gèrent les échanges ; les employés proposent et répondent sans permission (libre-service).

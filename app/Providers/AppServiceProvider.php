@@ -31,8 +31,10 @@ use App\Notifications\CoreNotificationTypes;
 use App\Notifications\DefaultNotificationTypeRegistry;
 use App\Notifications\NotificationInbox;
 use App\Notifications\UserNotifier;
+use App\Planning\NullShiftSwapStatistics;
 use App\Planning\NullTimeOffChecker;
 use App\Planning\NullTimeOffProvider;
+use App\Planning\NullTimeOffStatistics;
 use App\Profile\DefaultProfileSectionRegistry;
 use App\Push\MinishlinkWebPushSender;
 use App\Push\WebPushSender;
@@ -41,6 +43,7 @@ use App\Sales\NullDailySalesProvider;
 use App\Settings\AppSettings;
 use App\Settings\CoreSettings;
 use App\Settings\RuntimeSettings;
+use App\Stores\DefaultStoreActionRegistry;
 use App\Stores\DefaultStoreFeatureRegistry;
 use App\Stores\StoreColleagueDirectory;
 use App\System\CoreSystemAlerts;
@@ -99,13 +102,16 @@ use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Kintai\Contracts\Notifications\Notifier;
 use Kintai\Contracts\Planning\TimeOffChecker;
 use Kintai\Contracts\Planning\TimeOffProvider;
+use Kintai\Contracts\Planning\TimeOffStatistics;
 use Kintai\Contracts\Profile\ProfileSectionRegistry;
 use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Kintai\Contracts\Sales\DailySalesProvider;
 use Kintai\Contracts\Settings\Settings;
 use Kintai\Contracts\Shifts\ShiftExchanger;
 use Kintai\Contracts\Shifts\ShiftReplacer;
+use Kintai\Contracts\Shifts\ShiftSwapStatistics;
 use Kintai\Contracts\Stores\ColleagueDirectory;
+use Kintai\Contracts\Stores\StoreActionRegistry;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Kintai\Contracts\System\SystemAlertRegistry;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -124,6 +130,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(BackupFileRegistry::class, DefaultBackupFileRegistry::class);
         $this->app->singleton(NavigationRegistry::class, DefaultNavigationRegistry::class);
         $this->app->singleton(EmployeeActionRegistry::class, DefaultEmployeeActionRegistry::class);
+        $this->app->singleton(StoreActionRegistry::class, DefaultStoreActionRegistry::class);
         $this->app->singleton(PendingRequestRegistry::class, DefaultPendingRequestRegistry::class);
         $this->app->singleton(DashboardWidgetRegistry::class, DefaultDashboardWidgetRegistry::class);
         $this->app->singleton(NotificationTypeRegistry::class, DefaultNotificationTypeRegistry::class);
@@ -162,6 +169,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TimeOffChecker::class, NullTimeOffChecker::class);
         // Idem pour les congés publiés dans le flux iCal.
         $this->app->bind(TimeOffProvider::class, NullTimeOffProvider::class);
+        // Idem pour les statistiques de congés (tous statuts) et d'échanges de shifts ; les bundles timeoff et shift-swap remplacent ces liaisons.
+        $this->app->bind(TimeOffStatistics::class, NullTimeOffStatistics::class);
+        $this->app->bind(ShiftSwapStatistics::class, NullShiftSwapStatistics::class);
         // Sans bundle de rapports journaliers, pas de ventes ; le bundle daily-report remplace cette liaison.
         $this->app->bind(DailySalesProvider::class, NullDailySalesProvider::class);
     }

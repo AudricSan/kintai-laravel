@@ -1290,14 +1290,14 @@
         },
         {
             "name": "kintai/bundle-analytics",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "dist": {
                 "type": "path",
                 "url": "packages/bundles/analytics",
-                "reference": "dd17ddb70f200aa33fa76b2de1bda2fa9695d13e"
+                "reference": "c98ec39238f142d46b2d1f9c1c49228b49605164"
             },
             "require": {
-                "kintai/contracts": "^1.6",
+                "kintai/contracts": "^1.7",
                 "php": "^8.3"
             },
             "type": "library",
@@ -1665,14 +1665,14 @@
         },
         {
             "name": "kintai/bundle-shift-swap",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "dist": {
                 "type": "path",
                 "url": "packages/bundles/shift-swap",
-                "reference": "81dcffc4439927a8274dd7c71aeba7326c5da7e3"
+                "reference": "734b09949e01ec5a3800ebed71d0c623ecd966cc"
             },
             "require": {
-                "kintai/contracts": "^1.3",
+                "kintai/contracts": "^1.7",
                 "php": "^8.3"
             },
             "type": "library",
@@ -1801,14 +1801,14 @@
         },
         {
             "name": "kintai/bundle-timeoff",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "dist": {
                 "type": "path",
                 "url": "packages/bundles/timeoff",
-                "reference": "f22b5b4b8e18dc2a65e27e3d78b018ffc88db7d3"
+                "reference": "b329b364d4fa38d3208c42a9194f22ec98ee268f"
             },
             "require": {
-                "kintai/contracts": "^1.2",
+                "kintai/contracts": "^1.7",
                 "php": "^8.3"
             },
             "type": "library",
@@ -1835,11 +1835,11 @@
         },
         {
             "name": "kintai/contracts",
-            "version": "1.6.0",
+            "version": "1.7.0",
             "dist": {
                 "type": "path",
                 "url": "packages/contracts",
-                "reference": "e50ffb8bc27045a368f1363e7bc94f0e3bdde7a9"
+                "reference": "069944b08754439f84251c894b46625ac83f9dd9"
             },
             "require": {
                 "illuminate/auth": "^13.0",

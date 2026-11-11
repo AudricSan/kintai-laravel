@@ -18,13 +18,14 @@ class EmployeeStatsService
     public function __construct(
         private readonly StoreShifts $shifts,
         private readonly ApprovedAbsences $absences,
+        private readonly AcceptedSwaps $swaps,
     ) {}
 
     /**
      * Fiche d'un employé dans un magasin : heures, coût, jours travaillés, absences approuvées, série la plus longue,
      * heures des 12 derniers mois, par type et par jour de la semaine, 15 derniers shifts.
      *
-     * L'échange de shifts relève du bundle shift-swap, que ce bundle ne lit pas : `swapCount` vaut 0.
+     * `swapCount` : échanges acceptés de la période où l'employé est demandeur ou collègue sollicité (contrat `ShiftSwapStatistics`).
      *
      * @return array<string, mixed>
      */
@@ -99,7 +100,7 @@ class EmployeeStatsService
             'workDays' => count($workDays),
             'absDays' => $absDays,
             'maxConsec' => StatsMath::consecutiveRuns(array_map('strval', array_keys($workDays)))['max'],
-            'swapCount' => 0,
+            'swapCount' => $this->swaps->countByUser($storeId, $since, $todayDate)[$userId] ?? 0,
             'monthlyHours' => $monthlyHours,
             'typeHours' => $typeHours,
             'dowChart' => array_combine(array_map(fn (string $day): string => __($day), ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']), $dowBuckets),

@@ -40,6 +40,9 @@
                 <flux:table.column>{{ __('Work days') }}</flux:table.column>
                 <flux:table.column>{{ __('Abs. days') }}</flux:table.column>
                 <flux:table.column>{{ __('Max consec.') }}</flux:table.column>
+                @if ($report['anySwaps'])
+                    <flux:table.column>{{ __('Swaps') }}</flux:table.column>
+                @endif
             </flux:table.columns>
             <flux:table.rows>
                 @foreach ($report['employeeStats'] as $id => $row)
@@ -57,6 +60,9 @@
                         <flux:table.cell>{{ $row['work_days'] }}</flux:table.cell>
                         <flux:table.cell>{{ $row['abs_days'] }}</flux:table.cell>
                         <flux:table.cell>{{ $row['max_consec'] }}</flux:table.cell>
+                        @if ($report['anySwaps'])
+                            <flux:table.cell>{{ $row['swaps'] }}</flux:table.cell>
+                        @endif
                     </flux:table.row>
                 @endforeach
             </flux:table.rows>

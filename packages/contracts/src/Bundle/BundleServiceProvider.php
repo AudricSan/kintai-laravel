@@ -27,6 +27,8 @@ use Kintai\Contracts\Requests\PendingRequestProvider;
 use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Kintai\Contracts\Settings\SettingDefinition;
 use Kintai\Contracts\Settings\Settings;
+use Kintai\Contracts\Stores\StoreAction;
+use Kintai\Contracts\Stores\StoreActionRegistry;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Kintai\Contracts\System\SystemAlert;
 use Kintai\Contracts\System\SystemAlertRegistry;
@@ -172,6 +174,20 @@ abstract class BundleServiceProvider extends ServiceProvider
     {
         $this->whenEnabled(function () use ($actions): void {
             $registry = $this->app->make(EmployeeActionRegistry::class);
+
+            foreach ($actions as $action) {
+                $registry->register($action);
+            }
+        });
+    }
+
+    /**
+     * Actions affichées sur chaque ligne de la liste des magasins (depuis le contrat 1.7).
+     */
+    protected function storeActions(StoreAction ...$actions): void
+    {
+        $this->whenEnabled(function () use ($actions): void {
+            $registry = $this->app->make(StoreActionRegistry::class);
 
             foreach ($actions as $action) {
                 $registry->register($action);

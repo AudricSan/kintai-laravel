@@ -13,18 +13,22 @@ use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Kintai\Bundles\ShiftSwap\Models\ShiftSwapRequest;
 use Kintai\Bundles\ShiftSwap\ShiftSwapServiceProvider;
 use Kintai\Bundles\ShiftSwap\SwapActions;
+use Kintai\Bundles\ShiftSwap\SwapStatistics;
 use Kintai\Contracts\Authorization\PermissionRegistry;
 use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Kintai\Contracts\Planning\TimeOffChecker;
 use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Kintai\Contracts\Shifts\ShiftExchanger;
+use Kintai\Contracts\Shifts\ShiftSwapStatistics;
+use Kintai\Contracts\Shifts\ShiftSwapSummary;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;
@@ -152,6 +156,40 @@ class ShiftSwapTest extends TestCase
             $this->assertTrue(app(NotificationTypeRegistry::class)->has($type), $type);
         }
         $this->assertInstanceOf(ShiftExchanger::class, app(ShiftExchanger::class));
+        $this->assertInstanceOf(SwapStatistics::class, app(ShiftSwapStatistics::class));
+    }
+
+    public function test_the_statistics_publish_every_status_of_the_store_created_in_the_period(): void
+    {
+        $this->enableBundle('shift-swap');
+        $alice = $this->employeeOf($this->a);
+        $bob = $this->employeeOf($this->a);
+        $make = function (Store $store, string $status, string $createdAt) use ($alice, $bob): ShiftSwapRequest {
+            $swap = ShiftSwapRequest::create([
+                'store_id' => $store->id, 'requester_id' => $alice->id, 'target_user_id' => $bob->id,
+                'requester_shift_id' => $this->shift($alice, $store, 10)->id, 'target_shift_id' => $this->shift($bob, $store, 10)->id,
+                'status' => $status,
+            ]);
+            $swap->forceFill(['created_at' => $createdAt])->save();
+
+            return $swap;
+        };
+        foreach (['pending', 'accepted', 'refused', 'cancelled'] as $i => $status) {
+            $make($this->a, $status, '2026-11-0'.($i + 1).' 10:00:00');
+        }
+        $make($this->b, 'accepted', '2026-11-02 10:00:00');
+        $make($this->a, 'accepted', '2026-10-31 23:59:59');
+        $make($this->a, 'accepted', '2026-11-05 00:00:00');
+        $statistics = app(ShiftSwapStatistics::class);
+
+        $swaps = $statistics->swapsFor($this->a->id, Carbon::parse('2026-11-01'), Carbon::parse('2026-11-04'));
+
+        $this->assertContainsOnlyInstancesOf(ShiftSwapSummary::class, $swaps);
+        $this->assertSame(['pending', 'accepted', 'refused', 'cancelled'], array_map(fn (ShiftSwapSummary $s): string => $s->status, $swaps));
+        $this->assertSame([$alice->id, $bob->id], [$swaps[0]->requesterId, $swaps[0]->targetUserId]);
+        $this->assertSame('2026-11-01', $swaps[0]->createdAt->toDateString());
+        $this->assertCount(2, $statistics->swapsFor($this->a->id, Carbon::parse('2026-11-04'), Carbon::parse('2026-11-05')));
+        $this->assertSame([], $statistics->swapsFor($this->a->id, Carbon::parse('2025-01-01'), Carbon::parse('2025-01-31')));
     }
 
     public function test_a_disabled_bundle_is_absent_everywhere(): void
@@ -160,6 +198,7 @@ class ShiftSwapTest extends TestCase
         $this->assertFalse(app(StoreFeatureRegistry::class)->has('swaps'));
         $this->assertFalse(app(NavigationRegistry::class)->has('shift-swap'));
         $this->assertTrue(app(PendingRequestRegistry::class)->isEmpty());
+        $this->assertNotInstanceOf(SwapStatistics::class, app(ShiftSwapStatistics::class));
 
         $this->actingAs($this->employeeOf($this->a))->get('/shift-swap')->assertNotFound();
         $this->actingAs($this->owner())->get('/shift-swap/manage')->assertNotFound();

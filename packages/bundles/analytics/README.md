@@ -32,16 +32,15 @@ Montants mis en forme par le `Money` du Core (devise et style du symbole du maga
 - `DashboardFigures` : chiffres des trois widgets. `Presenter` : mise en forme (montants, noms, pourcentages).
 - Coûts : toujours par le `ShiftWageCalculator` du Core (tranches de types, taux personnels, taux plat, minutes nettes imposées) ; rien n'est recopié. Shifts supprimés et shifts ouverts (sans employé) exclus.
 - Cache : `storeStats` et `costByMonth` sont gardés dans le cache `array` de Laravel (clé magasin, période, bornes de durée et jour ; pas d'invalidation, la durée d'une requête ; 60 secondes au plus dans un processus qui dure).
-- Absences : par `Kintai\Contracts\Planning\TimeOffProvider` (congés approuvés seulement ; aucun sans bundle de congés).
+- Congés : par `Kintai\Contracts\Planning\TimeOffStatistics` (contrat 1.7, fourni par le bundle timeoff ; aucun sans bundle de congés). La répartition par statut et par type compte toutes les demandes qui commencent sur la période ; jours d'absence, taux d'absentéisme et demandes par employé ne comptent que les congés approuvés.
+- Échanges de shifts : par `Kintai\Contracts\Shifts\ShiftSwapStatistics` (contrat 1.7, fourni par le bundle shift-swap) ; seuls les échanges acceptés comptent, pour le demandeur comme pour le collègue sollicité. Sans bundle d'échanges, la colonne et la carte « Échanges » sont masquées.
+- Liste des magasins : actions « Statistics » et « Profitability » par `Kintai\Contracts\Stores\StoreAction` (contrat 1.7), visibles avec `payroll.view` sur le magasin ; la rentabilité n'est proposée qu'avec un fournisseur de ventes.
 
 ## Écarts connus avec l'ancienne version
 
-Aucun contrat n'expose ces données : les pages montrent les chiffres disponibles et masquent les blocs vides, sans colonne ni zéro trompeur.
+Les pages montrent les chiffres disponibles et masquent les blocs vides, sans colonne ni zéro trompeur.
 
-- Échanges de shifts : aucune colonne « Échanges » (rapport par employé), aucun compteur sur la fiche.
-- Congés : seuls les congés approuvés sont connus ; la répartition par statut (en attente, refusé, annulé) et par type de congé n'est pas affichée. Restent le taux d'absentéisme, les jours approuvés et les demandes par employé.
 - Widget RH : retards et semaines en heures supplémentaires ne sont pas calculés (le bundle timeclock n'est pas lu) ; le widget montre le taux d'absentéisme et les congés approuvés.
-- Liens depuis la liste des magasins : le Core n'a pas de point d'extension pour la liste des magasins ; les pages se rejoignent par le menu (sélecteur de magasin) et, pour un employé, par l'action « Statistics » de la liste des employés.
 - Export : l'ancien CSV à plusieurs sections (résumé, semaines, mois, types) devient le jeu de données tabulaire `store-stats` (employé par magasin) des exports du Core ; période libre (jusqu'à 366 jours) au lieu des seules périodes de 7 à 365 jours finissant aujourd'hui.
 - Graphiques : histogrammes CSS à la place des graphiques Chart.js ; scores en cartes colorées plutôt qu'en anneaux.
 

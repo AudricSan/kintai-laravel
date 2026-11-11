@@ -18,6 +18,7 @@ use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
 use Kintai\Contracts\Employees\EmployeeActionRegistry;
 use Kintai\Contracts\Exports\ExportDatasetRegistry;
 use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Stores\StoreActionRegistry;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesAccess;
 use Tests\Concerns\InstallsBundles;
@@ -280,6 +281,51 @@ class AnalyticsPagesTest extends TestCase
         $this->assertNotContains('analytics.statistics', $labels($this->manager, $this->bao->id));
         $this->assertNotContains('analytics.statistics', $labels($this->aiko, $this->aiko->id));
         $this->assertContains('analytics.statistics', $labels($this->owner, $this->bao->id));
+    }
+
+    public function test_the_store_list_gets_statistics_and_profitability_actions_by_rights(): void
+    {
+        $registry = app(StoreActionRegistry::class);
+        $keys = fn (User $viewer, int $store): array => array_map(fn ($action): string => $action->key, $registry->actionsFor($viewer, $store));
+
+        // Sans fournisseur de ventes, pas de rentabilité.
+        $this->assertSame(['analytics.statistics'], $keys($this->manager, $this->a->id));
+        $this->assertSame([], $keys($this->manager, $this->b->id));
+        $this->assertSame([], $keys($this->aiko, $this->a->id));
+        $this->assertSame(['analytics.statistics'], $keys($this->owner, $this->b->id));
+
+        $this->enableBundle('daily-report');
+
+        $this->assertSame(['analytics.statistics', 'analytics.profitability'], $keys($this->manager, $this->a->id));
+        $this->assertSame([], $keys($this->manager, $this->b->id));
+    }
+
+    public function test_the_store_list_shows_the_analytics_links_with_the_store_in_the_query(): void
+    {
+        $this->actingAs($this->manager);
+
+        Livewire::test('pages::stores.index')
+            ->assertSeeHtml('data-test="store-action-analytics.statistics"')
+            ->assertSeeHtml(route('analytics.stats', ['store' => $this->a->id]))
+            ->assertDontSeeHtml('data-test="store-action-analytics.profitability"');
+
+        $this->enableBundle('daily-report');
+
+        Livewire::test('pages::stores.index')
+            ->assertSeeHtml('data-test="store-action-analytics.profitability"')
+            ->assertSeeHtml(route('analytics.profitability', ['store' => $this->a->id]));
+
+        // « Statistiques » ouvre bien la page du magasin choisi.
+        $this->actingAs($this->owner)->get(route('analytics.stats', ['store' => $this->b->id]))->assertOk()->assertSee('Statistics - Beta');
+    }
+
+    public function test_a_manager_without_payroll_view_sees_no_analytics_link_on_the_store_list(): void
+    {
+        $this->actingAs($this->holder(['stores.view'], $this->a));
+
+        Livewire::test('pages::stores.index')
+            ->assertSee('Alpha')
+            ->assertDontSeeHtml('data-test="store-action-analytics.');
     }
 
     // -- Rentabilité ---------------------------------------------------------------------------------------------

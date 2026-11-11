@@ -2,6 +2,20 @@
 
 Versionnement sémantique, voir le README.
 
+## 1.7.0
+
+### Ajouté
+- `Planning\TimeOffStatistics` et `Planning\TimeOffRequestSummary` : les demandes de congé d'un magasin pour des employés donnés sur une période,
+  quel que soit leur statut (en attente, approuvé, refusé, annulé) et leur type (vacances, maladie, personnel, sans solde, autre). Le Core
+  lie une implémentation vide et le bundle timeoff la remplace tant qu'il est activé, comme `TimeOffProvider` (qui ne publie que les congés
+  approuvés). Un bundle (analytics : statistiques de congés) les lit sans connaître la table du fournisseur.
+- `Shifts\ShiftSwapStatistics` et `Shifts\ShiftSwapSummary` : les demandes d'échange de shifts d'un magasin créées pendant une période, tous
+  statuts (en attente, accepté, refusé, annulé). Le Core lie une implémentation vide et le bundle shift-swap la remplace tant qu'il est activé.
+- `Stores\StoreActionRegistry` (service du Core), `StoreAction` et l'aide `BundleServiceProvider::storeActions()` : un bundle ajoute une action
+  (lien vers une route nommée, qui reçoit `?store=<id>`) sur chaque ligne de la liste des magasins, visible selon
+  `visible(Authenticatable $viewer, int $storeId)`. Sans effet tant que le bundle n'est pas activé. Même principe que `EmployeeAction` (1.5).
+- Ajouts compatibles : nouvelles interfaces et classes, aucun bundle existant n'est touché.
+
 ## 1.6.0
 
 ### Ajouté

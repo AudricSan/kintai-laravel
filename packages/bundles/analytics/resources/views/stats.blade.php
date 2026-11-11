@@ -182,13 +182,37 @@
             </div>
         </div>
 
-        {{-- RH : seuls les congés approuvés sont connus (voir le README) --}}
+        {{-- RH : congés par statut et par type (contrat TimeOffStatistics), blocs masqués sans demande --}}
         <div class="space-y-3" data-test="section-hr">
             <flux:heading size="lg">{{ __('HR statistics') }}</flux:heading>
             <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 @include($card, ['label' => __('Absence rate'), 'value' => $s['absRate'].'%', 'sub' => __('approved leave days / (headcount x period)')])
                 @include($card, ['label' => __('Approved leave'), 'value' => $s['approvedDays'], 'sub' => __('cumulated days')])
             </div>
+            @if (array_sum($s['timeoffsByStatus']) > 0)
+                @php
+                    $statusLabels = ['pending' => __('Pending'), 'approved' => __('Approved'), 'refused' => __('Refused'), 'cancelled' => __('Cancelled')];
+                    $typeLabels = ['vacation' => __('Vacation'), 'sick' => __('Sick leave'), 'personal' => __('Personal leave'), 'unpaid' => __('Unpaid leave'), 'other' => __('Other')];
+                    $byStatus = [];
+                    foreach ($s['timeoffsByStatus'] as $status => $count) {
+                        $byStatus[$statusLabels[$status] ?? $status] = $count;
+                    }
+                    $byType = [];
+                    foreach ($s['timeoffsByType'] as $type => $count) {
+                        $byType[$typeLabels[$type] ?? $type] = $count;
+                    }
+                @endphp
+                <div class="grid gap-3 lg:grid-cols-2">
+                    <div class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700" data-test="leave-by-status">
+                        <flux:heading size="sm" class="mb-2">{{ __('Leave requests by status') }}</flux:heading>
+                        @include($bars, ['data' => $byStatus, 'color' => 'bg-amber-500'])
+                    </div>
+                    <div class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700" data-test="leave-by-type">
+                        <flux:heading size="sm" class="mb-2">{{ __('Leave requests by type') }}</flux:heading>
+                        @include($bars, ['data' => $byType, 'color' => 'bg-sky-500'])
+                    </div>
+                </div>
+            @endif
             @if ($s['timeoffsByUser'] !== [])
                 @php
                     $leave = $s['timeoffsByUser'];

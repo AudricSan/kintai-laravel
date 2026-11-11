@@ -18,6 +18,7 @@ use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Notifications\NotificationType;
 use Kintai\Contracts\Planning\TimeOffChecker;
 use Kintai\Contracts\Planning\TimeOffProvider;
+use Kintai\Contracts\Planning\TimeOffStatistics;
 use Kintai\Contracts\Requests\PendingRequestProvider;
 use Livewire\Livewire;
 
@@ -50,12 +51,17 @@ class TimeoffServiceProvider extends BundleServiceProvider
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     public function description(): string
     {
         return 'Time off requests: submission, approval, and approved leave taken into account by the schedule and the iCal feed.';
+    }
+
+    public function requiredContract(): string
+    {
+        return '^1.7';
     }
 
     protected function bootBundle(): void
@@ -70,6 +76,7 @@ class TimeoffServiceProvider extends BundleServiceProvider
             $this->app->singleton(ApprovedTimeOff::class);
             $this->app->bind(TimeOffChecker::class, ApprovedTimeOff::class);
             $this->app->bind(TimeOffProvider::class, ApprovedTimeOff::class);
+            $this->app->bind(TimeOffStatistics::class, LeaveStatistics::class);
         }
 
         // Les gérants gèrent les congés ; les employés demandent les leurs sans permission (libre-service).

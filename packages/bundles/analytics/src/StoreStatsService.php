@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Kintai\Contracts\Planning\TimeOffRequestSummary;
 
 /**
  * Statistiques d'un magasin : répartition des heures, coût, équité, stabilité du planning, absences, risque d'épuisement,
@@ -27,6 +28,7 @@ class StoreStatsService
     public function __construct(
         private readonly StoreShifts $shifts,
         private readonly ApprovedAbsences $absences,
+        private readonly AcceptedSwaps $swaps,
     ) {}
 
     /**
@@ -169,15 +171,21 @@ class StoreStatsService
         arsort($shiftsCreatedByManager);
         arsort($modByManager);
 
-        // Le contrat ne publie que les congés approuvés (voir ApprovedAbsences).
-        $absences = $this->absences->startingFrom($storeId, $memberIds, $since);
-        $timeoffsByStatus = ['pending' => 0, 'approved' => count($absences), 'refused' => 0, 'cancelled' => 0];
+        // Toutes les demandes par statut et par type ; jours d'absence et demandes par employé sur les congés approuvés seulement.
+        $timeoffsByStatus = array_fill_keys(TimeOffRequestSummary::STATUSES, 0);
+        $timeoffsByType = [];
         $timeoffsByUser = [];
         $approvedDays = 0;
-        foreach ($absences as $absence) {
-            $timeoffsByUser[$absence['user_id']] = ($timeoffsByUser[$absence['user_id']] ?? 0) + 1;
-            $approvedDays += $absence['days'];
+        foreach ($this->absences->requestsStartingFrom($storeId, $memberIds, $since) as $request) {
+            $timeoffsByStatus[$request->status] = ($timeoffsByStatus[$request->status] ?? 0) + 1;
+            $timeoffsByType[$request->type] = ($timeoffsByType[$request->type] ?? 0) + 1;
+
+            if ($request->status === TimeOffRequestSummary::APPROVED) {
+                $timeoffsByUser[$request->userId] = ($timeoffsByUser[$request->userId] ?? 0) + 1;
+                $approvedDays += StatsMath::inclusiveDays($request->startDate, $request->endDate);
+            }
         }
+        arsort($timeoffsByType);
         $absRate = (count($memberIds) > 0 && $period > 0) ? round($approvedDays / (count($memberIds) * $period) * 100, 2) : 0;
 
         $totalCost = 0.0;
@@ -295,7 +303,7 @@ class StoreStatsService
             'shiftsCreatedByManager' => $shiftsCreatedByManager,
             'modByManager' => $modByManager,
             'timeoffsByStatus' => $timeoffsByStatus,
-            'timeoffsByType' => [],
+            'timeoffsByType' => $timeoffsByType,
             'timeoffsByUser' => $timeoffsByUser,
             'absRate' => $absRate,
             'approvedDays' => $approvedDays,
@@ -400,7 +408,7 @@ class StoreStatsService
      * Rapport par employé d'un magasin : shifts, heures, coût, jours travaillés, absences, série la plus longue, trié par
      * heures nettes décroissantes ; tous les employés du magasin y figurent, même sans shift sur la période.
      *
-     * L'échange de shifts relève du bundle shift-swap, que ce bundle ne lit pas : `swaps` vaut 0.
+     * `swaps` : échanges acceptés de la période où l'employé est demandeur ou collègue sollicité (contrat `ShiftSwapStatistics`).
      *
      * @return array<string, mixed>
      */
@@ -426,6 +434,8 @@ class StoreStatsService
         foreach ($this->absences->startingFrom($storeId, $memberIds, $since) as $absence) {
             $absenceDays[$absence['user_id']] = ($absenceDays[$absence['user_id']] ?? 0) + $absence['days'];
         }
+
+        $swapCounts = $this->swaps->countByUser($storeId, $since, $today->toDateString());
 
         $rates = $this->shifts->personalRates($memberIds);
         $shiftsByUser = [];
@@ -456,7 +466,7 @@ class StoreStatsService
                 'cost' => round($cost, 2),
                 'work_days' => count($days),
                 'abs_days' => $absenceDays[$userId] ?? 0,
-                'swaps' => 0,
+                'swaps' => $swapCounts[$userId] ?? 0,
                 'max_consec' => StatsMath::consecutiveRuns(array_map('strval', array_keys($days)))['max'],
                 'has_rate' => $hasRate,
             ];
@@ -480,6 +490,7 @@ class StoreStatsService
             'totalAbsDays' => array_sum(array_column($employeeStats, 'abs_days')),
             'activeCount' => count(array_filter($employeeStats, fn (array $e): bool => $e['shifts'] > 0)),
             'anyHasRate' => array_filter($employeeStats, fn (array $e): bool => $e['has_rate']) !== [],
+            'anySwaps' => array_filter($employeeStats, fn (array $e): bool => $e['swaps'] > 0) !== [],
         ];
     }
 

@@ -13,3 +13,7 @@ Reconstruction en package Laravel natif à partir du bundle `shift-swap` 3.0.0 d
 - l'API n'expose plus de `PUT status` : les décisions sont des actions (`accept`, `decline`, `cancel`, `approve`, `refuse`, `apply`) ; `PUT` ne corrige que le motif ;
 - les statistiques d'échanges du Core (`SwapProvider`) et la carte « Échanges » du tableau de bord employé n'existent plus dans le nouveau Core : le widget « Échanges en attente de ma réponse » les remplace ;
 - les notifications de planning du Core (shift ajouté, retiré) accompagnent l'échange.
+
+## 1.1.0
+
+Exige le contrat 1.7 (`requiredContract` `^1.7`) : `SwapStatistics` fournit les demandes d'échange de tous statuts (`Kintai\Contracts\Shifts\ShiftSwapStatistics`, filtrées sur `created_at`) aux statistiques d'un autre bundle (analytics) ; liée au Core tant que le bundle est activé.

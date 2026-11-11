@@ -21,6 +21,9 @@
         @include($card, ['label' => __('Work days'), 'value' => $stats['workDays']])
         @include($card, ['label' => __('Absence days'), 'value' => $stats['absDays']])
         @include($card, ['label' => __('Max consecutive days'), 'value' => $stats['maxConsec']])
+        @if ($stats['swapCount'] > 0)
+            @include($card, ['label' => __('Swaps'), 'value' => $stats['swapCount'], 'sub' => __('accepted shift swaps')])
+        @endif
     </div>
 
     <div class="grid gap-3 lg:grid-cols-2">

@@ -193,7 +193,20 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
       `UserAnonymized`, aperçu et PDF mPDF, aucune donnée personnelle dans le journal), **resignation-report** (droits
       `resignation_reports.*`, rapports supprimés à `UserAnonymized`, aperçu et PDF mPDF ; la désactivation du compte
       à la date de démission, la réactivation et les exports multi-magasins du legacy ne sont pas repris : pas de contrat
-      Core pour agir sur un compte). 13 sur 13 portés.
+      Core pour agir sur un compte ; repris depuis avec le contrat 1.5, voir plus bas). 13 sur 13 portés.
+    - Suivi, après les 13 : **planning-import** (import Excel de planning, détection en trois phases, aperçu puis
+      confirmation via les actions du Core, alias de noms et réglages de grille par magasin ; droit `shifts.import`
+      conservé dans le Core, fichier envoyé non conservé, plus aucun code d'import dans le Core) ; **analytics**
+      (statistiques, rentabilité et rapports par employé : pages par magasin et par employé, widgets statistiques,
+      financier et absentéisme, export, droits `payroll.view`/`payroll.export` du Core, coûts via `ShiftWageCalculator`).
+      Contrat **1.5** (`AccountActivation`, `EmployeeAction`) : resignation-report désactive le compte à la date de départ
+      et ajoute « Licencier ». Contrat **1.6** (`DailySalesProvider`, `DailySales`, implémentation vide dans le Core) :
+      daily-report fournit les ventes. 16 bundles committés.
+    - Contrat **1.7** : `TimeOffStatistics` (timeoff) et `ShiftSwapStatistics` (shift-swap) comblent les écarts
+      d'analytics (congés par statut et par type, échanges par employé) ; `StoreAction` et `StoreActionRegistry`
+      (actions de ligne de la liste des magasins) portent les liens Statistiques et Rentabilité d'analytics.
+    - Reste de la phase 5 : retenues de salary-report (Japon et autres pays) à faire définir par le responsable
+      magasin ; vérification visuelle dans le navigateur.
     - Suivi, bundles sortis du Core : **google-calendar** (06/11/2026, `kintai/bundle-google-calendar`, contrat ^1.5) :
       liaison OAuth (code + PKCE, `state` en session à usage unique) de chacun à son compte Google, client HTTP de
       Laravel (`Http::fake()` en test), jeton de rafraîchissement chiffré (cast `encrypted`), réglages de l'instance

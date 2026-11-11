@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Kintai\Bundles\Timeoff\ApprovedTimeOff;
+use Kintai\Bundles\Timeoff\LeaveStatistics;
 use Kintai\Bundles\Timeoff\Models\TimeoffRequest;
 use Kintai\Bundles\Timeoff\TimeoffServiceProvider;
 use Kintai\Contracts\Authorization\PermissionRegistry;
@@ -24,6 +25,8 @@ use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 use Kintai\Contracts\Planning\TimeOffChecker;
 use Kintai\Contracts\Planning\TimeOffProvider;
+use Kintai\Contracts\Planning\TimeOffRequestSummary;
+use Kintai\Contracts\Planning\TimeOffStatistics;
 use Kintai\Contracts\Requests\PendingRequestRegistry;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Livewire\Livewire;
@@ -105,6 +108,7 @@ class TimeoffTest extends TestCase
         $this->assertTrue(app(NotificationTypeRegistry::class)->has('timeoff_approved'));
         $this->assertInstanceOf(ApprovedTimeOff::class, app(TimeOffChecker::class));
         $this->assertInstanceOf(ApprovedTimeOff::class, app(TimeOffProvider::class));
+        $this->assertInstanceOf(LeaveStatistics::class, app(TimeOffStatistics::class));
     }
 
     public function test_a_disabled_bundle_is_absent_everywhere_and_the_core_knows_no_leave(): void
@@ -115,6 +119,7 @@ class TimeoffTest extends TestCase
         $this->assertTrue(app(PendingRequestRegistry::class)->isEmpty());
         $this->assertNotInstanceOf(ApprovedTimeOff::class, app(TimeOffChecker::class));
         $this->assertNotInstanceOf(ApprovedTimeOff::class, app(TimeOffProvider::class));
+        $this->assertNotInstanceOf(LeaveStatistics::class, app(TimeOffStatistics::class));
 
         $this->actingAs($this->employeeOf($this->a))->get('/timeoff')->assertNotFound();
         $this->actingAs($this->owner())->get('/timeoff/manage')->assertNotFound();
@@ -431,6 +436,34 @@ class TimeoffTest extends TestCase
 
         $this->assertTrue(app(TimeOffChecker::class)->hasApprovedTimeOff($employee->id, Carbon::parse('2026-12-02')));
         $this->assertFalse(app(TimeOffChecker::class)->hasApprovedTimeOff($other->id, Carbon::parse('2026-12-02')));
+    }
+
+    public function test_the_statistics_publish_every_status_of_the_store_for_the_users_and_the_period(): void
+    {
+        $this->enableBundle('timeoff');
+        $employee = $this->employeeOf($this->a);
+        $other = $this->employeeOf($this->a);
+        foreach (['pending', 'approved', 'refused', 'cancelled'] as $i => $status) {
+            $this->leave($employee, $this->a, $status, ['type' => ['vacation', 'sick', 'personal', 'unpaid'][$i], 'start_date' => '2026-12-0'.($i + 1), 'end_date' => '2026-12-0'.($i + 1)]);
+        }
+        $this->leave($employee, $this->b, 'approved');
+        $this->leave($other, $this->a, 'pending', ['type' => 'other']);
+        $this->leave($employee, $this->a, 'approved', ['start_date' => '2027-03-01', 'end_date' => '2027-03-02']);
+        $statistics = app(TimeOffStatistics::class);
+
+        $requests = $statistics->requestsFor($this->a->id, [$employee->id], Carbon::parse('2026-11-25'), Carbon::parse('2026-12-31'));
+
+        $this->assertContainsOnlyInstancesOf(TimeOffRequestSummary::class, $requests);
+        $this->assertSame(
+            [['pending', 'vacation', '2026-12-01'], ['approved', 'sick', '2026-12-02'], ['refused', 'personal', '2026-12-03'], ['cancelled', 'unpaid', '2026-12-04']],
+            array_map(fn (TimeOffRequestSummary $r): array => [$r->status, $r->type, $r->startDate], $requests),
+        );
+        $this->assertSame([$employee->id], array_values(array_unique(array_map(fn (TimeOffRequestSummary $r): int => $r->userId, $requests))));
+        $this->assertSame('2026-12-01', $requests[0]->endDate);
+        $this->assertCount(5, $statistics->requestsFor($this->a->id, [$employee->id, $other->id], Carbon::parse('2026-11-25'), Carbon::parse('2026-12-31')));
+        $this->assertCount(1, $statistics->requestsFor($this->a->id, [$employee->id], Carbon::parse('2027-03-02'), Carbon::parse('2027-04-01')));
+        $this->assertSame([], $statistics->requestsFor($this->a->id, [$employee->id], Carbon::parse('2026-01-01'), Carbon::parse('2026-01-31')));
+        $this->assertSame([], $statistics->requestsFor($this->a->id, [], Carbon::parse('2026-11-25'), Carbon::parse('2026-12-31')));
     }
 
     public function test_the_provider_publishes_approved_leaves_of_the_store_for_the_period(): void

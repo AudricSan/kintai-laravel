@@ -18,6 +18,7 @@ use Kintai\Contracts\Employees\EmployeeAction;
 use Kintai\Contracts\Navigation\NavigationItem;
 use Kintai\Contracts\Navigation\NavigationRegistry;
 use Kintai\Contracts\Sales\DailySalesProvider;
+use Kintai\Contracts\Stores\StoreAction;
 use Livewire\Livewire;
 
 /**
@@ -42,7 +43,7 @@ class AnalyticsServiceProvider extends BundleServiceProvider
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     public function description(): string
@@ -52,7 +53,7 @@ class AnalyticsServiceProvider extends BundleServiceProvider
 
     public function requiredContract(): string
     {
-        return '^1.6';
+        return '^1.7';
     }
 
     protected function bootBundle(): void
@@ -95,6 +96,20 @@ class AnalyticsServiceProvider extends BundleServiceProvider
             key: 'analytics.statistics', label: 'Statistics', route: 'analytics.employee', order: 60, icon: 'chart-bar',
             visible: fn (Authenticatable $viewer, int $employeeId): bool => $viewer instanceof User && $access()->storesOfEmployee($viewer, $employeeId) !== [],
         ));
+
+        // « Statistiques » et « Rentabilité » sur la liste des magasins : ouvrent la page du magasin (`?store=`), qui revérifie les droits.
+        // Sans fournisseur de ventes, la rentabilité n'est pas proposée (comme dans le menu).
+        $this->storeActions(
+            new StoreAction(
+                key: 'analytics.statistics', label: 'Statistics', route: 'analytics.stats', order: 60, icon: 'chart-bar',
+                visible: fn (Authenticatable $viewer, int $storeId): bool => $viewer instanceof User && $access()->canView($viewer, $storeId),
+            ),
+            new StoreAction(
+                key: 'analytics.profitability', label: 'Profitability', route: 'analytics.profitability', order: 70, icon: 'banknotes',
+                visible: fn (Authenticatable $viewer, int $storeId): bool => $viewer instanceof User && $access()->canView($viewer, $storeId)
+                    && $this->app->make(DailySalesProvider::class)->available(),
+            ),
+        );
 
         // Les trois widgets du gérant : `payroll.view`, limités aux magasins que l'utilisateur voit.
         $this->widgets(
