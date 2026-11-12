@@ -1,103 +1,79 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Auth\UserTargetGuard;
-use App\Exceptions\NotFoundException;
+use App\Actions\Ical\DeleteIcalToken;
+use App\Actions\Ical\GenerateIcalToken;
+use App\Http\Resources\V1\IcalTokenResource;
 use App\Models\IcalToken;
-use App\Models\StoreUser;
+use App\Models\Store;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 
-final class IcalTokenController
+/**
+ * Liens iCal d'un employé, un par magasin. Le jeton en clair (et l'URL du flux) n'est renvoyé qu'à la création et à la
+ * régénération ; ensuite seule l'existence du lien peut être lue.
+ */
+class IcalTokenController extends ApiController
 {
-    public function __construct(
-        private readonly UserTargetGuard $guard,
-    ) {}
-
-    /** GET /api/v1/users/{user_id}/ical-tokens */
-    public function index(Request $request): Response
+    public function index(Request $request, int $user): AnonymousResourceCollection
     {
-        $userId = (int) $request->route('user_id');
-        $this->guard->require($request, $userId, 'employees.view');
-        return response()->json(IcalToken::findByUser($userId));
+        $target = $this->targetUser($request, $user, 'employees.view');
+
+        return IcalTokenResource::collection(IcalToken::query()->with('store')->where('user_id', $target->id)->orderBy('store_id')->get());
     }
 
-    /** GET /api/v1/users/{user_id}/ical-tokens/{store_id} */
-    public function show(Request $request): Response
+    public function show(Request $request, int $user, int $store): IcalTokenResource
     {
-        $userId  = (int) $request->route('user_id');
-        $storeId = (int) $request->route('store_id');
-        $this->guard->require($request, $userId, 'employees.view');
+        $target = $this->targetUser($request, $user, 'employees.view');
 
-        $token = IcalToken::findByUserAndStore($userId, $storeId);
-        if ($token === null) {
-            throw new NotFoundException(__('error_ical_token_not_found'));
+        return new IcalTokenResource($this->existing($target, $store)->load('store'));
+    }
+
+    public function store(Request $request, int $user, GenerateIcalToken $generate): JsonResponse
+    {
+        $target = $this->targetUser($request, $user, 'employees.update');
+        $data = $request->validate(['store_id' => ['required', 'integer']]);
+        $store = Store::query()->findOrFail($data['store_id']);
+
+        if (IcalToken::query()->where('user_id', $target->id)->where('store_id', $store->id)->exists()) {
+            throw ValidationException::withMessages(['store_id' => __('A calendar link already exists for this store: regenerate it instead.')]);
         }
 
-        return response()->json($token);
+        return $this->issued($request, $generate, $target, $store)->response()->setStatusCode(201);
     }
 
-    /** POST /api/v1/users/{user_id}/ical-tokens */
-    public function store(Request $request): Response
+    public function regenerate(Request $request, int $user, int $store, GenerateIcalToken $generate): IcalTokenResource
     {
-        $userId  = (int) $request->route('user_id');
-        $this->guard->require($request, $userId, 'employees.update');
+        $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data    = $request->json()->all() ?? [];
-        $storeId = (int) ($data['store_id'] ?? 0);
-        $this->assertMember($userId, $storeId);
-
-        // findOrCreate plutôt qu'un save() inconditionnel : un second appel pour le
-        // même user+store percuterait sinon la contrainte unique (user_id, store_id)
-        // en base et remonterait en 500 au lieu de simplement rendre le token existant.
-        $saved = IcalToken::findOrCreateForUserAndStore($userId, $storeId);
-
-        return response()->json($saved, 201);
+        return $this->issued($request, $generate, $target, Store::query()->findOrFail($store));
     }
 
-    /** DELETE /api/v1/users/{user_id}/ical-tokens/{store_id} */
-    public function destroy(Request $request): Response
+    public function destroy(Request $request, int $user, int $store, DeleteIcalToken $delete): Response
     {
-        $userId  = (int) $request->route('user_id');
-        $storeId = (int) $request->route('store_id');
-        $this->guard->require($request, $userId, 'employees.update');
+        $target = $this->targetUser($request, $user, 'employees.update');
+        $this->existing($target, $store);
 
-        if (IcalToken::findByUserAndStore($userId, $storeId) === null) {
-            throw new NotFoundException(__('error_ical_token_not_found'));
-        }
+        $delete->handle($this->actor($request), $target, Store::query()->findOrFail($store));
 
-        IcalToken::deleteByUserAndStore($userId, $storeId);
         return response()->noContent();
     }
 
-    /** POST /api/v1/users/{user_id}/ical-tokens/{store_id}/regenerate */
-    public function regenerate(Request $request): Response
+    private function issued(Request $request, GenerateIcalToken $generate, User $target, Store $store): IcalTokenResource
     {
-        $userId  = (int) $request->route('user_id');
-        $storeId = (int) $request->route('store_id');
-        $this->guard->require($request, $userId, 'employees.update');
-        $this->assertMember($userId, $storeId);
+        $plain = $generate->handle($this->actor($request), $target, $store);
+        $record = IcalToken::query()->with('store')->where('user_id', $target->id)->where('store_id', $store->id)->firstOrFail();
 
-        $existing = IcalToken::findByUserAndStore($userId, $storeId);
-        $saved    = IcalToken::put(array_merge($existing ?? [], [
-            'user_id'    => $userId,
-            'store_id'   => $storeId,
-            'token'      => bin2hex(random_bytes(32)),
-            'updated_at' => date('Y-m-d H:i:s'),
-            'created_at' => $existing['created_at'] ?? date('Y-m-d H:i:s'),
-        ]));
-
-        return response()->json($saved);
+        return new IcalTokenResource($record, $plain);
     }
 
-    /** Le flux iCal d'un magasin n'est délivré qu'à ses membres. */
-    private function assertMember(int $userId, int $storeId): void
+    private function existing(User $target, int $storeId): IcalToken
     {
-        if (StoreUser::findMembership($storeId, $userId) === null) {
-            throw new NotFoundException(__('error_store_not_found'));
-        }
+        return IcalToken::query()->where('user_id', $target->id)->where('store_id', $storeId)->firstOrFail();
     }
 }

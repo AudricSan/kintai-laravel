@@ -1,73 +1,68 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
-use App\Database\RequestMemo;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\FlushesRequestMemo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Carbon;
 
-final class RoleAssignment extends Model
+/**
+ * Pivot `role_user` : un rôle attribué à un utilisateur, globalement (store_id null) ou pour un magasin.
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property int $role_id
+ * @property int|null $store_id
+ * @property Carbon|null $created_at
+ * @property-read User $user
+ * @property-read Role $role
+ * @property-read Store|null $store
+ */
+class RoleAssignment extends Pivot
 {
-    use FlushesRequestMemo;
+    protected $table = 'role_user';
 
-    protected $table = 'role_assignments';
-    protected $guarded = [];
-    public $timestamps = false;
+    public $incrementing = true;
 
-    public static function findById(int $id): ?static
+    public function getCreatedAtColumn(): string
     {
-        $row = static::find($id);
-        return $row;
+        return 'created_at';
     }
 
-    public static function findByUser(int $userId): array
+    public function getUpdatedAtColumn(): ?string
     {
-        // Lu à chaque contrôle de droit : une fois par requête (voir RequestMemo).
-        return RequestMemo::remember('role_assignments.user.' . $userId, static fn(): array => static::where('user_id', $userId)->get()->toArray());
+        return null;
     }
 
-    public static function findByRole(int $roleId): array
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return static::where('role_id', $roleId)->get()->toArray();
+        return ['created_at' => 'datetime'];
     }
 
-    public static function findByScope(string $scopeType, ?int $scopeId): array
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
-        return static::where('scope_type', $scopeType)
-            ->where('scope_id', $scopeId)
-            ->get()
-            ->toArray();
+        return $this->belongsTo(User::class);
     }
 
-    public static function assign(int $userId, int $roleId, string $scopeType, ?int $scopeId): ?array
+    /**
+     * @return BelongsTo<Role, $this>
+     */
+    public function role(): BelongsTo
     {
-        $exists = static::where('user_id', $userId)
-            ->where('role_id', $roleId)
-            ->where('scope_type', $scopeType)
-            ->where('scope_id', $scopeId)
-            ->exists();
-        if ($exists) {
-            return null;
-        }
-
-        $row = static::create([
-            'user_id'    => $userId,
-            'role_id'    => $roleId,
-            'scope_type' => $scopeType,
-            'scope_id'   => $scopeId,
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
-        return $row->toArray();
+        return $this->belongsTo(Role::class);
     }
 
-    public static function revoke(int $id): int
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
     {
-        $row = static::find($id);
-        if ($row) {
-            return $row->delete() ? 1 : 0;
-        }
-        return 0;
+        return $this->belongsTo(Store::class);
     }
 }

@@ -1,0 +1,23 @@
+# Rapports de salaire (`kintai/bundle-salary-report`)
+
+Le rapport d'un mois pour un magasin entier ou pour un seul employé, calculé depuis les shifts (heures, coût par `ShiftWageCalculator`, répartition par type d'horaire) et les retenues du magasin, avec PDF et exports. Les salaires sont très sensibles : chaque action a sa permission, aucun droit n'est implicite.
+
+- Écrans : `/salary-report` (liste : filtres magasin, année, mois, employé), `/salary-report/create` et `/{id}/edit` (formulaire pré-rempli par le calcul, détail des calculs, recalcul confirmé), `/{id}` (détail ; pour un rapport d'employé, jour par jour), `/settings` (retenues), `/{id}/pdf` (aperçu) et `/{id}/pdf/download`, `/export/json`, `/export/pdf` et `/export/pdf/download` (liste filtrée).
+- Permissions, une par action, avec la portée magasin du Core et la fonctionnalité de magasin `salary_reports` :
+  - `salary_reports.view` : lister et ouvrir les rapports ; sans elle, rien n'est visible (un employé ne voit jamais un salaire, pas même le sien) ;
+  - `salary_reports.generate` : calculer, créer et modifier ;
+  - `salary_reports.export` : PDF et exports, **en plus de** `view` (on n'exporte que ce qu'on peut voir) ;
+  - `salary_reports.delete` : supprimer, définitivement ;
+  - `salary_reports.settings` : retenues du magasin et employés assujettis.
+- Droits par défaut, accordés à la première activation au seul rôle `manager` : les cinq (l'ancien bundle utilisait `payroll.view/generate/export`, que les gérants avaient, et leur laissait régler les retenues avec `stores.update`). Aucun droit par défaut pour `employee`. Les droits `payroll.*` du Core ne donnent plus accès à ce bundle.
+- Chaque route porte `can:<permission>` ; chaque composant, contrôleur et endpoint d'API revérifie la permission sur le magasin du rapport. Un rapport hors des magasins où l'on a `view` est introuvable (404), un rapport visible mais non exportable répond 403.
+- Règles : un seul rapport par magasin, par mois et par employé (ou global du magasin) ; le magasin, le mois et l'employé ne changent plus après la création ; l'employé doit être membre du magasin ; le responsable doit pouvoir générer des rapports dans le magasin (ou être Owner). Montants et effectifs positifs ; le total des paiements n'est pas calculé (saisie à la main : le Core n'a pas de fournisseur de ventes).
+- Calcul : minutes nettes et coût de chaque shift attribué du magasin sur la période (mois, ou plage de 366 jours au plus dont le mois du premier jour devient le mois du rapport) ; salaire horaire moyen ; retenues (assurance santé, pension, assurance emploi, impôt à la source en pourcentage du brut, taxe de résidence mensuelle fixe) pour les employés assujettis seulement ; net = brut - retenues, versé par virement par défaut.
+- Retenues : table `salary_report_settings` (une ligne par magasin, désactivées par défaut) et `salary_report_members` (employés assujettis), réglées dans `/settings`.
+- Fichiers : PDF (mPDF) et exports générés à la volée, jamais stockés dans un dossier public ; réponses `Cache-Control: no-store, private`. Chaque téléchargement est journalisé.
+- Journal : `salary_report.created`, `.updated`, `.deleted`, `.viewed`, `.settings_updated`, `.pdf_exported`, `.list_exported`, avec des identifiants, le mois et les noms de champs modifiés, jamais un montant, une remarque ni un nom. Aucun montant dans les messages d'erreur ni dans les logs.
+- API mobile : `/api/v1/salary-report/reports` (liste et détail `view`, `calculate` / création / modification `generate`, suppression `delete`) ; pas d'export par l'API.
+- Données : tables `salary_reports`, `salary_report_settings` et `salary_report_members`. À l'anonymisation d'un employé, les textes libres de ses rapports (embauche, remarques) sont effacés et les chiffres restent ; désactiver le bundle conserve tout.
+- Traductions : `lang/fr.json`, `lang/ja.json`.
+
+Tests : `php artisan test --testsuite=Bundles`.

@@ -1,110 +1,123 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Api\Paginator;
-use App\Auth\PermissionService;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\ValidationException;
+use App\Actions\Stores\CreateStore;
+use App\Actions\Stores\DeleteStore;
+use App\Actions\Stores\UpdateStore;
+use App\Http\Resources\V1\StoreDetailResource;
 use App\Models\Store;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\AuditLogger;
-use App\Services\StoreService;
-use App\Validation\ApiPayloadRules;
-use App\Validation\PayloadValidator;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
+use Kintai\Contracts\Stores\StoreFeatureRegistry;
 
-final class StoreController
+/**
+ * Magasins. Un magasin hors du périmètre de l'acteur (`stores.view`) est introuvable (404) ; sans `stores.view` nulle part, 403.
+ */
+class StoreController extends ApiController
 {
-    public function __construct(
-        private readonly StoreService $storeService,
-        private readonly AuditLogger $auditLogger,
-        private readonly PermissionService $permissions,
-    ) {}
+    /** Réglages repris tels quels lors d'un PUT partiel. */
+    private const SETTINGS = [
+        'code', 'name', 'timezone', 'currency', 'currency_symbol_style', 'locale', 'email', 'phone', 'address_street', 'address_city',
+        'address_postal', 'address_country', 'is_active', 'week_start_day', 'low_staff_hour_start', 'low_staff_hour_end',
+        'min_staff_per_day', 'min_shift_minutes', 'max_shift_minutes',
+    ];
 
-    /** GET /api/v1/stores?page=1&limit=20 */
-    public function index(Request $request): Response
+    public function index(Request $request): AnonymousResourceCollection
     {
-        [$page, $limit] = Paginator::params($request);
-        $authUser = $this->authUser($request);
-        $items    = Store::findAll();
+        $actor = $this->actor($request);
 
-        if (!$this->permissions->hasUnrestrictedGrant($authUser, 'stores.view')) {
-            $items = array_values(array_filter(
-                $items,
-                fn(array $s): bool => $this->permissions->can($authUser, 'stores.view', (int) $s['id'])
-            ));
+        if (! $this->authorizer()->allows($actor, 'stores.view')) {
+            throw new AuthorizationException;
         }
 
-        return response()->json(Paginator::paginate($items, $page, $limit));
+        $filters = $request->validate(['is_active' => ['nullable', 'boolean']]);
+        $ids = $this->authorizer()->storeIdsFor($actor, 'stores.view');
+
+        $stores = Store::query()
+            ->with('features')
+            ->when($ids !== null, fn ($query) => $query->whereIn('id', $ids))
+            ->when(isset($filters['is_active']), fn ($query) => $query->where('is_active', (bool) $filters['is_active']))
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate($this->perPage($request));
+
+        return StoreDetailResource::collection($stores);
     }
 
-    /** GET /api/v1/stores/{id} */
-    public function show(Request $request): Response
+    public function show(Request $request, int $store): StoreDetailResource
     {
-        return response()->json($this->requireStore($request, 'stores.view'));
+        return new StoreDetailResource($this->visible($request, $store)->load('features'));
     }
 
-    /** POST /api/v1/stores */
-    public function store(Request $request): Response
+    public function store(Request $request, CreateStore $create): JsonResponse
     {
-        $data = $request->json()->all() ?? [];
-        unset($data['id']);
-        $saved = $this->storeService->createStore($data);
-        $this->auditLogger->log($request, 'store.created', 'store', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data);
-        return response()->json($saved, 201);
+        // Valeurs par défaut du formulaire web ; toutes les fonctionnalités sont activées.
+        $defaults = ['is_active' => true, 'week_start_day' => 1, 'min_staff_per_day' => 0, 'min_shift_minutes' => 120, 'max_shift_minutes' => 480];
+        $input = $request->only(self::SETTINGS) + $defaults;
+        $input['features'] = (array) $request->input('features', []) + array_fill_keys(app(StoreFeatureRegistry::class)->keys(), true);
+
+        $created = $create->handle($this->actor($request), $input);
+
+        return (new StoreDetailResource($created->refresh()->load('features')))->response()->setStatusCode(201);
     }
 
-    /** PUT /api/v1/stores/{id} */
-    public function update(Request $request): Response
+    public function update(Request $request, int $store, UpdateStore $update): StoreDetailResource
     {
-        $old = $this->requireStore($request, 'stores.update');
-        $id  = (int) $old['id'];
+        $model = $this->visible($request, $store);
 
-        // Mise à jour partielle : seuls les champs fournis changent, chacun contrôlé (la devise comme le
-        // formulaire web, car elle s'affiche dans les statistiques).
-        $data = PayloadValidator::validateUpdate($request->json()->all() ?? [], ApiPayloadRules::storeUpdate());
-        if (isset($data['code'])) {
-            $data['code'] = strtoupper($data['code']);
-            $other = Store::findByCode($data['code']);
-            if ($other !== null && (int) $other['id'] !== $id) {
-                $message = __('val_store_code_taken', ['code' => $data['code']]);
-                throw new ValidationException(['code' => $message], $message);
-            }
-        }
+        // PUT partiel toléré : une clé absente garde la valeur actuelle (l'action exige l'enregistrement complet).
+        $current = $model->only(self::SETTINGS);
+        $input = $request->only(self::SETTINGS) + $current;
+        $input['features'] = array_merge($this->currentFeatures($model), (array) $request->input('features', []));
 
-        $saved = Store::put(array_merge($data, ['id' => $id]));
-        $this->auditLogger->logUpdate($request, 'store.updated', 'store', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data);
-        return response()->json($saved);
+        $update->handle($this->actor($request), $model, $input);
+
+        return new StoreDetailResource($model->refresh()->load('features'));
     }
 
-    /** DELETE /api/v1/stores/{id} */
-    public function destroy(Request $request): Response
+    public function destroy(Request $request, int $store, DeleteStore $delete): Response
     {
-        $old = $this->requireStore($request, 'stores.delete');
-        $id  = (int) $old['id'];
+        $delete->handle($this->actor($request), $this->visible($request, $store));
 
-        $this->storeService->deleteStore($id);
-        $this->auditLogger->log($request, 'store.deleted', 'store', resourceId: $id);
         return response()->noContent();
     }
 
-    private function authUser(Request $request): array
+    /**
+     * @return array<string, bool>
+     */
+    private function currentFeatures(Store $store): array
     {
-        return $request->attributes->get('auth_user') ?? [];
+        $features = [];
+        foreach (app(StoreFeatureRegistry::class)->keys() as $key) {
+            $features[$key] = $store->hasFeature($key);
+        }
+
+        return $features;
     }
 
-    /** Charge le magasin par id et vérifie $permissionKey sur ce magasin (jamais « n'importe lequel »). */
-    private function requireStore(Request $request, string $permissionKey): array
+    /**
+     * @throws AuthorizationException
+     * @throws ModelNotFoundException
+     */
+    private function visible(Request $request, int $storeId): Store
     {
-        $id    = (int) $request->route('id');
-        $store = Store::findById($id);
-        if ($store === null) {
-            throw new NotFoundException(__('error_store_not_found'));
+        $actor = $this->actor($request);
+
+        if (! $this->authorizer()->allows($actor, 'stores.view')) {
+            throw new AuthorizationException;
         }
-        $this->permissions->requireOnStore($this->authUser($request), $permissionKey, $id);
+
+        $store = Store::query()->findOrFail($storeId);
+
+        if (! $this->authorizer()->allows($actor, 'stores.view', $store)) {
+            throw (new ModelNotFoundException)->setModel(Store::class, [$storeId]);
+        }
+
         return $store;
     }
 }

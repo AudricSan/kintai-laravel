@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-salary-report",
+    "description": "Rapports de salaire pour Kintai : rapport mensuel d'un magasin ou d'un employé calculé depuis les shifts, retenues, PDF et exports, avec des droits dédiés par action.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\SalaryReport\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\SalaryReport\\SalaryReportServiceProvider"
+            ]
+        }
+    }
+}

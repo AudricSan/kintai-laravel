@@ -1,0 +1,19 @@
+# Validation du planning de demain (`kintai/bundle-planning-check`)
+
+Avant l'heure limite, le gérant confirme que les shifts du lendemain sont corrects ; un valideur approuve et le planning part en PDF par e-mail. Sans soumission à l'heure limite, les valideurs et les Owners sont prévenus.
+
+- Écrans : `/planning-check` (état de demain avec l'aperçu des shifts, actions selon les droits, historique des validations ; chaque action est confirmée dans une fenêtre), `/planning-check/settings` (réglages d'un magasin), `/planning-check/{id}/pdf` (PDF du planning, généré à la demande avec les shifts d'aujourd'hui).
+- Cycle : en attente (`pending`), soumis (`submitted`), validé (`validated`), refusé (`rejected`, motif obligatoire, retour au soumetteur) ou en retard (`escalated`). Une validation par magasin et par jour visé ; le jour visé est toujours le lendemain (fuseau de l'instance), jamais choisi par l'appelant. Sans aucun shift demain, il faut cocher « magasin fermé » pour soumettre.
+- Actions : soumettre, valider (le PDF est généré et envoyé), refuser, renvoyer (version mise à jour, ou nouvel essai après un échec), « envoyer maintenant » (soumet, valide et envoie en une étape, à tout moment) et rouvrir (une validation soumise ou validée repart en attente). Un échec d'envoi laisse la validation faite et marque l'envoi « failed » ; l'empreinte des shifts au dernier envoi propose un renvoi si le planning a changé depuis.
+- Permissions `planning_check.view`, `.submit`, `.approve`, `.settings`, avec la portée magasin du Core. Accordées au rôle `manager` à la première activation (sauf `settings`). Soumettre, valider ou régler donne aussi accès à l'écran et à l'historique du magasin.
+- Fonctionnalité de magasin `planning_check` : désactivée, le magasin n'a plus d'écran ni d'API. Il faut en plus activer la validation dans les réglages du magasin.
+- Réglages par magasin (`planning_check.settings`) : activation, début de la validation, heure limite, jours concernés, destinataires du PDF (employés actifs du magasin avec adresse, 10 au plus), shifts ouverts dans le PDF, PDF d'essai envoyé à soi.
+- E-mail : un message par destinataire, dans la langue de son compte, avec le PDF (mPDF) en pièce jointe ; destinataires relus à l'envoi (compte inactif, sans adresse ou sorti du magasin écartés). PDF dans la langue du magasin.
+- Tâche planifiée `kintai:planning-check-escalate` (toutes les 15 minutes) : une validation encore en attente ou refusée à l'heure limite d'un jour travaillé passe « en retard » et prévient les valideurs et les Owners, une seule fois, sans aucun envoi de PDF.
+- Notifications : `planning_check_submitted` (valideurs du magasin et Owners, soumetteur exclu), `planning_check_validated` et `planning_check_rejected` (soumetteur), `planning_check_overdue` (valideurs et Owners), `planning_check_failed` (soumetteur, si l'envoi a échoué), lues à l'ouverture de l'écran. Menu avec pastille (validations à approuver et plannings de demain à soumettre), page « Demandes », widget « Planning de demain » du tableau de bord gérant.
+- Journal : `planning_check.submitted`, `.validated`, `.rejected`, `.escalated`, `.sent`, `.resent`, `.send_failed`, `.reopened`, `.settings_updated`, `.test_sent` (jamais le motif d'un refus).
+- API mobile : `/api/v1/planning-check` (`GET tomorrow`, `POST submit`, `POST send-now`, `GET checks`, `GET checks/{id}`, `POST checks/{id}/approve|reject|resend|reopen`), mêmes droits que les écrans ; une validation hors des magasins de l'appelant est introuvable (404).
+- Données : tables `planning_check_settings`, `planning_checks` et `planning_check_sends`. Un compte supprimé laisse l'historique en place (références à nul) ; désactiver le bundle conserve tout.
+- Traductions : `lang/fr.json`, `lang/ja.json`.
+
+Tests : `php artisan test packages/bundles/planning-check`.

@@ -1,220 +1,156 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use kintai\Contract\Event\EmployeeCreated;
-use App\Api\Paginator;
-use App\Auth\CredentialRevoker;
-use App\Auth\UserAnonymizer;
-use App\Auth\OwnerGuard;
-use App\Auth\PasswordHasher;
-use App\Auth\PasswordPolicy;
-use App\Auth\PermissionService;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\ValidationException;
-use App\Extension\Events;
-use App\Models\StoreUser;
+use App\Actions\Employees\CreateEmployee;
+use App\Actions\Employees\DeleteEmployee;
+use App\Actions\Employees\ResetEmployeePassword;
+use App\Actions\Employees\UpdateEmployee;
+use App\Authorization\PasswordDefaults;
+use App\Http\Resources\V1\EmployeeResource;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\UserDisplayName;
-use App\Services\AuditLogger;
-use App\Services\PlanLimitService;
-use App\Validation\ApiPayloadRules;
-use App\Validation\PayloadValidator;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
-final class UserController
+/**
+ * Employés. Toute la logique (droits, plafond de rôle, Owner protégé, unicité) est celle des actions de l'interface web.
+ */
+class UserController extends ApiController
 {
-    public function __construct(
-        private readonly AuditLogger $auditLogger,
-        private readonly PlanLimitService $planLimits,
-        private readonly PermissionService $permissions,
-        private readonly OwnerGuard $ownerGuard,
-        // Optionnel pour les tests qui construisent le contrôleur à la main.
-        private readonly ?CredentialRevoker $revoker = null,
-        private readonly ?UserAnonymizer $anonymizer = null,
-        private readonly ?Events $events = null,
-    ) {}
+    /** Champs RH enregistrés avec l'identité (voir UpdateEmployee). */
+    private const PROFILE_FIELDS = ['gender', 'birth_date', 'address', 'postal_code', 'phone', 'mobile_phone', 'tax_classification', 'education', 'guarantor_name', 'guarantor_phone'];
 
-    /** Le conteneur l'injecte toujours ; un test qui supprime un compte doit le fournir. */
-    private function anonymizer(): UserAnonymizer
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return $this->anonymizer ?? throw new \LogicException('UserAnonymizer requis pour supprimer un compte.');
-    }
+        $actor = $this->actor($request);
 
-    /** GET /api/v1/users?page=1&limit=20 */
-    public function index(Request $request): Response
-    {
-        [$page, $limit] = Paginator::params($request);
-        $authUser = $this->authUser($request);
-        // Comptes supprimés (anonymisés) : conservés pour l'historique, plus listés.
-        $items    = array_values(array_filter(User::findAll(), fn(array $u): bool => empty($u['deleted_at'])));
+        if (! $this->authorizer()->allows($actor, 'employees.view')) {
+            throw new AuthorizationException;
+        }
 
-        // Hors portée illimitée, seuls les membres des magasins gérés (et soi-même) sont listés.
-        if (!$this->permissions->hasUnrestrictedGrant($authUser, 'employees.view')) {
-            $visible = [(int) ($authUser['id'] ?? 0) => true];
-            foreach ($this->permissions->scopedStoreIds((int) ($authUser['id'] ?? 0), 'employees.view') as $storeId) {
-                foreach (StoreUser::findByStore($storeId) as $member) {
-                    $visible[(int) $member['user_id']] = true;
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'store_id' => ['nullable', 'integer'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $ids = $this->authorizer()->storeIdsFor($actor, 'employees.view');
+        $query = User::query()->with('stores');
+
+        // Sans restriction : tous les comptes ; sinon, les membres des magasins de l'acteur.
+        if ($ids !== null) {
+            $query->whereHas('stores', fn (Builder $q) => $q->whereIn('stores.id', $ids));
+        }
+
+        if (isset($filters['store_id'])) {
+            $storeId = (int) $filters['store_id'];
+            $query->whereHas('stores', fn (Builder $q) => $q->where('stores.id', $ids === null || in_array($storeId, $ids, true) ? $storeId : 0));
+        }
+
+        if (isset($filters['is_active'])) {
+            $query->where('is_active', (bool) $filters['is_active']);
+        }
+
+        $term = trim((string) ($filters['search'] ?? ''));
+        if ($term !== '') {
+            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+            $query->where(function (Builder $q) use ($like): void {
+                foreach (['name', 'first_name', 'last_name', 'furigana_first_name', 'furigana_last_name', 'email', 'employee_code'] as $column) {
+                    $q->orWhereRaw("{$column} like ? escape '!'", [$like]);
                 }
-            }
-            $items = array_values(array_filter($items, fn(array $u): bool => isset($visible[(int) $u['id']])));
+            });
         }
 
-        return response()->json(Paginator::paginate(array_map([$this, 'withoutSecrets'], $items), $page, $limit));
+        return EmployeeResource::collection($query->orderBy('name')->orderBy('id')->paginate($this->perPage($request)));
     }
 
-    /** GET /api/v1/users/{id} */
-    public function show(Request $request): Response
+    public function show(Request $request, int $user): EmployeeResource
     {
-        $user = $this->requireUser((int) $request->route('id'));
-        $this->permissions->requireUserAccess($this->authUser($request), 'employees.view', (int) $user['id'], $this->storeIdsOf((int) $user['id']));
-        return response()->json($this->withoutSecrets($user));
+        $target = $this->targetUser($request, $user, 'employees.view');
+
+        return $this->resource($target);
     }
 
-    /** POST /api/v1/users — `password` (en clair) facultatif ; sans lui, mot de passe temporaire aléatoire, renvoyé une seule fois (`temporary_password`) et à changer. */
-    public function store(Request $request): Response
+    public function store(Request $request, CreateEmployee $create): JsonResponse
     {
-        $this->planLimits->assertCanCreateEmployee();
+        $input = $request->only(['first_name', 'last_name', 'furigana_first_name', 'furigana_last_name', 'name', 'email', 'employee_code', 'color', 'password', 'store_id', 'role_id', 'is_owner']);
+        $user = $create->handle($this->actor($request), $input, 'api');
 
-        $body = $request->json()->all() ?? [];
-        $data = $this->normalizeUser(PayloadValidator::validate($body, ApiPayloadRules::user()));
-        $this->assertIdentityAvailable($data, 0);
-        $temporaryPassword = null;
-        $data['password_hash'] = $this->hashFromPayload($body)
-            ?? PasswordHasher::hash($temporaryPassword = PasswordPolicy::temporary());
-        $data['must_change_password'] = $temporaryPassword !== null ? 1 : 0;
+        $response = $this->resource($user->refresh())->response()->setStatusCode(201);
 
-        $saved = User::put($data);
-        if (!empty($saved['id'])) {
-            // Contrat 1.13 : les bundles qui écoutent l'apprennent (sans magasin : l'API ne l'affecte pas).
-            $authId = (int) ($this->authUser($request)['id'] ?? 0);
-            ($this->events ?? Events::current())->dispatch(new EmployeeCreated($saved, null, $authId > 0 ? $authId : null, 'api'));
+        // Le mot de passe provisoire n'est donné que lorsque le compte n'a pas reçu de mot de passe choisi (comme l'écran web).
+        if (! isset($input['password']) || $input['password'] === '') {
+            $response->setData(['data' => $response->getData(true)['data'] + ['temporary_password' => PasswordDefaults::DEFAULT_PASSWORD]]);
         }
-        $this->auditLogger->log($request, 'user.created', 'user', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $this->withoutSecrets($data));
-        // Le mot de passe temporaire n'est montré qu'ici, une seule fois.
-        return response()->json($this->withoutSecrets($saved) + ($temporaryPassword !== null ? ['temporary_password' => $temporaryPassword] : []), 201);
+
+        return $response;
     }
 
-    /** PUT /api/v1/users/{id} */
-    public function update(Request $request): Response
+    public function update(Request $request, int $user, UpdateEmployee $update): EmployeeResource
     {
-        $id  = (int) $request->route('id');
-        $old = $this->requireUser($id);
-        $this->permissions->requireUserAccess($this->authUser($request), 'employees.update', $id, $this->storeIdsOf($id));
+        $target = $this->targetUser($request, $user, 'employees.update');
+        $target->load('profile');
 
-        $body    = $request->json()->all() ?? [];
-        $data    = $this->normalizeUser(PayloadValidator::validate($body, ApiPayloadRules::user(), true));
-        // Désactiver un Owner : même garde que la suppression (au moins un Owner actif, pas soi-même).
-        if (!empty($old['is_active']) && array_key_exists('is_active', $data) && empty($data['is_active'])) {
-            $this->ownerGuard->assertCanRemoveOwner((int) ($this->authUser($request)['id'] ?? 0), $id);
-            $this->ownerGuard->assertNotSelfUnlessOwner((int) ($this->authUser($request)['id'] ?? 0), $id);
+        // PUT partiel toléré : une clé absente garde la valeur actuelle (les actions exigent l'enregistrement complet).
+        $current = [
+            'first_name' => $target->first_name,
+            'last_name' => $target->last_name,
+            'furigana_first_name' => $target->furigana_first_name,
+            'furigana_last_name' => $target->furigana_last_name,
+            'email' => $target->email,
+            'employee_code' => $target->employee_code,
+            'color' => $target->color,
+            'is_active' => $target->is_active,
+            'is_owner' => $this->authorizer()->isOwner($target),
+        ];
+        foreach (self::PROFILE_FIELDS as $field) {
+            $value = $target->profile?->{$field};
+            $current[$field] = $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : $value;
         }
-        $newHash = $this->hashFromPayload($body);
-        if ($data === [] && $newHash === null) {
-            throw new ValidationException(['body' => __('val_no_updatable_field')], __('val_no_updatable_field'));
-        }
-        $this->assertIdentityAvailable($data, $id);
-        if ($newHash !== null) {
-            $data['password_hash'] = $newHash;
-        }
-
-        $saved = User::put(array_merge($data, ['id' => $id]));
-
-        // Nouveau mot de passe ou compte désactivé : cookies « rester connecté » et jetons d'API révoqués.
-        if ($newHash !== null || (!empty($old['is_active']) && array_key_exists('is_active', $data) && empty($data['is_active']))) {
-            $this->revoker?->revokeAllFor($id);
+        if (! $request->has('first_name') && ! $request->has('last_name')) {
+            $current['name'] = $target->name;
         }
 
-        $this->auditLogger->logUpdate($request, 'user.updated', 'user', resourceId: $id, oldData: $this->withoutSecrets($old), newData: $this->withoutSecrets($saved), extraContext: $this->withoutSecrets($data));
-        return response()->json($this->withoutSecrets($saved));
+        $input = $request->only(array_merge(array_keys($current), ['name', 'store_roles'])) + $current;
+        $update->handle($this->actor($request), $target, $input);
+
+        return $this->resource($target->refresh());
     }
 
-    /** DELETE /api/v1/users/{id} */
-    public function destroy(Request $request): Response
+    public function destroy(Request $request, int $user, DeleteEmployee $delete): Response
     {
-        $id = (int) $request->route('id');
-        $this->requireUser($id);
-        $this->permissions->requireUserAccess($this->authUser($request), 'employees.delete', $id, $this->storeIdsOf($id));
-        $this->ownerGuard->assertCanRemoveOwner((int) ($this->authUser($request)['id'] ?? 0), $id);
-        $this->ownerGuard->assertNotSelfUnlessOwner((int) ($this->authUser($request)['id'] ?? 0), $id);
+        $target = $this->targetUser($request, $user, 'employees.delete');
 
-        // Anonymisation plutôt qu'effacement (même résultat sous SQLite et MySQL, historique conservé).
-        $this->anonymizer()->anonymize($id);
-        $this->auditLogger->log($request, 'user.deleted', 'user', resourceId: $id);
+        $delete->handle($this->actor($request), $target);
+
         return response()->noContent();
     }
 
-    private function authUser(Request $request): array
+    /**
+     * Sans `password` : mot de passe provisoire (changement exigé), renvoyé une seule fois. Avec `password` : mot de passe
+     * choisi (`must_change`, vrai par défaut), rien n'est renvoyé. Les jetons de l'employé sont révoqués.
+     */
+    public function resetPassword(Request $request, int $user, ResetEmployeePassword $reset): JsonResponse|Response
     {
-        return $request->attributes->get('auth_user') ?? [];
+        $target = $this->targetUser($request, $user, 'employees.update');
+        $data = $request->validate(['password' => ['nullable', 'string'], 'must_change' => ['nullable', 'boolean']]);
+        $password = ($data['password'] ?? '') === '' ? null : $data['password'];
+
+        $reset->handle($this->actor($request), $target, $password, (bool) ($data['must_change'] ?? true));
+
+        if ($password !== null) {
+            return response()->noContent();
+        }
+
+        return response()->json(['data' => ['temporary_password' => PasswordDefaults::DEFAULT_PASSWORD, 'must_change_password' => true]]);
     }
 
-    private function requireUser(int $id): array|\App\Models\User
+    private function resource(User $user): EmployeeResource
     {
-        $user = User::findById($id);
-        if ($user === null) {
-            throw new NotFoundException(__('error_user_not_found'));
-        }
-        return $user;
-    }
-
-    /** @return int[] */
-    private function storeIdsOf(int $userId): array
-    {
-        return array_map(fn(array $m): int => (int) $m['store_id'], StoreUser::findByUser($userId));
-    }
-
-    /** Code employé en majuscules (comme le formulaire web) ; nom affiché « Nom Prénom » à défaut (UserDisplayName). */
-    private function normalizeUser(array $data): array
-    {
-        if (isset($data['employee_code'])) {
-            $data['employee_code'] = strtoupper($data['employee_code']);
-        }
-        if (!isset($data['display_name']) && isset($data['first_name'], $data['last_name'])) {
-            $data['display_name'] = UserDisplayName::resolve(null, $data['first_name'], $data['last_name']);
-        } elseif (isset($data['display_name'])) {
-            $data['display_name'] = UserDisplayName::resolve($data['display_name'], $data['first_name'] ?? null, $data['last_name'] ?? null);
-        }
-        return $data;
-    }
-
-    /** E-mail et code employé uniques : un doublon finissait en erreur SQL (500). */
-    private function assertIdentityAvailable(array $data, int $userId): void
-    {
-        if (isset($data['email'])) {
-            $other = User::findByEmail($data['email']);
-            if ($other !== null && (int) $other['id'] !== $userId) {
-                throw new ValidationException(['email' => __('email_taken')], __('email_taken'));
-            }
-        }
-        if (isset($data['employee_code'])) {
-            $other = User::findByEmployeeCode($data['employee_code']);
-            if ($other !== null && (int) $other['id'] !== $userId) {
-                throw new ValidationException(['employee_code' => __('val_employee_code_taken')], __('val_employee_code_taken'));
-            }
-        }
-    }
-
-    /** Hash du champ `password` du corps, null s'il est absent ; 422 s'il est trop court. */
-    private function hashFromPayload(array $data): ?string
-    {
-        if (!isset($data['password']) || $data['password'] === '') {
-            return null;
-        }
-        $password = (string) $data['password'];
-        if (!PasswordPolicy::isLongEnough($password)) {
-            throw new ValidationException(['password' => __('password_too_short')]);
-        }
-        return PasswordHasher::hash($password);
-    }
-
-    private function withoutSecrets(array|\Illuminate\Contracts\Support\Arrayable $user): array
-    {
-        $user = $user instanceof \Illuminate\Contracts\Support\Arrayable ? $user->toArray() : $user;
-        unset($user['password_hash']);
-        return $user;
+        return new EmployeeResource($user->load(['stores', 'roles', 'profile']));
     }
 }

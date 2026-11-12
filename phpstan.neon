@@ -1,14 +1,30 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
 parameters:
-    level: 0
     paths:
-        - app
-    excludePaths:
-        - resources/views
-    treatPhpDocTypesAsCertain: false
-    ignoreErrors:
-        # Le trait HasAdminAccess lit $this->stores / storeUsers / users, fournis par les contrôleurs qui l'utilisent ;
-        # certains n'appellent pas les méthodes concernées et ne déclarent donc pas ces dépendances.
-        -
-            identifier: property.notFound
-            message: '#::\$(stores|storeUsers|users)\.$#'
-            reportUnmatched: false
+        - app/
+        - bootstrap/
+        - config/
+        - database/
+        - routes/
+        - packages/contracts/src/
+        - packages/bundles/analytics/src
+        - packages/bundles/daily-report/src
+        - packages/bundles/google-calendar/src
+        - packages/bundles/team-directory/src
+        - packages/bundles/messaging/src
+        - packages/bundles/notebook/src
+        - packages/bundles/planning-check/src
+        - packages/bundles/planning-import/src
+        - packages/bundles/shift-claim/src
+        - packages/bundles/shift-swap/src
+        - packages/bundles/store-photos/src
+        - packages/bundles/timeoff/src
+        - packages/bundles/timeclock/src
+        - packages/bundles/hiring-report/src
+        - packages/bundles/resignation-report/src
+        - packages/bundles/salary-report/src
+
+    level: 6

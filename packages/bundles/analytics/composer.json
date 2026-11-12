@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-analytics",
+    "description": "Statistiques pour Kintai : statistiques de magasin et d'employé, rentabilité, comparaison multi-magasins.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.1.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\Analytics\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\Analytics\\AnalyticsServiceProvider"
+            ]
+        }
+    }
+}

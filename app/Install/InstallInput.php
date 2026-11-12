@@ -1,140 +1,70 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Install;
 
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
+
 /**
- * Données du formulaire de l'installateur web, nettoyées, avec leur validation. Les erreurs sont des clés de
- * traduction (lang/*.json) : la page les affiche dans la langue choisie.
+ * Validation des saisies de l'installation (commande et assistant web) : le premier Owner, la base de données,
+ * l'URL publique. Les champs de base de données ne sont exigés que si l'installation les écrit dans `.env`.
  */
 final class InstallInput
 {
-    /** Nom de base MySQL accepté : pas de caractère à échapper dans CREATE DATABASE. */
-    public const MYSQL_DATABASE_PATTERN = '/^[A-Za-z0-9_$]{1,64}$/';
+    public const DRIVERS = ['sqlite', 'mysql'];
 
-    public const MIN_PASSWORD_LENGTH = 8;
-
-    /** Installation neuve, ou importation d'une instance Kintai existante (voir WebInstaller::import()). */
-    public const MODE_FRESH = 'fresh';
-    public const MODE_IMPORT = 'import';
-
-    public function __construct(
-        public readonly string $firstName,
-        public readonly string $lastName,
-        public readonly string $email,
-        public readonly string $password,
-        public readonly string $passwordConfirmation,
-        public readonly string $locale,
-        public readonly string $driver,
-        public readonly string $mysqlHost,
-        public readonly int $mysqlPort,
-        public readonly string $mysqlDatabase,
-        public readonly string $mysqlUsername,
-        public readonly string $mysqlPassword,
-        public readonly bool $demoData,
-        public readonly string $mode = self::MODE_FRESH,
-        public readonly string $importPath = '',
-    ) {}
-
-    /** @param array<string, mixed> $post $_POST ; $defaultLocale sert quand app_locale est absent (installation scriptée) */
-    public static function fromPost(array $post, string $defaultLocale): self
-    {
-        $str = static fn (string $key, string $default = ''): string => is_string($post[$key] ?? null) ? $post[$key] : $default;
-
-        return new self(
-            firstName:            trim($str('admin_first_name')),
-            lastName:             trim($str('admin_last_name')),
-            email:                trim($str('admin_email')),
-            password:             $str('admin_password'),
-            passwordConfirmation: $str('admin_password_confirmation'),
-            locale:               trim($str('app_locale', $defaultLocale)),
-            driver:               trim($str('db_driver')),
-            mysqlHost:            trim($str('mysql_host', '127.0.0.1')),
-            mysqlPort:            (int) $str('mysql_port', '3306'),
-            mysqlDatabase:        trim($str('mysql_database')),
-            mysqlUsername:        trim($str('mysql_username')),
-            mysqlPassword:        $str('mysql_password'),
-            demoData:             isset($post['run_seeds']),
-            mode:                 $str('install_mode') === self::MODE_IMPORT ? self::MODE_IMPORT : self::MODE_FRESH,
-            importPath:           trim($str('import_path')),
-        );
-    }
+    /** Aucun saut de ligne ni octet nul : une valeur ne doit pas pouvoir ajouter de variables dans `.env`. */
+    private const SINGLE_LINE = '/^[^\r\n\0]+$/';
 
     /**
-     * @param list<string> $languageCodes langues actives (vide : pas de contrôle)
-     * @return list<string> clés de traduction des erreurs, vide si tout est valide
-     */
-    public function errors(array $languageCodes, InstallRequirements $requirements): array
-    {
-        if ($this->mode === self::MODE_IMPORT) {
-            return $this->importErrors($languageCodes, $requirements);
-        }
-
-        $errors = [];
-        if ($this->firstName === '') {
-            $errors[] = 'install_error_first_name';
-        }
-        if ($this->lastName === '') {
-            $errors[] = 'install_error_last_name';
-        }
-        if (filter_var($this->email, FILTER_VALIDATE_EMAIL) === false) {
-            $errors[] = 'install_error_email';
-        }
-        if (strlen($this->password) < self::MIN_PASSWORD_LENGTH) {
-            $errors[] = 'install_error_password_length';
-        } elseif (!hash_equals($this->password, $this->passwordConfirmation)) {
-            $errors[] = 'install_error_password_mismatch';
-        }
-        if ($languageCodes !== [] && !in_array($this->locale, $languageCodes, true)) {
-            $errors[] = 'install_error_language';
-        }
-        if (!in_array($this->driver, array_keys(InstallRequirements::DRIVER_EXTENSIONS), true)) {
-            $errors[] = 'install_error_driver';
-        } elseif (!$requirements->driverAvailable($this->driver)) {
-            $errors[] = 'install_error_driver_unavailable';
-        }
-        if ($this->driver === 'mysql') {
-            if ($this->mysqlHost === '') {
-                $errors[] = 'install_error_mysql_host';
-            }
-            if (preg_match(self::MYSQL_DATABASE_PATTERN, $this->mysqlDatabase) !== 1) {
-                $errors[] = 'install_error_mysql_database';
-            }
-            if ($this->mysqlUsername === '') {
-                $errors[] = 'install_error_mysql_username';
-            }
-            if ($this->mysqlPort < 1 || $this->mysqlPort > 65535) {
-                $errors[] = 'install_error_mysql_port';
-            }
-        }
-        if (!$requirements->canInstall()) {
-            $errors[] = 'install_error_requirements';
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Importation : le compte, la base et les options viennent de l'instance importée ; seuls la langue de la page
-     * et le dossier de l'instance sont demandés.
+     * @param  array<string, mixed>  $input
+     * @return array{name: string, email: string, password: string, db_driver: string, db_host: string|null, db_port: int|null, db_database: string|null, db_username: string|null, db_password: string|null, url: string|null}
      *
-     * @param list<string> $languageCodes
-     * @return list<string>
+     * @throws ValidationException
      */
-    private function importErrors(array $languageCodes, InstallRequirements $requirements): array
+    public static function validate(array $input, bool $withDatabase = true): array
     {
-        $errors = [];
-        if ($languageCodes !== [] && !in_array($this->locale, $languageCodes, true)) {
-            $errors[] = 'install_error_language';
-        }
-        if ($this->importPath === '') {
-            $errors[] = 'install_import_error_path';
-        }
-        if (!$requirements->canInstall()) {
-            $errors[] = 'install_error_requirements';
+        $input['db_driver'] = $withDatabase ? ($input['db_driver'] ?? 'sqlite') : 'sqlite';
+
+        $rules = [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'password' => ['required', 'string', Password::defaults()],
+            'url' => ['nullable', 'string', 'url:http,https', 'max:255', 'regex:'.self::SINGLE_LINE],
+        ];
+
+        if (array_key_exists('password_confirmation', $input)) {
+            $rules['password'][] = 'confirmed';
         }
 
-        return $errors;
+        if ($withDatabase) {
+            $rules += [
+                'db_driver' => ['required', 'in:'.implode(',', self::DRIVERS)],
+                'db_host' => ['required_if:db_driver,mysql', 'nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9._:\[\]-]+$/'],
+                'db_port' => ['nullable', 'integer', 'between:1,65535'],
+                'db_database' => ['required_if:db_driver,mysql', 'nullable', 'string', 'max:64', 'regex:'.self::SINGLE_LINE],
+                'db_username' => ['required_if:db_driver,mysql', 'nullable', 'string', 'max:255', 'regex:'.self::SINGLE_LINE],
+                'db_password' => ['nullable', 'string', 'max:255', 'regex:'.self::SINGLE_LINE],
+            ];
+        }
+
+        $data = Validator::make($input, $rules)->validate();
+
+        $driver = $withDatabase ? $data['db_driver'] : 'sqlite';
+        $mysql = $driver === 'mysql';
+
+        return [
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'db_driver' => $driver,
+            'db_host' => $mysql ? $data['db_host'] : null,
+            'db_port' => $mysql && isset($data['db_port']) ? (int) $data['db_port'] : null,
+            'db_database' => $mysql ? $data['db_database'] : null,
+            'db_username' => $mysql ? $data['db_username'] : null,
+            'db_password' => $mysql ? ($data['db_password'] ?? null) : null,
+            'url' => $data['url'] ?? null,
+        ];
     }
 }

@@ -1,97 +1,58 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
-use App\Database\RequestMemo;
+use Database\Factories\RoleFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\FlushesRequestMemo;
-use App\Models\Casts\HexColor;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
-final class Role extends Model
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property string $color
+ * @property bool $is_system
+ * @property bool $is_manager
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Collection<int, RolePermission> $permissions
+ * @property-read Collection<int, RoleAssignment> $assignments
+ */
+#[Fillable(['name', 'slug', 'description', 'color', 'is_system', 'is_manager'])]
+class Role extends Model
 {
-    use FlushesRequestMemo;
+    /** @use HasFactory<RoleFactory> */
+    use HasFactory;
 
-    protected $table = 'roles';
-    protected $guarded = [];
-    public $timestamps = false;
-
-    // Une couleur invalide en base est remplacée à la lecture (voir HexColor).
-    protected $casts = ['color' => HexColor::class];
-
-    public static function findAll(): array
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return static::all()->toArray();
+        return [
+            'is_system' => 'boolean',
+            'is_manager' => 'boolean',
+        ];
     }
 
-    public static function findById(int $id): ?static
+    /**
+     * @return HasMany<RolePermission, $this>
+     */
+    public function permissions(): HasMany
     {
-        // Lu à chaque contrôle de droit : une fois par requête (voir RequestMemo).
-        return RequestMemo::remember('roles.' . $id, static function () use ($id): ?static {
-            $role = static::find($id);
-            return $role;
-        });
+        return $this->hasMany(RolePermission::class);
     }
 
-    public static function findBySlug(string $slug): ?static
+    /**
+     * @return HasMany<RoleAssignment, $this>
+     */
+    public function assignments(): HasMany
     {
-        $role = static::where('slug', $slug)->first();
-        return $role;
-    }
-
-    public static function put(array $data): array
-    {
-        if (!empty($data['id'])) {
-            $role = static::findOrFail($data['id']);
-            $role->fill($data);
-            $role->updated_at = date('Y-m-d H:i:s');
-            $role->save();
-        } else {
-            $data['created_at'] = date('Y-m-d H:i:s');
-            $role = static::create($data);
-        }
-        return $role->toArray();
-    }
-
-    public static function remove(int $id): int
-    {
-        $role = static::find($id);
-        if ($role === null) {
-            return 0;
-        }
-        RolePermission::where('role_id', $id)->delete();
-        RoleAssignment::where('role_id', $id)->delete();
-        // Suppressions en masse, sans passer par les modèles : la mémoire de la requête est vidée ici.
-        RequestMemo::flush();
-        return $role->delete() ? 1 : 0;
-    }
-
-    public static function getPermissions(int $roleId): array
-    {
-        return RequestMemo::remember('role_permissions.' . $roleId, static fn(): array => RolePermission::where('role_id', $roleId)
-            ->pluck('permission_key')
-            ->toArray());
-    }
-
-    public static function getGlobalPermissionKeys(int $roleId): array
-    {
-        return RequestMemo::remember('role_permissions.global.' . $roleId, static fn(): array => RolePermission::where('role_id', $roleId)
-            ->where('scope', 'global')
-            ->pluck('permission_key')
-            ->toArray());
-    }
-
-    public static function savePermissions(int $roleId, array $permissionKeys, array $globalScopeKeys = []): void
-    {
-        RolePermission::where('role_id', $roleId)->delete();
-        RequestMemo::flush();
-        foreach ($permissionKeys as $key) {
-            RolePermission::create([
-                'role_id'        => $roleId,
-                'permission_key' => $key,
-                'scope'          => in_array($key, $globalScopeKeys, true) ? 'global' : 'local',
-            ]);
-        }
+        return $this->hasMany(RoleAssignment::class);
     }
 }

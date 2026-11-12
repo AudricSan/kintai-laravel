@@ -1,15 +1,13 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Install;
 
 use Closure;
 
 /**
- * Prérequis vérifiés par l'installateur web (public/install.php) avant toute écriture : version de PHP, extensions,
- * dossiers inscriptibles. Un point bloquant désactive l'installation ; un point non bloquant est seulement signalé
- * (fonctionnalité dégradée : téléchargement des bundles, PDF…). Sans aucun pilote PDO disponible, rien n'est possible.
+ * Prérequis vérifiés avant toute écriture : version de PHP, extensions, dossiers inscriptibles. Un point bloquant
+ * interdit l'installation ; un point non bloquant est seulement signalé (fonctionnalité dégradée).
+ * Un seul pilote de base suffit (SQLite ou MySQL/MariaDB).
  */
 final class InstallRequirements
 {
@@ -18,13 +16,12 @@ final class InstallRequirements
     /** Extension PDO requise par pilote de base de données. */
     public const DRIVER_EXTENSIONS = ['sqlite' => 'pdo_sqlite', 'mysql' => 'pdo_mysql'];
 
-    /** Extensions indispensables, quel que soit le pilote. */
-    private const REQUIRED_EXTENSIONS = ['pdo', 'mbstring'];
+    private const REQUIRED_EXTENSIONS = ['pdo', 'mbstring', 'openssl', 'tokenizer', 'xml', 'ctype', 'json', 'fileinfo'];
 
-    /** Extensions recommandées : leur absence ne bloque que certaines fonctionnalités. */
-    private const RECOMMENDED_EXTENSIONS = ['openssl', 'zip', 'curl', 'gd'];
+    private const RECOMMENDED_EXTENSIONS = ['zip', 'curl', 'gd'];
 
     private readonly Closure $extensionLoaded;
+
     private readonly Closure $isWritable;
 
     public function __construct(
@@ -32,84 +29,89 @@ final class InstallRequirements
         private readonly string $phpVersion = PHP_VERSION,
         ?Closure $extensionLoaded = null,
         ?Closure $isWritable = null,
+        private readonly ?string $environmentPath = null,
     ) {
-        $this->extensionLoaded = $extensionLoaded ?? static fn (string $ext): bool => extension_loaded($ext);
-        $this->isWritable      = $isWritable ?? static fn (string $path): bool => is_writable($path);
+        $this->extensionLoaded = $extensionLoaded ?? static fn (string $extension): bool => extension_loaded($extension);
+        $this->isWritable = $isWritable ?? static fn (string $path): bool => is_writable($path);
     }
 
     /**
-     * @return list<array{key:string, label:string, ok:bool, blocking:bool}>
-     *         key = clé de traduction du libellé, label = valeur insérée (:name)
+     * @return list<array{label: string, ok: bool, blocking: bool}>
      */
     public function checks(): array
     {
         $checks = [[
-            'key'      => 'install_req_php',
-            'label'    => self::MIN_PHP . ' (' . $this->phpVersion . ')',
-            'ok'       => version_compare($this->phpVersion, self::MIN_PHP, '>='),
+            'label' => __('PHP :version or later (current: :current)', ['version' => self::MIN_PHP, 'current' => $this->phpVersion]),
+            'ok' => version_compare($this->phpVersion, self::MIN_PHP, '>='),
             'blocking' => true,
         ]];
 
-        foreach (self::REQUIRED_EXTENSIONS as $ext) {
-            $checks[] = ['key' => 'install_req_extension', 'label' => $ext, 'ok' => $this->loaded($ext), 'blocking' => true];
+        foreach (self::REQUIRED_EXTENSIONS as $extension) {
+            $checks[] = ['label' => __('PHP extension :name', ['name' => $extension]), 'ok' => $this->loaded($extension), 'blocking' => true];
         }
 
-        // Un seul pilote suffit : chacun n'est bloquant que si l'autre manque aussi.
         $anyDriver = $this->availableDrivers() !== [];
-        foreach (self::DRIVER_EXTENSIONS as $ext) {
-            $checks[] = ['key' => 'install_req_driver', 'label' => $ext, 'ok' => $this->loaded($ext), 'blocking' => !$anyDriver];
+        foreach (self::DRIVER_EXTENSIONS as $extension) {
+            $checks[] = ['label' => __('Database driver :name (one is enough)', ['name' => $extension]), 'ok' => $this->loaded($extension), 'blocking' => ! $anyDriver];
         }
 
-        foreach (self::RECOMMENDED_EXTENSIONS as $ext) {
-            $checks[] = ['key' => 'install_req_extension_optional', 'label' => $ext, 'ok' => $this->loaded($ext), 'blocking' => false];
+        foreach (self::RECOMMENDED_EXTENSIONS as $extension) {
+            $checks[] = ['label' => __('PHP extension :name (recommended)', ['name' => $extension]), 'ok' => $this->loaded($extension), 'blocking' => false];
         }
 
-        foreach (['config', 'storage'] as $dir) {
-            $checks[] = ['key' => 'install_req_writable', 'label' => $dir . '/', 'ok' => ($this->isWritable)($this->basePath . '/' . $dir), 'blocking' => true];
+        foreach (['storage', 'bootstrap/cache'] as $directory) {
+            $checks[] = ['label' => __('Writable folder :name', ['name' => $directory.'/']), 'ok' => $this->writable($this->basePath.'/'.$directory), 'blocking' => true];
         }
 
-        // Fichier d'environnement (langue de l'instance) : le fichier lui-même s'il existe, sinon la racine qui le recevra.
-        $envPath = (new \App\Services\EnvFileWriter($this->basePath))->path();
+        // `.env` : le fichier lui-même s'il existe, sinon le dossier où il sera créé.
+        $environment = $this->environmentPath ?? $this->basePath.'/.env';
         $checks[] = [
-            'key'      => 'install_req_writable',
-            'label'    => basename($envPath),
-            'ok'       => ($this->isWritable)(file_exists($envPath) ? $envPath : $this->basePath),
+            'label' => __('Writable file :name', ['name' => '.env']),
+            'ok' => $this->writable(is_file($environment) ? $environment : dirname($environment)),
             'blocking' => true,
         ];
 
         return $checks;
     }
 
-    /** @return list<string> pilotes ('sqlite', 'mysql') dont l'extension PDO est chargée */
+    /**
+     * Aucun point bloquant en échec.
+     */
+    public function passes(): bool
+    {
+        return $this->failures() === [];
+    }
+
+    /**
+     * Libellés des points bloquants en échec.
+     *
+     * @return list<string>
+     */
+    public function failures(): array
+    {
+        return array_values(array_map(
+            fn (array $check): string => $check['label'],
+            array_filter($this->checks(), fn (array $check): bool => $check['blocking'] && ! $check['ok']),
+        ));
+    }
+
+    /**
+     * Pilotes de base dont l'extension PDO est chargée.
+     *
+     * @return list<string>
+     */
     public function availableDrivers(): array
     {
-        $drivers = [];
-        foreach (self::DRIVER_EXTENSIONS as $driver => $ext) {
-            if ($this->loaded($ext)) {
-                $drivers[] = $driver;
-            }
-        }
-        return $drivers;
+        return array_keys(array_filter(self::DRIVER_EXTENSIONS, fn (string $extension): bool => $this->loaded($extension)));
     }
 
-    public function driverAvailable(string $driver): bool
+    private function loaded(string $extension): bool
     {
-        return in_array($driver, $this->availableDrivers(), true);
+        return (bool) ($this->extensionLoaded)($extension);
     }
 
-    /** Vrai si aucun point bloquant n'échoue. */
-    public function canInstall(): bool
+    private function writable(string $path): bool
     {
-        foreach ($this->checks() as $check) {
-            if ($check['blocking'] && !$check['ok']) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private function loaded(string $ext): bool
-    {
-        return ($this->extensionLoaded)($ext);
+        return (bool) ($this->isWritable)($path);
     }
 }

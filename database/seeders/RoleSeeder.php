@@ -1,57 +1,34 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Database\Seeders;
 
+use App\Authorization\CorePermissions;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Auth\PermissionCatalog;
 
-/**
- * Les trois rôles par défaut (Owner, Manager, Employé). Owner est un rôle système : PermissionService lui accorde toutes
- * les permissions implicitement (is_system = 1), aucune ligne role_permissions n'est nécessaire pour lui.
- */
-final class RoleSeeder extends Seeder
+class RoleSeeder extends Seeder
 {
+    /**
+     * Rôles obligatoires du Core ; peut être relancé sans doublon.
+     */
     public function run(): void
     {
-        if (DB::table('roles')->where('slug', 'owner')->exists()) {
-            return;
+        $this->role('owner', 'Owner', ['is_system' => true, 'color' => '#DC2626']);
+
+        $manager = $this->role('manager', 'Manager', ['is_manager' => true, 'color' => '#2563EB']);
+        foreach (CorePermissions::MANAGER_DEFAULTS as $permission) {
+            $manager->permissions()->updateOrCreate(['permission' => $permission], ['all_stores' => false]);
         }
+        $manager->permissions()->whereNotIn('permission', CorePermissions::MANAGER_DEFAULTS)->whereIn('permission', CorePermissions::all())->delete();
 
-        $now = date('Y-m-d H:i:s');
+        $this->role('employee', 'Employee', ['color' => '#6B7280']);
+    }
 
-        DB::table('roles')->insert([
-            'name'        => 'Owner',
-            'slug'        => 'owner',
-            'description' => 'Propriétaire de l\'organisation. Tous les droits, rôle non modifiable.',
-            'is_system'   => 1,
-            'is_manager'  => 0,
-            'created_at'  => $now,
-        ]);
-
-        $managerId = DB::table('roles')->insertGetId([
-            'name'        => 'Manager',
-            'slug'        => 'manager',
-            'description' => 'Gestion d\'un magasin : employés, plannings, documents, paie.',
-            'is_system'   => 0,
-            'is_manager'  => 1,
-            'created_at'  => $now,
-        ]);
-
-        // Employé : aucune permission de gestion par défaut.
-        DB::table('roles')->insert([
-            'name'        => 'Employé',
-            'slug'        => 'employee',
-            'description' => 'Accès employé standard, sans droits de gestion.',
-            'is_system'   => 0,
-            'is_manager'  => 0,
-            'created_at'  => $now,
-        ]);
-
-        foreach (PermissionCatalog::MANAGER_DEFAULTS as $key) {
-            DB::table('role_permissions')->insert(['role_id' => $managerId, 'permission_key' => $key, 'scope' => 'local']);
-        }
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function role(string $slug, string $name, array $attributes): Role
+    {
+        return Role::updateOrCreate(['slug' => $slug], ['name' => $name] + $attributes);
     }
 }

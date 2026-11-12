@@ -1,92 +1,96 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Auth\UserTargetGuard;
-use App\Exceptions\ValidationException;
+use App\Actions\Notifications\SaveNotificationPreferences;
+use App\Models\User;
+use App\Notifications\NotificationPreferences;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\NotificationPreferenceService;
+use Illuminate\Validation\ValidationException;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 
-final class NotificationPreferenceController
+/**
+ * Préférences de notification : par type et par canal (`push`, `mail`), plus les heures silencieuses.
+ */
+class NotificationPreferenceController extends ApiController
 {
-    public function __construct(
-        private readonly NotificationPreferenceService $prefs,
-        private readonly UserTargetGuard $guard,
-    ) {}
-
-    /**
-     * GET /api/v1/users/{user_id}/notification-preferences
-     * Grille des types actifs (canaux push et e-mail, la cloche étant toujours active) et heures silencieuses.
-     */
-    public function show(Request $request): Response
+    public function show(Request $request, int $user): JsonResponse
     {
-        $userId = (int) $request->route('user_id');
-        $this->guard->require($request, $userId, 'employees.update');
-
-        return response()->json($this->payload($userId));
+        return $this->payload($this->targetUser($request, $user, 'employees.update'));
     }
 
     /**
-     * PUT /api/v1/users/{user_id}/notification-preferences
-     *
-     * Champs facultatifs, chacun enregistré seulement s'il est envoyé :
-     *   - `preferences` : { "<type>": { "push": bool, "email": bool } } ; seules les cases citées changent ;
-     *   - `quiet_hours` : { "enabled": bool, "start": "HH:MM", "end": "HH:MM" } (début et fin obligatoires si activées).
+     * `preferences` : type => {push?: bool, mail?: bool}, seuls les types et canaux cités changent ; `quiet_hours` :
+     * {enabled: bool, start?: "H:i", end?: "H:i"}.
      */
-    public function update(Request $request): Response
+    public function update(Request $request, int $user, SaveNotificationPreferences $save, NotificationPreferences $preferences, NotificationTypeRegistry $types): JsonResponse
     {
-        $userId = (int) $request->route('user_id');
-        $this->guard->require($request, $userId, 'employees.update');
+        $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data = $request->json()->all() ?? [];
+        $data = $request->validate([
+            'preferences' => ['nullable', 'array'],
+            'preferences.*' => ['array'],
+            'preferences.*.push' => ['boolean'],
+            'preferences.*.mail' => ['boolean'],
+            'quiet_hours' => ['nullable', 'array'],
+            'quiet_hours.enabled' => ['required_with:quiet_hours', 'boolean'],
+            'quiet_hours.start' => ['nullable', 'string', 'max:8'],
+            'quiet_hours.end' => ['nullable', 'string', 'max:8'],
+        ]);
 
-        $changes = $data['preferences'] ?? null;
-        if ($changes !== null && !is_array($changes)) {
-            throw new ValidationException(['preferences' => [__('validation_notif_prefs_invalid')]]);
-        }
-        $quiet = $data['quiet_hours'] ?? null;
-        if ($quiet !== null && (!is_array($quiet) || !is_bool($quiet['enabled'] ?? null))) {
-            throw new ValidationException(['quiet_hours' => [__('validation_quiet_hours_invalid')]]);
-        }
+        $matrix = $preferences->matrix($target);
 
-        if ($quiet !== null) {
-            $saved = $this->prefs->saveQuietHours(
-                $userId,
-                $quiet['enabled'],
-                isset($quiet['start']) ? (string) $quiet['start'] : null,
-                isset($quiet['end']) ? (string) $quiet['end'] : null,
-            );
-            if (!$saved) {
-                throw new ValidationException(['quiet_hours' => [__('validation_quiet_hours_invalid')]]);
+        foreach ($data['preferences'] ?? [] as $type => $channels) {
+            if (! isset($matrix[$type])) {
+                throw ValidationException::withMessages(['preferences.'.$type => __('This notification type is unknown.')]);
             }
-        }
-        if ($changes !== null) {
-            $ignored = $this->prefs->saveChanges($userId, $changes);
-            if ($ignored !== []) {
-                throw new ValidationException(['preferences' => [__('validation_notif_prefs_invalid') . ' (' . implode(', ', $ignored) . ')']]);
+
+            foreach (NotificationType::CHANNELS as $channel) {
+                if (array_key_exists($channel, $channels)) {
+                    $matrix[$type][$channel] = (bool) $channels[$channel];
+                }
             }
         }
 
-        return response()->json($this->payload($userId));
+        $checked = array_map(fn (array $row): array => array_keys(array_filter($row)), $matrix);
+        $quiet = $preferences->quietHours($target);
+        $incoming = $data['quiet_hours'] ?? null;
+
+        $save->handle(
+            $target,
+            $checked,
+            $incoming === null ? $quiet['enabled'] : (bool) $incoming['enabled'],
+            $incoming['start'] ?? $quiet['start'],
+            $incoming['end'] ?? $quiet['end'],
+        );
+
+        return $this->payload($target);
     }
 
-    private function payload(int $userId): array
+    private function payload(User $user): JsonResponse
     {
-        $types = [];
-        foreach ($this->prefs->grid($userId) as $category => $rows) {
-            foreach ($rows as $row) {
-                $types[] = [
-                    'type'     => $row['type']->type,
+        $preferences = app(NotificationPreferences::class);
+        $matrix = $preferences->matrix($user);
+        $list = [];
+
+        foreach (app(NotificationTypeRegistry::class)->grid($user) as $category => $types) {
+            foreach ($types as $type) {
+                $list[] = [
+                    'type' => $type->key,
                     'category' => $category,
-                    'push'     => $row['push'],
-                    'email'    => $row['email'],
+                    'label' => __($type->label),
+                    'push' => $matrix[$type->key][NotificationType::CHANNEL_PUSH],
+                    'mail' => $matrix[$type->key][NotificationType::CHANNEL_MAIL],
                 ];
             }
         }
 
-        return ['user_id' => $userId, 'preferences' => $types, 'quiet_hours' => $this->prefs->quietHours($userId)];
+        return response()->json(['data' => [
+            'user_id' => $user->id,
+            'preferences' => $list,
+            'quiet_hours' => $preferences->quietHours($user),
+        ]]);
     }
 }

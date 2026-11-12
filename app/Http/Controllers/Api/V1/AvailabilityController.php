@@ -1,104 +1,82 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Api\Paginator;
-use App\Auth\PermissionService;
+use App\Actions\Availability\SaveAvailability;
+use App\Http\Resources\V1\AvailabilityResource;
 use App\Models\Availability;
+use App\Models\Store;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\AuditLogger;
-use App\Validation\ApiPayloadRules;
-use App\Validation\PayloadValidator;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
 
-final class AvailabilityController
+/**
+ * Disponibilités hebdomadaires. Lecture : les siennes, ou, avec `shifts.view`, celles des magasins visibles. Écriture :
+ * uniquement les siennes, par magasin et pour la semaine entière (action SaveAvailability).
+ */
+class AvailabilityController extends ApiController
 {
-    public function __construct(
-        private readonly AuditLogger $auditLogger,
-        private readonly PermissionService $permissions,
-    ) {}
-
-    /** GET /api/v1/availabilities?store_id=X&user_id=Y&page=1&limit=20 */
-    public function index(Request $request): Response
+    public function index(Request $request): AnonymousResourceCollection
     {
-        [$page, $limit] = Paginator::params($request);
-        $storeId = $request->query('store_id');
-        $userId  = $request->query('user_id');
+        $actor = $this->actor($request);
+        $filters = $request->validate(['user_id' => ['nullable', 'integer'], 'store_id' => ['nullable', 'integer']]);
 
-        if ($userId !== null) {
-            $items = Availability::findByUser((int) $userId);
-        } elseif ($storeId !== null) {
-            $items = Availability::findByStore((int) $storeId);
+        $query = Availability::query();
+
+        if ($this->authorizer()->allows($actor, 'shifts.view')) {
+            $ids = $this->authorizer()->storeIdsFor($actor, 'shifts.view');
+
+            if ($ids !== null) {
+                $query->where(fn (Builder $q) => $q->whereIn('store_id', $ids)->orWhere('user_id', $actor->id));
+            }
         } else {
-            $items = [];
+            if (isset($filters['user_id']) && (int) $filters['user_id'] !== $actor->id) {
+                throw new AuthorizationException;
+            }
+
+            $query->where('user_id', $actor->id);
         }
 
-        $items = $this->permissions->restrictToScope($this->authUser($request), 'shifts.view', $items);
-
-        return response()->json(Paginator::paginate($items, $page, $limit));
-    }
-
-    /** GET /api/v1/availabilities/{id} */
-    public function show(Request $request): Response
-    {
-        return response()->json($this->requireAvailability($request, 'shifts.view'));
-    }
-
-    /** POST /api/v1/availabilities — `store_id` obligatoire (la permission est vérifiée sur ce magasin). */
-    public function store(Request $request): Response
-    {
-        $data = PayloadValidator::validate($request->json()->all() ?? [], ApiPayloadRules::availability());
-        $this->permissions->requireOnStore($this->authUser($request), 'shifts.update', $data['store_id']);
-
-        $saved = Availability::put($data);
-        $this->auditLogger->log($request, 'availability.created', 'availability', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: (int) $data['store_id']);
-        return response()->json($saved, 201);
-    }
-
-    /** PUT /api/v1/availabilities/{id} */
-    public function update(Request $request): Response
-    {
-        $old = $this->requireAvailability($request, 'shifts.update');
-        $id  = (int) $old['id'];
-
-        $data = PayloadValidator::validateUpdate($request->json()->all() ?? [], ApiPayloadRules::availability());
-        // Déplacer une disponibilité vers un autre magasin exige aussi le droit sur la destination.
-        if (isset($data['store_id']) && (int) $data['store_id'] !== (int) $old['store_id']) {
-            $this->permissions->requireOnStore($this->authUser($request), 'shifts.update', $data['store_id']);
+        if (isset($filters['user_id'])) {
+            $query->where('user_id', (int) $filters['user_id']);
+        }
+        if (isset($filters['store_id'])) {
+            $query->where('store_id', (int) $filters['store_id']);
         }
 
-        $saved = Availability::put(array_merge($data, ['id' => $id]));
-        $this->auditLogger->logUpdate($request, 'availability.updated', 'availability', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: (int) ($saved['store_id'] ?? 0) ?: null);
-        return response()->json($saved);
+        return AvailabilityResource::collection(
+            $query->orderBy('user_id')->orderBy('store_id')->orderBy('day_of_week')->paginate($this->perPage($request))
+        );
     }
 
-    /** DELETE /api/v1/availabilities/{id} */
-    public function destroy(Request $request): Response
+    /**
+     * Remplace la semaine entière. `days` : objet indexé par le jour ISO (`"1"` = lundi ... `"7"` = dimanche), chaque jour
+     * `{available, start, end}` ; un jour absent devient indisponible.
+     */
+    public function update(Request $request, int $user, int $store, SaveAvailability $save): AnonymousResourceCollection
     {
-        $old = $this->requireAvailability($request, 'shifts.update');
-        $id  = (int) $old['id'];
+        $actor = $this->actor($request);
 
-        Availability::remove($id);
-        $this->auditLogger->log($request, 'availability.deleted', 'availability', resourceId: $id, storeId: (int) $old['store_id'] ?: null);
-        return response()->noContent();
-    }
+        // Seul l'employé modifie ses disponibilités : toute autre cible est refusée avant de chercher quoi que ce soit.
+        if ($actor->id !== $user) {
+            throw new AuthorizationException;
+        }
 
-    private function authUser(Request $request): array
-    {
-        return $request->attributes->get('auth_user') ?? [];
-    }
+        $data = $request->validate(['days' => ['required', 'array'], 'days.*' => ['array']]);
+        $model = Store::query()->findOrFail($store);
 
-    /** Charge la disponibilité par id et vérifie $permissionKey sur son magasin réel. */
-    private function requireAvailability(Request $request, string $permissionKey): array
-    {
-        return $this->permissions->requireOwnedResource(
-            $this->authUser($request),
-            fn(int $id) => Availability::findById($id),
-            (int) $request->route('id'),
-            $permissionKey,
-            notFoundMessage: __('error_availability_not_found'),
+        foreach (array_keys($data['days']) as $day) {
+            if (! in_array((int) $day, range(1, 7), true) || ! is_array($data['days'][$day])) {
+                throw ValidationException::withMessages(['days' => trans('validation.in', ['attribute' => 'days'])]);
+            }
+        }
+
+        $save->handle($actor, $actor, $model, $data['days']);
+
+        return AvailabilityResource::collection(
+            Availability::query()->where('user_id', $actor->id)->where('store_id', $model->id)->orderBy('day_of_week')->get()
         );
     }
 }

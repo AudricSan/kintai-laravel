@@ -1,44 +1,37 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\ActivityEntry;
+use App\Activity\ActivityQuery;
+use App\Http\Resources\V1\ActivityEntryResource;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-final class ActivityController
+/**
+ * Journal d'activité, avec les filtres et la restriction par magasin de l'écran web (ActivityQuery) : `stores.view`
+ * est exigé, et un gérant restreint ne voit que les entrées de ses magasins.
+ */
+class ActivityController extends ApiController
 {
-    public function __construct(
-    ) {}
-
-    public function index(Request $request): Response
+    public function index(Request $request, ActivityQuery $activity): AnonymousResourceCollection
     {
-        $filters = [
-            'level'         => $request->query('level'),
-            'channel'       => $request->query('channel'),
-            'action'        => $request->query('action'),
-            'resource_type' => $request->query('resource_type'),
-            'user_id'       => (int) ($request->query('user_id') ?? 0) ?: null,
-            'store_id'      => (int) ($request->query('store_id') ?? 0) ?: null,
-            'from'          => $request->query('from'),
-            'to'            => $request->query('to'),
-            'query'         => $request->query('query'),
-        ];
-        $filters = array_filter($filters, fn($v) => $v !== null && $v !== '');
+        $actor = $this->actor($request);
 
-        $page    = max(1, (int) ($request->query('page', '1') ?? '1'));
-        $perPage = min(500, max(1, (int) ($request->query('per_page', '50') ?? '50')));
+        if (! $this->authorizer()->allows($actor, 'stores.view')) {
+            throw new AuthorizationException;
+        }
 
-        $rows  = ActivityEntry::findAll($page, $perPage, $filters);
-        $total = ActivityEntry::countAll($filters);
-
-        return response()->json([
-            'data'     => $rows,
-            'total'    => $total,
-            'page'     => $page,
-            'per_page' => $perPage,
+        $filters = $request->validate([
+            'action' => ['nullable', 'string', 'max:100'],
+            'actor' => ['nullable', 'integer'],
+            'store' => ['nullable', 'integer'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
         ]);
+
+        return ActivityEntryResource::collection(
+            $activity->for($actor, $filters)->with(['actor', 'store'])->paginate($this->perPage($request))
+        );
     }
 }

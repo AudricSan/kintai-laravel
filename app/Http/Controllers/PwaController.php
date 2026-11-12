@@ -1,64 +1,46 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
-final class PwaController
+/**
+ * Fichiers PWA servis par des routes (pas de fichiers statiques) : le service worker et le manifeste dépendent de
+ * l'URL de déploiement, et les tests peuvent les atteindre.
+ */
+class PwaController extends Controller
 {
-    public function manifest(Request $request): Response
+    /**
+     * Service worker : notifications push, clic sur une notification, renouvellement de l'abonnement.
+     * `Service-Worker-Allowed` autorise la portée « / » ; jamais de cache HTTP, pour que les mises à jour arrivent.
+     */
+    public function serviceWorker(): Response
     {
-        $base = base_url();
-
-        $data = [
-            'name'             => 'Kintai',
-            'short_name'       => 'Kintai',
-            'description'      => 'Gestion de plannings et pointages',
-            'start_url'        => $base . '/',
-            'scope'            => $base . '/',
-            'display'          => 'standalone',
-            'background_color' => '#f5f5f5',
-            'theme_color'      => '#1a5c8c',
-            'icons'            => [
-                [
-                    'src'     => $base . '/assets/img/kintai-192.png',
-                    'sizes'   => '192x192',
-                    'type'    => 'image/png',
-                    'purpose' => 'any',
-                ],
-                [
-                    'src'     => $base . '/assets/img/kintai-512.png',
-                    'sizes'   => '512x512',
-                    'type'    => 'image/png',
-                    'purpose' => 'any',
-                ],
-                [
-                    'src'     => $base . '/assets/img/kintai-512-maskable.png',
-                    'sizes'   => '512x512',
-                    'type'    => 'image/png',
-                    'purpose' => 'maskable',
-                ],
-            ],
-        ];
-
-        return response()->json($data)->header('Content-Type', 'application/manifest+json');
+        return response((string) file_get_contents(resource_path('pwa/sw.js')), 200, [
+            'Content-Type' => 'application/javascript; charset=utf-8',
+            'Service-Worker-Allowed' => '/',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        ]);
     }
 
-    /**
-     * Sert public/sw.js à partir d'un template : contrairement aux autres
-     * fichiers sous public/, il doit passer par PHP pour recevoir la même
-     * valeur de cache-busting que asset_version() (le nom de son cache
-     * `CACHE`, sans quoi il faudrait le bumper à la main à chaque changement
-     * sous public/assets/css|js — voir asset_version() pour le détail).
-     */
-    public function serviceWorker(Request $request): Response
+    public function manifest(): JsonResponse
     {
-        $template = file_get_contents(BASE_PATH . '/resources/templates/sw.js.tpl');
-        $body = str_replace('__ASSET_VERSION__', asset_version(), $template);
-
-        return response($body)->header('Content-Type', 'application/javascript; charset=UTF-8');
+        return response()->json([
+            'name' => config('app.name'),
+            'short_name' => config('app.name'),
+            'id' => url('/'),
+            'start_url' => url('/'),
+            'scope' => url('/'),
+            'display' => 'standalone',
+            'lang' => app()->getLocale(),
+            'background_color' => '#ffffff',
+            'theme_color' => '#18181b',
+            'icons' => [
+                ['src' => asset('images/brand/kintai-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => asset('images/brand/kintai-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => asset('images/brand/kintai-512-maskable.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ],
+        ], 200, ['Content-Type' => 'application/manifest+json'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

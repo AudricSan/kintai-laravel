@@ -1,42 +1,30 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
-/** Écart d'un utilisateur par rapport au réglage par défaut d'un type de notification, pour un canal. */
-final class NotificationPreference extends Model
+/**
+ * Écart d'un utilisateur avec le défaut d'un type de notification, pour un canal.
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property string $type
+ * @property string $channel
+ * @property bool $enabled
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
+#[Fillable(['user_id', 'type', 'channel', 'enabled'])]
+class NotificationPreference extends Model
 {
-    protected $table = 'notification_preferences';
-    protected $guarded = [];
-    public $timestamps = false;
-    protected $casts = ['enabled' => 'boolean'];
-
     /**
-     * Écarts de ces utilisateurs en une requête : [utilisateur => [type => [canal => activé]]].
-     *
-     * @param list<int> $userIds
-     * @return array<int, array<string, array<string, bool>>>
+     * @return array<string, string>
      */
-    public static function deviationsFor(array $userIds): array
+    protected function casts(): array
     {
-        $userIds = array_values(array_unique(array_map('intval', $userIds)));
-        $out = [];
-        if ($userIds === []) {
-            return $out;
-        }
-        foreach (self::whereIn('user_id', $userIds)->get(['user_id', 'type', 'channel', 'enabled']) as $row) {
-            $out[(int) $row->user_id][(string) $row->type][(string) $row->channel] = (bool) $row->enabled;
-        }
-
-        return $out;
-    }
-
-    /** Enregistre l'écart d'un utilisateur pour un type et un canal (un seul par triplet). */
-    public static function put(int $userId, string $type, string $channel, bool $enabled): void
-    {
-        self::updateOrCreate(['user_id' => $userId, 'type' => $type, 'channel' => $channel], ['enabled' => $enabled]);
+        return ['enabled' => 'boolean'];
     }
 }

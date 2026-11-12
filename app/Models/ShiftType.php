@@ -1,121 +1,68 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
+use App\Casts\TimeOfDay;
+use Database\Factories\ShiftTypeFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Casts\HexColor;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 
-final class ShiftType extends Model
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $code
+ * @property string $starts_at Heure "H:i"
+ * @property string $ends_at Heure "H:i"
+ * @property numeric-string $hourly_rate
+ * @property string $color
+ * @property int $sort_order
+ * @property bool $is_active
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Collection<int, Store> $stores
+ * @property-read Collection<int, User> $rates
+ */
+#[Fillable(['name', 'code', 'starts_at', 'ends_at', 'hourly_rate', 'color', 'sort_order', 'is_active'])]
+class ShiftType extends Model
 {
-    protected $table = 'shift_types';
-    protected $guarded = [];
-    public $timestamps = false;
+    /** @use HasFactory<ShiftTypeFactory> */
+    use HasFactory;
 
-    // Une couleur invalide en base est remplacée à la lecture (voir HexColor).
-    protected $casts = ['color' => HexColor::class . ':#3B82F6'];
-
-    public static function findById(int $id): ?array
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        $type = static::find($id);
-        return $type ? $type->toArray() : null;
+        return [
+            'starts_at' => TimeOfDay::class,
+            'ends_at' => TimeOfDay::class,
+            'hourly_rate' => 'decimal:2',
+            'sort_order' => 'integer',
+            'is_active' => 'boolean',
+        ];
     }
 
-    public static function findByStore(int $storeId): array
+    /**
+     * @return BelongsToMany<Store, $this>
+     */
+    public function stores(): BelongsToMany
     {
-        return static::query()
-            ->join('shift_type_stores', 'shift_type_stores.shift_type_id', '=', 'shift_types.id')
-            ->where('shift_type_stores.store_id', $storeId)
-            ->select('shift_types.*')
-            ->get()
-            ->toArray();
+        return $this->belongsToMany(Store::class, 'shift_type_store');
     }
 
-    public static function findByStores(array $storeIds): array
+    /**
+     * Utilisateurs ayant un taux horaire personnel pour ce type (pivot `hourly_rate`).
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function rates(): BelongsToMany
     {
-        if ($storeIds === []) {
-            return [];
-        }
-        return static::query()
-            ->join('shift_type_stores', 'shift_type_stores.shift_type_id', '=', 'shift_types.id')
-            ->whereIn('shift_type_stores.store_id', $storeIds)
-            ->select('shift_types.*')
-            ->distinct()
-            ->get()
-            ->toArray();
-    }
-
-    public static function findActive(int $storeId): array
-    {
-        return static::query()
-            ->join('shift_type_stores', 'shift_type_stores.shift_type_id', '=', 'shift_types.id')
-            ->where('shift_type_stores.store_id', $storeId)
-            ->where('shift_types.is_active', 1)
-            ->select('shift_types.*')
-            ->get()
-            ->toArray();
-    }
-
-    public static function findAll(): array
-    {
-        return static::all()->toArray();
-    }
-
-    public static function put(array $data): array
-    {
-        if (!empty($data['id'])) {
-            $type = static::findOrFail($data['id']);
-            $type->fill($data);
-            $type->save();
-        } else {
-            $type = static::create($data);
-        }
-        return $type->toArray();
-    }
-
-    public static function remove(int $id): int
-    {
-        // SQLite (config par défaut de cette appli, voir onDelete('cascade') non
-        // appliqué) n'enforce pas la cascade FK ici : suppression explicite des
-        // affectations avant celle du type.
-        ShiftTypeStore::where('shift_type_id', $id)->delete();
-
-        $type = static::find($id);
-        if ($type) {
-            return $type->delete() ? 1 : 0;
-        }
-        return 0;
-    }
-
-    public static function getStoreIds(int $shiftTypeId): array
-    {
-        return ShiftTypeStore::where('shift_type_id', $shiftTypeId)
-            ->pluck('store_id')
-            ->map(fn ($id) => (int) $id)
-            ->toArray();
-    }
-
-    public static function syncStores(int $shiftTypeId, array $storeIds): void
-    {
-        ShiftTypeStore::where('shift_type_id', $shiftTypeId)->delete();
-        foreach (array_unique(array_map('intval', $storeIds)) as $storeId) {
-            ShiftTypeStore::create(['shift_type_id' => $shiftTypeId, 'store_id' => $storeId]);
-        }
-    }
-
-    public static function isEnabledForStore(int $shiftTypeId, int $storeId): bool
-    {
-        return ShiftTypeStore::where('shift_type_id', $shiftTypeId)->where('store_id', $storeId)->exists();
-    }
-
-    public static function enableForStore(int $shiftTypeId, int $storeId): void
-    {
-        ShiftTypeStore::firstOrCreate(['shift_type_id' => $shiftTypeId, 'store_id' => $storeId]);
-    }
-
-    public static function disableForStore(int $shiftTypeId, int $storeId): void
-    {
-        ShiftTypeStore::where('shift_type_id', $shiftTypeId)->where('store_id', $storeId)->delete();
+        return $this->belongsToMany(User::class, 'shift_type_user')
+            ->withPivot('hourly_rate')
+            ->withTimestamps();
     }
 }

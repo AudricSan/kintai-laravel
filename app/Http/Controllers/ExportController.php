@@ -1,238 +1,60 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers;
 
-use kintai\Contract\Extension\ExportDataset;
-use kintai\Contract\Provider\ExportQuery;
-use App\Auth\AuthService;
-use App\Exceptions\ForbiddenException;
-use App\Exceptions\NotFoundException;
-use App\Export\ExportAccess;
-use App\Export\ExportWriter;
-use App\Extension\Absences;
-use App\Extension\ExportDatasets;
-use App\Models\Shift;
-use App\Models\ShiftType;
-use App\Models\Store;
+use App\Actions\Exports\DownloadExport;
+use App\Exports\ExportAccess;
+use App\Exports\ExportTooLargeException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\AuditLogger;
-use App\Services\IcalService;
-use App\Services\ScheduleExportService;
-use App\Services\UserSelection;
-use Illuminate\Contracts\View\Factory as ViewFactory;
+use Kintai\Contracts\Exports\ExportDatasetRegistry;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Page « Exports » : n'importe quel jeu de données de l'application (Core et bundles actifs) en JSON, CSV ou classeur Excel,
- * pour soi, pour des personnes choisies, pour un magasin ou pour tous ceux dont on a la charge. L'horaire peut aussi sortir en
- * ICS quand il porte sur une seule personne dans un seul magasin.
+ * Téléchargement d'un jeu de données (`/exports/download`). Les droits sont décidés par jeu de données et par magasin dans
+ * `ExportAccess`, pas par une permission de route : chacun peut au moins exporter ses propres données.
  *
- * Les droits sont décidés par ExportAccess (permission du jeu de données dans chaque magasin) ; ce contrôleur ne fait que
- * lire la demande, appeler le fournisseur de lignes avec le périmètre autorisé et tracer l'export.
+ * Paramètres : `dataset`, `format`, `target` (`me` = mes données, sinon les magasins), `stores[]`, `users[]`, `from`, `to`.
  */
-final class ExportController
+class ExportController extends Controller
 {
-    use HasBaseUrl;
-
-    /** Cible « tous mes magasins » dans le sélecteur ; « me » et « store:ID » complètent. */
-    private const TARGET_ALL = 'all';
-
-    public function __construct(
-        private readonly ViewFactory                 $view,
-        private readonly AuthService                  $auth,
-        private readonly ExportAccess                 $access,
-        private readonly ExportWriter                 $writer,
-        private readonly UserSelection                $selection,
-        private readonly ScheduleExportService        $schedule,
-        private readonly IcalService                  $ical,
-        private readonly AuditLogger                  $auditLogger,
-    ) {}
-
-    /** GET /exports?dataset=&target= */
-    public function index(Request $request): Response
+    public function __invoke(Request $request, ExportDatasetRegistry $registry, ExportAccess $access, DownloadExport $download): StreamedResponse|RedirectResponse
     {
-        $user = $this->auth->user();
-        if (!$user) {
-            return redirect()->away($this->base() . '/login');
-        }
-
-        $available = $this->access->available($user, ExportDatasets::current()->all());
-        $key       = (string) $request->query('dataset', '');
-        if (!isset($available[$key])) {
-            $key = (string) (array_key_first($available) ?? '');
-        }
-        $entry   = $available[$key] ?? null;
-        $targets = $entry !== null ? $this->targets($entry['stores'], $entry['self']) : [];
-        $target  = (string) $request->query('target', '');
-        if (!isset($targets[$target])) {
-            $target = (string) (array_key_first($targets) ?? '');
-        }
-
-        // Les personnes proposables sont celles du magasin choisi ; « moi » et « tous les magasins » n'en choisissent pas.
-        $candidates = [];
-        if ($entry !== null && $entry['dataset']->perPerson && str_starts_with($target, 'store:')) {
-            $candidates = $this->selection->candidates((int) substr($target, 6));
-        }
-
-        return response($this->view->make('exports.index', [
-            'title'      => __('export_title'),
-            'available'  => $available,
-            'dataset'    => $entry['dataset'] ?? null,
-            'targets'    => $targets,
-            'target'     => $target,
-            'candidates' => $candidates,
-            'from'       => date('Y-m-01'),
-            'to'         => date('Y-m-d', strtotime('+90 days')),
-            'canIcs'     => ($entry['dataset']->key ?? '') === 'shifts',
-        ])->render());
-    }
-
-    /** GET /exports/download?dataset=&target=&user_ids[]=&from=&to=&format= */
-    public function download(Request $request): Response
-    {
-        $user = $this->auth->user();
-        if (!$user) {
-            return redirect()->away($this->base() . '/login');
-        }
-
-        $dataset = ExportDatasets::current()->find((string) $request->query('dataset', ''));
-        $format  = strtolower((string) $request->query('format', ''));
-        if ($dataset === null || !in_array($format, [...ExportWriter::FORMATS, 'ics'], true)) {
-            return redirect()->away($this->base() . '/exports');
-        }
-        if ($format === 'ics' && $dataset->key !== 'shifts') {
-            return redirect()->away($this->base() . '/exports');
-        }
-
-        [$scope, $storeId] = $this->parseTarget((string) $request->query('target', ''));
-        $ids    = $request->query('user_ids', []);
-        $from   = $request->query('from');
-        $to     = $request->query('to');
-        $period = $this->schedule->period(is_string($from) ? $from : null, is_string($to) ? $to : null, date('Y-m-d'));
+        $dataset = $registry->find((string) $request->query('dataset', ''));
+        abort_if($dataset === null, 404);
 
         try {
-            $query = $this->access->query(
-                $user, $dataset, $scope, $storeId,
-                is_array($ids) ? array_map('intval', $ids) : [],
-                $period['from'], $period['to'], user_locale($user),
+            $scope = $access->scope(
+                $request->user(),
+                $dataset,
+                $request->query('target') === 'me',
+                $this->ids($request->query('stores')),
+                $this->ids($request->query('users')),
+                $this->string($request->query('from')),
+                $this->string($request->query('to')),
             );
-        } catch (ForbiddenException) {
-            return redirect()->away($this->base() . '/exports')->with('error', 'forbidden');
+        } catch (AuthorizationException) {
+            abort(403);
         }
 
-        $basename = 'kintai-' . $dataset->key . ($dataset->hasPeriod ? '-' . $period['from'] . '_' . $period['to'] : '');
-
-        if ($format === 'ics') {
-            $ics = $this->ics($query, $user);
-            if ($ics === null) {
-                return redirect()->away($this->base() . '/exports')->with('error', 'ics_scope');
-            }
-            $this->trace($request, $user, $dataset, $scope, $query->storeIds, 'ics', $ics['count']);
-
-            return response()->ical($ics['body'], $basename . '.ics');
+        try {
+            return $download->handle($dataset, $scope, strtolower((string) $request->query('format', '')));
+        } catch (ExportTooLargeException $e) {
+            return redirect()->route('exports.index')->withErrors(['export' => $e->userMessage()]);
         }
-
-        $rows = [...$dataset->provider->rows($query)];
-        $this->trace($request, $user, $dataset, $scope, $query->storeIds, $format, count($rows));
-
-        $meta = ['stores' => $query->storeIds];
-        if ($dataset->hasPeriod) {
-            $meta += ['from' => $period['from'], 'to' => $period['to']];
-        }
-
-        return $this->writer->response($dataset, $rows, $format, $basename, $meta);
     }
 
     /**
-     * Cibles proposées : « moi », chaque magasin autorisé, puis « tous mes magasins » quand il y en a plusieurs.
-     *
-     * @param list<int> $storeIds
-     * @return array<string, string> valeur => libellé
+     * @return list<int>
      */
-    private function targets(array $storeIds, bool $self): array
+    private function ids(mixed $value): array
     {
-        $targets = [];
-        if ($self) {
-            $targets['me'] = __('export_target_me');
-        }
-        foreach ($storeIds as $id) {
-            $targets['store:' . $id] = (string) (Store::findById($id)['name'] ?? ('#' . $id));
-        }
-        if (count($storeIds) > 1) {
-            $targets[self::TARGET_ALL] = __('export_target_all');
-        }
-
-        return $targets;
+        return is_array($value) ? array_values(array_map('intval', array_filter($value, 'is_scalar'))) : [];
     }
 
-    /** @return array{0: string, 1: int|null} */
-    private function parseTarget(string $target): array
+    private function string(mixed $value): ?string
     {
-        if (str_starts_with($target, 'store:')) {
-            return [ExportAccess::SCOPE_STORE, (int) substr($target, 6)];
-        }
-
-        return [$target === self::TARGET_ALL ? ExportAccess::SCOPE_ALL : ExportAccess::SCOPE_ME, null];
-    }
-
-    /**
-     * Horaire d'une seule personne dans un seul magasin au format ICS (les événements d'un agenda sont ceux d'une personne).
-     *
-     * @param array<string, mixed> $user
-     * @return array{body: string, count: int}|null null si le périmètre ne désigne pas exactement une personne et un magasin
-     */
-    private function ics(ExportQuery $query, array|\ArrayAccess $user): ?array
-    {
-        if ($query->userIds === null || count($query->userIds) !== 1 || count($query->storeIds) !== 1) {
-            return null;
-        }
-        $personId = $query->userIds[0];
-        $storeId  = $query->storeIds[0];
-        $store    = Store::findById($storeId);
-        if ($store === null) {
-            throw new NotFoundException(__('error_resource_not_found'));
-        }
-        $person = $personId === (int) $user['id']
-            ? $user
-            : ['id' => $personId] + ($this->selection->resolve($storeId, [$personId])[0] ?? []);
-
-        $mine = array_values(array_filter(
-            Shift::findByUser($personId),
-            static fn(array $s): bool => (int) ($s['store_id'] ?? 0) === $storeId
-        ));
-        $shifts = $this->schedule->select($mine, $query->from, $query->to);
-
-        $types = [];
-        foreach (ShiftType::findAll() as $t) {
-            $types[(int) $t['id']] = $t;
-        }
-        $timeoffs = array_values(array_filter(
-            Absences::current()->forUser($personId),
-            static fn(array $t): bool => (int) ($t['store_id'] ?? 0) === $storeId
-                && ($t['status'] ?? '') === 'approved'
-                && (string) ($t['end_date'] ?? '') >= $query->from
-                && (string) ($t['start_date'] ?? '') <= $query->to
-        ));
-
-        return ['body' => $this->ical->build($shifts, $timeoffs, $store, $person, $types), 'count' => count($shifts)];
-    }
-
-    /**
-     * Trace de l'export dans le journal d'audit : qui, quoi, pour quels magasins, combien de lignes.
-     *
-     * @param array<string, mixed> $user
-     * @param list<int>            $storeIds
-     */
-    private function trace(Request $request, array|\ArrayAccess $user, ExportDataset $dataset, string $scope, array $storeIds, string $format, int $count): void
-    {
-        $this->auditLogger->log($request, 'export.dataset', 'export', 0, [
-            'dataset' => $dataset->key,
-            'scope'   => $scope,
-            'stores'  => $storeIds,
-            'format'  => $format,
-            'count'   => $count,
-        ], count($storeIds) === 1 ? $storeIds[0] : null, (int) $user['id']);
+        return is_string($value) ? $value : null;
     }
 }

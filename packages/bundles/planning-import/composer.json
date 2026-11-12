@@ -1,0 +1,24 @@
+{
+    "name": "kintai/bundle-planning-import",
+    "description": "Import de planning Excel pour Kintai : envoi, aperçu, confirmation, détection en trois phases, alias de noms et réglages par magasin.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.5",
+        "phpoffice/phpspreadsheet": "^5.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\PlanningImport\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\PlanningImport\\PlanningImportServiceProvider"
+            ]
+        }
+    }
+}

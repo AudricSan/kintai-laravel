@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-planning-check",
+    "description": "Validation du planning de demain pour Kintai : le gérant confirme les shifts du lendemain, un valideur approuve, le PDF part par e-mail, escalade en cas de retard.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\PlanningCheck\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\PlanningCheck\\PlanningCheckServiceProvider"
+            ]
+        }
+    }
+}

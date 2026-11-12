@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-messaging",
+    "description": "Messagerie interne pour Kintai : conversations entre collègues d'un magasin, non-lus, notifications.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\Messaging\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\Messaging\\MessagingServiceProvider"
+            ]
+        }
+    }
+}

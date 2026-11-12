@@ -1,161 +1,129 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
+use Database\Factories\StoreFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
-final class Store extends Model
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $code
+ * @property string $timezone
+ * @property string $currency
+ * @property string $currency_symbol_style
+ * @property string|null $locale
+ * @property string|null $address_street
+ * @property string|null $address_city
+ * @property string|null $address_postal
+ * @property string|null $address_country
+ * @property string|null $phone
+ * @property string|null $email
+ * @property bool $is_active
+ * @property int $week_start_day
+ * @property int|null $low_staff_hour_start
+ * @property int|null $low_staff_hour_end
+ * @property int $min_staff_per_day
+ * @property int $min_shift_minutes
+ * @property int $max_shift_minutes
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Collection<int, User> $members
+ * @property-read Collection<int, StoreFeature> $features
+ * @property-read Collection<int, ShiftType> $shiftTypes
+ * @property-read Collection<int, Shift> $shifts
+ */
+#[Fillable([
+    'name', 'code', 'timezone', 'currency', 'currency_symbol_style', 'locale',
+    'address_street', 'address_city', 'address_postal', 'address_country', 'phone', 'email',
+    'is_active', 'week_start_day', 'low_staff_hour_start', 'low_staff_hour_end',
+    'min_staff_per_day', 'min_shift_minutes', 'max_shift_minutes',
+])]
+class Store extends Model
 {
-    protected $table = 'stores';
-    protected $guarded = [];
-    public $timestamps = false;
+    /** @use HasFactory<StoreFactory> */
+    use HasFactory, SoftDeletes;
 
-    public static function findById(int $id): ?array
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        $store = static::find($id);
-        return $store ? $store->toArray() : null;
+        return [
+            'is_active' => 'boolean',
+            'week_start_day' => 'integer',
+            'low_staff_hour_start' => 'integer',
+            'low_staff_hour_end' => 'integer',
+            'min_staff_per_day' => 'integer',
+            'min_shift_minutes' => 'integer',
+            'max_shift_minutes' => 'integer',
+        ];
     }
 
-    public static function findByCode(string $code): ?array
+    /**
+     * Code stocké en majuscules : la connexion par code magasin le compare en majuscules.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function code(): Attribute
     {
-        $store = static::where('code', $code)->whereNull('deleted_at')->first();
-        return $store ? $store->toArray() : null;
-    }
-
-    public static function findAll(): array
-    {
-        return static::whereNull('deleted_at')->get()->toArray();
-    }
-
-    public static function findAllWithDeleted(): array
-    {
-        return static::all()->toArray();
-    }
-
-    public static function findActive(): array
-    {
-        return static::where('is_active', 1)
-            ->whereNull('deleted_at')
-            ->get()
-            ->toArray();
-    }
-
-    public static function countActive(): int
-    {
-        return static::where('is_active', 1)
-            ->whereNull('deleted_at')
-            ->count();
-    }
-
-    public static function put(array $data): array
-    {
-        if (!empty($data['id'])) {
-            $store = static::findOrFail($data['id']);
-            $store->fill($data);
-            $store->save();
-        } else {
-            $store = static::create($data);
-        }
-        return $store->toArray();
-    }
-
-    public static function remove(int $id): int
-    {
-        $store = static::whereNull('deleted_at')->find($id);
-        if (!$store) {
-            return 0;
-        }
-
-        // Alias d'URL du magasin (courant et historique) : libérés pour un futur magasin.
-        try {
-            \App\Models\RouteSlug::where('entity_type', 'store')->where('entity_id', $id)->delete();
-        } catch (\Illuminate\Database\QueryException) {
-            // Table route_slugs absente (migration pas encore jouée).
-        }
-
-        // Suppression douce (audit du 13/10/2026, M8) : effacer la ligne supprimait en cascade, sous MySQL,
-        // les shifts, pointages et rapports du magasin, et les laissait orphelins sous SQLite. Le code,
-        // unique et utilisé à la connexion par code, est libéré pour pouvoir être réattribué.
-        $store->fill([
-            'code'       => 'DEL-' . $id . '-' . $store->code,
-            'is_active'  => 0,
-            'deleted_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-        return $store->save() ? 1 : 0;
-    }
-
-    public static function getFeatures(int $storeId): array
-    {
-        $decisions = static::getFeatureDecisions($storeId);
-        $disabled  = array_keys(array_filter($decisions, static fn(bool $on): bool => !$on));
-        if ($disabled === []) {
-            return [];
-        }
-        // Actives : celles réglées « active », plus les fonctionnalités proposées jamais réglées.
-        $enabled = array_keys(array_filter($decisions));
-        $available = \App\Extension\StoreFeatures::current()->availableKeys();
-        return array_values(array_unique(array_merge($enabled, array_diff($available, $disabled))));
-    }
-
-    public static function saveFeatures(int $storeId, array $features): void
-    {
-        StoreFeature::where('store_id', $storeId)->delete();
-        $decisions = array_fill_keys(\App\Extension\StoreFeatures::current()->availableKeys(), false);
-        foreach ($features as $key) {
-            $decisions[(string) $key] = true;
-        }
-        static::saveFeatureDecisions($storeId, $decisions);
-    }
-
-    public static function getFeatureDecisions(int $storeId): array
-    {
-        $decisions = [];
-        foreach (StoreFeature::where('store_id', $storeId)->get(['feature_key', 'enabled']) as $row) {
-            $decisions[(string) $row->feature_key] = (bool) $row->enabled;
-        }
-        return $decisions;
-    }
-
-    public static function saveFeatureDecisions(int $storeId, array $decisions): void
-    {
-        foreach ($decisions as $key => $enabled) {
-            $existing = StoreFeature::where('store_id', $storeId)->where('feature_key', (string) $key);
-            if ($existing->exists()) {
-                $existing->update(['enabled' => (bool) $enabled]);
-            } else {
-                StoreFeature::create(['store_id' => $storeId, 'feature_key' => (string) $key, 'enabled' => (bool) $enabled]);
-            }
-        }
-    }
-
-    public static function getImportSettings(int $storeId): array
-    {
-        $row = StoreImportSetting::where('store_id', $storeId)->first();
-        return $row ? $row->toArray() : [];
-    }
-
-    public static function saveImportSettings(int $storeId, array $settings): void
-    {
-        StoreImportSetting::updateOrCreate(
-            ['store_id' => $storeId],
-            $settings
+        return Attribute::make(
+            set: fn (string $value): string => Str::upper(trim($value)),
         );
     }
 
-    public static function getDeductionSettings(int $storeId): array
+    /**
+     * @return BelongsToMany<User, $this, StoreMembership, 'pivot'>
+     */
+    public function members(): BelongsToMany
     {
-        $row = StoreDeductionSetting::where('store_id', $storeId)->first();
-        return $row ? $row->toArray() : [];
+        return $this->belongsToMany(User::class, 'store_user')
+            ->using(StoreMembership::class)
+            ->withPivot(['id', 'staff_code', 'hire_date', 'contract_type', 'is_active'])
+            ->withTimestamps();
     }
 
-    public static function saveDeductionSettings(int $storeId, array $settings): void
+    /**
+     * Sans ligne, la fonctionnalité est active.
+     */
+    public function hasFeature(string $feature): bool
     {
-        StoreDeductionSetting::updateOrCreate(
-            ['store_id' => $storeId],
-            $settings
-        );
+        $row = $this->features()->where('feature', $feature)->first();
+
+        return $row === null || $row->enabled;
+    }
+
+    /**
+     * @return HasMany<StoreFeature, $this>
+     */
+    public function features(): HasMany
+    {
+        return $this->hasMany(StoreFeature::class);
+    }
+
+    /**
+     * @return BelongsToMany<ShiftType, $this>
+     */
+    public function shiftTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(ShiftType::class, 'shift_type_store');
+    }
+
+    /**
+     * @return HasMany<Shift, $this>
+     */
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(Shift::class);
     }
 }

@@ -1,152 +1,203 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use kintai\Contract\Event\OpenShiftClosed;
-use App\Api\Paginator;
-use App\Auth\PermissionService;
-use App\Exceptions\NotFoundException;
-use App\Extension\Events;
+use App\Actions\Shifts\CreateShift;
+use App\Actions\Shifts\DeleteShift;
+use App\Actions\Shifts\DeleteShifts;
+use App\Actions\Shifts\MoveShift;
+use App\Actions\Shifts\ReplaceShift;
+use App\Actions\Shifts\RestoreShift;
+use App\Actions\Shifts\UpdateShift;
+use App\Http\Resources\V1\ShiftResource;
 use App\Models\Shift;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\AuditLogger;
-use App\Services\SchedulePublication;
-use App\Validation\ApiPayloadRules;
-use App\Validation\PayloadValidator;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 
-final class ShiftController
+/**
+ * Shifts. Les droits et les règles sont ceux des actions de l'interface web (CreateShift, UpdateShift, MoveShift,
+ * DeleteShift, RestoreShift, ReplaceShift). Les heures se saisissent en heures locales de l'instance (`shift_date`,
+ * `start_time`, `end_time`). Les avertissements du garde-fou répondent `409 shift_warnings` tant que `force` n'est pas vrai.
+ *
+ * Lecture : avec `shifts.view`, les shifts des magasins visibles (et ses propres shifts) ; sans, uniquement ses propres
+ * shifts (libre-service de l'employé). Un shift hors du périmètre est introuvable (404). Écriture : droits de l'action,
+ * sur un shift du périmètre `shifts.view` (sans `shifts.view`, 403).
+ */
+class ShiftController extends ApiController
 {
-    public function __construct(
-        private readonly AuditLogger $auditLogger,
-        private readonly PermissionService $permissions,
-    ) {}
+    private const RELATIONS = ['store', 'user', 'shiftType'];
 
-    /** GET /api/v1/shifts?store_id=X&user_id=Y&date=Z&page=1&limit=20 */
-    public function index(Request $request): Response
+    /** Champs de saisie d'un shift (voir ShiftPreparer). */
+    private const FIELDS = ['store_id', 'user_id', 'shift_date', 'start_time', 'end_time', 'pause_minutes', 'notes', 'hourly_rate_override', 'net_minutes_override'];
+
+    public function index(Request $request): AnonymousResourceCollection
     {
-        [$page, $limit] = Paginator::params($request);
-        $storeId = $request->query('store_id');
-        $userId  = $request->query('user_id');
-        $date    = $request->query('date');
+        $actor = $this->actor($request);
+        $filters = $request->validate([
+            'store_id' => ['nullable', 'integer'],
+            'user_id' => ['nullable', 'integer'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'open' => ['nullable', 'boolean'],
+            'trashed' => ['nullable', Rule::in(['with', 'only'])],
+        ]);
 
-        if ($storeId !== null && $date !== null) {
-            $items = Shift::findByDate((int) $storeId, $date);
-        } elseif ($storeId !== null) {
-            $items = Shift::findByStore((int) $storeId);
-        } elseif ($userId !== null) {
-            $items = Shift::findByUser((int) $userId);
+        $query = Shift::query()->with(self::RELATIONS);
+
+        if ($this->authorizer()->allows($actor, 'shifts.view')) {
+            $ids = $this->authorizer()->storeIdsFor($actor, 'shifts.view');
+
+            if ($ids !== null) {
+                $query->where(fn (Builder $q) => $q->whereIn('store_id', $ids)->orWhere('user_id', $actor->id));
+            }
+
+            match ($filters['trashed'] ?? null) {
+                'with' => $query->withTrashed(),
+                'only' => $query->onlyTrashed(),
+                default => null,
+            };
+
+            if (isset($filters['user_id'])) {
+                $query->where('user_id', (int) $filters['user_id']);
+            }
+
+            if (! empty($filters['open'])) {
+                $query->whereNull('user_id');
+            }
         } else {
-            $items = [];
+            // Libre-service : ses propres shifts, jamais ceux des autres ni les shifts ouverts.
+            if ((isset($filters['user_id']) && (int) $filters['user_id'] !== $actor->id) || ! empty($filters['open'])) {
+                throw new AuthorizationException;
+            }
+
+            $query->where('user_id', $actor->id);
         }
 
-        // Shifts visibles par la permission, plus ses propres shifts : un employé sans shifts.view consulte son
-        // planning avec ?user_id=<lui> (route en libre-service, règle self). Avant, la liste lui était refusée.
-        $authUser = $this->authUser($request);
-        $authId   = (int) ($authUser['id'] ?? 0);
-        $scopedIds = array_column($this->permissions->restrictToScope($authUser, 'shifts.view', $items), 'id');
-        $items = array_values(array_filter(
-            $items,
-            fn(array $s): bool => in_array($s['id'] ?? null, $scopedIds, true) || (int) ($s['user_id'] ?? 0) === $authId,
-        ));
-        // Brouillons (publication du planning) : réservés à qui gère le planning du magasin, comme dans les vues web.
-        $publication = SchedulePublication::current();
-        if ($publication !== null) {
-            $items = array_values(array_filter(
-                $items,
-                fn(array $s): bool => $publication->isPublished($s)
-                    || $this->permissions->can($authUser, 'shifts.update', (int) ($s['store_id'] ?? 0)),
-            ));
+        if (isset($filters['store_id'])) {
+            $query->where('store_id', (int) $filters['store_id']);
+        }
+        if (isset($filters['from'])) {
+            $query->where('shift_date', '>=', $filters['from']);
+        }
+        if (isset($filters['to'])) {
+            $query->where('shift_date', '<=', $filters['to']);
         }
 
-        return response()->json(Paginator::paginate($items, $page, $limit));
+        return ShiftResource::collection(
+            $query->orderBy('shift_date')->orderBy('starts_at')->orderBy('id')->paginate($this->perPage($request))
+        );
     }
 
-    /** GET /api/v1/shifts/{id} */
-    public function show(Request $request): Response
+    public function show(Request $request, int $shift): ShiftResource
     {
-        $shift = $this->requireShift($request, 'shifts.view');
-        // Brouillon : introuvable pour qui ne gère pas le planning du magasin (même règle que la liste).
-        if (!(SchedulePublication::current()?->isPublished($shift) ?? true)
-            && !$this->permissions->can($this->authUser($request), 'shifts.update', (int) ($shift['store_id'] ?? 0))) {
-            throw new NotFoundException(__('error_shift_not_found'));
-        }
-        return response()->json($shift);
+        return new ShiftResource($this->find($request, $shift, allowOwn: true));
     }
 
-    /** POST /api/v1/shifts — `store_id` obligatoire (la permission est vérifiée sur ce magasin). */
-    public function store(Request $request): Response
+    public function store(Request $request, CreateShift $create): JsonResponse
     {
-        $data = PayloadValidator::validate($request->json()->all() ?? [], ApiPayloadRules::shift());
-        $this->permissions->requireOnStore($this->authUser($request), 'shifts.create', $data['store_id']);
-        // Champs calculés dérivés de la date et des heures, jamais pris du client (ils manquaient : erreur SQL).
-        $data += ApiPayloadRules::shiftTiming($data['shift_date'], $data['start_time'], $data['end_time']);
-        if (!empty($data['is_open'])) {
-            $data['user_id'] = null;
-        }
+        $created = $create->handle($this->actor($request), $request->only(self::FIELDS), $request->boolean('force'));
 
-        $saved = Shift::put($data);
-        $this->auditLogger->log($request, 'shift.created', 'shift', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: (int) $data['store_id']);
-        return response()->json($saved, 201);
+        return $this->respond($created)->response()->setStatusCode(201);
     }
 
-    /** PUT /api/v1/shifts/{id} */
-    public function update(Request $request): Response
+    public function update(Request $request, int $shift, UpdateShift $update): ShiftResource
     {
-        $old = $this->requireShift($request, 'shifts.update');
-        $id  = (int) $old['id'];
+        $model = $this->find($request, $shift);
 
-        $data = PayloadValidator::validateUpdate($request->json()->all() ?? [], ApiPayloadRules::shift());
-        // Date ou heures modifiées : les champs calculés suivent.
-        if (array_intersect_key($data, array_flip(['shift_date', 'start_time', 'end_time'])) !== []) {
-            $data += ApiPayloadRules::shiftTiming(
-                $data['shift_date'] ?? (string) $old['shift_date'],
-                $data['start_time'] ?? substr((string) $old['start_time'], 0, 5),
-                $data['end_time'] ?? substr((string) $old['end_time'], 0, 5),
-            );
-        }
-        // Déplacer un shift vers un autre magasin exige aussi le droit sur la destination.
-        if (isset($data['store_id']) && (int) $data['store_id'] !== (int) $old['store_id']) {
-            $this->permissions->requireOnStore($this->authUser($request), 'shifts.update', $data['store_id']);
-        }
-
-        $saved = Shift::put(array_merge($data, ['id' => $id]));
-        // Shift retiré de la bourse (contrat 1.17) : les bundles qui l'écoutent (shift-claim) l'apprennent.
-        if (!empty($old['is_open']) && array_key_exists('is_open', $data) && empty($data['is_open'])) {
-            $authId = (int) ($this->authUser($request)['id'] ?? 0);
-            Events::current()->dispatch(new OpenShiftClosed($saved, $authId > 0 ? $authId : null));
-        }
-        $this->auditLogger->logUpdate($request, 'shift.updated', 'shift', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: (int) ($saved['store_id'] ?? 0) ?: null);
-        return response()->json($saved);
+        return $this->respond($update->handle($this->actor($request), $model, $request->only(self::FIELDS), $request->boolean('force')));
     }
 
-    /** DELETE /api/v1/shifts/{id} */
-    public function destroy(Request $request): Response
+    public function move(Request $request, int $shift, MoveShift $move): ShiftResource
     {
-        $old = $this->requireShift($request, 'shifts.delete');
-        $id  = (int) $old['id'];
+        $model = $this->find($request, $shift);
 
-        Shift::remove($id);
-        $this->auditLogger->log($request, 'shift.deleted', 'shift', resourceId: $id, storeId: (int) $old['store_id'] ?: null);
+        return $this->respond($move->handle($this->actor($request), $model, $request->only(['shift_date', 'start_time', 'end_time', 'user_id']), $request->boolean('force')));
+    }
+
+    public function destroy(Request $request, int $shift, DeleteShift $delete): Response
+    {
+        $delete->handle($this->actor($request), $this->find($request, $shift));
+
         return response()->noContent();
     }
 
-    private function authUser(Request $request): array
+    public function restore(Request $request, int $shift, RestoreShift $restore): ShiftResource
     {
-        return $request->attributes->get('auth_user') ?? [];
+        return $this->respond($restore->handle($this->actor($request), $this->find($request, $shift)));
     }
 
-    /** Charge le shift par id et vérifie $permissionKey sur son magasin réel. */
-    private function requireShift(Request $request, string $permissionKey): array
+    /**
+     * Remplace le shift : le remplaçant est créé à partir de la saisie (les champs absents, `user_id` compris, reprennent ceux de l'ancien
+     * shift ; seul un `user_id` null explicite donne un shift ouvert), l'ancien part à la corbeille.
+     */
+    public function replace(Request $request, int $shift, ReplaceShift $replace): JsonResponse
     {
-        return $this->permissions->requireOwnedResource(
-            $this->authUser($request),
-            fn(int $id) => Shift::findById($id),
-            (int) $request->route('id'),
-            $permissionKey,
-            notFoundMessage: __('error_shift_not_found'),
-        );
+        $old = $this->find($request, $shift);
+        $defaults = [
+            'store_id' => $old->store_id,
+            'user_id' => $old->user_id,
+            'shift_date' => $old->shift_date->toDateString(),
+            'start_time' => $old->localStartsAt->format('H:i'),
+            'end_time' => $old->localEndsAt->format('H:i'),
+            'pause_minutes' => $old->pause_minutes,
+            'notes' => $old->notes,
+        ];
+
+        $replacement = $replace->handle($this->actor($request), $old, $request->only(self::FIELDS) + $defaults, $request->boolean('force'));
+
+        return $this->respond($replacement)->response()->setStatusCode(201);
+    }
+
+    /**
+     * Suppression groupée, tout ou rien : un seul shift interdit refuse toute la demande (403).
+     */
+    public function bulkDelete(Request $request, DeleteShifts $delete): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:500'], 'ids.*' => ['integer']]);
+
+        $count = $delete->handle($actor, array_map('intval', $data['ids']));
+
+        return response()->json(['data' => ['deleted' => $count]]);
+    }
+
+    /**
+     * Le shift à gérer ou à lire. Voir la description de la classe pour le périmètre.
+     *
+     * @throws AuthorizationException
+     * @throws ModelNotFoundException
+     */
+    protected function find(Request $request, int $id, bool $allowOwn = false): Shift
+    {
+        $actor = $this->actor($request);
+        $canView = $this->authorizer()->allows($actor, 'shifts.view');
+
+        if (! $canView && ! $allowOwn) {
+            throw new AuthorizationException;
+        }
+
+        $shift = Shift::withTrashed()->with(self::RELATIONS)->findOrFail($id);
+        $ids = $canView ? $this->authorizer()->storeIdsFor($actor, 'shifts.view') : [];
+
+        $visible = $canView
+            ? ($ids === null || in_array($shift->store_id, $ids, true) || ($allowOwn && $shift->user_id === $actor->id))
+            : ($shift->user_id === $actor->id && ! $shift->trashed());
+
+        if (! $visible) {
+            throw (new ModelNotFoundException)->setModel(Shift::class, [$id]);
+        }
+
+        return $shift;
+    }
+
+    private function respond(Shift $shift): ShiftResource
+    {
+        return new ShiftResource($shift->refresh()->load(self::RELATIONS));
     }
 }

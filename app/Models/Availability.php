@@ -1,62 +1,80 @@
 <?php
-declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\TimeOfDay;
+use Database\Factories\AvailabilityFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 
-final class Availability extends Model
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property int $store_id
+ * @property int $day_of_week ISO : 1 (lundi) à 7 (dimanche)
+ * @property string|null $starts_at Heure "H:i"
+ * @property string|null $ends_at Heure "H:i"
+ * @property bool $is_available
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
+ * @property-read Store $store
+ */
+#[Fillable(['user_id', 'store_id', 'day_of_week', 'starts_at', 'ends_at', 'is_available'])]
+class Availability extends Model
 {
-    protected $table = 'availabilities';
-    protected $guarded = [];
-    public $timestamps = false;
+    /** @use HasFactory<AvailabilityFactory> */
+    use HasFactory;
 
-    public static function findById(int $id): ?array
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        $record = static::find($id);
-        return $record ? $record->toArray() : null;
+        return [
+            'day_of_week' => 'integer',
+            'starts_at' => TimeOfDay::class,
+            'ends_at' => TimeOfDay::class,
+            'is_available' => 'boolean',
+        ];
     }
 
-    public static function findByUser(int $userId): array
+    /**
+     * Jour ISO (1 = lundi, 7 = dimanche) d'une date.
+     */
+    public static function isoDayOf(\DateTimeInterface|string $date): int
     {
-        return static::where('user_id', $userId)->get()->toArray();
+        return Date::parse($date)->dayOfWeekIso;
     }
 
-    public static function findByStore(int $storeId): array
+    /**
+     * Disponibilités correspondant au jour de la semaine d'une date.
+     *
+     * @param  Builder<Availability>  $query
+     */
+    public function scopeOnDay(Builder $query, \DateTimeInterface|string $date): void
     {
-        return static::where('store_id', $storeId)->get()->toArray();
+        $query->where('day_of_week', self::isoDayOf($date));
     }
 
-    public static function findByUserAndStore(int $userId, int $storeId): array
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
-        return static::where('user_id', $userId)
-            ->where('store_id', $storeId)
-            ->get()
-            ->toArray();
+        return $this->belongsTo(User::class);
     }
 
-    public static function deleteByUserAndStore(int $userId, int $storeId): int
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
     {
-        return static::where('user_id', $userId)
-            ->where('store_id', $storeId)
-            ->delete();
-    }
-
-    public static function put(array $data): array
-    {
-        if (!empty($data['id'])) {
-            $record = static::findOrFail((int) $data['id']);
-            $record->fill($data);
-            $record->save();
-        } else {
-            $record = static::create($data);
-        }
-        return $record->toArray();
-    }
-
-    public static function remove(int $id): int
-    {
-        $record = static::find($id);
-        return $record ? ($record->delete() ? 1 : 0) : 0;
+        return $this->belongsTo(Store::class);
     }
 }

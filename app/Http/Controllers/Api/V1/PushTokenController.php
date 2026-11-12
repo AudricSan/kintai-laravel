@@ -1,70 +1,40 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Auth\UserTargetGuard;
-use App\Exceptions\ValidationException;
-use App\Models\DevicePushToken;
+use App\Actions\Push\RegisterDeviceToken;
+use App\Actions\Push\RemoveDeviceToken;
+use App\Http\Resources\V1\DevicePushTokenResource;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\Response;
 
-final class PushTokenController
+/**
+ * Jetons FCM des appareils mobiles d'un utilisateur (notifications push de l'application).
+ */
+class PushTokenController extends ApiController
 {
-    // « web » n'existe plus : les navigateurs s'abonnent en web push natif (POST /notifications/push-subscribe).
-    private const PLATFORMS = ['android', 'ios'];
-
-    public function __construct(
-        private readonly UserTargetGuard $guard,
-    ) {}
-
-    /**
-     * POST /api/v1/users/{user_id}/push-tokens
-     * Enregistre (ou réassigne) un jeton FCM pour cet utilisateur. Un même jeton peut
-     * migrer d'un utilisateur à l'autre sur un appareil partagé (ex. tablette de
-     * magasin passée de main en main entre employés) : upsert par jeton, pas par user.
-     */
-    public function store(Request $request): Response
+    public function store(Request $request, int $user, RegisterDeviceToken $register): DevicePushTokenResource
     {
-        $userId = (int) $request->route('user_id');
-        $this->guard->require($request, $userId, 'employees.update');
+        $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data     = $request->json()->all() ?? [];
-        $token    = trim((string) ($data['token'] ?? ''));
-        $platform = (string) ($data['platform'] ?? '');
-
-        if ($token === '') {
-            throw new ValidationException(['token' => [__('validation_device_token_required')]]);
-        }
-        if ($platform !== '' && !in_array($platform, self::PLATFORMS, true)) {
-            throw new ValidationException(['platform' => [__('validation_platform_invalid')]]);
-        }
-
-        $record = DevicePushToken::put([
-            'user_id'  => $userId,
-            'token'    => $token,
-            'platform' => $platform ?: null,
+        $data = $request->validate([
+            'token' => ['required', 'string', 'max:255'],
+            'platform' => ['required', 'string', 'max:20'],
         ]);
 
-        return response()->json($record, 201);
+        $record = $register->handle($target, $data['token'], $data['platform']);
+
+        // 201 à la création, 200 si le jeton de cet appareil était déjà enregistré (rafraîchi).
+        return new DevicePushTokenResource($record);
     }
 
-    /**
-     * DELETE /api/v1/users/{user_id}/push-tokens
-     * Body : { "token": "..." } — désenregistre un appareil (déconnexion, désinstallation).
-     */
-    public function destroy(Request $request): Response
+    public function destroy(Request $request, int $user, RemoveDeviceToken $remove): Response
     {
-        $userId = (int) $request->route('user_id');
-        $this->guard->require($request, $userId, 'employees.update');
+        $target = $this->targetUser($request, $user, 'employees.update');
+        $data = $request->validate(['token' => ['required', 'string', 'max:255']]);
 
-        $token = trim((string) ($request->json('token') ?? ''));
-        if ($token === '') {
-            throw new ValidationException(['token' => [__('validation_device_token_required')]]);
-        }
+        $remove->handle($target, $data['token']);
 
-        DevicePushToken::deleteByToken($token, $userId);
         return response()->noContent();
     }
 }

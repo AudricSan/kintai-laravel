@@ -1,123 +1,132 @@
 <?php
 
-declare(strict_types=1);
-
+use App\Http\Controllers\Api\V1\AccessTokenController;
+use App\Http\Controllers\Api\V1\ActivityController;
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\AvailabilityController;
+use App\Http\Controllers\Api\V1\DashboardPrefsController;
+use App\Http\Controllers\Api\V1\ExportController;
+use App\Http\Controllers\Api\V1\IcalTokenController;
+use App\Http\Controllers\Api\V1\MeExportController;
+use App\Http\Controllers\Api\V1\NavigationPrefsController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\PingController;
+use App\Http\Controllers\Api\V1\PushTokenController;
+use App\Http\Controllers\Api\V1\ShiftConflictController;
+use App\Http\Controllers\Api\V1\ShiftController;
+use App\Http\Controllers\Api\V1\ShiftTypeController;
+use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\StoreMemberController;
+use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\UserRateController;
+use App\Http\Middleware\EnsureApiAccountIsActive;
+use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\SetApiLocale;
 use Illuminate\Support\Facades\Route;
-use App\Http\Middleware\ApiAuthMiddleware;
-use App\Http\Middleware\ApiPermissionMiddleware;
-use App\Http\Middleware\LoginThrottleMiddleware;
-use App\Http\Controllers\Api\V1\ActivityController as ApiActivityController;
-use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
-use App\Http\Controllers\Api\V1\AvailabilityController as ApiAvailabilityController;
-use App\Http\Controllers\Api\V1\IcalTokenController as ApiIcalTokenController;
-use App\Http\Controllers\Api\V1\NotificationController as ApiNotificationController;
-use App\Http\Controllers\Api\V1\NotificationPreferenceController as ApiNotificationPreferenceController;
-use App\Http\Controllers\Api\V1\PushTokenController as ApiPushTokenController;
-use App\Http\Controllers\Api\V1\ShiftController as ApiShiftController;
-use App\Http\Controllers\Api\V1\ShiftTypeController as ApiShiftTypeController;
-use App\Http\Controllers\Api\V1\StoreController as ApiStoreController;
-use App\Http\Controllers\Api\V1\StoreUserController as ApiStoreUserController;
-use App\Http\Controllers\Api\V1\UserController as ApiUserController;
-use App\Http\Controllers\Api\V1\UserPrefsController as ApiUserPrefsController;
-use App\Http\Controllers\Api\V1\UserShiftRateController as ApiUserShiftRateController;
 
-// =============================================================================
-// API v1
-// =============================================================================
+/*
+|--------------------------------------------------------------------------
+| API v1 (`/api/v1`)
+|--------------------------------------------------------------------------
+|
+| Contrat public et stable pour l'application mobile. Sans état : aucun middleware `web`, donc ni session ni cookie ;
+| authentification par jeton « Bearer » (Sanctum). Erreurs JSON uniformes (`ApiErrorRenderer`), 300 requêtes par minute
+| par jeton (par IP sans jeton). Les routes sont nommées `api.v1.*`. Documentation : docs/API-V1.md.
+|
+| Les endpoints d'un utilisateur (`/users/{user}/...`) valent pour soi-même ou, pour un gérant, pour un employé qu'il peut gérer.
+|
+*/
 
-// --- Routes publiques ---
-Route::get('/api/v1/ping', [ApiAuthController::class, 'ping'])->name('api.v1.ping');
-Route::post('/api/v1/auth/login', [ApiAuthController::class, 'login'])->middleware([LoginThrottleMiddleware::class])->name('api.v1.auth.login');
+Route::prefix('v1')->name('api.v1.')->middleware([SetApiLocale::class, MaintenanceMode::class, 'throttle:api'])->group(function (): void {
+    // Public.
+    Route::get('ping', PingController::class)->name('ping');
+    // Mêmes limiteurs que la connexion web : par identifiant + magasin + IP, et par IP.
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('auth.login');
 
-// --- Routes protégées par token Bearer ---
-Route::prefix('api/v1')->middleware([ApiAuthMiddleware::class, ApiPermissionMiddleware::class])->group(function () {
+    // Authentifié par jeton ; un compte désactivé perd ses jetons.
+    Route::middleware(['auth:sanctum', EnsureApiAccountIsActive::class])->group(function (): void {
+        Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
+        Route::get('auth/tokens', [AccessTokenController::class, 'index'])->name('auth.tokens');
+        Route::delete('auth/tokens/{token}', [AccessTokenController::class, 'destroy'])->whereNumber('token')->name('auth.tokens.revoke');
 
-    // Auth
-    Route::post('/auth/logout', [ApiAuthController::class, 'logout'])->name('api.v1.auth.logout')->permission('public');
-    Route::get('/auth/me', [ApiAuthController::class, 'me'])->name('api.v1.auth.me')->permission('public');
-    Route::get('/auth/tokens', [ApiAuthController::class, 'listTokens'])->name('api.v1.auth.tokens')->permission('public');
-    Route::delete('/auth/tokens/{id}', [ApiAuthController::class, 'revokeToken'])->name('api.v1.auth.tokens.revoke')->permission('public');
+        // Cloche : toujours celle de l'utilisateur du jeton.
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('notifications/{notification}', [NotificationController::class, 'show'])->name('notifications.show');
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
-    // Users
-    Route::get('/users', [ApiUserController::class, 'index'])->name('api.v1.users.index')->permission('employees.view');
-    Route::post('/users', [ApiUserController::class, 'store'])->name('api.v1.users.store')->permission('employees.create');
-    Route::get('/users/{id}', [ApiUserController::class, 'show'])->name('api.v1.users.show')->permission(['perm' => 'employees.view', 'self' => 'id']);
-    Route::put('/users/{id}', [ApiUserController::class, 'update'])->name('api.v1.users.update')->permission('employees.update');
-    Route::delete('/users/{id}', [ApiUserController::class, 'destroy'])->name('api.v1.users.destroy')->permission('employees.delete');
+        Route::prefix('me')->name('me.')->group(function (): void {
+            Route::get('schedule-export', [MeExportController::class, 'schedule'])->name('schedule_export');
+            Route::get('data-export', [MeExportController::class, 'data'])->name('data_export');
+        });
 
-    // Users — prefs, rates, ical-tokens
-    Route::get('/users/{user_id}/dashboard-prefs', [ApiUserPrefsController::class, 'getDashboardPrefs'])->name('api.v1.users.dashboard_prefs.get')->permission(['perm' => 'employees.view', 'self' => 'user_id']);
-    Route::put('/users/{user_id}/dashboard-prefs', [ApiUserPrefsController::class, 'saveDashboardPrefs'])->name('api.v1.users.dashboard_prefs.save')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::get('/users/{user_id}/nav-prefs', [ApiUserPrefsController::class, 'getNavPrefs'])->name('api.v1.users.nav_prefs.get')->permission(['perm' => 'employees.view', 'self' => 'user_id']);
-    Route::put('/users/{user_id}/nav-prefs', [ApiUserPrefsController::class, 'saveNavPrefs'])->name('api.v1.users.nav_prefs.save')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::get('/users/{user_id}/rates', [ApiUserShiftRateController::class, 'index'])->name('api.v1.users.rates.index')->permission(['perm' => 'payroll.view', 'self' => 'user_id']);
-    Route::post('/users/{user_id}/rates', [ApiUserShiftRateController::class, 'store'])->name('api.v1.users.rates.store')->permission('employees.update');
-    Route::get('/users/{user_id}/rates/{id}', [ApiUserShiftRateController::class, 'show'])->name('api.v1.users.rates.show')->permission(['perm' => 'payroll.view', 'self' => 'user_id']);
-    Route::put('/users/{user_id}/rates/{id}', [ApiUserShiftRateController::class, 'update'])->name('api.v1.users.rates.update')->permission('employees.update');
-    Route::delete('/users/{user_id}/rates/{id}', [ApiUserShiftRateController::class, 'destroy'])->name('api.v1.users.rates.destroy')->permission('employees.update');
-    // Users — jetons d'appareil push (notifications mobiles, FCM)
-    Route::get('/users/{user_id}/notification-preferences', [ApiNotificationPreferenceController::class, 'show'])->name('api.v1.users.notification_preferences.show')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::put('/users/{user_id}/notification-preferences', [ApiNotificationPreferenceController::class, 'update'])->name('api.v1.users.notification_preferences.update')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::post('/users/{user_id}/push-tokens', [ApiPushTokenController::class, 'store'])->name('api.v1.users.push_tokens.store')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::delete('/users/{user_id}/push-tokens', [ApiPushTokenController::class, 'destroy'])->name('api.v1.users.push_tokens.destroy')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::get('/users/{user_id}/ical-tokens', [ApiIcalTokenController::class, 'index'])->name('api.v1.users.ical_tokens.index')->permission(['perm' => 'employees.view', 'self' => 'user_id']);
-    Route::post('/users/{user_id}/ical-tokens', [ApiIcalTokenController::class, 'store'])->name('api.v1.users.ical_tokens.store')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::post('/users/{user_id}/ical-tokens/{store_id}/regenerate', [ApiIcalTokenController::class, 'regenerate'])->name('api.v1.users.ical_tokens.regenerate')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
-    Route::get('/users/{user_id}/ical-tokens/{store_id}', [ApiIcalTokenController::class, 'show'])->name('api.v1.users.ical_tokens.show')->permission(['perm' => 'employees.view', 'self' => 'user_id']);
-    Route::delete('/users/{user_id}/ical-tokens/{store_id}', [ApiIcalTokenController::class, 'destroy'])->name('api.v1.users.ical_tokens.destroy')->permission(['perm' => 'employees.update', 'self' => 'user_id']);
+        // Utilisateurs, taux personnels, disponibilités.
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('users/{user}', [UserController::class, 'show'])->whereNumber('user')->name('users.show');
+        Route::put('users/{user}', [UserController::class, 'update'])->whereNumber('user')->name('users.update');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->whereNumber('user')->name('users.destroy');
+        Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->whereNumber('user')->name('users.reset_password');
+        Route::put('users/{user}/availabilities/{store}', [AvailabilityController::class, 'update'])->whereNumber(['user', 'store'])->name('users.availabilities.update');
 
-    // Stores
-    Route::get('/stores', [ApiStoreController::class, 'index'])->name('api.v1.stores.index')->permission('stores.view');
-    Route::post('/stores', [ApiStoreController::class, 'store'])->name('api.v1.stores.store')->permission('stores.create');
-    Route::get('/stores/{id}', [ApiStoreController::class, 'show'])->name('api.v1.stores.show')->permission('stores.view');
-    Route::put('/stores/{id}', [ApiStoreController::class, 'update'])->name('api.v1.stores.update')->permission('stores.update');
-    Route::delete('/stores/{id}', [ApiStoreController::class, 'destroy'])->name('api.v1.stores.destroy')->permission('stores.delete');
+        Route::prefix('users/{user}/rates')->whereNumber(['user', 'rate'])->name('users.rates.')->group(function (): void {
+            Route::get('/', [UserRateController::class, 'index'])->name('index');
+            Route::post('/', [UserRateController::class, 'store'])->name('store');
+            Route::get('{rate}', [UserRateController::class, 'show'])->name('show');
+            Route::put('{rate}', [UserRateController::class, 'update'])->name('update');
+            Route::delete('{rate}', [UserRateController::class, 'destroy'])->name('destroy');
+        });
 
-    // Stores — membres
-    Route::get('/stores/{store_id}/members', [ApiStoreUserController::class, 'index'])->name('api.v1.store_members.index')->permission('employees.view');
-    Route::post('/stores/{store_id}/members', [ApiStoreUserController::class, 'store'])->name('api.v1.store_members.store')->permission('employees.update');
-    Route::get('/stores/{store_id}/members/{id}', [ApiStoreUserController::class, 'show'])->name('api.v1.store_members.show')->permission('employees.view');
-    Route::put('/stores/{store_id}/members/{id}', [ApiStoreUserController::class, 'update'])->name('api.v1.store_members.update')->permission('employees.update');
-    Route::delete('/stores/{store_id}/members/{id}', [ApiStoreUserController::class, 'destroy'])->name('api.v1.store_members.destroy')->permission('employees.update');
+        // Magasins et membres.
+        Route::apiResource('stores', StoreController::class)->parameters(['stores' => 'store'])->whereNumber('store')->names('stores');
+        Route::apiResource('stores.members', StoreMemberController::class)->parameters(['stores' => 'store', 'members' => 'user'])->whereNumber(['store', 'user'])->names('stores.members');
 
-    // Shift types
-    Route::get('/shift-types', [ApiShiftTypeController::class, 'index'])->name('api.v1.shift_types.index')->permission('shifts.view');
-    Route::post('/shift-types', [ApiShiftTypeController::class, 'store'])->name('api.v1.shift_types.store')->permission('shifts.update');
-    Route::get('/shift-types/{id}', [ApiShiftTypeController::class, 'show'])->name('api.v1.shift_types.show')->permission('shifts.view');
-    Route::put('/shift-types/{id}', [ApiShiftTypeController::class, 'update'])->name('api.v1.shift_types.update')->permission('shifts.update');
-    Route::delete('/shift-types/{id}', [ApiShiftTypeController::class, 'destroy'])->name('api.v1.shift_types.destroy')->permission('shifts.update');
+        // Types de shift.
+        Route::apiResource('shift-types', ShiftTypeController::class)->parameters(['shift-types' => 'type'])->whereNumber('type')->names('shift_types');
+        Route::post('shift-types/{type}/stores/{store}', [ShiftTypeController::class, 'attach'])->whereNumber(['type', 'store'])->name('shift_types.stores.attach');
+        Route::delete('shift-types/{type}/stores/{store}', [ShiftTypeController::class, 'detach'])->whereNumber(['type', 'store'])->name('shift_types.stores.detach');
 
-    // Shifts
-    Route::get('/shifts', [ApiShiftController::class, 'index'])->name('api.v1.shifts.index')->permission(['perm' => 'shifts.view', 'self' => 'user_id']);
-    Route::post('/shifts', [ApiShiftController::class, 'store'])->name('api.v1.shifts.store')->permission('shifts.create');
-    Route::get('/shifts/{id}', [ApiShiftController::class, 'show'])->name('api.v1.shifts.show')->permission('shifts.view');
-    Route::put('/shifts/{id}', [ApiShiftController::class, 'update'])->name('api.v1.shifts.update')->permission('shifts.update');
-    Route::delete('/shifts/{id}', [ApiShiftController::class, 'destroy'])->name('api.v1.shifts.destroy')->permission('shifts.delete');
+        // Shifts (les routes fixes avant `shifts/{shift}`).
+        Route::get('shifts/conflicts', [ShiftConflictController::class, 'index'])->name('shifts.conflicts');
+        Route::post('shifts/conflicts/resolve', [ShiftConflictController::class, 'resolve'])->name('shifts.conflicts.resolve');
+        Route::post('shifts/bulk-delete', [ShiftController::class, 'bulkDelete'])->name('shifts.bulk_delete');
+        Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('shifts', [ShiftController::class, 'store'])->name('shifts.store');
+        Route::prefix('shifts/{shift}')->whereNumber('shift')->name('shifts.')->group(function (): void {
+            Route::get('/', [ShiftController::class, 'show'])->name('show');
+            Route::put('/', [ShiftController::class, 'update'])->name('update');
+            Route::delete('/', [ShiftController::class, 'destroy'])->name('destroy');
+            Route::post('move', [ShiftController::class, 'move'])->name('move');
+            Route::post('restore', [ShiftController::class, 'restore'])->name('restore');
+            Route::post('replace', [ShiftController::class, 'replace'])->name('replace');
+        });
 
-    // Disponibilités
-    Route::get('/availabilities', [ApiAvailabilityController::class, 'index'])->name('api.v1.availabilities.index')->permission('shifts.view');
-    Route::post('/availabilities', [ApiAvailabilityController::class, 'store'])->name('api.v1.availabilities.store')->permission('shifts.update');
-    Route::get('/availabilities/{id}', [ApiAvailabilityController::class, 'show'])->name('api.v1.availabilities.show')->permission('shifts.view');
-    Route::put('/availabilities/{id}', [ApiAvailabilityController::class, 'update'])->name('api.v1.availabilities.update')->permission('shifts.update');
-    Route::delete('/availabilities/{id}', [ApiAvailabilityController::class, 'destroy'])->name('api.v1.availabilities.destroy')->permission('shifts.update');
+        Route::get('exports', [ExportController::class, 'index'])->name('exports.index');
+        Route::get('exports/{dataset}', [ExportController::class, 'download'])->name('exports.download');
 
-    // Demandes de congé : bundle distribué hors monorepo, routes chargées depuis storage/bundles/timeoff/ une fois installé (voir wiki : Architecture)
+        Route::get('availabilities', [AvailabilityController::class, 'index'])->name('availabilities.index');
+        Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
 
-    // Échanges de shifts : bundle distribué hors monorepo, routes chargées depuis storage/bundles/shift-swap/ une fois installé (voir wiki : Architecture)
+        Route::prefix('users/{user}')->whereNumber('user')->name('users.')->group(function (): void {
+            Route::get('notification-preferences', [NotificationPreferenceController::class, 'show'])->name('notification_preferences.show');
+            Route::put('notification-preferences', [NotificationPreferenceController::class, 'update'])->name('notification_preferences.update');
 
-    // Pointage : bundle distribué hors monorepo, routes chargées depuis storage/bundles/timeclock/ une fois installé (voir wiki : Architecture)
+            Route::post('push-tokens', [PushTokenController::class, 'store'])->name('push_tokens.store');
+            Route::delete('push-tokens', [PushTokenController::class, 'destroy'])->name('push_tokens.destroy');
 
-    // Bourse aux shifts : bundle distribué hors monorepo, routes chargées depuis storage/bundles/shift-claim/ une fois installé (voir wiki : Architecture)
+            Route::get('ical-tokens', [IcalTokenController::class, 'index'])->name('ical_tokens.index');
+            Route::post('ical-tokens', [IcalTokenController::class, 'store'])->name('ical_tokens.store');
+            Route::post('ical-tokens/{store}/regenerate', [IcalTokenController::class, 'regenerate'])->whereNumber('store')->name('ical_tokens.regenerate');
+            Route::get('ical-tokens/{store}', [IcalTokenController::class, 'show'])->whereNumber('store')->name('ical_tokens.show');
+            Route::delete('ical-tokens/{store}', [IcalTokenController::class, 'destroy'])->whereNumber('store')->name('ical_tokens.destroy');
 
-    // Notifications
-    Route::post('/notifications/read-all', [ApiNotificationController::class, 'markAllRead'])->name('api.v1.notifications.read_all')->permission('public');
-    Route::get('/notifications', [ApiNotificationController::class, 'index'])->name('api.v1.notifications.index')->permission('public');
-    Route::get('/notifications/{id}', [ApiNotificationController::class, 'show'])->name('api.v1.notifications.show')->permission('public');
-    Route::post('/notifications/{id}/read', [ApiNotificationController::class, 'markRead'])->name('api.v1.notifications.read')->permission('public');
-    Route::delete('/notifications/{id}', [ApiNotificationController::class, 'destroy'])->name('api.v1.notifications.destroy')->permission('public');
-
-
-    // Journal d'activité
-    Route::get('/activity', [ApiActivityController::class, 'index'])->name('api.v1.activity.index')->permission('stores.view');
-
+            Route::get('dashboard-prefs', [DashboardPrefsController::class, 'show'])->name('dashboard_prefs.show');
+            Route::put('dashboard-prefs', [DashboardPrefsController::class, 'update'])->name('dashboard_prefs.update');
+            Route::get('nav-prefs', [NavigationPrefsController::class, 'show'])->name('nav_prefs.show');
+            Route::put('nav-prefs', [NavigationPrefsController::class, 'update'])->name('nav_prefs.update');
+        });
+    });
 });

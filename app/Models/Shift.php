@@ -1,201 +1,320 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
-use App\Services\ShiftChangeNotifier;
+use App\Exceptions\ShiftRestoreException;
+use Carbon\CarbonInterface;
+use Database\Factories\ShiftFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
-final class Shift extends Model
+/**
+ * @property int $id
+ * @property int $store_id
+ * @property int|null $user_id null = shift ouvert
+ * @property int|null $shift_type_id
+ * @property Carbon $shift_date Jour local de rattachement
+ * @property Carbon $starts_at Stocké en UTC
+ * @property Carbon $ends_at Stocké en UTC
+ * @property int $pause_minutes
+ * @property string|null $notes
+ * @property numeric-string|null $hourly_rate_override
+ * @property int|null $net_minutes_override
+ * @property string $ical_uid
+ * @property int $ical_sequence
+ * @property int|null $replaced_by_id
+ * @property int|null $created_by
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read int $durationMinutes
+ * @property-read bool $crossesMidnight
+ * @property-read CarbonInterface $localStartsAt
+ * @property-read CarbonInterface $localEndsAt
+ * @property-read int $netMinutes
+ * @property-read Store $store
+ * @property-read User|null $user
+ * @property-read ShiftType|null $shiftType
+ * @property-read User|null $creator
+ * @property-read Shift|null $replacedBy
+ * @property-read Shift|null $replaces
+ */
+#[Fillable([
+    'store_id', 'user_id', 'shift_type_id', 'shift_date', 'starts_at', 'ends_at', 'pause_minutes',
+    'notes', 'hourly_rate_override', 'net_minutes_override', 'ical_uid', 'ical_sequence',
+    'replaced_by_id', 'created_by',
+])]
+class Shift extends Model
 {
-    protected $table = 'shifts';
-    protected $guarded = [];
-    public $timestamps = false;
+    /** @use HasFactory<ShiftFactory> */
+    use HasFactory, SoftDeletes;
 
-    public static function findById(int $id): ?array
-    {
-        $shift = static::find($id);
-        return $shift ? $shift->toArray() : null;
-    }
+    /** @var array<string, mixed> */
+    protected $attributes = ['pause_minutes' => 0, 'ical_sequence' => 0];
 
-    public static function findByStore(int $storeId): array
+    protected static function booted(): void
     {
-        return static::where('store_id', $storeId)->get()->toArray();
-    }
-
-    public static function findByStoreBetween(int $storeId, string $from, string $to): array
-    {
-        // Index (store_id, shift_date, deleted_at) : seule la plage demandée est lue, pas tout l'historique.
-        return static::where('store_id', $storeId)
-            ->whereBetween('shift_date', [$from, $to])
-            // Ordre explicite = celui que findByStore() obtenait implicitement sous SQLite (index store_id, user_id,
-            // shift_date) : les statistiques construisent des tableaux indexés par employé dont l'ordre s'affiche.
-            // Explicite, il est aussi le même sous MySQL.
-            ->orderBy('user_id')
-            ->orderBy('shift_date')
-            ->orderBy('id')
-            // Lecture brute, sans instancier un modèle par ligne : le modèle Shift n'a ni cast, ni accesseur, ni champ
-            // masqué, son toArray() renvoie exactement les colonnes — même résultat, pour une fraction du coût.
-            ->toBase()
-            ->get()
-            ->map(static fn($row): array => (array) $row)
-            ->all();
-    }
-
-    public static function findByUser(int $userId): array
-    {
-        return static::where('user_id', $userId)->get()->toArray();
-    }
-
-    public static function findByDate(int $storeId, string $date): array
-    {
-        return static::where('store_id', $storeId)
-            ->where('shift_date', $date)
-            ->get()
-            ->toArray();
-    }
-
-    public static function findByUserAndDate(int $userId, int $storeId, string $date): array
-    {
-        return static::where('user_id', $userId)
-            ->where('store_id', $storeId)
-            ->where('shift_date', $date)
-            ->get()
-            ->toArray();
-    }
-
-    public static function findAll(): array
-    {
-        return static::all()->toArray();
-    }
-
-    public static function findBetween(?array $storeIds, string $from, string $to): array
-    {
-        if ($storeIds === []) {
-            return [];
-        }
-        $query = static::whereBetween('shift_date', [$from, $to]);
-        if ($storeIds !== null) {
-            $query->whereIn('store_id', array_map('intval', $storeIds));
-        }
-        // Lecture brute : le modèle Shift n'a ni cast ni accesseur (voir findByStoreBetween()).
-        return $query->orderBy('shift_date')
-            ->orderBy('id')
-            ->toBase()
-            ->get()
-            ->map(static fn($row): array => (array) $row)
-            ->all();
-    }
-
-    public static function findAllByDate(string $date): array
-    {
-        return static::where('shift_date', $date)->get()->toArray();
-    }
-
-    public static function findOpen(?int $storeId = null): array
-    {
-        $query = static::where('is_open', 1);
-        if ($storeId !== null) {
-            $query->where('store_id', $storeId);
-        }
-        return $query->get()->toArray();
-    }
-
-    public static function put(array $data): array
-    {
-        $before = null;
-        if (!empty($data['id'])) {
-            $shift = static::findOrFail((int) $data['id']);
-            $before = $shift->toArray();
-            $data['ical_sequence'] = ((int) ($shift->ical_sequence ?? 0)) + 1;
-            if (!array_key_exists('updated_at', $data)) {
-                $data['updated_at'] = date('Y-m-d H:i:s');
+        static::creating(function (Shift $shift): void {
+            if (empty($shift->ical_uid)) {
+                $shift->ical_uid = (string) Str::uuid();
             }
-            $shift->fill($data);
-            $shift->save();
-        } else {
-            $data['ical_sequence'] = 0;
-            $shift = static::create($data);
-        }
-        // Annonce l'écriture (événements pour les bundles, synchronisation des agendas externes), quel que soit l'appelant.
-        ShiftChangeNotifier::current()->saved($shift->toArray(), $before);
-        return $shift->toArray();
+        });
+
+        static::updating(function (Shift $shift): void {
+            $shift->ical_sequence++;
+        });
+
+        static::restoring(function (Shift $shift): void {
+            $replacement = $shift->replacedBy;
+            if ($replacement !== null) {
+                throw ShiftRestoreException::replacedByActiveShift($shift->id, $replacement->id);
+            }
+
+            // Le remplaçant est dans la corbeille : le lien n'a plus lieu d'être.
+            $shift->replaced_by_id = null;
+        });
     }
 
-    public static function remove(int $id): int
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        $shift = static::find($id);
-        if (!$shift) {
-            return 0;
-        }
+        return [
+            'shift_date' => 'date:Y-m-d',
+            'starts_at' => 'datetime',
+            'ends_at' => 'datetime',
+            'pause_minutes' => 'integer',
+            'hourly_rate_override' => 'decimal:2',
+            'net_minutes_override' => 'integer',
+            'ical_sequence' => 'integer',
+        ];
+    }
 
-        // Trace la suppression avant le hard delete, pour que le flux iCal de
-        // l'employé puisse émettre un VEVENT CANCELLED (voir IcalController::feed()).
-        ShiftDeletionLog::create([
-            'shift_id'         => $shift->id,
-            'store_id'         => $shift->store_id,
-            'user_id'          => $shift->user_id,
-            'shift_date'       => $shift->shift_date,
-            'start_time'       => $shift->start_time,
-            'end_time'         => $shift->end_time,
-            'cross_midnight'   => $shift->cross_midnight ?? 0,
-            'shift_type_id'    => $shift->shift_type_id,
-            'pause_minutes'    => $shift->pause_minutes ?? 0,
-            'ical_sequence'    => ((int) ($shift->ical_sequence ?? 0)) + 1,
-            'shift_created_at' => $shift->created_at,
-            'deleted_at'       => date('Y-m-d H:i:s'),
+    /**
+     * Durée réelle en minutes (écart entre les deux instants, donc exacte les jours de changement d'heure).
+     *
+     * @return Attribute<int, never>
+     */
+    protected function durationMinutes(): Attribute
+    {
+        return Attribute::get(
+            fn (): int => intdiv($this->ends_at->getTimestamp() - $this->starts_at->getTimestamp(), 60)
+        );
+    }
+
+    /**
+     * @return Attribute<bool, never>
+     */
+    protected function crossesMidnight(): Attribute
+    {
+        return Attribute::get(
+            fn (): bool => $this->localStartsAt->toDateString() !== $this->localEndsAt->toDateString()
+        );
+    }
+
+    /**
+     * Début dans le fuseau de l'instance (`kintai.timezone`).
+     *
+     * @return Attribute<Carbon, never>
+     */
+    protected function localStartsAt(): Attribute
+    {
+        return Attribute::get(fn (): CarbonInterface => $this->starts_at->copy()->setTimezone(self::instanceTimezone()));
+    }
+
+    /**
+     * Fin dans le fuseau de l'instance (`kintai.timezone`).
+     *
+     * @return Attribute<Carbon, never>
+     */
+    protected function localEndsAt(): Attribute
+    {
+        return Attribute::get(fn (): CarbonInterface => $this->ends_at->copy()->setTimezone(self::instanceTimezone()));
+    }
+
+    /**
+     * Minutes payées : surcharge manuelle, sinon durée moins la pause (plancher 0).
+     *
+     * @return Attribute<int<0, max>, never>
+     */
+    protected function netMinutes(): Attribute
+    {
+        return Attribute::get(function (): int {
+            if ($this->net_minutes_override !== null) {
+                return max(0, $this->net_minutes_override);
+            }
+
+            return max(0, $this->durationMinutes - $this->pause_minutes);
+        });
+    }
+
+    /**
+     * Créneau en heures locales de l'instance : magasin, jour de rattachement, début et fin "H:i".
+     *
+     * @return array{store_id: int, date: string, start: string, end: string}
+     */
+    public function slot(): array
+    {
+        return [
+            'store_id' => $this->store_id,
+            'date' => $this->shift_date->toDateString(),
+            'start' => $this->localStartsAt->format('H:i'),
+            'end' => $this->localEndsAt->format('H:i'),
+        ];
+    }
+
+    /**
+     * Shifts ouverts (sans employé).
+     *
+     * @param  Builder<Shift>  $query
+     */
+    public function scopeOpen(Builder $query): void
+    {
+        $query->whereNull('user_id');
+    }
+
+    /**
+     * @param  Builder<Shift>  $query
+     */
+    public function scopeForStore(Builder $query, Store|int $store): void
+    {
+        $query->where('store_id', $store instanceof Store ? $store->id : $store);
+    }
+
+    /**
+     * Shifts rattachés à un jour compris entre deux dates incluses.
+     *
+     * @param  Builder<Shift>  $query
+     */
+    public function scopeBetween(Builder $query, \DateTimeInterface|string $from, \DateTimeInterface|string $to): void
+    {
+        $query->whereBetween('shift_date', [
+            Carbon::parse($from)->toDateString(),
+            Carbon::parse($to)->toDateString(),
         ]);
-
-        $row = $shift->toArray();
-        $deleted = $shift->delete() ? 1 : 0;
-        if ($deleted === 1) {
-            ShiftChangeNotifier::current()->deleted($row);
-        }
-        return $deleted;
     }
 
-    public static function findRecentDeletionsByUserAndStore(int $userId, int $storeId, string $since): array
+    /**
+     * Construit (sans l'enregistrer) un shift à partir d'heures locales du fuseau de l'instance
+     * (`kintai.timezone`) : jour local de rattachement, début et fin "H:i". La fin tombe le lendemain
+     * si elle n'est pas postérieure au début. Les horodatages sont convertis en UTC.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public static function fromLocalTimes(string $localDate, string $start, string $end, array $attributes = []): self
     {
-        return ShiftDeletionLog::where('user_id', $userId)
-            ->where('store_id', $storeId)
-            ->where('deleted_at', '>=', $since)
-            ->get()
-            ->map(fn (ShiftDeletionLog $log) => [
-                'id'             => $log->shift_id,
-                'shift_type_id'  => $log->shift_type_id,
-                'shift_date'     => $log->shift_date,
-                'start_time'     => $log->start_time,
-                'end_time'       => $log->end_time,
-                'cross_midnight' => $log->cross_midnight,
-                'pause_minutes'  => $log->pause_minutes,
-                'ical_sequence'  => $log->ical_sequence,
-                'created_at'     => $log->shift_created_at,
-                'updated_at'     => $log->deleted_at,
-                'deleted_at'     => $log->deleted_at,
-            ])
-            ->all();
+        $startsAt = static::localTime($localDate, $start);
+        $endsAt = static::localTime($localDate, $end);
+        if ($endsAt->lessThanOrEqualTo($startsAt)) {
+            $endsAt = static::localTime(Carbon::parse($localDate)->addDay()->toDateString(), $end);
+        }
+
+        return new self($attributes + [
+            'shift_date' => $localDate,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+        ]);
     }
 
-    public static function closeOpenShiftTo(int $id, int $userId): ?array
+    /**
+     * Instant (en UTC) d'une date et d'une heure locales du fuseau de l'instance.
+     */
+    public static function localTime(string $localDate, string $time): Carbon
     {
-        $shift = static::find($id);
-        if ($shift === null) {
-            return null;
-        }
-        $affected = static::where('id', $id)
-            ->where('is_open', 1)
-            ->update([
-                'user_id'       => $userId,
-                'is_open'       => 0,
-                'ical_sequence' => ((int) $shift->ical_sequence) + 1,
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ]);
-        if ($affected === 0) {
-            return null;
-        }
-        $updated = static::find($id)->toArray();
-        ShiftChangeNotifier::current()->saved($updated, $shift->toArray());
-        return $updated;
+        return Carbon::parse($localDate.' '.$time, self::instanceTimezone())->utc();
+    }
+
+    private static function instanceTimezone(): string
+    {
+        return (string) config('kintai.timezone', 'UTC');
+    }
+
+    /**
+     * Remplace ce shift par `$new` : l'ancien part à la corbeille avec `replaced_by_id`.
+     *
+     * - `$new` pas encore enregistré : il reprend l'`ical_uid` de l'ancien avec une séquence + 1
+     *   (le calendrier voit une modification) ; l'ancien reçoit un uid de substitution.
+     * - `$new` déjà enregistré (donc déjà publié dans les flux iCal) : personne ne change d'uid ; l'ancien,
+     *   supprimé, sera publié comme annulé et `$new` n'est pas modifié.
+     */
+    public function replaceWith(Shift $new): void
+    {
+        DB::transaction(function () use ($new): void {
+            if (! $new->exists) {
+                $uid = $this->ical_uid;
+
+                // L'identifiant est unique : on libère celui de l'ancien shift avant de le donner au nouveau.
+                $this->forceFill(['ical_uid' => (string) Str::uuid()])->saveQuietly();
+
+                $new->ical_uid = $uid;
+                $new->ical_sequence = $this->ical_sequence + 1;
+                $new->saveQuietly();
+            }
+
+            $this->forceFill(['replaced_by_id' => $new->id])->saveQuietly();
+            $this->delete();
+        });
+    }
+
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<ShiftType, $this>
+     */
+    public function shiftType(): BelongsTo
+    {
+        return $this->belongsTo(ShiftType::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Le shift qui a remplacé celui-ci (hors corbeille).
+     *
+     * @return BelongsTo<Shift, $this>
+     */
+    public function replacedBy(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'replaced_by_id');
+    }
+
+    /**
+     * Le shift que celui-ci a remplacé (dans la corbeille).
+     *
+     * @return HasOne<Shift, $this>
+     */
+    public function replaces(): HasOne
+    {
+        return $this->hasOne(Shift::class, 'replaced_by_id')->withTrashed();
     }
 }

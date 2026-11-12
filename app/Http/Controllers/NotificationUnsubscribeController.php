@@ -1,81 +1,75 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Notifications\NotificationPreferences;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\NotificationPreferenceService;
-use App\Services\UnsubscribeTokens;
-use Illuminate\Contracts\View\Factory as ViewFactory;
+use Illuminate\Http\Response;
+use Kintai\Contracts\Notifications\NotificationType;
+use Kintai\Contracts\Notifications\NotificationTypeRegistry;
 
 /**
- * Désabonnement d'un type d'e-mail de notification, depuis le lien du pied de page ou l'en-tête List-Unsubscribe.
- * Sans connexion : l'adresse est signée (UnsubscribeTokens) pour (utilisateur, type, canal) et ne permet que de couper
- * ce canal pour ce type.
- *
- *  - GET  : page de confirmation (un bouton). Un simple affichage ne désabonne jamais : les antivirus et les aperçus de
- *    messagerie ouvrent les liens sans que personne ne l'ait demandé ;
- *  - POST : désabonnement. Même adresse, ce qui est aussi ce qu'appellent les clients e-mail pour le désabonnement en
- *    un clic (RFC 8058, corps « List-Unsubscribe=One-Click ») ; pas de jeton CSRF, la signature fait foi.
+ * Désabonnement d'un type d'e-mail par le lien signé des messages (canal e-mail seulement ; la cloche reste).
+ * Sans connexion : la signature du lien (user + type) fait foi. Le GET demande confirmation ; le POST désactive,
+ * y compris pour le « one-click » des clients de messagerie.
  */
-final class NotificationUnsubscribeController
+class NotificationUnsubscribeController extends Controller
 {
     public function __construct(
-        private readonly ViewFactory $view,
-        private readonly UnsubscribeTokens $tokens,
-        private readonly NotificationPreferenceService $prefs,
+        private readonly NotificationTypeRegistry $types,
+        private readonly NotificationPreferences $preferences,
     ) {}
 
-    /** GET /notifications/unsubscribe?u=&t=&c=&s= */
     public function show(Request $request): Response
     {
-        $link = $this->verifiedLink($request);
-
-        return $this->page($link === null ? 'invalid' : 'confirm', $link, $request);
+        return $this->render($request, done: false);
     }
 
-    /** POST /notifications/unsubscribe?u=&t=&c=&s= */
     public function confirm(Request $request): Response
     {
-        $link = $this->verifiedLink($request);
-        if ($link === null) {
-            return $this->page('invalid', null, $request, 400);
+        [$user, $type] = $this->resolve($request);
+
+        if ($user !== null && $type !== null) {
+            $this->preferences->set($user, $type->key, NotificationType::CHANNEL_MAIL, false);
         }
 
-        // Type devenu inconnu (bundle désactivé) : plus aucun e-mail de ce type n'est envoyé, rien à couper.
-        $this->prefs->saveChanges($link['user'], [$link['type'] => ['email' => false]]);
-
-        return $this->page('done', $link, $request);
+        return $this->render($request, done: true);
     }
 
-    /** @return array{user: int, type: string, channel: string, query: string}|null */
-    private function verifiedLink(Request $request): ?array
+    private function render(Request $request, bool $done): Response
     {
-        $user      = (int) $request->query('u', 0);
-        $type      = (string) $request->query('t', '');
-        $channel   = (string) $request->query('c', '');
-        $signature = (string) $request->query('s', '');
+        [$user, $type] = $this->resolve($request);
 
-        // Seul l'e-mail se désabonne par lien ; la signature est vérifiée sur ce que l'adresse affirme.
-        if ($channel !== 'email' || !$this->tokens->verify($user, $type, $channel, $signature)) {
-            return null;
+        if ($user === null || $type === null) {
+            return response()->view('notifications.unsubscribe', ['state' => 'invalid', 'type' => null, 'action' => null], 403);
         }
 
-        return ['user' => $user, 'type' => $type, 'channel' => $channel, 'query' => http_build_query(['u' => $user, 't' => $type, 'c' => $channel, 's' => $signature])];
+        app()->setLocale($user->preferredLocale());
+
+        return response()->view('notifications.unsubscribe', [
+            'state' => $done ? 'done' : 'confirm',
+            'type' => __($type->label),
+            'action' => $request->fullUrl(),
+        ]);
     }
 
-    /** @param array{user: int, type: string, channel: string, query: string}|null $link */
-    private function page(string $state, ?array $link, Request $request, int $status = 200): Response
+    /**
+     * @return array{0: User|null, 1: NotificationType|null}
+     */
+    private function resolve(Request $request): array
     {
-        $response = response($this->view->make('auth.notification-unsubscribe', [
-            'title'      => __('notif_unsub_title'),
-            'state'      => $state,
-            'type_label' => $link !== null ? __('notif_' . $link['type']) : '',
-            'action'     => $link !== null ? route_url('notifications.unsubscribe.confirm') . '?' . $link['query'] : '',
-        ])->render());
+        if (! $request->hasValidSignature()) {
+            return [null, null];
+        }
 
-        return $status === 200 ? $response : $response->setStatusCode($status);
+        $user = User::query()->find((int) $request->query('user'));
+        $type = $this->types->get((string) $request->query('type'));
+
+        if ($user === null || $type === null || $type->internal) {
+            return [null, null];
+        }
+
+        return [$user, $type];
     }
 }

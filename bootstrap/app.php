@@ -1,67 +1,62 @@
 <?php
 
-declare(strict_types=1);
-
+use App\Http\Api\ApiErrorRenderer;
+use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\RedirectToInstaller;
+use App\Http\Middleware\RunSystemAlertsOnVisit;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetUserLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\ErrorResponder;
-use App\Http\KintaiHttp;
+use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\Response;
 
-$app = Application::configure(basePath: dirname(__DIR__))
+return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        using: function (): void {
-            // Routes de Kintai (routes/web.php, routes/api.php), puis celles de ses bundles : comme chez Kintai, la
-            // première route déclarée qui correspond l'emporte. Ni groupe « web » ni groupe « api » de Laravel :
-            // les middlewares sont dans la pile globale ci-dessous.
-            KintaiHttp::register(app());
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+        // Flux iCal public et appel des tâches planifiées : hors du groupe `web`, donc sans session ni cookie.
+        then: function (): void {
+            Route::middleware([])->group(base_path('routes/ical.php'));
+            // Appel HTTP des tâches planifiées : idem, sans session ni cookie.
+            Route::middleware([])->group(base_path('routes/cron.php'));
         },
-        commands: __DIR__ . '/../routes/console.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Pas de middleware global de Laravel hormis ValidatePostSize (audit SEC-12 : requête plus grosse que post_max_size
-        // refusée en 413 avant tout traitement). Ni CORS (l'API n'est pas appelée depuis un autre site) ni TrimStrings
-        // (les mots de passe et textes saisis ne doivent pas être modifiés). use([]) ne
-        // suffit pas (une liste vide rend celle par défaut de Laravel) : on garde InvokeDeferredCallbacks, sans effet
-        // sur la requête, qui exécute les defer() en fin de réponse.
-        $middleware->use([
-            \Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks::class,
-            \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
-            \App\Http\Middleware\AccessLog::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            // $errors dans les vues : erreurs de validation flashées par withErrors().
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            // Session fermée quand le mot de passe a changé depuis son ouverture (y compris sur les autres appareils).
-            \Illuminate\Session\Middleware\AuthenticateSession::class,
-            \App\Http\Middleware\SecurityHeadersMiddleware::class,
-            // Limitation de débit de /api/* (toutes routes, bundles compris), avant tout le reste du traitement.
-            \App\Http\Middleware\ApiRateLimitMiddleware::class,
-            // Langue avant le contrôle CSRF : son refus (session expirée) s'affiche traduit.
-            \App\Http\Middleware\I18nMiddleware::class,
-            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-            \App\Http\Middleware\AppSettingsMiddleware::class,
-            \App\Http\Middleware\MaintenanceModeMiddleware::class,
-            \App\Http\Middleware\PasswordReminderMiddleware::class,
-            // Variables de vue des bundles (Bundle::viewVariables()) et managed_store_ids pour la navigation.
-            \App\Http\Middleware\BundleViewDataMiddleware::class,
-            \App\Http\Middleware\NotificationMiddleware::class,
+        // Le « one-click » des clients de messagerie poste sans jeton CSRF : la signature du lien fait foi.
+        $middleware->validateCsrfTokens(except: ['notifications/unsubscribe']);
+
+        // En-têtes de sécurité sur toutes les réponses (web, API, iCal, santé).
+        $middleware->append(SecurityHeaders::class);
+
+        // Tant que Kintai n'est pas installé : tout renvoie vers /install, sans base (sessions et cache en fichier).
+        $middleware->web(prepend: [RedirectToInstaller::class]);
+
+        $middleware->web(append: [
+            AuthenticateSession::class,
+            EnsureAccountIsActive::class,
+            SetUserLocale::class,
+            // Après la session : l'Owner connecté garde l'accès pendant la maintenance. L'API a le sien (routes/api.php).
+            MaintenanceMode::class,
+            // Filet sans planificateur : alertes système vérifiées quand un Owner charge une page (après la réponse).
+            RunSystemAlertsOnVisit::class,
         ]);
-        // Session révoquée : retour à la page de connexion de Kintai.
-        $middleware->redirectGuestsTo(static fn() => base_url() . '/login');
-        // Hors jeton CSRF : l'API (jetons d'API) et le désabonnement en un clic d'un client e-mail (RFC 8058), sans
-        // session, qui se protège par une signature dans l'adresse.
-        $middleware->validateCsrfTokens(except: ['api/*', 'notifications/unsubscribe']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Pages d'erreur et JSON de Kintai ; les erreurs HTTP prévues (404, 422, 429…) ne sont pas journalisées.
-        $exceptions->dontReport([\App\Exceptions\HttpException::class]);
-        $exceptions->report(static function (Throwable $e): void {
-            ErrorResponder::log($e);
-        })->stop();
-        $exceptions->render(ErrorResponder::render(...));
-    })
-    ->create();
+        $exceptions->dontFlash(['db_password']);
 
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+        );
 
-return $app;
+        // Toute erreur de `/api/*` : JSON `{error, code}` (voir ApiErrorRenderer).
+        $exceptions->render(fn (Throwable $e, Request $request): ?Response => ApiErrorRenderer::handles($request)
+            ? ApiErrorRenderer::render($e, $request)
+            : null);
+    })->create();

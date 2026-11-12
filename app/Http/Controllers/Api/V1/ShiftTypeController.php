@@ -1,190 +1,147 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Http\Controllers\Api\V1;
 
-use App\Api\Paginator;
-use App\Auth\PermissionService;
-use App\Exceptions\ForbiddenException;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\ValidationException;
+use App\Actions\ShiftTypes\DeleteShiftType;
+use App\Actions\ShiftTypes\SaveShiftType;
+use App\Actions\ShiftTypes\ToggleShiftTypeStore;
+use App\Http\Resources\V1\ShiftTypeResource;
 use App\Models\ShiftType;
+use App\Models\Store;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Services\AuditLogger;
-use App\Validation\ApiPayloadRules;
-use App\Validation\PayloadValidator;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
-final class ShiftTypeController
+/**
+ * Types de shift. Lecture : `shifts.view` (types d'un magasin visible) ; écriture : `shifts.update`, magasin par magasin
+ * (actions SaveShiftType, DeleteShiftType, ToggleShiftTypeStore). Un type hors du périmètre de l'acteur est introuvable (404).
+ */
+class ShiftTypeController extends ApiController
 {
-    public function __construct(
-        private readonly AuditLogger $auditLogger,
-        private readonly PermissionService $permissions,
-    ) {}
-
-    /** GET /api/v1/shift-types?store_id=X&page=1&limit=20 */
-    public function index(Request $request): Response
+    public function index(Request $request): AnonymousResourceCollection
     {
-        [$page, $limit] = Paginator::params($request);
-        $storeId  = $request->query('store_id');
-        $authUser = $this->authUser($request);
+        $actor = $this->actor($request);
+        $this->requireView($request);
 
-        $items = $storeId !== null
-            ? ShiftType::findByStore((int) $storeId)
-            : ShiftType::findAll();
-        $items = array_map(fn ($t) => $this->withStoreIds($t), $items);
+        $filters = $request->validate(['store_id' => ['nullable', 'integer'], 'is_active' => ['nullable', 'boolean']]);
+        $viewable = $this->authorizer()->storeIdsFor($actor, 'shifts.view');
 
-        // Un type est visible s'il est rattaché à un magasin sur lequel l'appelant a shifts.view.
-        if (!$this->permissions->hasUnrestrictedGrant($authUser, 'shifts.view')) {
-            $items = array_values(array_filter($items, function (array $t) use ($authUser): bool {
-                foreach ($t['store_ids'] as $sid) {
-                    if ($this->permissions->can($authUser, 'shifts.view', (int) $sid)) {
-                        return true;
-                    }
-                }
-                return false;
-            }));
-        }
+        $types = ShiftType::query()
+            ->with('stores:id')
+            ->when($viewable !== null, fn (Builder $query) => $query->whereHas('stores', fn (Builder $q) => $q->whereIn('stores.id', $viewable)))
+            ->when(isset($filters['store_id']), fn (Builder $query) => $query->whereHas('stores', fn (Builder $q) => $q->where('stores.id', (int) $filters['store_id'])))
+            ->when(isset($filters['is_active']), fn (Builder $query) => $query->where('is_active', (bool) $filters['is_active']))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate($this->perPage($request));
 
-        return response()->json(Paginator::paginate($items, $page, $limit));
+        return ShiftTypeResource::collection($types);
     }
 
-    /** GET /api/v1/shift-types/{id} */
-    public function show(Request $request): Response
+    public function show(Request $request, int $type): ShiftTypeResource
     {
-        $type = $this->requireType($request, 'shifts.view');
-        return response()->json($this->withStoreIds($type));
+        return new ShiftTypeResource($this->visible($request, $type)->load('stores:id'));
     }
 
-    /**
-     * POST /api/v1/shift-types
-     * `store_id` (unique, rétrocompatible) ou `store_ids` (tableau) — au moins
-     * l'un des deux. `store_id` reste lu par ApiPermissionMiddleware pour
-     * scoper la vérification de permission à ce store ; chaque magasin demandé
-     * est revérifié ici (le middleware ne lit pas `store_ids`).
-     */
-    public function store(Request $request): Response
+    public function store(Request $request, SaveShiftType $save): JsonResponse
     {
-        $body     = $request->json()->all() ?? [];
-        $storeIds = $this->extractStoreIds($body);
-        $data     = PayloadValidator::validate($body, ApiPayloadRules::shiftType());
-        $data['code'] = strtoupper($data['code']);
+        $type = $save->handle($this->actor($request), null, $request->only($this->fields()));
 
-        $this->assertWritableStores($request, $storeIds);
-
-        $saved = ShiftType::put($data);
-        if ($storeIds !== []) {
-            ShiftType::syncStores((int) $saved['id'], $storeIds);
-        }
-
-        $this->auditLogger->log($request, 'shift_type.created', 'shift_type', resourceId: (int) ($saved['id'] ?? 0) ?: null, details: $data, storeId: $storeIds[0] ?? null);
-        return response()->json($this->withStoreIds($saved), 201);
+        return (new ShiftTypeResource($type->refresh()->load('stores:id')))->response()->setStatusCode(201);
     }
 
-    /**
-     * PUT /api/v1/shift-types/{id}
-     * `store_id`/`store_ids` absents du corps : les affectations aux stores
-     * existantes ne sont pas modifiées (mise à jour partielle).
-     */
-    public function update(Request $request): Response
+    public function update(Request $request, int $type, SaveShiftType $save): ShiftTypeResource
     {
-        $old      = $this->requireType($request, 'shifts.update');
-        $id       = (int) $old['id'];
-        $this->assertManagesEveryStore($request, $id);
-        $body     = $request->json()->all() ?? [];
-        $storeIds = $this->extractStoreIds($body);
-        $data     = PayloadValidator::validate($body, ApiPayloadRules::shiftType(), true);
-        if ($data === [] && $storeIds === []) {
-            throw new ValidationException(['body' => __('val_no_updatable_field')], __('val_no_updatable_field'));
-        }
-        if (isset($data['code'])) {
-            $data['code'] = strtoupper($data['code']);
-        }
+        $model = $this->visible($request, $type)->load('stores:id');
 
-        if ($storeIds !== []) {
-            $this->assertWritableStores($request, $storeIds);
-        }
+        // PUT partiel toléré : une clé absente garde la valeur actuelle (l'action exige l'enregistrement complet).
+        $current = [
+            'code' => $model->code,
+            'name' => $model->name,
+            'starts_at' => $model->starts_at,
+            'ends_at' => $model->ends_at,
+            'hourly_rate' => $model->hourly_rate,
+            'color' => $model->color,
+            'sort_order' => $model->sort_order,
+            'is_active' => $model->is_active,
+            'store_ids' => $model->stores->pluck('id')->all(),
+        ];
 
-        $saved = ShiftType::put(array_merge($data, ['id' => $id]));
-        if ($storeIds !== []) {
-            ShiftType::syncStores($id, $storeIds);
-        }
+        $saved = $save->handle($this->actor($request), $model, $request->only($this->fields()) + $current);
 
-        $this->auditLogger->logUpdate($request, 'shift_type.updated', 'shift_type', resourceId: $id, oldData: $old, newData: $saved, extraContext: $data, storeId: $storeIds[0] ?? null);
-        return response()->json($this->withStoreIds($saved));
+        return new ShiftTypeResource($saved->refresh()->load('stores:id'));
     }
 
-    /** DELETE /api/v1/shift-types/{id} */
-    public function destroy(Request $request): Response
+    public function destroy(Request $request, int $type, DeleteShiftType $delete): Response
     {
-        $old = $this->requireType($request, 'shifts.update');
-        $id  = (int) $old['id'];
-        $this->assertManagesEveryStore($request, $id);
+        $delete->handle($this->actor($request), $this->visible($request, $type));
 
-        ShiftType::remove($id);
-        $this->auditLogger->log($request, 'shift_type.deleted', 'shift_type', resourceId: $id);
         return response()->noContent();
     }
 
     /**
-     * Modifier ou supprimer un type partagé touche tous ses magasins : l'appelant doit détenir `shifts.update`
-     * sur chacun d'eux (ou sans restriction de magasin).
+     * Rattache le type au magasin (sans effet s'il l'est déjà).
      */
-    private function assertManagesEveryStore(Request $request, int $typeId): void
+    public function attach(Request $request, int $type, int $store, ToggleShiftTypeStore $toggle): ShiftTypeResource
     {
-        foreach (ShiftType::getStoreIds($typeId) as $storeId) {
-            if (!$this->permissions->can($this->authUser($request), 'shifts.update', (int) $storeId)) {
-                throw new ForbiddenException(__('error_shared_shift_type'));
-            }
+        return $this->setAttached($request, $type, $store, $toggle, true);
+    }
+
+    /**
+     * Détache le type du magasin (sans effet s'il ne l'est pas) ; un type reste dans au moins un magasin (422).
+     */
+    public function detach(Request $request, int $type, int $store, ToggleShiftTypeStore $toggle): ShiftTypeResource
+    {
+        return $this->setAttached($request, $type, $store, $toggle, false);
+    }
+
+    private function setAttached(Request $request, int $typeId, int $storeId, ToggleShiftTypeStore $toggle, bool $attached): ShiftTypeResource
+    {
+        $actor = $this->actor($request);
+        $type = $this->visible($request, $typeId);
+        $store = Store::query()->findOrFail($storeId);
+
+        if (! $this->authorizer()->allows($actor, 'shifts.update', $store)) {
+            throw new AuthorizationException;
+        }
+
+        if ($type->stores()->where('stores.id', $store->id)->exists() !== $attached) {
+            $toggle->handle($actor, $type, $store);
+        }
+
+        return new ShiftTypeResource($type->refresh()->load('stores:id'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function fields(): array
+    {
+        return ['code', 'name', 'starts_at', 'ends_at', 'hourly_rate', 'color', 'sort_order', 'is_active', 'store_ids'];
+    }
+
+    /**
+     * @throws AuthorizationException
+     */
+    private function requireView(Request $request): void
+    {
+        if (! $this->authorizer()->allows($this->actor($request), 'shifts.view')) {
+            throw new AuthorizationException;
         }
     }
 
-    private function authUser(Request $request): array
+    private function visible(Request $request, int $typeId): ShiftType
     {
-        return $request->attributes->get('auth_user') ?? [];
-    }
+        $this->requireView($request);
 
-    /** Charge le type par id et vérifie $permissionKey sur au moins un de ses magasins (ou sans restriction). */
-    private function requireType(Request $request, string $permissionKey): array
-    {
-        $id   = (int) $request->route('id');
-        $type = ShiftType::findById($id);
-        if ($type === null) {
-            throw new NotFoundException(__('error_shift_type_not_found'));
-        }
-        $this->permissions->requireOnAnyStore($this->authUser($request), $permissionKey, ShiftType::getStoreIds($id));
-        return $type;
-    }
+        $viewable = $this->authorizer()->storeIdsFor($this->actor($request), 'shifts.view');
 
-    /** Chaque magasin cible doit être modifiable par l'appelant ; sans magasin, seule une portée illimitée est acceptée. */
-    private function assertWritableStores(Request $request, array $storeIds): void
-    {
-        $authUser = $this->authUser($request);
-        if ($storeIds === []) {
-            $this->permissions->requireOnAnyStore($authUser, 'shifts.update', []);
-            return;
-        }
-        foreach ($storeIds as $storeId) {
-            $this->permissions->requireOnStore($authUser, 'shifts.update', $storeId);
-        }
-    }
-
-    private function withStoreIds(array $type): array
-    {
-        $type['store_ids'] = ShiftType::getStoreIds((int) ($type['id'] ?? 0));
-        return $type;
-    }
-
-    /** @return int[] */
-    private function extractStoreIds(array $data): array
-    {
-        if (isset($data['store_ids']) && is_array($data['store_ids'])) {
-            return array_values(array_unique(array_map('intval', $data['store_ids'])));
-        }
-        if (isset($data['store_id']) && $data['store_id'] !== '' && $data['store_id'] !== null) {
-            return [(int) $data['store_id']];
-        }
-        return [];
+        return ShiftType::query()
+            ->when($viewable !== null, fn (Builder $query) => $query->whereHas('stores', fn (Builder $q) => $q->whereIn('stores.id', $viewable)))
+            ->findOrFail($typeId);
     }
 }

@@ -1,74 +1,50 @@
 <?php
-declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\IcalTokenFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
-final class IcalToken extends Model
+/**
+ * Jeton du flux iCal d'un employé pour un magasin. Seule l'empreinte SHA-256 du jeton est conservée.
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property int $store_id
+ * @property string $token_hash
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
+ * @property-read Store $store
+ */
+#[Fillable(['user_id', 'store_id', 'token_hash'])]
+class IcalToken extends Model
 {
-    protected $table = 'ical_tokens';
-    protected $guarded = [];
-    public $timestamps = false;
+    /** @use HasFactory<IcalTokenFactory> */
+    use HasFactory;
 
-    public static function findByToken(string $token): ?array
+    public static function hash(string $token): string
     {
-        $record = static::where('token', $token)->first();
-        return $record ? $record->toArray() : null;
+        return hash('sha256', $token);
     }
 
-    public static function findByUserAndStore(int $userId, int $storeId): ?array
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
-        $record = static::where('user_id', $userId)
-            ->where('store_id', $storeId)
-            ->first();
-        return $record ? $record->toArray() : null;
+        return $this->belongsTo(User::class);
     }
 
-    public static function findByUser(int $userId): array
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
     {
-        return static::where('user_id', $userId)->get()->toArray();
-    }
-
-    public static function put(array $data): array
-    {
-        if (!empty($data['id'])) {
-            $record = static::findOrFail((int) $data['id']);
-            $record->fill($data);
-            $record->save();
-        } else {
-            $record = static::create($data);
-        }
-        return $record->toArray();
-    }
-
-    public static function deleteByUserAndStore(int $userId, int $storeId): int
-    {
-        return static::where('user_id', $userId)
-            ->where('store_id', $storeId)
-            ->delete();
-    }
-
-    public static function findOrCreateForUserAndStore(int $userId, int $storeId): array
-    {
-        $existing = static::findByUserAndStore($userId, $storeId);
-        if ($existing !== null) {
-            return $existing;
-        }
-
-        try {
-            return static::put([
-                'user_id'    => $userId,
-                'store_id'   => $storeId,
-                'token'      => bin2hex(random_bytes(32)),
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-        } catch (\Illuminate\Database\QueryException $e) {
-            $existing = static::findByUserAndStore($userId, $storeId);
-            if ($existing !== null) {
-                return $existing;
-            }
-            throw $e;
-        }
+        return $this->belongsTo(Store::class);
     }
 }

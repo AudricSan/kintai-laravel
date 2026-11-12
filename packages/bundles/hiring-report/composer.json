@@ -1,0 +1,23 @@
+{
+    "name": "kintai/bundle-hiring-report",
+    "description": "Rapports d'embauche pour Kintai : fiche d'embauche d'un employé par magasin, créée à la création de l'employé, avec aperçu et PDF.",
+    "type": "library",
+    "license": "AGPL-3.0-only",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.3",
+        "kintai/contracts": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kintai\\Bundles\\HiringReport\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kintai\\Bundles\\HiringReport\\HiringReportServiceProvider"
+            ]
+        }
+    }
+}
