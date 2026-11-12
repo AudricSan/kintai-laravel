@@ -15,8 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Réinitialisation des données (Owner seulement) : efface les données de planning et de l'organisation en gardant les
- * comptes, les rôles, les réglages et le journal. La « réinitialisation d'usine » (retour à l'assistant d'installation)
- * viendra avec l'assistant, en phase 6.
+ * comptes, les rôles, les réglages et le journal (la réinitialisation d'usine est `FactoryReset`).
  *
  * Deux garde-fous : le mot de passe de l'Owner et la phrase `RESET` à recopier. Une sauvegarde automatique est faite juste
  * avant ; si elle échoue, rien n'est effacé. La réinitialisation est journalisée (`app.data_reset`) : le journal est préservé.

@@ -115,6 +115,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/updates/apply', UpdateApplyController::class)->name('updates.apply');
         Route::get('admin/updates/finish', [UpdateFinishController::class, 'show'])->name('updates.finish.show');
         Route::post('admin/updates/finish', [UpdateFinishController::class, 'store'])->name('updates.finish');
+        // Licence (client du LicenseManager) : activation, vérification, désactivation.
+        Route::livewire('admin/license', 'pages::admin.license')->name('license.index');
         Route::livewire('admin/data-reset', 'pages::admin.data-reset')->name('data-reset.index');
         // Bundles installés : activation et désactivation.
         Route::livewire('admin/bundles', 'pages::admin.bundles')->name('bundles.index');

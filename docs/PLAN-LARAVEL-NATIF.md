@@ -45,8 +45,10 @@ framework maison. Plus aucune couche maison, plus aucun pont de compatibilité.
    terminal : assistant d'installation web et mise à jour depuis les releases GitHub (archive construite par la CI,
    `vendor/` inclus, migrations lancées par `Artisan::call`), en plus des commandes `php artisan`. Même besoin pour les
    bundles.
-6. **Licence conservée.** La refonte du serveur de licence est un chantier séparé, plus tard. En dernière phase : un
-   serveur d'auto-déploiement de Kintai, conçu avec le serveur de licence.
+6. **Licence.** Le serveur de licence (LicenseManager) a été refondu en Laravel natif (Filament, Cashier, Sanctum, JWT RS256,
+   branche `refonte-native`). Kintai s'y connecte par `app/License/` (clé produit en jeton Bearer). L'achat se fait dans le
+   Manager (`/buy/{produit}/{palier}`), Kintai ne gère aucun paiement. En dernière phase : un serveur d'auto-déploiement de
+   Kintai.
 7. **Fonctionnalités** : édition des traductions dans l'interface abandonnée (fichiers `lang/` versionnés) ;
    signalement de problème vers GitHub et documentation synchronisée depuis le wiki conservés.
 8. **API v1 = contrat public pour une future application mobile** qui se branche sur n'importe quelle instance par son
@@ -155,8 +157,7 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
       visite d'un Owner), tâches planifiées sans terminal (`/cron/run` à jeton haché, écran « Tâches planifiées »),
       documentation intégrée synchronisée depuis le wiki GitHub, signalement de problème vers GitHub.
     - Reporté à la phase 6 : alertes de mise à jour du Core, des bundles et de licence (`core_update_available`,
-      `bundle_update_available`, `license_quota`, détecteurs réseau à enregistrer dans `App\System\SystemAlerts`) et
-      réinitialisation d'usine (réinstallation).
+      `bundle_update_available`, `license_quota`, détecteurs réseau à enregistrer dans `App\System\SystemAlerts`).
     - Abandonné : mascotte et journal d'accès (le journal d'activité couvre l'audit).
 
 ### Phase 5 : Bundles officiels
@@ -234,11 +235,20 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
 - [x] 6c. CI de l'archive de release : `.github/workflows/release.yml` (tag `v*`), `tools/release/build.php` et `ReleaseBuilder` (testé par `ReleaseBuilderTest`).
   - Suivi (11/11/2026) : `composer install --no-dev` avec `COMPOSER_MIRROR_PATH_REPOS=1` (copie de `packages/` dans `vendor/`, l'archive refuse les liens), `npm run build`, archive + `.sha256` + `kintai-release.json` (`min_php` lu dans `composer.json`, `--min-from-version` facultatif), contrôle par `ReleaseArchive::inspect` de l'application, puis `gh release create` (pré-release si le tag porte une pré-version). Le tag doit égaler `kintai.version`. Exclus : `.env`, `storage/`, `tests/`, `docs/`, `tools/`, `node_modules/`, `.git*`, cache de bootstrap, SQLite, `public/hot`.
   - À vérifier à la première release réelle : le workflow n'a pas encore tourné sur GitHub.
-- Licence (client) sur le serveur de licence actuel.
+- [x] 6d. Alerte système `core_update_available` (faite) ; `bundle_update_available` et `license_quota` restent à faire (dépendent d'une source de versions des bundles et du client de licence).
+  - Suivi (11/11/2026) : détecteur `CoreSystemAlerts::coreUpdateAvailable()` (id 1) qui lit `UpdateChecker::cached()` sans réseau ; commande `kintai:update:refresh` planifiée à la minute 50 (avant `kintai:system:alerts`), cache de 90 minutes (`UpdateChecker::REFRESH_CACHE_MINUTES`), erreur réseau journalisée en warning ; type de notification Owner (push + mail).
+- [x] 6e. Réinitialisation d'usine (retour à l'assistant d'installation) : action `FactoryReset` (Owner `manage-settings`, mot de passe, phrase `FACTORY RESET`, sauvegarde préalable sous `BackupLock`), section « Réinitialisation d'usine » de l'écran `data-reset` et commande `kintai:factory-reset`.
+  - Suivi (11/11/2026) : `migrate:fresh` sans seed, suppression des fichiers téléversés (avatars et dossiers des bundles, couverts par la sauvegarde) et du verrou `storage/app/installed`, cache vidé ; `.env`, `APP_KEY` et les sauvegardes ne sont jamais touchés ; journal d'activité effacé avec la base donc trace dans le log Laravel (acteur, sauvegarde) ; session fermée puis redirection vers `/install`.
+- [x] 6f. Licence (client) du LicenseManager : `app/License/` (`LicenseClient`, `LicenseState`, `LicenseStatus`, `LicenseResult`), actions `ActivateLicense`/`ValidateLicense`/`DeactivateLicense` (Owner, `manage-settings`, audit `license.*` sans la clé), écran `admin/license`, commande `kintai:license:validate` (quotidienne, seulement si une clé existe), `firebase/php-jwt`.
+  - Suivi : jeton RS256 vérifié à chaque lecture (signature, `exp`, `product=kintai`, `iss` facultatif) ; sans jeton valable, palier gratuit. Hors ligne, droits gardés jusqu'à l'`exp` du dernier jeton (état `grace`) ; refus explicite = droits retirés tout de suite ; injoignable ne révoque jamais. `LicenseState::limit($key): ?int` (null = illimité ; sans licence, `kintai.license.free_limits`). Détecteurs sans réseau `license_problem` (id 3) et `license_expiring` (id 7, ≤ 14 jours). Désactivation d'usine : `FactoryReset` libère le siège en meilleur effort. Clé publique de production fournie par défaut (`kintai.license.public_key_b64`, surchargeable par `KINTAI_LICENSE_PUBLIC_KEY_B64`).
+  - Reste : renseigner la clé produit (`KINTAI_LICENSE_API_KEY`) en production ; **contrat des bundles** (packages/contracts, non modifié) pour exposer `LicenseState::limit()` aux bundles ; définir les limites du palier gratuit (`kintai.license.free_limits`) ; `bundle_update_available` ; aucune édition de `license.api_url`/`api_key`/`buy_url` dans l'interface (env ou réglages en base).
 
 ### Phase 7 : Outil de migration (hors application)
 - `tools/legacy-migration/` : lit une base de l'ancienne version, écrit dans le nouveau schéma. Testé sur un jeu de
-  données d'exemple, documenté à part.
+  données d'exemple, documenté à part (`tools/legacy-migration/README.md`).
+- [x] Tranche 1 : Core (identité, mots de passe, rôles et assignations, magasins, planning, réglages, avatars).
+  - Suivi (12/11/2026) : `php tools/legacy-migration/migrate.php --source=... [--target-env] [--timezone] [--dry-run]`, PDO seul, aucune classe de `app/`. Une seule version source (schéma actuel de `develop`, contrôlé table et colonne par colonne) ; source en lecture seule, `database.local.php` lu comme des données (jamais exécuté) ; cible migrée et sans aucun utilisateur, sinon refus (jamais de fusion) ; une transaction (retour arrière complet, avatars copiés supprimés). Hachage bcrypt repris tel quel (prouvé par `Hash::check` et une vraie connexion) ; `must_change_password` pour `0000` et quelques mots de passe faibles connus (la longueur d'un haché est inconnaissable). Rôles rapprochés par `slug`, `scope` devient `all_stores`, portée devient `store_id`. Quarts : heures locales converties en UTC, ouvert = sans employé, `ical_uid` généré. Avatars copiés vers le disque `local` (`storage/app/private/avatars/`), avec contrôle anti-traversal. Jetons iCal non repris (clair dans l'ancien) : chacun régénère son lien. Suite `LegacyMigration` (base source synthétique), Larastan couvre `tools/legacy-migration/src`.
+- [ ] Tranche 2 : données des bundles (pointage, congés, échanges et reprises, rapports, fiches de paie, photos, messagerie, carnet, calendrier Google, import de planning) ; et reprise des notifications, préférences, journal d'activité, tableaux de bord si souhaitée.
 
 ### Phase 8 : Qualité et livraison
 - Revue de sécurité (reprise de l'[audit du 31/10/2026](archive/Audit_Kintai_Migration_Laravel_Securite_2026-10-31.md)), documentation (`README`, [`DEPLOIEMENT`](archive/DEPLOIEMENT.md)), changelog, version
@@ -249,7 +259,7 @@ interface dans `kintai/contracts` avec une implémentation vide par défaut, que
   avant de restreindre les scripts. Les en-têtes déjà posés par une réponse (service worker, iCal, API) priment.
 
 ### Phase 9 : Serveur d'auto-déploiement (après livraison)
-- Conçu avec la refonte du serveur de licence (chantier séparé).
+- S'appuie sur le LicenseManager refondu (déjà livré). À concevoir.
 
 ## Définition de « terminé »
 

@@ -90,6 +90,12 @@ final class CoreActivityActions
                 'update.cancelled' => 'Update cancelled',
                 'update.channel_changed' => 'Update channel changed',
             ],
+            'License' => [
+                'license.activated' => 'License activated',
+                'license.validated' => 'License checked',
+                'license.refused' => 'License refused by the server',
+                'license.deactivated' => 'License deactivated',
+            ],
             'Activity log' => [
                 'activity.exported' => 'Activity log exported',
                 'activity.purged' => 'Activity log purged',

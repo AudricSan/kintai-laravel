@@ -12,18 +12,22 @@ class UpdateChecker
 {
     public const CACHE_MINUTES = 15;
 
+    /** Durée de conservation après un rafraîchissement planifié : le détecteur d'alerte lit ce cache sans réseau. */
+    public const REFRESH_CACHE_MINUTES = 90;
+
     public function __construct(private readonly ReleaseClient $client) {}
 
     /**
-     * Interroge GitHub (cache contourné), mémorise le résultat et le renvoie (null : aucune release sur ce canal).
+     * Interroge GitHub (cache contourné), mémorise le résultat (15 minutes, ou `$cacheMinutes`) et le renvoie
+     * (null : aucune release sur ce canal).
      *
      * @throws UpdateException
      */
-    public function check(UpdateChannel $channel): ?Release
+    public function check(UpdateChannel $channel, ?int $cacheMinutes = null): ?Release
     {
         $release = $this->client->latest($channel);
 
-        Cache::put($this->key($channel), ['release' => $release], now()->addMinutes(self::CACHE_MINUTES));
+        Cache::put($this->key($channel), ['release' => $release], now()->addMinutes($cacheMinutes ?? self::CACHE_MINUTES));
 
         return $release;
     }

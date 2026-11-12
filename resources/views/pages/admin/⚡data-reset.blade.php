@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Backups\FactoryReset;
 use App\Actions\Backups\ResetApplicationData;
 use App\Backups\BackupException;
 use App\Backups\DataResetPlanner;
@@ -24,6 +25,12 @@ new #[Title('Reset data')] class extends Component {
     public ?array $result = null;
 
     public string $error = '';
+
+    public string $factory_confirmation = '';
+
+    public string $factory_password = '';
+
+    public string $factory_error = '';
 
     public function mount(): void
     {
@@ -60,6 +67,38 @@ new #[Title('Reset data')] class extends Component {
         Flux::toast(variant: 'success', text: __('Data reset. A backup was made first.'));
     }
 
+    public function confirmFactoryReset(): void
+    {
+        $this->resetErrorBag();
+        $this->factory_confirmation = '';
+        $this->factory_password = '';
+        $this->factory_error = '';
+
+        Flux::modal('confirm-factory-reset')->show();
+    }
+
+    public function executeFactoryReset(FactoryReset $reset): void
+    {
+        $this->resetErrorBag();
+        $this->factory_error = '';
+
+        try {
+            $reset->handle(Auth::user(), $this->factory_confirmation, $this->factory_password);
+        } catch (BackupException $e) {
+            $this->factory_error = $e->getMessage();
+            Flux::modal('confirm-factory-reset')->close();
+
+            return;
+        }
+
+        // Le compte n'existe plus : on ferme la session et on repart de l'assistant d'installation.
+        Auth::guard('web')->logout();
+        session()->invalidate();
+        session()->regenerateToken();
+
+        $this->redirect(route('install.show'));
+    }
+
     /**
      * @return list<string>
      */
@@ -81,6 +120,7 @@ new #[Title('Reset data')] class extends Component {
         return [
             'counts' => $planner->counts($planner->tablesToWipe($this->kept())),
             'phrase' => DataResetPlanner::CONFIRMATION,
+            'factoryPhrase' => FactoryReset::CONFIRMATION,
         ];
     }
 }; ?>
@@ -100,6 +140,12 @@ new #[Title('Reset data')] class extends Component {
         </flux:callout>
     @endif
 
+    @if ($factory_error !== '')
+        <flux:callout variant="danger" icon="exclamation-triangle" data-test="factory-reset-error">
+            <flux:callout.text>{{ $factory_error }}</flux:callout.text>
+        </flux:callout>
+    @endif
+
     @if ($result)
         <flux:callout variant="success" icon="check-circle" data-test="reset-done">
             <flux:callout.heading>{{ __('The data was reset.') }}</flux:callout.heading>
@@ -108,7 +154,7 @@ new #[Title('Reset data')] class extends Component {
     @endif
 
     <flux:callout variant="warning" icon="exclamation-triangle">
-        <flux:callout.text>{{ __('Accounts, roles and permissions, instance settings, API tokens and the activity log are never erased. The full factory reset, which goes back to the installation wizard, is not available yet.') }}</flux:callout.text>
+        <flux:callout.text>{{ __('Accounts, roles and permissions, instance settings, API tokens and the activity log are never erased. The factory reset, further down, erases everything and goes back to the installation wizard.') }}</flux:callout.text>
     </flux:callout>
 
     <div class="max-w-2xl space-y-3" data-test="section-keep">
@@ -137,6 +183,32 @@ new #[Title('Reset data')] class extends Component {
         <flux:text size="sm">{{ __('A backup is made automatically just before. If it fails, nothing is erased.') }}</flux:text>
         <flux:button variant="danger" wire:click="confirmReset" data-test="start-reset">{{ __('Reset the data…') }}</flux:button>
     </div>
+
+    <div class="max-w-2xl space-y-3 rounded-lg border border-red-300 p-4 dark:border-red-800" data-test="section-factory-reset">
+        <flux:heading size="lg" class="text-red-600">{{ __('Factory reset') }}</flux:heading>
+        <flux:callout variant="danger" icon="exclamation-triangle">
+            <flux:callout.heading>{{ __('This erases everything.') }}</flux:callout.heading>
+            <flux:callout.text>{{ __('All accounts, roles, settings, the activity log and the uploaded files are deleted, and the installation starts again from the wizard. A backup is made just before (if it fails, nothing is erased) and stays in the backups folder. The .env file and the application key (APP_KEY) are kept.') }}</flux:callout.text>
+        </flux:callout>
+        <flux:button variant="danger" wire:click="confirmFactoryReset" data-test="start-factory-reset">{{ __('Factory reset…') }}</flux:button>
+    </div>
+
+    <flux:modal name="confirm-factory-reset" class="max-w-lg">
+        <form wire:submit="executeFactoryReset" class="space-y-6">
+            <div class="space-y-3">
+                <flux:heading size="lg">{{ __('Reset the whole application?') }}</flux:heading>
+                <flux:text>{{ __('You will be signed out and sent to the installation wizard. You can get your data back only by restoring the backup made just before.') }}</flux:text>
+            </div>
+            <flux:input wire:model="factory_confirmation" :label="__('Type :text to confirm', ['text' => $factoryPhrase])" autocomplete="off" data-test="factory-confirmation" />
+            @error('confirmation') <flux:text size="sm" class="text-red-600" data-test="factory-confirmation-error">{{ $message }}</flux:text> @enderror
+            <flux:input wire:model="factory_password" type="password" :label="__('Your password')" autocomplete="current-password" viewable data-test="factory-password" />
+            @error('password') <flux:text size="sm" class="text-red-600" data-test="factory-password-error">{{ $message }}</flux:text> @enderror
+            <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+                <flux:modal.close><flux:button variant="filled">{{ __('Cancel') }}</flux:button></flux:modal.close>
+                <flux:button variant="danger" type="submit" data-test="confirm-factory-reset">{{ __('Reset everything') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
 
     <flux:modal name="confirm-data-reset" class="max-w-lg">
         <form wire:submit="executeReset" class="space-y-6">
