@@ -32,6 +32,7 @@ use Illuminate\Support\Carbon;
  * @property numeric-string $staff_total_payment
  * @property numeric-string $staff_avg_hourly_wage
  * @property list<array{user_id: int, minutes: int}>|null $employee_hours
+ * @property list<array{name: string, kind: string, value: float, amount: float}>|null $deduction_lines
  * @property int $new_hires
  * @property int $resigned_staff
  * @property string|null $hire_registrations
@@ -47,7 +48,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'store_id', 'user_id', 'target_month', 'person_in_charge_id', 'total_payment', 'total_deductions', 'income_tax_base',
     'withholding_tax', 'residence_tax', 'other_deductions', 'net_payment', 'active_employees', 'hand_delivered_salary',
-    'bank_transfer_salary', 'staff_man_hours', 'staff_total_payment', 'staff_avg_hourly_wage', 'employee_hours', 'new_hires',
+    'bank_transfer_salary', 'staff_man_hours', 'staff_total_payment', 'staff_avg_hourly_wage', 'employee_hours', 'deduction_lines', 'new_hires',
     'resigned_staff', 'hire_registrations', 'remarks', 'created_by',
 ])]
 class SalaryReport extends Model
@@ -85,6 +86,7 @@ class SalaryReport extends Model
             'staff_total_payment' => 'decimal:2',
             'staff_avg_hourly_wage' => 'decimal:2',
             'employee_hours' => 'array',
+            'deduction_lines' => 'array',
             'new_hires' => 'integer',
             'resigned_staff' => 'integer',
         ];

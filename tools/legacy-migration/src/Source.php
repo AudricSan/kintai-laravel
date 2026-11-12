@@ -38,6 +38,61 @@ final class Source
         'ical_tokens' => ['id', 'user_id', 'store_id'],
     ];
 
+    /**
+     * Tables des bundles (pointage, congés, reprises et échanges de quarts) : absentes si le bundle n'a jamais été
+     * installé, ce qui n'est pas une erreur ; présentes, elles doivent avoir toutes les colonnes lues.
+     *
+     * @var array<string, list<string>>
+     */
+    public const OPTIONAL = [
+        'timeclocks' => ['id', 'user_id', 'store_id', 'shift_id', 'shift_date', 'clock_in_time', 'clock_out_time', 'duration_minutes',
+            'clock_in_ip', 'clock_out_ip', 'notes', 'created_at', 'updated_at'],
+        'timeoff_requests' => ['id', 'user_id', 'store_id', 'start_date', 'end_date', 'type', 'status', 'reason', 'admin_note',
+            'processed_by', 'processed_at', 'created_at', 'updated_at'],
+        'shift_claims' => ['id', 'shift_id', 'user_id', 'store_id', 'status', 'note', 'claimed_at', 'resolved_at', 'resolved_by',
+            'created_at', 'updated_at'],
+        'shift_swap_requests' => ['id', 'store_id', 'requester_id', 'target_user_id', 'requester_shift_id', 'target_shift_id', 'status',
+            'reason', 'accepted_by_id', 'accepted_at', 'approved_by_id', 'approved_at', 'created_at', 'updated_at'],
+        'hiring_reports' => ['id', 'store_id', 'user_id', 'employee_number', 'employee_name', 'furigana_last_name', 'furigana_first_name',
+            'gender', 'tax_classification', 'birth_date', 'hire_date', 'education', 'postal_code', 'address', 'phone', 'mobile_phone',
+            'email', 'guarantor_name', 'guarantor_phone', 'store_name', 'hired_by', 'notes', 'created_by', 'created_at', 'updated_at'],
+        'resignation_reports' => ['id', 'store_id', 'user_id', 'employee_number', 'employee_name', 'resignation_date', 'reason',
+            'resignation_notice', 'notes', 'person_in_charge', 'created_by', 'created_at', 'updated_at'],
+        'daily_reports' => ['id', 'store_id', 'author_id', 'report_date', 'sales_total', 'customer_count', 'labor_cost', 'waste_total',
+            'notes', 'status', 'submitted_at', 'validated_by', 'validated_at', 'mail_sent_at', 'created_at', 'updated_at', 'deleted_at'],
+        'salary_reports' => ['id', 'store_id', 'user_id', 'target_month', 'person_in_charge', 'total_payment', 'total_deductions',
+            'income_tax_base', 'withholding_tax', 'residence_tax', 'other_deductions', 'net_payment', 'active_employees',
+            'hand_delivered_salary', 'bank_transfer_salary', 'staff_man_hours', 'staff_total_payment', 'staff_avg_hourly_wage',
+            'employee_work_hours', 'new_hires', 'resigned_staff', 'hire_registrations', 'remarks', 'created_by', 'created_at', 'updated_at'],
+        'store_deduction_settings' => ['id', 'store_id', 'enabled', 'health_insurance_rate', 'pension_rate', 'employment_insurance_rate',
+            'income_tax_rate', 'resident_tax_monthly', 'created_at', 'updated_at'],
+        'message_threads' => ['id', 'store_id', 'creator_id', 'subject', 'last_message_at', 'created_at', 'updated_at'],
+        'thread_participants' => ['id', 'thread_id', 'user_id', 'is_read', 'last_read_at', 'created_at'],
+        'thread_messages' => ['id', 'thread_id', 'sender_id', 'body', 'created_at'],
+        'store_photo_submissions' => ['id', 'store_id', 'notes', 'deleted_at', 'created_by', 'created_at', 'updated_at'],
+        'store_photo_images' => ['id', 'submission_id', 'filename', 'filepath', 'sort_order', 'created_at'],
+        'calendar_connections' => ['id', 'user_id', 'provider', 'account_email', 'refresh_token', 'calendar_id', 'calendar_name', 'status',
+            'last_sync_at', 'last_error', 'options', 'created_at', 'updated_at'],
+        'calendar_event_links' => ['id', 'connection_id', 'source_type', 'source_id', 'external_event_id', 'content_hash', 'synced_at'],
+        'calendar_sync_queue' => ['id', 'connection_id', 'source_type', 'source_id', 'attempts', 'next_attempt_at', 'last_error', 'created_at'],
+        'store_import_settings' => ['id', 'store_id', 'col_start', 'col_end', 'base_hour', 'minutes_per_col', 'block_size', 'shift_rows',
+            'sheet_filter_pattern', 'auto_pause_after_minutes', 'auto_pause_minutes', 'created_at', 'updated_at'],
+        'import_aliases' => ['id', 'store_id', 'user_id', 'created_at'],
+    ];
+
+    /**
+     * Colonnes dont une seule est exigée (renommage dans l'ancienne version) : une base ancienne a `alias_name`, une base à jour
+     * `staff_name`. Lues dans l'ordre de préférence.
+     *
+     * @var array<string, list<string>>
+     */
+    public const ONE_OF = [
+        'import_aliases' => ['staff_name', 'alias_name'],
+    ];
+
+    /** Colonnes facultatives de `users` (annuaire) : lues seulement si elles existent. */
+    public const DIRECTORY_COLUMNS = ['bio', 'skills', 'languages_spoken', 'hobbies', 'show_in_directory'];
+
     public function __construct(
         public readonly PDO $pdo,
         public readonly string $driver,
@@ -146,6 +201,18 @@ final class Source
                 $missingColumns[] = "colonne {$table}.{$column}";
             }
         }
+        foreach (self::OPTIONAL as $table => $columns) {
+            $present = $this->columns($table);
+            if ($present === []) {
+                continue; // bundle jamais installé : l'étape correspondante est sautée
+            }
+            foreach (array_diff($columns, $present) as $column) {
+                $missingColumns[] = "colonne {$table}.{$column}";
+            }
+            if (isset(self::ONE_OF[$table]) && array_intersect(self::ONE_OF[$table], $present) === []) {
+                $missingColumns[] = "colonne {$table}.".implode(' ou ', self::ONE_OF[$table]);
+            }
+        }
         $missing = array_merge($missingTables, $missingColumns);
         if ($missing !== []) {
             throw new MigrationException(
@@ -178,6 +245,22 @@ final class Source
         $value = $statement->fetchColumn();
 
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /** Secret d'instance (`instance_secret`), dont est dérivée la clé de chiffrement des secrets ; null s'il est absent. */
+    public function instanceSecret(): ?string
+    {
+        return $this->setting('instance_secret');
+    }
+
+    public function hasTable(string $table): bool
+    {
+        return $this->columns($table) !== [];
+    }
+
+    public function hasColumn(string $table, string $column): bool
+    {
+        return in_array($column, $this->columns($table), true);
     }
 
     public function count(string $table): int

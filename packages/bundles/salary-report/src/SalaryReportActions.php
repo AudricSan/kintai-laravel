@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Kintai\Bundles\SalaryReport\Models\SalaryReport;
+use Kintai\Bundles\SalaryReport\Models\SalaryReportDeduction;
 use Kintai\Bundles\SalaryReport\Models\SalaryReportMember;
 use Kintai\Bundles\SalaryReport\Models\SalaryReportSetting;
 use Kintai\Contracts\Activity\ActivityRecorder;
@@ -172,6 +173,78 @@ class SalaryReportActions
         return $setting;
     }
 
+    /**
+     * Crée (`$deductionId` nul) ou modifie une retenue personnalisée du magasin : nom libre unique dans le magasin, type
+     * `percent` (pourcentage du brut, 100 au plus) ou `fixed` (montant mensuel par employé payé), valeur positive ou nulle,
+     * 20 retenues au plus. Le journal ne reçoit ni le nom ni la valeur.
+     *
+     * @param  array{name: string, kind: string, value: int|float|string, is_active?: bool}  $data
+     *
+     * @throws AuthorizationException
+     * @throws ValidationException
+     */
+    public function saveDeduction(User $actor, int $storeId, ?int $deductionId, array $data): SalaryReportDeduction
+    {
+        if (! $this->access->canManageSettings($actor, $storeId)) {
+            throw new AuthorizationException;
+        }
+
+        $deduction = $deductionId === null ? null : SalaryReportDeduction::query()->where('store_id', $storeId)->find($deductionId);
+        if ($deductionId !== null && $deduction === null) {
+            throw new AuthorizationException;
+        }
+
+        $name = trim($data['name']);
+        $kind = $data['kind'];
+        $value = $data['value'];
+        if ($name === '' || mb_strlen($name) > 100) {
+            throw ValidationException::withMessages(['name' => __('The name of a deduction is required (100 characters at most).')]);
+        }
+        if (! in_array($kind, SalaryReportDeduction::KINDS, true)) {
+            throw ValidationException::withMessages(['kind' => __('The type of this deduction is not valid.')]);
+        }
+        if (! is_numeric($value) || (float) $value < 0 || (float) $value > ($kind === SalaryReportDeduction::PERCENT ? 100 : 9999999)) {
+            throw ValidationException::withMessages(['value' => __('The value of this deduction is not valid.')]);
+        }
+
+        $deduction = DB::transaction(function () use ($storeId, $deduction, $name, $kind, $value, $data): SalaryReportDeduction {
+            $others = SalaryReportDeduction::query()->where('store_id', $storeId)->when($deduction !== null, fn ($q) => $q->where('id', '!=', $deduction?->id));
+
+            if ((clone $others)->where('name', $name)->exists()) {
+                throw ValidationException::withMessages(['name' => __('A deduction with this name already exists in this store.')]);
+            }
+            if ($deduction === null && $others->count() >= SalaryReportDeduction::MAX_PER_STORE) {
+                throw ValidationException::withMessages(['name' => __('A store cannot have more than :max custom deductions.', ['max' => SalaryReportDeduction::MAX_PER_STORE])]);
+            }
+
+            $deduction ??= new SalaryReportDeduction(['store_id' => $storeId, 'sort_order' => (int) SalaryReportDeduction::query()->where('store_id', $storeId)->max('sort_order') + 1]);
+            $deduction->fill(['name' => $name, 'kind' => $kind, 'value' => $value] + (array_key_exists('is_active', $data) ? ['is_active' => $data['is_active']] : []))->save();
+
+            return $deduction;
+        });
+
+        $this->activity->record('salary_report.deduction_saved', Store::query()->find($storeId), $storeId, ['deduction_id' => $deduction->id], $actor);
+
+        return $deduction;
+    }
+
+    /**
+     * Supprime pour de bon une retenue personnalisée ; les rapports déjà enregistrés gardent leur instantané.
+     *
+     * @throws AuthorizationException
+     */
+    public function deleteDeduction(User $actor, int $storeId, int $deductionId): void
+    {
+        if (! $this->access->canManageSettings($actor, $storeId)) {
+            throw new AuthorizationException;
+        }
+
+        $deduction = SalaryReportDeduction::query()->where('store_id', $storeId)->find($deductionId) ?? throw new AuthorizationException;
+        $deduction->delete();
+
+        $this->activity->record('salary_report.deduction_deleted', Store::query()->find($storeId), $storeId, ['deduction_id' => $deductionId], $actor);
+    }
+
     private function store(int $storeId): Store
     {
         $store = Store::query()->find($storeId);
@@ -241,6 +314,17 @@ class SalaryReportActions
                 throw ValidationException::withMessages(['person_in_charge_id' => __('The chosen person in charge cannot generate salary reports for this store.')]);
             }
             $content['person_in_charge_id'] = $id;
+        }
+
+        // Instantané des retenues personnalisées appliquées au calcul (nom libre, type, valeur, montant).
+        if (array_key_exists('deduction_lines', $data) && is_array($data['deduction_lines'])) {
+            $lines = [];
+            foreach ($data['deduction_lines'] as $row) {
+                if (is_array($row) && isset($row['name'], $row['kind'], $row['value'], $row['amount']) && is_string($row['name']) && in_array($row['kind'], SalaryReportDeduction::KINDS, true) && is_numeric($row['value']) && is_numeric($row['amount'])) {
+                    $lines[] = ['name' => mb_substr($row['name'], 0, 100), 'kind' => $row['kind'], 'value' => round((float) $row['value'], 2), 'amount' => round(max(0.0, (float) $row['amount']), 2)];
+                }
+            }
+            $content['deduction_lines'] = $lines === [] ? null : $lines;
         }
 
         if (array_key_exists('employee_hours', $data) && is_array($data['employee_hours'])) {

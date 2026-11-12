@@ -81,6 +81,8 @@ class SalaryReportServiceProvider extends BundleServiceProvider
             'salary_report.deleted' => 'Salary report deleted',
             'salary_report.viewed' => 'Salary report viewed',
             'salary_report.settings_updated' => 'Salary report settings updated',
+            'salary_report.deduction_saved' => 'Custom deduction saved',
+            'salary_report.deduction_deleted' => 'Custom deduction deleted',
             'salary_report.pdf_exported' => 'Salary report PDF downloaded',
             'salary_report.list_exported' => 'Salary reports exported',
         ] as $key => $label) {

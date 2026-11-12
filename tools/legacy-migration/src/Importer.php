@@ -29,6 +29,11 @@ final class Importer
 
     private const AVATAR_MAX_BYTES = 10 * 1024 * 1024;
 
+    /** Photos de magasin : mêmes limites que `PhotoStorage` du bundle (fichier de 10 Mo, 40 millions de pixels). */
+    private const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
+
+    private const PHOTO_MAX_PIXELS = 40_000_000;
+
     private const ORPHAN = 'ligne orpheline (référence absente de la source), ignorée';
 
     private \DateTimeZone $zone;
@@ -36,11 +41,17 @@ final class Importer
     /** @var array<int, true> */
     private array $users = [];
 
+    /** @var array<string, list<int>> nom d'affichage (tel qu'importé) => id des utilisateurs importés qui le portent */
+    private array $userNames = [];
+
     /** @var array<int, true> */
     private array $stores = [];
 
     /** @var array<int, true> */
     private array $shiftTypes = [];
+
+    /** @var array<int, int> id de quart importé => son ical_sequence */
+    private array $shiftSequences = [];
 
     /** @var array<int, int> ancien id de rôle => id de rôle dans la cible */
     private array $roles = [];
@@ -86,6 +97,22 @@ final class Importer
             $this->shiftTypes($report);
             $this->shifts($report);
             $this->availabilities($report);
+            $this->timeclocks($report);
+            $this->timeoffRequests($report);
+            $this->shiftClaims($report);
+            $this->shiftSwapRequests($report);
+            $this->hiringReports($report);
+            $this->resignationReports($report);
+            $this->dailyReports($report);
+            $this->dailyReportSettings($report);
+            $this->salaryReports($report);
+            $this->salaryReportSettings($report);
+            $this->salaryReportMembers($report);
+            $this->teamDirectory($report);
+            $this->messaging($report);
+            $this->storePhotos($report);
+            $this->googleCalendar($report);
+            $this->planningImport($report);
             $this->roleAssignments($report);
             $this->settings($report);
             $this->icalTokens($report);
@@ -228,6 +255,7 @@ final class Importer
                 'deleted_at' => $this->utc($user['deleted_at']),
             ]);
             $this->users[$id] = true;
+            $this->userNames[$name][] = $id;
             $report->imported('users');
 
             $profile = [
@@ -548,6 +576,7 @@ final class Importer
                 'updated_at' => $this->utc($shift['updated_at']),
                 'deleted_at' => $this->utc($shift['deleted_at']),
             ]);
+            $this->shiftSequences[$id] = max(0, (int) $shift['ical_sequence']);
             $report->imported('shifts');
         }
     }
@@ -586,6 +615,1317 @@ final class Importer
         }
         if ($dayZero > 0) {
             $report->warn("availabilities : {$dayZero} disponibilité(s) du jour 0 reprises comme dimanche (7)");
+        }
+    }
+
+    // ─── Bundles : pointage, congés, reprises et échanges de quarts ───────────
+
+    /**
+     * Vrai si la table du bundle existe dans la source et la cible ; sinon l'étape est sautée avec une note.
+     * `$into` : nom de la table cible quand il diffère de celui de la source.
+     */
+    private function bundleStep(Report $report, string $table, ?string $into = null): bool
+    {
+        $into ??= $table;
+        if (! $this->source->hasTable($table)) {
+            $report->note("{$table} : absente de la source (bundle jamais installé), reprise sautée");
+
+            return false;
+        }
+        if (! $this->target->tableExists($into)) {
+            $count = $this->source->count($table);
+            $report->tables[$into] = ['lues' => $count, 'importees' => 0, 'ignorees' => $count];
+            $report->note("{$into} : table absente de la cible (bundle non migré), {$count} ligne(s) non reprise(s) ; activez le bundle, migrez, puis recommencez sur une base vide");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /** @param  array<string, string>  $map  ancien statut => statut de la cible */
+    private function status(mixed $value, array $map): ?string
+    {
+        $text = strtolower((string) $this->str($value));
+
+        return $map[$text] ?? null;
+    }
+
+    private function user(mixed $id): ?int
+    {
+        return $id !== null && isset($this->users[(int) $id]) ? (int) $id : null;
+    }
+
+    private function timeclocks(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'timeclocks')) {
+            return;
+        }
+        $unlinked = 0;
+        $badOut = 0;
+        foreach ($this->source->rows('timeclocks', Source::OPTIONAL['timeclocks']) as $row) {
+            $report->read('timeclocks');
+            $id = (int) $row['id'];
+            if (! isset($this->users[(int) $row['user_id']], $this->stores[(int) $row['store_id']])) {
+                $report->skipped('timeclocks', self::ORPHAN);
+
+                continue;
+            }
+            $in = $this->localDateTime($row['clock_in_time']);
+            if ($in === null) {
+                $report->skipped('timeclocks', "pointage {$id} sans heure d'entrée valable, ignoré");
+
+                continue;
+            }
+            $out = $this->localDateTime($row['clock_out_time']);
+            if ($out !== null && $out < $in) {
+                $out = null;
+                $badOut++;
+            }
+            $duration = is_numeric($row['duration_minutes']) && (int) $row['duration_minutes'] >= 0
+                ? (int) $row['duration_minutes']
+                : ($out === null ? null : intdiv($out->getTimestamp() - $in->getTimestamp(), 60));
+            $shiftId = $row['shift_id'] !== null && isset($this->shiftSequences[(int) $row['shift_id']]) ? (int) $row['shift_id'] : null;
+            if ($row['shift_id'] !== null && $shiftId === null) {
+                $unlinked++;
+            }
+            $this->target->insert('timeclocks', [
+                'id' => $id,
+                'user_id' => (int) $row['user_id'],
+                'store_id' => (int) $row['store_id'],
+                'shift_id' => $shiftId,
+                'shift_date' => $this->date($row['shift_date']) ?? $in->format('Y-m-d'),
+                'clock_in_at' => $this->utc($row['clock_in_time']),
+                'clock_out_at' => $out === null ? null : $this->utc($row['clock_out_time']),
+                'duration_minutes' => $duration,
+                'clock_in_ip' => $this->str($row['clock_in_ip'], 45),
+                'clock_out_ip' => $this->str($row['clock_out_ip'], 45),
+                'notes' => $this->str($row['notes'], 65535),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('timeclocks');
+        }
+        if ($unlinked > 0) {
+            $report->warn("timeclocks : {$unlinked} pointage(s) dont le quart n'a pas été repris, lien vers le quart retiré");
+        }
+        if ($badOut > 0) {
+            $report->warn("timeclocks : {$badOut} pointage(s) dont la sortie est illisible ou antérieure à l'entrée, repris sans sortie");
+        }
+    }
+
+    private function timeoffRequests(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'timeoff_requests')) {
+            return;
+        }
+        $statuses = ['pending' => 'pending', 'approved' => 'approved', 'refused' => 'refused', 'rejected' => 'refused', 'denied' => 'refused',
+            'cancelled' => 'cancelled', 'canceled' => 'cancelled', 'withdrawn' => 'cancelled'];
+        $types = ['vacation', 'sick', 'personal', 'unpaid', 'other'];
+        $otherTypes = 0;
+        foreach ($this->source->rows('timeoff_requests', Source::OPTIONAL['timeoff_requests']) as $row) {
+            $report->read('timeoff_requests');
+            $id = (int) $row['id'];
+            if (! isset($this->users[(int) $row['user_id']], $this->stores[(int) $row['store_id']])) {
+                $report->skipped('timeoff_requests', self::ORPHAN);
+
+                continue;
+            }
+            $start = $this->date($row['start_date']);
+            $end = $this->date($row['end_date']);
+            if ($start === null || $end === null || $end < $start) {
+                $report->skipped('timeoff_requests', "demande de congé {$id} aux dates illisibles ou dont la fin précède le début, ignorée");
+
+                continue;
+            }
+            $status = $this->status($row['status'], $statuses);
+            if ($status === null) {
+                $report->skipped('timeoff_requests', "demande de congé {$id} de statut « {$row['status']} » inconnu, ignorée");
+
+                continue;
+            }
+            $type = strtolower((string) $this->str($row['type']));
+            if (! in_array($type, $types, true)) {
+                $type = 'other';
+                $otherTypes++;
+            }
+            $this->target->insert('timeoff_requests', [
+                'id' => $id,
+                'user_id' => (int) $row['user_id'],
+                'store_id' => (int) $row['store_id'],
+                'start_date' => $start,
+                'end_date' => $end,
+                'type' => $type,
+                'status' => $status,
+                'reason' => $this->str($row['reason'], 65535),
+                'admin_note' => $this->str($row['admin_note'], 65535),
+                'processed_by' => $this->user($row['processed_by']),
+                'processed_at' => $this->utc($row['processed_at']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('timeoff_requests');
+        }
+        if ($otherTypes > 0) {
+            $report->warn("timeoff_requests : {$otherTypes} demande(s) de type inconnu reprise(s) comme « other »");
+        }
+    }
+
+    private function shiftClaims(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'shift_claims')) {
+            return;
+        }
+        $statuses = ['pending' => 'pending', 'approved' => 'approved', 'rejected' => 'rejected', 'refused' => 'rejected', 'denied' => 'rejected',
+            'withdrawn' => 'withdrawn', 'cancelled' => 'withdrawn', 'canceled' => 'withdrawn'];
+        $seen = [];
+        foreach ($this->source->rows('shift_claims', Source::OPTIONAL['shift_claims']) as $row) {
+            $report->read('shift_claims');
+            $id = (int) $row['id'];
+            if (! isset($this->users[(int) $row['user_id']], $this->stores[(int) $row['store_id']], $this->shiftSequences[(int) $row['shift_id']])) {
+                $report->skipped('shift_claims', self::ORPHAN);
+
+                continue;
+            }
+            $key = (int) $row['shift_id'].'|'.(int) $row['user_id'];
+            if (isset($seen[$key])) {
+                $report->skipped('shift_claims', "candidature {$id} en double (même quart, même employé), ignorée");
+
+                continue;
+            }
+            $status = $this->status($row['status'], $statuses);
+            if ($status === null) {
+                $report->skipped('shift_claims', "candidature {$id} de statut « {$row['status']} » inconnu, ignorée");
+
+                continue;
+            }
+            $seen[$key] = true;
+            $this->target->insert('shift_claims', [
+                'id' => $id,
+                'shift_id' => (int) $row['shift_id'],
+                'user_id' => (int) $row['user_id'],
+                'store_id' => (int) $row['store_id'],
+                'status' => $status,
+                'note' => $this->str($row['note'], 65535),
+                'resolved_at' => $this->utc($row['resolved_at']),
+                'resolved_by' => $this->user($row['resolved_by']),
+                'created_at' => $this->utc($row['created_at']) ?? $this->utc($row['claimed_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('shift_claims');
+        }
+    }
+
+    private function shiftSwapRequests(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'shift_swap_requests')) {
+            return;
+        }
+        // Dans la cible « accepted » = échange approuvé et appliqué ; le « oui » du collègue est `accepted_at`, statut pending.
+        $statuses = ['pending' => 'pending', 'accepted' => 'pending', 'approved' => 'accepted', 'refused' => 'refused', 'rejected' => 'refused',
+            'denied' => 'refused', 'cancelled' => 'cancelled', 'canceled' => 'cancelled', 'withdrawn' => 'cancelled'];
+        $lostAcceptor = 0;
+        foreach ($this->source->rows('shift_swap_requests', Source::OPTIONAL['shift_swap_requests']) as $row) {
+            $report->read('shift_swap_requests');
+            $id = (int) $row['id'];
+            if (! isset($this->stores[(int) $row['store_id']], $this->users[(int) $row['requester_id']], $this->shiftSequences[(int) $row['requester_shift_id']])) {
+                $report->skipped('shift_swap_requests', self::ORPHAN);
+
+                continue;
+            }
+            if ($row['target_user_id'] === null || $row['target_shift_id'] === null) {
+                $report->skipped('shift_swap_requests', "échange {$id} sans collègue ou sans quart cible (la cible les exige), ignoré");
+
+                continue;
+            }
+            if (! isset($this->users[(int) $row['target_user_id']], $this->shiftSequences[(int) $row['target_shift_id']])) {
+                $report->skipped('shift_swap_requests', self::ORPHAN);
+
+                continue;
+            }
+            $status = $this->status($row['status'], $statuses);
+            if ($status === null) {
+                $report->skipped('shift_swap_requests', "échange {$id} de statut « {$row['status']} » inconnu, ignoré");
+
+                continue;
+            }
+            if ($row['accepted_by_id'] !== null) {
+                $lostAcceptor++;
+            }
+            $this->target->insert('shift_swap_requests', [
+                'id' => $id,
+                'store_id' => (int) $row['store_id'],
+                'requester_id' => (int) $row['requester_id'],
+                'target_user_id' => (int) $row['target_user_id'],
+                'requester_shift_id' => (int) $row['requester_shift_id'],
+                'target_shift_id' => (int) $row['target_shift_id'],
+                'requester_shift_sequence' => $this->shiftSequences[(int) $row['requester_shift_id']],
+                'target_shift_sequence' => $this->shiftSequences[(int) $row['target_shift_id']],
+                'status' => $status,
+                'reason' => $this->str($row['reason'], 65535),
+                'accepted_at' => $this->utc($row['accepted_at']),
+                'approved_by_id' => $this->user($row['approved_by_id']),
+                'approved_at' => $this->utc($row['approved_at']),
+                'applied_requester_shift_id' => null,
+                'applied_target_shift_id' => null,
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('shift_swap_requests');
+        }
+        if ($lostAcceptor > 0) {
+            $report->note("shift_swap_requests : accepted_by_id n'existe plus dans la cible ({$lostAcceptor} valeur(s) perdue(s))");
+        }
+    }
+
+    // ─── Bundles : rapports d'embauche, de démission et journaliers ───────────
+
+    private function hiringReports(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'hiring_reports')) {
+            return;
+        }
+        foreach ($this->source->rows('hiring_reports', Source::OPTIONAL['hiring_reports']) as $row) {
+            $report->read('hiring_reports');
+            if (! isset($this->stores[(int) $row['store_id']])) {
+                $report->skipped('hiring_reports', self::ORPHAN);
+
+                continue;
+            }
+            $this->target->insert('hiring_reports', [
+                'id' => (int) $row['id'],
+                'store_id' => (int) $row['store_id'],
+                'user_id' => $this->user($row['user_id']),
+                'employee_number' => $this->str($row['employee_number'], 255),
+                'employee_name' => $this->str($row['employee_name'], 255),
+                'furigana_last_name' => $this->str($row['furigana_last_name'], 255),
+                'furigana_first_name' => $this->str($row['furigana_first_name'], 255),
+                'gender' => $this->str($row['gender'], 255),
+                'tax_classification' => $this->str($row['tax_classification'], 255),
+                'birth_date' => $this->date($row['birth_date']),
+                'hire_date' => $this->date($row['hire_date']),
+                'education' => $this->str($row['education'], 255),
+                'postal_code' => $this->str($row['postal_code'], 255),
+                'address' => $this->str($row['address'], 65535),
+                'phone' => $this->str($row['phone'], 255),
+                'mobile_phone' => $this->str($row['mobile_phone'], 255),
+                'email' => $this->str($row['email'], 255),
+                'guarantor_name' => $this->str($row['guarantor_name'], 255),
+                'guarantor_phone' => $this->str($row['guarantor_phone'], 255),
+                'store_name' => $this->str($row['store_name'], 255),
+                'hired_by' => $this->str($row['hired_by'], 255),
+                'notes' => $this->str($row['notes'], 65535),
+                'created_by' => $this->user($row['created_by']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('hiring_reports');
+        }
+    }
+
+    private function resignationReports(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'resignation_reports')) {
+            return;
+        }
+        foreach ($this->source->rows('resignation_reports', Source::OPTIONAL['resignation_reports']) as $row) {
+            $report->read('resignation_reports');
+            if (! isset($this->stores[(int) $row['store_id']])) {
+                $report->skipped('resignation_reports', self::ORPHAN);
+
+                continue;
+            }
+            $this->target->insert('resignation_reports', [
+                'id' => (int) $row['id'],
+                'store_id' => (int) $row['store_id'],
+                'user_id' => $this->user($row['user_id']),
+                'employee_number' => $this->str($row['employee_number'], 255),
+                'employee_name' => $this->str($row['employee_name'], 255),
+                'resignation_date' => $this->date($row['resignation_date']),
+                'reason' => $this->str($row['reason'], 65535),
+                'resignation_notice' => $this->str($row['resignation_notice'], 65535),
+                'notes' => $this->str($row['notes'], 65535),
+                'person_in_charge' => $this->str($row['person_in_charge'], 255),
+                'deactivated_at' => null,
+                'created_by' => $this->user($row['created_by']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('resignation_reports');
+        }
+    }
+
+    private function dailyReports(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'daily_reports')) {
+            return;
+        }
+        $statuses = ['draft' => 'draft', 'submitted' => 'submitted', 'validated' => 'validated', 'approved' => 'validated'];
+        $seen = [];
+        $deleted = 0;
+        $unreadable = 0;
+        foreach ($this->source->rows('daily_reports', Source::OPTIONAL['daily_reports']) as $row) {
+            $report->read('daily_reports');
+            $id = (int) $row['id'];
+            if (! isset($this->stores[(int) $row['store_id']])) {
+                $report->skipped('daily_reports', self::ORPHAN);
+
+                continue;
+            }
+            // La cible n'a pas de corbeille pour les rapports : un rapport supprimé n'est pas repris.
+            if ($this->str($row['deleted_at']) !== null) {
+                $deleted++;
+                $report->skipped('daily_reports', "rapport {$id} supprimé dans l'ancienne version, non repris");
+
+                continue;
+            }
+            $date = $this->date($row['report_date']);
+            if ($date === null) {
+                $report->skipped('daily_reports', "rapport {$id} à la date illisible, ignoré");
+
+                continue;
+            }
+            $key = (int) $row['store_id'].'|'.$date;
+            if (isset($seen[$key])) {
+                $report->skipped('daily_reports', "rapport {$id} en double (même magasin, même jour), ignoré");
+
+                continue;
+            }
+            $status = $this->status($row['status'], $statuses);
+            if ($status === null) {
+                $report->skipped('daily_reports', "rapport {$id} de statut « {$row['status']} » inconnu, ignoré");
+
+                continue;
+            }
+            $seen[$key] = true;
+            foreach (['sales_total', 'labor_cost', 'waste_total', 'customer_count'] as $field) {
+                if ($row[$field] !== null && $row[$field] !== '' && ! is_numeric($row[$field])) {
+                    $unreadable++;
+                }
+            }
+            $this->target->insert('daily_reports', [
+                'id' => $id,
+                'store_id' => (int) $row['store_id'],
+                'author_id' => $this->user($row['author_id']),
+                'report_date' => $date,
+                'sales_total' => $this->decimal($row['sales_total']) ?? '0.00',
+                'customer_count' => is_numeric($row['customer_count']) ? max(0, (int) $row['customer_count']) : 0,
+                'labor_cost' => $this->decimal($row['labor_cost']) ?? '0.00',
+                'waste_total' => $this->decimal($row['waste_total']) ?? '0.00',
+                'notes' => $this->str($row['notes'], 65535),
+                'status' => $status,
+                'submitted_at' => $this->utc($row['submitted_at']),
+                'validated_by' => $this->user($row['validated_by']),
+                'validated_at' => $this->utc($row['validated_at']),
+                'mail_sent_at' => $this->utc($row['mail_sent_at']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('daily_reports');
+        }
+        if ($deleted > 0) {
+            $report->note("daily_reports : {$deleted} rapport(s) supprimé(s) (deleted_at) non repris, la cible n'a pas de corbeille");
+        }
+        if ($unreadable > 0) {
+            $report->warn("daily_reports : {$unreadable} montant(s) illisible(s) repris comme 0");
+        }
+    }
+
+    /** Réglages du rapport journalier : JSON de `stores.daily_report_settings`, un par magasin. */
+    private function dailyReportSettings(Report $report): void
+    {
+        if (! $this->source->hasColumn('stores', 'daily_report_settings')) {
+            return;
+        }
+        $rows = [];
+        foreach ($this->source->rows('stores', ['id', 'daily_report_settings']) as $row) {
+            if ($this->str($row['daily_report_settings']) !== null) {
+                $rows[] = $row;
+            }
+        }
+        if ($rows === []) {
+            return;
+        }
+        if (! $this->target->tableExists('daily_report_settings')) {
+            $report->tables['daily_report_settings'] = ['lues' => count($rows), 'importees' => 0, 'ignorees' => count($rows)];
+            $report->note('daily_report_settings : table absente de la cible (bundle non migré), '.count($rows).' réglage(s) non repris ; activez le bundle, migrez, puis recommencez sur une base vide');
+
+            return;
+        }
+        $known = ['auto_send_on_validate', 'auto_validate_time', 'reminder_time', 'no_report_time', 'show_columns', 'cumulative_mode', 'mail_recipient_ids'];
+        $columns = ['employee', 'type', 'schedule', 'gross_hours', 'pause', 'net_hours'];
+        $clock = function (mixed $value, ?string $default): ?string {
+            $time = $this->time($value);
+
+            return $time === null ? $default : substr($time, 0, 5);
+        };
+        $lostKeys = 0;
+        foreach ($rows as $row) {
+            $report->read('daily_report_settings');
+            $settings = json_decode((string) $row['daily_report_settings'], true);
+            if (! is_array($settings) || array_is_list($settings) || array_intersect(array_keys($settings), $known) === []) {
+                $report->skipped('daily_report_settings', 'réglages du magasin '.$row['id'].' illisibles ou sans réglage connu, valeurs par défaut de la cible');
+
+                continue;
+            }
+            $lostKeys += count(array_diff(array_keys($settings), $known));
+            $show = is_array($settings['show_columns'] ?? null) ? array_values(array_intersect($columns, $settings['show_columns'])) : [];
+            $recipients = [];
+            foreach (is_array($settings['mail_recipient_ids'] ?? null) ? $settings['mail_recipient_ids'] : [] as $recipient) {
+                if (is_scalar($recipient) && $this->user($recipient) !== null && count($recipients) < 20) {
+                    $recipients[(int) $recipient] = (int) $recipient;
+                }
+            }
+            $mode = strtolower((string) $this->str($settings['cumulative_mode'] ?? null));
+            $this->target->insert('daily_report_settings', [
+                'store_id' => (int) $row['id'],
+                'auto_send_on_validate' => $this->flag($settings['auto_send_on_validate'] ?? null, false),
+                'auto_validate_time' => $clock($settings['auto_validate_time'] ?? null, null),
+                'reminder_time' => $clock($settings['reminder_time'] ?? null, '15:00'),
+                'no_report_time' => $clock($settings['no_report_time'] ?? null, '18:00'),
+                'show_columns' => $show === [] ? null : json_encode($show),
+                'cumulative_mode' => in_array($mode, ['per_day', 'cumulative_system', 'cumulative_input'], true) ? $mode : 'per_day',
+                'mail_recipient_ids' => $recipients === [] ? null : json_encode(array_values($recipients)),
+            ]);
+            $report->imported('daily_report_settings');
+        }
+        if ($lostKeys > 0) {
+            $report->note("daily_report_settings : {$lostKeys} clé(s) de réglage sans équivalent dans la cible (ex. anciens can_*_roles) non reprise(s)");
+        }
+    }
+
+    // ─── Bundle : fiches de paie ──────────────────────────────────────────────
+
+    /**
+     * Fiches de paie. Données de paie : aucune valeur n'est recalculée ni corrigée ; ce qui ne se convertit pas de façon
+     * certaine est écarté (champ perdu, ou ligne ignorée) avec un avertissement.
+     */
+    private function salaryReports(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'salary_reports')) {
+            return;
+        }
+        $amounts = ['total_payment', 'total_deductions', 'income_tax_base', 'withholding_tax', 'residence_tax', 'other_deductions',
+            'net_payment', 'hand_delivered_salary', 'bank_transfer_salary', 'staff_man_hours', 'staff_total_payment', 'staff_avg_hourly_wage'];
+        $counts = ['active_employees', 'new_hires', 'resigned_staff'];
+        $seen = [];
+        $ambiguous = 0;
+        $unknown = 0;
+        $lostHours = 0;
+        foreach ($this->source->rows('salary_reports', Source::OPTIONAL['salary_reports']) as $row) {
+            $report->read('salary_reports');
+            $id = (int) $row['id'];
+            if (! isset($this->stores[(int) $row['store_id']])) {
+                $report->skipped('salary_reports', self::ORPHAN);
+
+                continue;
+            }
+            $month = $this->str($row['target_month']);
+            if ($month === null || preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) !== 1) {
+                $report->skipped('salary_reports', "fiche {$id} au mois « {$row['target_month']} » illisible (AAAA-MM attendu), ignorée");
+
+                continue;
+            }
+            // Une fiche individuelle dont l'employé n'existe plus n'est jamais reprise comme fiche « du magasin ».
+            $individual = $row['user_id'] !== null && $row['user_id'] !== '';
+            $userId = $individual ? $this->user($row['user_id']) : null;
+            if ($individual && $userId === null) {
+                $report->skipped('salary_reports', "fiche {$id} d'un employé absent de la source, ignorée (elle ne devient pas une fiche du magasin)");
+
+                continue;
+            }
+            $unreadable = array_values(array_filter(array_merge($amounts, $counts), fn (string $field): bool => $row[$field] !== null && $row[$field] !== ''
+                && (! is_numeric($row[$field]) || (in_array($field, $counts, true) && (float) $row[$field] < 0))));
+            if ($unreadable !== []) {
+                $report->skipped('salary_reports', "fiche {$id} au champ « {$unreadable[0]} » illisible, ignorée");
+
+                continue;
+            }
+            $key = (int) $row['store_id'].'|'.$month.'|'.($userId ?? '');
+            if (isset($seen[$key])) {
+                $report->skipped('salary_reports', "fiche {$id} en double (même magasin, même mois, même employé), ignorée");
+
+                continue;
+            }
+            $seen[$key] = true;
+
+            $charge = $this->str($row['person_in_charge'], 255);
+            $chargeId = null;
+            if ($charge !== null) {
+                $matches = $this->userNames[$charge] ?? [];
+                if (count($matches) === 1) {
+                    $chargeId = $matches[0];
+                } elseif ($matches === []) {
+                    $unknown++;
+                } else {
+                    $ambiguous++;
+                }
+            }
+            $hours = $this->str($row['employee_work_hours']);
+            $employeeHours = $hours === null ? null : $this->employeeHours($hours);
+            if ($hours !== null && $employeeHours === null) {
+                $lostHours++;
+            }
+
+            $values = [];
+            foreach ($amounts as $field) {
+                $values[$field] = $this->decimal($row[$field]) ?? '0.00';
+            }
+            foreach ($counts as $field) {
+                $values[$field] = is_numeric($row[$field]) ? (int) $row[$field] : 0;
+            }
+            // `deduction_lines` (instantané des retenues personnalisées) est nouveau dans la cible : laissé à sa valeur nulle.
+            $this->target->insert('salary_reports', [
+                'id' => $id,
+                'store_id' => (int) $row['store_id'],
+                'user_id' => $userId,
+                'target_month' => $month,
+                'person_in_charge_id' => $chargeId,
+                'employee_hours' => $employeeHours,
+                'hire_registrations' => $this->str($row['hire_registrations'], 65535),
+                'remarks' => $this->str($row['remarks'], 65535),
+                'created_by' => $this->user($row['created_by']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ] + $values);
+            $report->imported('salary_reports');
+        }
+        if ($unknown > 0) {
+            $report->warn("salary_reports : {$unknown} responsable(s) (person_in_charge) sans utilisateur du même nom, valeur perdue (null)");
+        }
+        if ($ambiguous > 0) {
+            $report->warn("salary_reports : {$ambiguous} responsable(s) (person_in_charge) dont le nom est porté par plusieurs utilisateurs, valeur perdue (null)");
+        }
+        if ($lostHours > 0) {
+            $report->warn("salary_reports : {$lostHours} champ(s) employee_work_hours (texte libre ou forme inconnue) non repris, la cible stocke des minutes par employé");
+        }
+    }
+
+    /**
+     * Ancien `employee_work_hours` (texte libre) : repris seulement s'il s'agit d'un JSON valide de la forme lue par la
+     * cible, `[{user_id, minutes}]`, employés importés et minutes entières positives ; jamais reconstruit.
+     */
+    private function employeeHours(string $text): ?string
+    {
+        $data = json_decode($text, true);
+        if (! is_array($data) || $data === [] || ! array_is_list($data)) {
+            return null;
+        }
+        $hours = [];
+        foreach ($data as $entry) {
+            if (! is_array($entry) || array_keys($entry) !== ['user_id', 'minutes']
+                || ! is_int($entry['user_id']) || ! isset($this->users[$entry['user_id']])
+                || ! is_int($entry['minutes']) || $entry['minutes'] < 0) {
+                return null;
+            }
+            $hours[] = ['user_id' => $entry['user_id'], 'minutes' => $entry['minutes']];
+        }
+
+        return json_encode($hours);
+    }
+
+    /** Retenues d'un magasin : `store_deduction_settings` (une ligne par magasin), taux repris tels quels. */
+    private function salaryReportSettings(Report $report): void
+    {
+        if (! $this->bundleStep($report, 'store_deduction_settings', 'salary_report_settings')) {
+            return;
+        }
+        $rates = ['health_insurance_rate', 'pension_rate', 'employment_insurance_rate', 'income_tax_rate', 'resident_tax_monthly'];
+        foreach ($this->source->rows('store_deduction_settings', Source::OPTIONAL['store_deduction_settings']) as $row) {
+            $report->read('salary_report_settings');
+            if (! isset($this->stores[(int) $row['store_id']])) {
+                $report->skipped('salary_report_settings', self::ORPHAN);
+
+                continue;
+            }
+            $values = [];
+            foreach ($rates as $field) {
+                $values[$field] = $this->decimal($row[$field]);
+                if ($values[$field] === null) {
+                    $report->skipped('salary_report_settings', 'réglage du magasin '.$row['store_id']." au taux « {$field} » illisible, ignoré (valeurs par défaut de la cible)");
+
+                    continue 2;
+                }
+            }
+            $this->target->insert('salary_report_settings', [
+                'store_id' => (int) $row['store_id'],
+                'deductions_enabled' => $this->flag($row['enabled'], false),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ] + $values);
+            $report->imported('salary_report_settings');
+        }
+    }
+
+    /** Employés soumis aux retenues : `store_user.subject_to_deductions` ; « non soumis » est l'absence de ligne dans la cible. */
+    private function salaryReportMembers(Report $report): void
+    {
+        if (! $this->source->hasColumn('store_user', 'subject_to_deductions')) {
+            return;
+        }
+        $rows = [];
+        foreach ($this->source->rows('store_user', ['id', 'store_id', 'user_id', 'subject_to_deductions', 'created_at', 'updated_at']) as $row) {
+            $value = strtolower((string) $this->str($row['subject_to_deductions']));
+            if ((is_numeric($value) && (int) $value !== 0) || in_array($value, ['true', 'on', 'yes'], true)) {
+                $rows[] = $row;
+            }
+        }
+        if ($rows === []) {
+            return;
+        }
+        if (! $this->target->tableExists('salary_report_members')) {
+            $report->tables['salary_report_members'] = ['lues' => count($rows), 'importees' => 0, 'ignorees' => count($rows)];
+            $report->note('salary_report_members : table absente de la cible (bundle non migré), '.count($rows).' employé(s) soumis aux retenues non repris ; activez le bundle, migrez, puis recommencez sur une base vide');
+
+            return;
+        }
+        $seen = [];
+        foreach ($rows as $row) {
+            $report->read('salary_report_members');
+            $key = (int) $row['store_id'].'|'.(int) $row['user_id'];
+            if (! isset($this->stores[(int) $row['store_id']], $this->users[(int) $row['user_id']]) || isset($seen[$key])) {
+                $report->skipped('salary_report_members', self::ORPHAN);
+
+                continue;
+            }
+            $seen[$key] = true;
+            $this->target->insert('salary_report_members', [
+                'store_id' => (int) $row['store_id'],
+                'user_id' => (int) $row['user_id'],
+                'subject_to_deductions' => 1,
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('salary_report_members');
+        }
+    }
+
+    // ─── Bundle : annuaire ────────────────────────────────────────────────────
+
+    /**
+     * Annuaire : colonnes facultatives de `users` (`Source::DIRECTORY_COLUMNS`), une ligne `team_directory_profiles` seulement si
+     * un champ est rempli ou si l'employé a demandé à ne pas figurer (sans ligne, l'employé est visible). Une valeur trop longue
+     * pour la cible est ignorée (jamais tronquée).
+     */
+    private function teamDirectory(Report $report): void
+    {
+        $present = array_values(array_filter(Source::DIRECTORY_COLUMNS, fn (string $column): bool => $this->source->hasColumn('users', $column)));
+        if ($present === []) {
+            return;
+        }
+        $limits = ['bio' => 65535, 'skills' => 500, 'languages_spoken' => 255, 'hobbies' => 500];
+        $rows = [];
+        foreach ($this->source->rows('users', array_merge(['id', 'created_at', 'updated_at'], $present)) as $row) {
+            if (! isset($this->users[(int) $row['id']])) {
+                continue;
+            }
+            $hidden = in_array('show_in_directory', $present, true) && $this->flag($row['show_in_directory'], true) === 0;
+            $filled = false;
+            foreach (array_keys($limits) as $column) {
+                $filled = $filled || ($this->str($row[$column] ?? null) !== null);
+            }
+            if ($hidden || $filled) {
+                $rows[] = $row;
+            }
+        }
+        if ($rows === []) {
+            return;
+        }
+        if (! $this->target->tableExists('team_directory_profiles')) {
+            $report->tables['team_directory_profiles'] = ['lues' => count($rows), 'importees' => 0, 'ignorees' => count($rows)];
+            $report->note('team_directory_profiles : table absente de la cible (bundle non migré), '.count($rows).' profil(s) non repris ; activez le bundle, migrez, puis recommencez sur une base vide');
+
+            return;
+        }
+        foreach ($rows as $row) {
+            $report->read('team_directory_profiles');
+            $id = (int) $row['id'];
+            $values = [];
+            foreach ($limits as $column => $max) {
+                $text = $this->str($row[$column] ?? null);
+                if ($text !== null && mb_strlen($text) > $max) {
+                    $report->warn("team_directory_profiles : champ « {$column} » de l'utilisateur {$id} trop long pour la cible ({$max} caractères au plus), non repris");
+                    $text = null;
+                }
+                $values[$column] = $text;
+            }
+            $show = $this->flag($row['show_in_directory'] ?? null, true);
+            if ($show === 1 && array_filter($values, static fn (?string $value): bool => $value !== null) === []) {
+                $report->skipped('team_directory_profiles', "profil de l'utilisateur {$id} sans aucun champ repris, ignoré");
+
+                continue;
+            }
+            $this->target->insert('team_directory_profiles', ['user_id' => $id] + $values + [
+                'show_in_directory' => $show,
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported('team_directory_profiles');
+        }
+    }
+
+    // ─── Bundle : messagerie ──────────────────────────────────────────────────
+
+    /**
+     * Messagerie : fils, participants et messages, identifiants conservés. Les trois tables sont reprises ensemble (les
+     * participants et les messages dépendent des fils). Rien n'est inventé : un fil sans sujet reprend un sujet vide (la cible
+     * l'accepte), un fil sans participant ni message est repris tel quel, le créateur n'est pas ajouté aux participants.
+     */
+    private function messaging(Report $report): void
+    {
+        $ready = true;
+        foreach (['message_threads', 'thread_participants', 'thread_messages'] as $table) {
+            $ready = $this->bundleStep($report, $table) && $ready;
+        }
+        if (! $ready) {
+            return;
+        }
+
+        $threads = [];
+        foreach ($this->source->rows('message_threads', Source::OPTIONAL['message_threads']) as $row) {
+            $report->read('message_threads');
+            $id = (int) $row['id'];
+            if (! isset($this->stores[(int) $row['store_id']], $this->users[(int) $row['creator_id']])) {
+                $report->skipped('message_threads', self::ORPHAN);
+
+                continue;
+            }
+            $subject = $this->str($row['subject']) ?? '';
+            if (mb_strlen($subject) > 255) {
+                $report->skipped('message_threads', "fil {$id} au sujet trop long pour la cible (255 caractères au plus), ignoré");
+
+                continue;
+            }
+            $this->target->insert('message_threads', [
+                'id' => $id,
+                'store_id' => (int) $row['store_id'],
+                'creator_id' => (int) $row['creator_id'],
+                'subject' => $subject,
+                'last_message_at' => $this->utc($row['last_message_at']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $threads[$id] = true;
+            $report->imported('message_threads');
+        }
+
+        $seen = [];
+        foreach ($this->source->rows('thread_participants', Source::OPTIONAL['thread_participants']) as $row) {
+            $report->read('thread_participants');
+            $key = (int) $row['thread_id'].'|'.(int) $row['user_id'];
+            if (! isset($threads[(int) $row['thread_id']], $this->users[(int) $row['user_id']])) {
+                $report->skipped('thread_participants', self::ORPHAN);
+
+                continue;
+            }
+            if (isset($seen[$key])) {
+                $report->skipped('thread_participants', 'participant en double (même fil, même employé), ignoré');
+
+                continue;
+            }
+            $seen[$key] = true;
+            $this->target->insert('thread_participants', [
+                'id' => (int) $row['id'],
+                'thread_id' => (int) $row['thread_id'],
+                'user_id' => (int) $row['user_id'],
+                'is_read' => $this->flag($row['is_read'], false),
+                'last_read_at' => $this->utc($row['last_read_at']),
+                'hidden_at' => null,
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['created_at']),
+            ]);
+            $report->imported('thread_participants');
+        }
+
+        foreach ($this->source->rows('thread_messages', Source::OPTIONAL['thread_messages']) as $row) {
+            $report->read('thread_messages');
+            $id = (int) $row['id'];
+            if (! isset($threads[(int) $row['thread_id']], $this->users[(int) $row['sender_id']])) {
+                $report->skipped('thread_messages', self::ORPHAN);
+
+                continue;
+            }
+            $sentAt = $this->utc($row['created_at']);
+            if ($sentAt === null || ! is_string($row['body']) || trim($row['body']) === '') {
+                $report->skipped('thread_messages', "message {$id} sans texte ou à la date illisible, ignoré");
+
+                continue;
+            }
+            $this->target->insert('thread_messages', [
+                'id' => $id,
+                'thread_id' => (int) $row['thread_id'],
+                'sender_id' => (int) $row['sender_id'],
+                'body' => $row['body'],
+                'erased_at' => null,
+                'sent_at' => $sentAt,
+                'created_at' => $sentAt,
+                'updated_at' => $sentAt,
+            ]);
+            $report->imported('thread_messages');
+        }
+    }
+
+    // ─── Bundle : photos de magasin ───────────────────────────────────────────
+
+    /**
+     * Photos de magasin : les fichiers sont copiés (jamais re-encodés) vers le dossier privé du bundle sous un nom généré ;
+     * une image dont le fichier manque, est illisible ou n'est ni JPEG ni PNG n'est pas reprise (pas de ligne sans fichier) et
+     * une soumission supprimée ou sans aucune image reprise est ignorée. Aucun fichier n'est copié en simulation.
+     */
+    private function storePhotos(Report $report): void
+    {
+        $ready = $this->bundleStep($report, 'store_photo_submissions');
+        $ready = $this->bundleStep($report, 'store_photo_images') && $ready;
+        if (! $ready) {
+            return;
+        }
+
+        /** @var array<int, array<string, mixed>> $pending soumissions valables, insérées avec leur première image reprise */
+        $pending = [];
+        foreach ($this->source->rows('store_photo_submissions', Source::OPTIONAL['store_photo_submissions']) as $row) {
+            $report->read('store_photo_submissions');
+            $id = (int) $row['id'];
+            if (! isset($this->stores[(int) $row['store_id']])) {
+                $report->skipped('store_photo_submissions', self::ORPHAN);
+
+                continue;
+            }
+            if ($this->str($row['deleted_at']) !== null) {
+                $report->skipped('store_photo_submissions', "soumission {$id} supprimée dans l'ancienne version, non reprise");
+
+                continue;
+            }
+            $pending[$id] = $row;
+        }
+
+        $inserted = [];
+        foreach ($this->source->rows('store_photo_images', Source::OPTIONAL['store_photo_images'], 'submission_id') as $row) {
+            $report->read('store_photo_images');
+            $id = (int) $row['id'];
+            $submissionId = (int) $row['submission_id'];
+            if (! isset($pending[$submissionId])) {
+                $report->skipped('store_photo_images', self::ORPHAN);
+
+                continue;
+            }
+            $file = $this->copyPhoto($id, $row['filepath'], $report);
+            if ($file === null) {
+                $report->tables['store_photo_images']['ignorees']++;
+
+                continue;
+            }
+            if (! isset($inserted[$submissionId])) {
+                $submission = $pending[$submissionId];
+                $this->target->insert('store_photo_submissions', [
+                    'id' => $submissionId,
+                    'store_id' => (int) $submission['store_id'],
+                    'created_by' => $this->user($submission['created_by']),
+                    'notes' => $this->str($submission['notes'], 65535),
+                    'archived_at' => null,
+                    'created_at' => $this->utc($submission['created_at']),
+                    'updated_at' => $this->utc($submission['updated_at']),
+                ]);
+                $inserted[$submissionId] = true;
+                $report->imported('store_photo_submissions');
+            }
+            $this->target->insert('store_photo_images', [
+                'id' => $id,
+                'submission_id' => $submissionId,
+                'filename' => $this->str($row['filename'], 255) ?? basename(str_replace('\\', '/', (string) $row['filepath'])),
+                'path' => $file['path'],
+                'mime_type' => $file['mime'],
+                'filesize' => $file['size'],
+                'width' => $file['width'],
+                'height' => $file['height'],
+                'sort_order' => max(0, (int) $row['sort_order']),
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['created_at']),
+            ]);
+            $report->imported('store_photo_images');
+        }
+        foreach (array_diff_key($pending, $inserted) as $id => $submission) {
+            $report->skipped('store_photo_submissions', "soumission {$id} sans aucune image reprise, ignorée");
+        }
+    }
+
+    /**
+     * Copie une photo de la source (chemin relatif au dossier `uploads` de la source, avec les mêmes protections que les avatars)
+     * vers `store-photos/<32 hexadécimaux>.jpg|png` du disque privé de la cible. Null, avec un avertissement, si elle est refusée.
+     *
+     * @return array{path: string, mime: string, size: int, width: int, height: int}|null
+     */
+    private function copyPhoto(int $imageId, mixed $path, Report $report): ?array
+    {
+        $name = $this->str($path, 512);
+        $reject = function (string $why) use ($report, $imageId, $name): ?array {
+            $report->warn("store_photo_images : fichier « {$name} » de l'image {$imageId} non repris ({$why})");
+
+            return null;
+        };
+        if ($name === null) {
+            return $reject('chemin vide');
+        }
+        $relative = str_replace('\\', '/', $name);
+        if (str_contains($relative, "\0") || preg_match('#^(/|[A-Za-z]:)#', $relative) === 1 || in_array('..', explode('/', $relative), true)) {
+            return $reject('chemin refusé');
+        }
+        $root = $this->source->uploadsDir === null ? false : realpath($this->source->uploadsDir);
+        if ($root === false) {
+            return $reject('dossier des fichiers de la source introuvable');
+        }
+        $real = false;
+        // Le chemin enregistré est relatif à `uploads/`, avec ou sans ce préfixe.
+        foreach ([$relative, preg_replace('#^(storage/)?uploads/#', '', $relative) ?? $relative] as $candidate) {
+            $file = $root.DIRECTORY_SEPARATOR.$candidate;
+            if (is_file($file) && ! is_link($file)) {
+                $real = realpath($file);
+                break;
+            }
+        }
+        if ($real === false) {
+            return $reject('fichier absent');
+        }
+        if (! str_starts_with($real, $root.DIRECTORY_SEPARATOR)) {
+            return $reject('chemin refusé');
+        }
+        $size = filesize($real);
+        $info = $size === false || $size < 1 || $size > self::PHOTO_MAX_BYTES ? false : @getimagesize($real);
+        if ($info === false || $info[0] < 1 || $info[1] < 1 || $info[0] * $info[1] > self::PHOTO_MAX_PIXELS) {
+            return $reject('ce n\'est pas une image acceptable');
+        }
+        [$extension, $mime] = match ($info[2]) {
+            IMAGETYPE_JPEG => ['jpg', 'image/jpeg'],
+            IMAGETYPE_PNG => ['png', 'image/png'],
+            default => [null, null],
+        };
+        if ($extension === null) {
+            return $reject('seuls JPEG et PNG sont repris');
+        }
+
+        $generated = bin2hex(random_bytes(16)).'.'.$extension;
+        if (! $this->dryRun) {
+            $directory = $this->target->storageDir.'/store-photos';
+            if (! is_dir($directory) && ! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
+                throw new MigrationException("Impossible de créer le dossier des photos de la cible : {$directory}");
+            }
+            $destination = $directory.'/'.$generated;
+            if (! @copy($real, $destination)) {
+                throw new MigrationException("Impossible de copier la photo vers {$destination}");
+            }
+            $this->copiedFiles[] = $destination;
+        }
+
+        return ['path' => $generated, 'mime' => $mime, 'size' => (int) $size, 'width' => $info[0], 'height' => $info[1]];
+    }
+
+    // ─── Bundle : calendrier Google ───────────────────────────────────────────
+
+    /**
+     * Calendrier Google : le jeton de rafraîchissement legacy (chiffré par l'ancien `SecretBox` avec le secret d'instance) est
+     * déchiffré puis rechiffré avec l'APP_KEY de la cible. Une liaison dont le jeton est illisible (altéré, autre secret, secret
+     * absent, format inconnu) n'est pas reprise : l'utilisateur reconnecte son agenda. Ni le jeton ni le secret ne figurent
+     * jamais dans le rapport. Liens et file d'attente : seulement ceux des liaisons reprises ; `source_id` devient `source_key`
+     * (`shift` : id du quart ; `timeoff` : `timeoff-<id>`, l'identifiant stable que lit le bundle).
+     */
+    private function googleCalendar(Report $report): void
+    {
+        $ready = $this->bundleStep($report, 'calendar_connections', 'google_calendar_connections');
+        $ready = $this->bundleStep($report, 'calendar_event_links', 'google_calendar_event_links') && $ready;
+        $ready = $this->bundleStep($report, 'calendar_sync_queue', 'google_calendar_sync_queue') && $ready;
+        if (! $ready) {
+            return;
+        }
+        $connectionsTable = 'google_calendar_connections';
+        $encrypter = null;
+        if ($this->source->count('calendar_connections') > 0) {
+            if ($this->target->appKey === null) {
+                throw new MigrationException('APP_KEY absente du .env de la cible : les jetons Google ne peuvent pas être rechiffrés (php artisan key:generate, puis recommencez).');
+            }
+            $encrypter = new AppEncrypter($this->target->appKey);
+        }
+        $secret = $this->source->instanceSecret();
+
+        $connections = [];
+        $byUser = [];
+        $storeFallback = 0;
+        $unknownStatus = 0;
+        foreach ($this->source->rows('calendar_connections', Source::OPTIONAL['calendar_connections']) as $row) {
+            $report->read($connectionsTable);
+            $id = (int) $row['id'];
+            $userId = (int) $row['user_id'];
+            if (strtolower((string) $this->str($row['provider'])) !== 'google') {
+                $report->skipped($connectionsTable, "liaison {$id} d'un autre fournisseur que Google, ignorée");
+
+                continue;
+            }
+            if (! isset($this->users[$userId])) {
+                $report->skipped($connectionsTable, self::ORPHAN);
+
+                continue;
+            }
+            if (isset($byUser[$userId])) {
+                $report->skipped($connectionsTable, "liaison {$id} en double (même employé), ignorée");
+
+                continue;
+            }
+            $stored = is_string($row['refresh_token']) ? trim($row['refresh_token']) : '';
+            $token = $stored === '' ? null : SecretBox::decrypt($stored, $secret);
+            if ($token === null || $token === '' || $encrypter === null) {
+                $why = $stored !== '' && SecretBox::isEncrypted($stored) && ! SecretBox::usableSecret($secret)
+                    ? "secret d'instance absent ou trop court"
+                    : 'jeton vide, altéré, chiffré avec un autre secret ou de format inconnu';
+                $report->skipped($connectionsTable, "liaison {$id} (employé {$userId}) non reprise, jeton illisible ({$why}) : l'employé devra reconnecter son agenda Google");
+
+                continue;
+            }
+            $email = $this->str($row['account_email']);
+            $calendarId = $this->str($row['calendar_id']);
+            $calendarName = $this->str($row['calendar_name']);
+            foreach ([$email, $calendarId, $calendarName] as $text) {
+                if ($text !== null && mb_strlen($text) > 255) {
+                    $report->skipped($connectionsTable, "liaison {$id} : adresse, identifiant ou nom d'agenda trop long pour la cible (255 caractères au plus), ignorée");
+
+                    continue 2;
+                }
+            }
+            $status = strtolower((string) $this->str($row['status']));
+            if (! in_array($status, ['active', 'revoked'], true)) {
+                $status = 'revoked';
+                $unknownStatus++;
+            }
+            $options = json_decode((string) $row['options'], true);
+            $options = is_array($options) ? $options : [];
+            $nameMode = 'instance';
+            $storeId = null;
+            if (($options['calendar_name_mode'] ?? null) === 'store' && (int) ($options['store_id'] ?? 0) > 0) {
+                if (isset($this->stores[(int) $options['store_id']])) {
+                    $nameMode = 'store';
+                    $storeId = (int) $options['store_id'];
+                } else {
+                    $storeFallback++;
+                }
+            }
+            $reconciled = isset($options['reconciled_at']) && is_numeric($options['reconciled_at']) && (int) $options['reconciled_at'] > 0
+                ? gmdate('Y-m-d H:i:s', (int) $options['reconciled_at'])
+                : null;
+
+            $this->target->insert($connectionsTable, [
+                'id' => $id,
+                'user_id' => $userId,
+                'account_email' => $email,
+                'refresh_token' => $encrypter->encryptString($token),
+                'calendar_id' => $calendarId,
+                'calendar_name' => $calendarName,
+                'status' => $status,
+                'name_mode' => $nameMode,
+                'store_id' => $storeId,
+                'last_sync_at' => $this->utc($row['last_sync_at']),
+                'last_error' => $this->errorText($row['last_error']),
+                'reconciled_at' => $reconciled,
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $connections[$id] = true;
+            $byUser[$userId] = true;
+            $report->imported($connectionsTable);
+        }
+        if ($storeFallback > 0) {
+            $report->warn("{$connectionsTable} : {$storeFallback} liaison(s) nommée(s) d'après un magasin absent de la cible, nom d'agenda de l'organisation utilisé");
+        }
+        if ($unknownStatus > 0) {
+            $report->warn("{$connectionsTable} : {$unknownStatus} liaison(s) au statut inconnu reprise(s) comme révoquées (l'employé doit reconnecter son agenda)");
+        }
+
+        $this->calendarSources($report, 'calendar_event_links', 'google_calendar_event_links', $connections, function (array $row): ?array {
+            $hash = is_string($row['content_hash']) ? strtolower(trim($row['content_hash'])) : '';
+            $event = $this->str($row['external_event_id']);
+            if (preg_match('/^[0-9a-f]{64}$/', $hash) !== 1 || $event === null || mb_strlen($event) > 255) {
+                return null;
+            }
+
+            return ['external_event_id' => $event, 'content_hash' => $hash, 'synced_at' => $this->utc($row['synced_at'])];
+        });
+        $this->calendarSources($report, 'calendar_sync_queue', 'google_calendar_sync_queue', $connections, fn (array $row): array => [
+            'attempts' => is_numeric($row['attempts']) ? max(0, min(65535, (int) $row['attempts'])) : 0,
+            'next_attempt_at' => $this->utc($row['next_attempt_at']),
+            'last_error' => $this->errorText($row['last_error']),
+            'created_at' => $this->utc($row['created_at']),
+        ]);
+    }
+
+    /** Message d'erreur de synchronisation repris tel quel (jamais tronqué : au-delà de la colonne `text`, abandonné). */
+    private function errorText(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' && strlen($value) <= 65535 ? $value : null;
+    }
+
+    /**
+     * Liens d'événements et file d'attente : mêmes règles (liaison reprise, type de source connu, une ligne par liaison, type et
+     * source) ; `$columns` donne les colonnes propres à la table, ou null pour ignorer la ligne.
+     *
+     * @param  array<int, true>  $connections  liaisons reprises
+     * @param  \Closure(array<string, mixed>): ?array<string, mixed>  $columns
+     */
+    private function calendarSources(Report $report, string $from, string $into, array $connections, \Closure $columns): void
+    {
+        $seen = [];
+        foreach ($this->source->rows($from, Source::OPTIONAL[$from]) as $row) {
+            $report->read($into);
+            $connection = (int) $row['connection_id'];
+            if (! isset($connections[$connection])) {
+                $report->skipped($into, self::ORPHAN.' (liaison non reprise)');
+
+                continue;
+            }
+            $type = strtolower((string) $this->str($row['source_type']));
+            if (! in_array($type, ['shift', 'timeoff'], true)) {
+                $report->skipped($into, "ligne {$row['id']} d'un type de source inconnu de la cible, ignorée");
+
+                continue;
+            }
+            if (! is_numeric($row['source_id']) || (int) $row['source_id'] <= 0) {
+                $report->skipped($into, "ligne {$row['id']} sans identifiant de source valable, ignorée");
+
+                continue;
+            }
+            $key = $type === 'timeoff' ? 'timeoff-'.(int) $row['source_id'] : (string) (int) $row['source_id'];
+            $unique = $connection.'|'.$type.'|'.$key;
+            if (isset($seen[$unique])) {
+                $report->skipped($into, "ligne {$row['id']} en double (même liaison et même source), ignorée");
+
+                continue;
+            }
+            $extra = $columns($row);
+            if ($extra === null) {
+                $report->skipped($into, "ligne {$row['id']} à l'empreinte ou à l'identifiant d'événement illisible, ignorée");
+
+                continue;
+            }
+            $seen[$unique] = true;
+            $this->target->insert($into, ['id' => (int) $row['id'], 'connection_id' => $connection, 'source_type' => $type, 'source_key' => $key] + $extra);
+            $report->imported($into);
+        }
+    }
+
+    // ─── Bundle : import de planning ──────────────────────────────────────────
+
+    /**
+     * Import de planning : réglages de grille par magasin (`store_import_settings`) puis alias de noms (`import_aliases`).
+     * Un réglage invalide n'est pas repris (les valeurs par défaut du bundle s'appliquent) : rien n'est inventé ni corrigé.
+     * `stores.excel_import_settings` a disparu de l'ancienne version, seule la table compte.
+     */
+    private function planningImport(Report $report): void
+    {
+        if ($this->bundleStep($report, 'store_import_settings')) {
+            $this->planningImportSettings($report);
+        }
+        if ($this->bundleStep($report, 'import_aliases')) {
+            $this->planningImportAliases($report);
+        }
+    }
+
+    private function planningImportSettings(Report $report): void
+    {
+        $table = 'store_import_settings';
+        $numbers = ['col_start', 'col_end', 'base_hour', 'minutes_per_col', 'block_size', 'shift_rows', 'auto_pause_after_minutes', 'auto_pause_minutes'];
+        $seen = [];
+        foreach ($this->source->rows($table, Source::OPTIONAL[$table]) as $row) {
+            $report->read($table);
+            $storeId = (int) $row['store_id'];
+            if (! isset($this->stores[$storeId])) {
+                $report->skipped($table, self::ORPHAN);
+
+                continue;
+            }
+            if (isset($seen[$storeId])) {
+                $report->skipped($table, "réglage {$row['id']} en double (même magasin {$storeId}), ignoré");
+
+                continue;
+            }
+            $values = [];
+            foreach ($numbers as $field) {
+                $text = is_scalar($row[$field]) ? trim((string) $row[$field]) : '';
+                if (preg_match('/^\d+$/', $text) !== 1 || (int) $text > 65535) {
+                    $report->skipped($table, "réglage du magasin {$storeId} : « {$field} » doit être un entier de 0 à 65535, réglage ignoré (valeurs par défaut du bundle)");
+
+                    continue 2;
+                }
+                $values[$field] = (int) $text;
+            }
+            $pattern = is_string($row['sheet_filter_pattern']) ? $row['sheet_filter_pattern'] : '';
+            // Même construction que le bundle (`GridSettings::regex`) : le motif est entouré de « ~ » et lu en UTF-8.
+            if ($pattern === '' || mb_strlen($pattern) > 255 || @preg_match('~'.str_replace('~', '\~', $pattern).'~u', '') === false) {
+                $report->skipped($table, "réglage du magasin {$storeId} : motif de feuille vide, de plus de 255 caractères ou qui n'est pas une expression régulière valable, réglage ignoré (valeurs par défaut du bundle)");
+
+                continue;
+            }
+            $seen[$storeId] = true;
+            $this->target->insert($table, ['store_id' => $storeId] + $values + [
+                'sheet_filter_pattern' => $pattern,
+                'created_at' => $this->utc($row['created_at']),
+                'updated_at' => $this->utc($row['updated_at']),
+            ]);
+            $report->imported($table);
+        }
+    }
+
+    /**
+     * Alias : le nom est stocké en minuscules dans la cible (avertissement agrégé s'il change) ; la colonne s'appelle `staff_name`
+     * (ou `alias_name` dans une base ancienne, `staff_name` préféré). Deux noms identiques après mise en minuscules : le plus
+     * petit `id` est gardé.
+     */
+    private function planningImportAliases(Report $report): void
+    {
+        $table = 'import_aliases';
+        $nameColumns = array_values(array_filter(Source::ONE_OF[$table], fn (string $column): bool => $this->source->hasColumn($table, $column)));
+        $seen = [];
+        $lowered = 0;
+        foreach ($this->source->rows($table, array_merge(Source::OPTIONAL[$table], $nameColumns)) as $row) {
+            $report->read($table);
+            $storeId = (int) $row['store_id'];
+            $userId = (int) $row['user_id'];
+            if (! isset($this->stores[$storeId], $this->users[$userId])) {
+                $report->skipped($table, self::ORPHAN);
+
+                continue;
+            }
+            $name = null;
+            foreach ($nameColumns as $column) {
+                $name ??= $this->str($row[$column]);
+            }
+            if ($name === null || mb_strlen($name) > 255) {
+                $report->skipped($table, "alias {$row['id']} au nom vide ou de plus de 255 caractères, ignoré");
+
+                continue;
+            }
+            $key = mb_strtolower($name);
+            if (mb_strlen($key) > 255) {
+                $report->skipped($table, "alias {$row['id']} au nom de plus de 255 caractères, ignoré");
+
+                continue;
+            }
+            if (isset($seen[$storeId.'|'.$key])) {
+                $report->skipped($table, "alias {$row['id']} en double après mise en minuscules (même magasin et même nom), ignoré");
+
+                continue;
+            }
+            $seen[$storeId.'|'.$key] = true;
+            if ($key !== $name) {
+                $lowered++;
+            }
+            $created = $this->utc($row['created_at']);
+            $this->target->insert($table, [
+                'id' => (int) $row['id'],
+                'store_id' => $storeId,
+                'staff_name' => $key,
+                'user_id' => $userId,
+                'created_at' => $created,
+                'updated_at' => $created,
+            ]);
+            $report->imported($table);
+        }
+        if ($lowered > 0) {
+            $report->warn("{$table} : {$lowered} nom(s) d'alias mis en minuscules (la cible les compare en minuscules)");
         }
     }
 

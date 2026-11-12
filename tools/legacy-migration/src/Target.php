@@ -22,6 +22,8 @@ final class Target
         public readonly string $driver,
         /** Racine du disque `local` de l'application (storage/app/private), où vont les avatars. */
         public readonly string $storageDir,
+        /** APP_KEY de la cible : sert à rechiffrer les secrets repris (jeton Google) ; null = ces secrets ne peuvent pas être repris. */
+        #[\SensitiveParameter] public readonly ?string $appKey = null,
     ) {
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -62,7 +64,7 @@ final class Target
             throw new MigrationException("Pilote de base de la cible non pris en charge : {$driver} (sqlite, mysql ou mariadb).");
         }
 
-        return new self($pdo, $driver, $base.'/storage/app/private');
+        return new self($pdo, $driver, $base.'/storage/app/private', ($env['APP_KEY'] ?? '') !== '' ? $env['APP_KEY'] : null);
     }
 
     /** @return array<string, string> */

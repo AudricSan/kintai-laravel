@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Retenues personnalisées par magasin, en plus des retenues fixes (inchangées).
+- Nouvelle table `salary_report_deductions` (nom libre unique par magasin, type `percent` = % du brut de l'employé ou `fixed` = montant mensuel par employé payé, valeur, actif ; 20 au plus par magasin) et nouvelle colonne JSON `salary_reports.deduction_lines` (instantané `[{name, kind, value, amount}]`).
+- Gérées dans l'écran « Réglages » (ajout, modification, activation, suppression) avec la permission `salary_reports.settings` sur le magasin ; journal `salary_report.deduction_saved` / `.deduction_deleted` sans nom ni valeur.
+- Appliquées aux employés assujettis dont le brut est positif, quand les retenues du magasin sont activées ; une retenue `fixed` ne s'applique qu'aux employés payés. Elles entrent dans `total_deductions`, `net_payment` et le virement par défaut, jamais dans `other_deductions`, `withholding_tax` ni `residence_tax`.
+- Le détail d'un rapport enregistré (écran, PDF) et l'API (`deduction_lines`) lisent l'instantané : modifier ou supprimer une retenue ne change pas les rapports existants ; recalculer un rapport le remplace. L'API ne permet pas de poser l'instantané.
+
 ## 1.0.0
 
 Reconstruction en package Laravel natif à partir du bundle `salary-report` 3.0.0 de l'ancien framework : pages Livewire + Flux, droits dédiés par action avec portée magasin et droits par défaut du rôle `manager` (contrat 1.2), fonctionnalité de magasin `salary_reports`, journal (`ActivityRecorder`), API `/api/v1/salary-report/reports`.

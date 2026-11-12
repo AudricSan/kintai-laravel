@@ -7,6 +7,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Planning\ShiftWageCalculator;
 use Kintai\Bundles\SalaryReport\Models\SalaryReport;
+use Kintai\Bundles\SalaryReport\Models\SalaryReportDeduction;
 use Kintai\Bundles\SalaryReport\Models\SalaryReportMember;
 use Kintai\Bundles\SalaryReport\Models\SalaryReportSetting;
 
@@ -95,6 +96,7 @@ class SalaryCalculator
             'withholding_tax' => $deductions['income_tax'],
             'residence_tax' => $deductions['resident_tax'],
             'total_deductions' => $deductions['total'],
+            'deduction_lines' => $deductions['lines'],
             'net_payment' => round($totalCost - $deductions['total'], 2),
             // Par défaut, le net est versé par virement ; la part remise en main propre se règle à la main.
             'bank_transfer_salary' => round($totalCost - $deductions['total'], 2),
@@ -102,8 +104,8 @@ class SalaryCalculator
         ];
 
         return ['preset' => $preset, 'detail' => $employee === null
-            ? $this->storeDetail($from, $to, $minutes, $costs, $breakdown, $setting)
-            : $this->employeeDetail($employee, $from, $to, $rows, (int) ($minutes[$employee->id] ?? 0), $totalCost, $breakdown, $setting)];
+            ? $this->storeDetail($from, $to, $minutes, $costs, $breakdown, $setting, $deductions['lines'])
+            : $this->employeeDetail($employee, $from, $to, $rows, (int) ($minutes[$employee->id] ?? 0), $totalCost, $breakdown, $setting, $deductions['lines'])];
     }
 
     /**
@@ -126,11 +128,11 @@ class SalaryCalculator
      * Retenues sur le coût de chaque employé assujetti : une seule fois la taxe résidentielle fixe par employé payé.
      *
      * @param  array<int, float>  $costs  Coût brut par employé.
-     * @return array{other: float, income_tax: float, resident_tax: float, total: float}
+     * @return array{other: float, income_tax: float, resident_tax: float, total: float, lines: list<array{name: string, kind: string, value: float, amount: float}>}
      */
     private function deductions(SalaryReportSetting $setting, int $storeId, array $costs): array
     {
-        $none = ['other' => 0.0, 'income_tax' => 0.0, 'resident_tax' => 0.0, 'total' => 0.0];
+        $none = ['other' => 0.0, 'income_tax' => 0.0, 'resident_tax' => 0.0, 'total' => 0.0, 'lines' => []];
         if (! $setting->deductions_enabled) {
             return $none;
         }
@@ -139,6 +141,11 @@ class SalaryCalculator
         $other = 0.0;
         $incomeTax = 0.0;
         $residentTax = 0.0;
+        $custom = SalaryReportDeduction::query()->where('store_id', $storeId)->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
+        $lines = [];
+        foreach ($custom as $deduction) {
+            $lines[$deduction->id] = ['name' => $deduction->name, 'kind' => $deduction->kind, 'value' => (float) $deduction->value, 'amount' => 0.0];
+        }
 
         foreach ($costs as $uid => $cost) {
             if ($cost <= 0 || ! in_array($uid, $subject, true)) {
@@ -150,22 +157,35 @@ class SalaryCalculator
             }
             $incomeTax += round($cost * (float) $setting->income_tax_rate / 100, 2);
             $residentTax += (float) $setting->resident_tax_monthly;
+
+            // Une retenue fixe ne s'applique qu'à un employé dont le brut est positif (garanti par le test ci-dessus).
+            foreach ($custom as $deduction) {
+                $lines[$deduction->id]['amount'] += $deduction->kind === SalaryReportDeduction::PERCENT ? round($cost * (float) $deduction->value / 100, 2) : (float) $deduction->value;
+            }
         }
+
+        // Seules les retenues qui s'appliquent à quelqu'un figurent dans l'instantané.
+        $lines = array_values(array_filter(
+            array_map(fn (array $line): array => array_merge($line, ['amount' => round($line['amount'], 2)]), array_values($lines)),
+            fn (array $line): bool => $line['amount'] > 0,
+        ));
+        $customTotal = round(array_sum(array_column($lines, 'amount')), 2);
 
         $other = round($other, 2);
         $incomeTax = round($incomeTax, 2);
         $residentTax = round($residentTax, 2);
 
-        return ['other' => $other, 'income_tax' => $incomeTax, 'resident_tax' => $residentTax, 'total' => round($other + $incomeTax + $residentTax, 2)];
+        return ['other' => $other, 'income_tax' => $incomeTax, 'resident_tax' => $residentTax, 'total' => round($other + $incomeTax + $residentTax + $customTotal, 2), 'lines' => $lines];
     }
 
     /**
      * @param  array<int, int>  $minutes
      * @param  array<int, float>  $costs
      * @param  list<array{name: string, minutes: int, amount: float}>  $breakdown
+     * @param  list<array{name: string, kind: string, value: float, amount: float}>  $custom
      * @return array<string, mixed>
      */
-    private function storeDetail(string $from, string $to, array $minutes, array $costs, array $breakdown, SalaryReportSetting $setting): array
+    private function storeDetail(string $from, string $to, array $minutes, array $costs, array $breakdown, SalaryReportSetting $setting, array $custom): array
     {
         $names = User::query()->whereIn('id', array_keys($minutes))->pluck('name', 'id');
         $employees = [];
@@ -176,16 +196,17 @@ class SalaryCalculator
 
         return [
             'mode' => 'store', 'from' => $from, 'to' => $to, 'employees' => $employees, 'type_breakdown' => $breakdown,
-            'deductions' => $this->settingLines($setting),
+            'deductions' => $this->settingLines($setting), 'custom_deductions' => $custom,
         ];
     }
 
     /**
      * @param  list<array<string, mixed>>  $rows
      * @param  list<array{name: string, minutes: int, amount: float}>  $breakdown
+     * @param  list<array{name: string, kind: string, value: float, amount: float}>  $custom
      * @return array<string, mixed>
      */
-    private function employeeDetail(User $employee, string $from, string $to, array $rows, int $minutes, float $cost, array $breakdown, SalaryReportSetting $setting): array
+    private function employeeDetail(User $employee, string $from, string $to, array $rows, int $minutes, float $cost, array $breakdown, SalaryReportSetting $setting, array $custom): array
     {
         $subject = SalaryReportMember::query()->where('store_id', $setting->store_id)->where('user_id', $employee->id)->where('subject_to_deductions', true)->exists();
         $applied = [];
@@ -205,10 +226,14 @@ class SalaryCalculator
             }
         }
 
+        // `compute()` filtre déjà sur l'employé et sur l'assujettissement ; le test reste pour ne rien afficher sinon.
+        $customApplied = $setting->deductions_enabled && $subject ? $custom : [];
+        $total += array_sum(array_column($customApplied, 'amount'));
+
         return [
             'mode' => 'employee', 'from' => $from, 'to' => $to, 'employee' => $employee->name, 'rows' => $rows,
             'net_minutes' => $minutes, 'gross_pay' => round($cost, 2), 'type_breakdown' => $breakdown,
-            'deductions_applied' => $setting->deductions_enabled && $subject, 'deductions' => $applied,
+            'deductions_applied' => $setting->deductions_enabled && $subject, 'deductions' => $applied, 'custom_deductions' => $customApplied,
             'total_deductions' => round($total, 2), 'net_pay' => round($cost - $total, 2),
             'any_rate' => array_filter($rows, fn (array $row): bool => $row['has_rate']) !== [],
         ];

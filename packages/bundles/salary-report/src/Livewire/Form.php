@@ -59,6 +59,14 @@ class Form extends Component
     #[Locked]
     public array $employeeHours = [];
 
+    /**
+     * Retenues personnalisées du dernier calcul (instantané enregistré avec le rapport).
+     *
+     * @var list<array{name: string, kind: string, value: float, amount: float}>
+     */
+    #[Locked]
+    public array $deductionLines = [];
+
     /** @var array<string, mixed> */
     #[Locked]
     public array $detail = [];
@@ -84,6 +92,7 @@ class Form extends Component
             $this->hireRegistrations = (string) $model->hire_registrations;
             $this->remarks = (string) $model->remarks;
             $this->employeeHours = $model->employee_hours ?? [];
+            $this->deductionLines = $model->deduction_lines ?? [];
 
             return;
         }
@@ -159,6 +168,9 @@ class Form extends Component
         /** @var list<array{user_id: int, minutes: int}> $hours */
         $hours = $preset['employee_hours'];
         $this->employeeHours = $hours;
+        /** @var list<array{name: string, kind: string, value: float, amount: float}> $lines */
+        $lines = $preset['deduction_lines'];
+        $this->deductionLines = $lines;
         $this->detail = $result['detail'];
         $this->resetErrorBag();
     }
@@ -205,7 +217,7 @@ class Form extends Component
         $data = $this->values + [
             'person_in_charge_id' => $this->personInChargeId === '' ? null : (int) $this->personInChargeId,
             'hire_registrations' => $this->hireRegistrations, 'remarks' => $this->remarks,
-            'employee_hours' => $this->employeeHours,
+            'employee_hours' => $this->employeeHours, 'deduction_lines' => $this->deductionLines,
         ];
 
         try {

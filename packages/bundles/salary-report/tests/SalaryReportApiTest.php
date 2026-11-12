@@ -101,6 +101,22 @@ class SalaryReportApiTest extends TestCase
         $this->actingWithToken($this->managerOf($this->a))->getJson(self::BASE)->assertJsonCount(2, 'data');
     }
 
+    public function test_the_report_exposes_its_custom_deduction_snapshot_and_ignores_writes_to_it(): void
+    {
+        $lines = [['name' => 'Mutual', 'kind' => 'percent', 'value' => 10, 'amount' => 8.75]];
+        $withLines = $this->report($this->a, null, ['deduction_lines' => $lines]);
+        $without = $this->report($this->a, null, ['target_month' => '2026-09']);
+        $manager = $this->managerOf($this->a);
+
+        $this->actingWithToken($manager)->getJson(self::BASE.'/'.$withLines->id)->assertOk()->assertJsonPath('data.deduction_lines', $lines)
+            ->assertJsonPath('data.other_deductions', '0.00');
+        $this->actingWithToken($manager)->getJson(self::BASE.'/'.$without->id)->assertOk()->assertJsonPath('data.deduction_lines', []);
+
+        // L'API ne pose pas l'instantané : le client n'envoie que les montants.
+        $this->actingWithToken($manager)->putJson(self::BASE.'/'.$without->id, ['deduction_lines' => $lines, 'remarks' => 'x'])->assertOk()->assertJsonPath('data.deduction_lines', []);
+        $this->actingWithToken($manager)->putJson(self::BASE.'/'.$withLines->id, ['remarks' => 'x'])->assertOk()->assertJsonPath('data.deduction_lines', $lines);
+    }
+
     public function test_show_hides_reports_out_of_scope_and_logs_the_view(): void
     {
         $own = $this->report($this->a);

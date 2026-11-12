@@ -65,6 +65,9 @@
     <tr><td>{{ __('Withholding tax') }}</td><td class="value">{{ $money($report->withholding_tax) }}</td></tr>
     <tr><td>{{ __('Residence tax') }}</td><td class="value">{{ $money($report->residence_tax) }}</td></tr>
     <tr><td>{{ __('Other deductions') }}</td><td class="value">{{ $money($report->other_deductions) }}</td></tr>
+    @foreach ($report->deduction_lines ?? [] as $row)
+        <tr><td>{{ $row['name'] }}@if ($row['kind'] === 'percent') ({{ $row['value'] }} %)@endif</td><td class="value">{{ $money($row['amount']) }}</td></tr>
+    @endforeach
     <tr><td>{{ __('Total deductions') }}</td><td class="value">{{ $money($report->total_deductions) }}</td></tr>
 </table>
 
@@ -102,7 +105,7 @@
 
 @if ($detail !== null)
     <h2>{{ __('Calculation details') }}</h2>
-    @include('salary-report::partials.detail', ['detail' => $detail, 'store' => $store])
+    @include('salary-report::partials.detail', ['detail' => $detail, 'store' => $store, 'customLines' => $report->deduction_lines ?? []])
 @endif
 
 <table class="sign">
