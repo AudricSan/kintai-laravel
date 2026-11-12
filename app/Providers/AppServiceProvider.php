@@ -53,6 +53,7 @@ use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
@@ -179,9 +180,26 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
+    /**
+     * Le lien de réinitialisation part de l'URL publique réglée (sinon `APP_URL`), jamais de l'en-tête Host : un Host
+     * forgé sur `POST /forgot-password` ferait sinon envoyer à la victime un lien valide vers le site de l'attaquant.
+     */
+    private function configurePasswordResetUrl(): void
+    {
+        ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
+            $base = rtrim($this->app->make(AppSettings::class)->publicUrl() ?: (string) config('app.url'), '/');
+
+            return $base.route('password.reset', [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false);
+        });
+    }
+
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configurePasswordResetUrl();
         $this->registerBundleApiMiddleware();
         $this->registerProfileSections();
         $this->registerStoreFeatures();

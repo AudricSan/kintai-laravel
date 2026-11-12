@@ -29,7 +29,7 @@
 <body>
 @if ($preview)
     <div class="toolbar">
-        <button type="button" onclick="window.print()">{{ __('Print') }}</button>
+        <button type="button" data-print>{{ __('Print') }}</button>
         <a href="{{ route('daily-report.pdf.download', $report->id) }}">{{ __('Download the PDF') }}</a>
         <a href="{{ route('daily-report.show', $report->id) }}">{{ __('Back') }}</a>
     </div>
@@ -110,5 +110,6 @@
         <td>{{ __('Validated by') }}<br><strong>{{ $report->validator?->name ?? $store->name }}</strong></td>
     </tr>
 </table>
+<script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });</script>
 </body>
 </html>

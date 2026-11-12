@@ -30,7 +30,13 @@ class InstallWizardTest extends TestCase
      */
     private function form(array $overrides = []): array
     {
-        return array_replace($this->ownerInput(['password_confirmation' => 'Correct-Horse-Battery-9', 'db_driver' => 'sqlite']), $overrides);
+        $this->get('/install');
+
+        return array_replace(
+            $this->ownerInput(['password_confirmation' => 'Correct-Horse-Battery-9', 'db_driver' => 'sqlite']),
+            ['setup_token' => is_file($this->installDirectory.'/install-token') ? trim((string) file_get_contents($this->installDirectory.'/install-token')) : 'none'],
+            $overrides,
+        );
     }
 
     public function test_the_form_is_shown_with_the_requirements(): void
@@ -40,6 +46,22 @@ class InstallWizardTest extends TestCase
             ->assertSee('name="email"', false)
             ->assertSee('name="_token"', false)
             ->assertSee('PHP 8.3.0');
+    }
+
+    public function test_a_missing_or_wrong_token_refuses_the_installation(): void
+    {
+        $this->post('/install', $this->form(['setup_token' => 'wrong']))->assertSessionHasErrors('install');
+        $this->post('/install', array_diff_key($this->form(), ['setup_token' => 1]))->assertSessionHasErrors('install');
+
+        $this->assertFileDoesNotExist($this->installDirectory.'/installed');
+        $this->assertFileDoesNotExist($this->installDirectory.'/.env');
+    }
+
+    public function test_the_token_is_removed_once_installed(): void
+    {
+        $this->post('/install', $this->form())->assertRedirect(route('login'));
+
+        $this->assertFileDoesNotExist($this->installDirectory.'/install-token');
     }
 
     public function test_installs_then_redirects_to_login_and_closes_the_wizard(): void

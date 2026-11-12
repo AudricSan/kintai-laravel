@@ -45,6 +45,43 @@ class Installer
         return is_string($path) && $path !== '' ? $path : storage_path('app/installed');
     }
 
+    /** Jeton d'installation web, à lire sur le serveur (même dossier que le verrou). */
+    public function setupTokenPath(): string
+    {
+        return dirname($this->lockPath()).DIRECTORY_SEPARATOR.'install-token';
+    }
+
+    /**
+     * Crée au besoin le jeton exigé par l'assistant web : sans lui, le premier visiteur d'une instance vierge
+     * (ou remise à zéro) deviendrait Owner. Il faut un accès au serveur (FTP, SSH) pour le lire.
+     *
+     * @throws InstallFailure
+     */
+    public function ensureSetupToken(): void
+    {
+        $path = $this->setupTokenPath();
+
+        if (is_file($path)) {
+            return;
+        }
+
+        if (! is_dir(dirname($path)) && ! @mkdir(dirname($path), 0755, true) && ! is_dir(dirname($path))) {
+            throw new InstallFailure(__('The setup token could not be written.'));
+        }
+
+        if (@file_put_contents($path, bin2hex(random_bytes(16)).'
+') === false) {
+            throw new InstallFailure(__('The setup token could not be written.'));
+        }
+    }
+
+    public function verifySetupToken(string $given): bool
+    {
+        $expected = is_file($this->setupTokenPath()) ? trim((string) @file_get_contents($this->setupTokenPath())) : '';
+
+        return $expected !== '' && hash_equals($expected, trim($given));
+    }
+
     public function isInstalled(): bool
     {
         if (is_file($this->lockPath())) {
@@ -113,10 +150,66 @@ class Installer
      */
     public function install(array $input, bool $force = false, bool $production = true): User
     {
+        $this->assertNotInstalled();
+
+        // Verrou exclusif : deux requêtes simultanées ne peuvent pas créer deux Owners.
+        $guard = $this->acquireInstallGuard();
+
+        try {
+            // Une installation concurrente a pu se terminer entre-temps.
+            $this->assertNotInstalled();
+
+            return $this->performInstall($input, $force, $production);
+        } finally {
+            flock($guard, LOCK_UN);
+            fclose($guard);
+        }
+    }
+
+    /**
+     * @throws InstallFailure
+     */
+    private function assertNotInstalled(): void
+    {
         if ($this->isInstalled()) {
             throw new InstallFailure(__('Kintai is already installed.'));
         }
+    }
 
+    /**
+     * @return resource
+     *
+     * @throws InstallFailure
+     */
+    private function acquireInstallGuard()
+    {
+        $path = $this->lockPath().'.installing';
+
+        if (! is_dir(dirname($path)) && ! @mkdir(dirname($path), 0755, true) && ! is_dir(dirname($path))) {
+            throw new InstallFailure(__('The installation lock could not be written.'));
+        }
+
+        $handle = @fopen($path, 'c');
+
+        if ($handle === false || ! flock($handle, LOCK_EX | LOCK_NB)) {
+            if (is_resource($handle)) {
+                fclose($handle);
+            }
+
+            throw new InstallFailure(__('An installation is already in progress.'));
+        }
+
+        return $handle;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     *
+     * @throws InstallFailure
+     * @throws ValidationException
+     */
+    private function performInstall(array $input, bool $force, bool $production): User
+    {
         $failures = $this->requirements->failures();
         if ($failures !== []) {
             throw new InstallFailure(__('Requirements are not met: :list', ['list' => implode(', ', $failures)]));
@@ -167,6 +260,8 @@ class Installer
         if (@file_put_contents($path, now()->toIso8601String()."\n") === false) {
             throw new InstallFailure(__('The installation lock could not be written.'));
         }
+
+        @unlink($this->setupTokenPath());
     }
 
     private function hasOwner(): bool

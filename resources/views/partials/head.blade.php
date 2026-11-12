@@ -26,10 +26,10 @@
 @fonts
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-@fluxAppearance
+@fluxAppearance(['nonce' => \Illuminate\Support\Facades\Vite::cspNonce()])
 
 {{-- Thème de l'Owner (réglages > Apparence) : variables CSS construites à partir de couleurs #rrggbb validées. --}}
 @php($themeCss = app(\App\Settings\AppSettings::class)->themeCss())
 @if ($themeCss !== '')
-    <style data-kintai-theme>{!! $themeCss !!}</style>
+    <style data-kintai-theme nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">{!! $themeCss !!}</style>
 @endif

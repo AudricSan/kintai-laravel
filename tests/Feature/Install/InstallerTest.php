@@ -60,6 +60,26 @@ class InstallerTest extends TestCase
         $this->assertDatabaseHas('roles', ['slug' => 'employee']);
     }
 
+    public function test_refuses_a_concurrent_installation_and_releases_the_guard(): void
+    {
+        $guard = fopen($this->installer->lockPath().'.installing', 'c');
+        $this->assertTrue(flock($guard, LOCK_EX | LOCK_NB));
+
+        try {
+            $this->installer->install($this->ownerInput());
+            $this->fail('A concurrent installation must be refused.');
+        } catch (InstallFailure $e) {
+            $this->assertSame(__('An installation is already in progress.'), $e->getMessage());
+            $this->assertFileDoesNotExist($this->installDirectory.'/.env');
+        } finally {
+            flock($guard, LOCK_UN);
+            fclose($guard);
+        }
+
+        $this->installer->install($this->ownerInput());
+        $this->assertSame(1, User::query()->count());
+    }
+
     public function test_refuses_when_already_installed_without_touching_anything(): void
     {
         $this->installer->install($this->ownerInput());

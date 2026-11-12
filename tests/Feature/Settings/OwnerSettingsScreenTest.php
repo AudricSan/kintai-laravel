@@ -45,7 +45,7 @@ class OwnerSettingsScreenTest extends TestCase
     /** Contenu de la balise de thème du `<head>` de l'écran. */
     private function themeStyle(): string
     {
-        preg_match('/<style data-kintai-theme>(.*?)<\/style>/s', (string) $this->get(route('settings.app'))->getContent(), $match);
+        preg_match('/<style data-kintai-theme[^>]*>(.*?)<\/style>/s', (string) $this->get(route('settings.app'))->getContent(), $match);
 
         return $match[1] ?? '';
     }

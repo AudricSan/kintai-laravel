@@ -42,12 +42,12 @@ class LicenseClient
         return $this->baseUrl() !== null && trim($this->settings->string('license.api_key')) !== '';
     }
 
-    /** Base de l'API (http ou https seulement, sans slash final). */
+    /** Base de l'API (https seulement, la clé produit y transite ; sans slash final). */
     public function baseUrl(): ?string
     {
         $url = rtrim(trim($this->settings->string('license.api_url')), '/');
 
-        return preg_match('#^https?://[^\s]+$#i', $url) === 1 ? $url : null;
+        return preg_match('#^https://[^\s]+$#i', $url) === 1 ? $url : null;
     }
 
     private function call(string $endpoint, string $licenseKey, string $instanceId, ?string $label): LicenseResult

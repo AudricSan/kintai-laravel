@@ -31,7 +31,7 @@
         </style>
     </head>
     <body>
-        <div class="actions"><button type="button" onclick="window.print()">{{ __('Print') }}</button></div>
+        <div class="actions"><button type="button" data-print>{{ __('Print') }}</button></div>
         <h1>{{ $store->name }} - {{ __('Timeline') }}</h1>
         <div class="meta">
             {{ $viewport->firstDay->translatedFormat('d M Y') }}@if ($viewport->numDays > 1) - {{ $viewport->lastDay()->translatedFormat('d M Y') }}@endif
@@ -72,5 +72,6 @@
                 </div>
             </div>
         @endforeach
-    </body>
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });</script>
+</body>
 </html>

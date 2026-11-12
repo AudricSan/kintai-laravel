@@ -22,7 +22,7 @@
 <body>
 @if ($preview)
     <div class="toolbar">
-        <button type="button" onclick="window.print()">{{ __('Print') }}</button>
+        <button type="button" data-print>{{ __('Print') }}</button>
         <a href="{{ route('salary-report.export.pdf.download', request()->query()) }}">{{ __('Download the PDF') }}</a>
         <a href="{{ route('salary-report.index') }}">{{ __('Back') }}</a>
     </div>
@@ -60,5 +60,6 @@
         @endforelse
     </tbody>
 </table>
+<script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });</script>
 </body>
 </html>

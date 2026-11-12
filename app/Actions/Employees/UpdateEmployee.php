@@ -61,6 +61,11 @@ class UpdateEmployee
 
         $input = $this->normalizeEmployeeInput($input);
 
+        // Changer l'e-mail permet de réinitialiser le mot de passe : même plafond que pour une réinitialisation directe.
+        if (array_key_exists('email', $input) && strcasecmp((string) $input['email'], (string) $target->email) !== 0) {
+            $this->authorizeTakeOver($actor, 'employees.update', $target);
+        }
+
         $data = Validator::make($input, $this->identityRules($target->id) + $this->hrRules() + [
             'is_active' => ['required', 'boolean'],
             'is_owner' => ['required', 'boolean'],
