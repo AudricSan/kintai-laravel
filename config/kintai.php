@@ -206,7 +206,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Client du LicenseManager (serveur séparé ; l'achat se fait sur son lien public, Kintai ne gère aucun paiement).
-    | `api_url` : base de l'API (sans slash final). `api_key` : clé produit envoyée en `Authorization: Bearer` (jamais dans le dépôt).
+    | `api_url` : base de l'API (sans slash final). `api_key` : jeton public du produit Kintai envoyé en `Authorization: Bearer` (capacité `register`, fait pour être public : le secret est la clé de licence de chaque client ; surchargeable par `KINTAI_LICENSE_API_KEY`).
     | `public_key_b64` : clé publique RSA du serveur (PEM encodé en base64), qui vérifie la signature du jeton de licence.
     | `product` : produit attendu dans le jeton. `issuer` : émetteur attendu (vide = non contrôlé). `buy_url` : page d'achat
     | (vide = `{base de api_url}/buy/kintai`). `timeout` : délai (secondes) des appels. `free_limits` : limites du palier
@@ -216,7 +216,7 @@ return [
 
     'license' => [
         'api_url' => env('KINTAI_LICENSE_API_URL', 'https://licence.audricrosier.be/api/v1'),
-        'api_key' => env('KINTAI_LICENSE_API_KEY'),
+        'api_key' => env('KINTAI_LICENSE_API_KEY', 'lm_JNd0s3ENKxv8ABkYYAU2PyPiVTtonxI8eBzmfQeN685a5508'),
         'public_key_b64' => 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0NCk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBcC9NY00wV0d2SERiTWVnS2FUZUcNCjJsMHJJOC9KSStGcGtVQlQ2VE55V0NTUjFPQk1GMTZoODBrRW1ReXgzTWwwVGJNcTJCb215ZmpCdDhDMVV4ZWQNCmlCSGVQVUpQN2o0N1dYb3htV1BzVE1DRXRsM2FqRVB3ME5NYmdLTnpmUzhnUW5nZ0RIaUpScEdicHVXWVhXVGwNCmxBRThuRVZvcnZ1eFFiWnZhT1gzZEgzNXVTN1p4SGdlY21vM1YwZmZsTG84eVBrRHlGbnZ1ejRxY3lDR3laOGoNCm84NDM5UU5vS0oxU3RNN3JOR1NVNjdqK0dpSHN5QzY1akNyUUdJNi9pQlo0ME1haFE3TDQwL3A0UjBSdTRwMkcNCjhJbnRTenpocUFxWTVhZXJmK0VxWkJSanhLMnNCd25IcURBWnMxWXVKNkNmQ1lOTGJlNEtQSXlqb1d6dkFNZTYNCmdRSURBUUFCDQotLS0tLUVORCBQVUJMSUMgS0VZLS0tLS0NCg==',
         'product' => 'kintai',
         'issuer' => env('KINTAI_LICENSE_ISSUER'),

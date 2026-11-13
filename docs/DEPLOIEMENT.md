@@ -50,7 +50,7 @@ HTTPS.
 | `KINTAI_API_RATE_LIMIT` | `300` | requêtes par minute sur l'API |
 | `KINTAI_NOTIFICATIONS_RETENTION_DAYS` | `90` | rétention des notifications lues |
 | `KINTAI_ACTIVITY_RETENTION_DAYS` | `180` | rétention du journal d'activité (`0` = tout garder) |
-| `KINTAI_LICENSE_API_KEY` | vide | clé produit ; sans elle, le palier gratuit s'applique (1 magasin, 15 employés, 4 bundles : plafonds appliqués à la création seulement, l'existant n'est jamais supprimé) et l'écran Licence ne peut pas demander de licence gratuite. `KINTAI_LICENSE_API_URL` (https obligatoire) a une valeur par défaut ; la clé publique de vérification est figée dans le code |
+| `KINTAI_LICENSE_API_KEY` | jeton public de Kintai (déjà fourni dans le code) | identifie Kintai auprès du serveur de licence ; sans licence activée, le palier gratuit s'applique (1 magasin, 15 employés, 4 bundles : plafonds appliqués à la création seulement, l'existant n'est jamais supprimé) et l'écran Licence ne peut pas demander de licence gratuite. `KINTAI_LICENSE_API_URL` (https obligatoire) a une valeur par défaut ; la clé publique de vérification est figée dans le code |
 | `VAPID_*` | vide | notifications Web Push (`php artisan kintai:webpush:keys` génère la paire) |
 | `FCM_ENABLED`, `FCM_PROJECT_ID`, `FCM_CREDENTIALS_PATH` | désactivé | notifications push mobiles |
 | `MAIL_*` | `log` | envoi des e-mails (à régler : sinon rien n'est envoyé) |
