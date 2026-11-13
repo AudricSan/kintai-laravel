@@ -26,6 +26,7 @@ final class CoreNotificationTypes
         $registry->register(new NotificationType('channel_broken', 'Notification channel problem', 'system', 'signal-slash', push: true, mail: true, referenceType: 'system', ownerOnly: true));
         $registry->register(new NotificationType('license_problem', 'License problem', 'system', 'key', push: true, mail: true, referenceType: 'system', ownerOnly: true));
         $registry->register(new NotificationType('license_expiring', 'License expiring soon', 'system', 'clock', push: true, mail: true, referenceType: 'system', ownerOnly: true));
+        $registry->register(new NotificationType('license_quota', 'License limit reached', 'system', 'users', push: true, mail: true, referenceType: 'system', ownerOnly: true));
         $registry->register(new NotificationType(self::TEST, 'Test notification', 'system', 'bell', push: true, mail: true, internal: true));
     }
 }

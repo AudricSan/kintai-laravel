@@ -3,6 +3,8 @@
 namespace App\System;
 
 use App\License\LicenseState;
+use App\Models\Store;
+use App\Models\User;
 use App\Push\FcmClient;
 use App\Push\VapidKeys;
 use App\Settings\AppSettings;
@@ -33,6 +35,7 @@ final class CoreSystemAlerts
         'channel_broken' => 'A notification channel is not working: :problems.',
         'license_problem' => 'The license is not valid: :problem. Kintai runs on the free tier until it is fixed.',
         'license_expiring' => 'The license expires on :date (in :days days).',
+        'license_quota' => 'The license limit is reached: :quotas. Upgrade your license to add more.',
     ];
 
     /** Libellés des problèmes de canal (clés de traduction). */
@@ -68,6 +71,7 @@ final class CoreSystemAlerts
         $alerts->register('backup_stale', 5, fn (): ?SystemAlert => app(self::class)->backupStale());
         $alerts->register('channel_broken', 6, fn (): ?SystemAlert => app(self::class)->channelBroken());
         $alerts->register('license_expiring', 7, fn (): ?SystemAlert => app(self::class)->licenseExpiring());
+        $alerts->register('license_quota', 8, fn (): ?SystemAlert => app(self::class)->licenseQuota());
     }
 
     /**
@@ -188,6 +192,37 @@ final class CoreSystemAlerts
         $date = $expires->format('Y-m-d');
 
         return new SystemAlert($date, self::BODIES['license_expiring'], ['date' => $date, 'days' => max(0, (int) ceil(now()->diffInDays($expires, false)))], route('license.index', [], false));
+    }
+
+    /**
+     * Magasins ou employés au plafond (ou au-delà, après un retour au palier gratuit) de la licence. Jamais bloquant :
+     * seule la création est refusée. L'identifiant change avec les plafonds atteints, donc un nouveau plafond renotifie.
+     */
+    public function licenseQuota(): ?SystemAlert
+    {
+        $state = app(LicenseState::class);
+        $reached = [];
+        $quotas = [];
+
+        $stores = $state->limit('max_stores');
+
+        if ($stores !== null && Store::query()->count() >= $stores) {
+            $reached[] = 'stores:'.$stores;
+            $quotas[] = __(':max stores', ['max' => $stores]);
+        }
+
+        $employees = $state->limit('max_employees');
+
+        if ($employees !== null && User::query()->count() >= $employees) {
+            $reached[] = 'employees:'.$employees;
+            $quotas[] = __(':max employees', ['max' => $employees]);
+        }
+
+        if ($reached === []) {
+            return null;
+        }
+
+        return new SystemAlert(implode(',', $reached), self::BODIES['license_quota'], ['quotas' => implode(', ', $quotas)], route('license.index', [], false));
     }
 
     /**

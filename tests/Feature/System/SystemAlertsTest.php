@@ -78,7 +78,7 @@ class SystemAlertsTest extends TestCase
             $this->assertContains($type, $this->alerts()->types());
         }
 
-        foreach (['bundle_update_available', 'license_quota'] as $deferred) {
+        foreach (['bundle_update_available'] as $deferred) {
             $this->assertFalse($registry->has($deferred));
             $this->assertNotContains($deferred, $this->alerts()->types());
         }
@@ -209,7 +209,7 @@ class SystemAlertsTest extends TestCase
 
         $this->assertArrayNotHasKey('system', $registry->grid());
         $this->assertArrayNotHasKey('system', $registry->grid($employee));
-        $this->assertSame(['core_update_available', 'migration_pending', 'backup_failed', 'backup_stale', 'channel_broken', 'license_problem', 'license_expiring'], array_map(fn (NotificationType $t): string => $t->key, $registry->grid($this->owner)['system']));
+        $this->assertSame(['core_update_available', 'migration_pending', 'backup_failed', 'backup_stale', 'channel_broken', 'license_problem', 'license_expiring', 'license_quota'], array_map(fn (NotificationType $t): string => $t->key, $registry->grid($this->owner)['system']));
 
         $this->assertArrayHasKey('backup_failed', app(NotificationPreferences::class)->matrix($this->owner));
         $this->assertArrayNotHasKey('backup_failed', app(NotificationPreferences::class)->matrix($employee));
