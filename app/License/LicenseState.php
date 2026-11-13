@@ -28,6 +28,9 @@ class LicenseState
         'license_suspended' => LicenseStatus::SUSPENDED,
     ];
 
+    /** Décalage d'horloge toléré entre le serveur de licence et cette installation (émission et échéance du jeton). */
+    private const CLOCK_LEEWAY_SECONDS = 300;
+
     public function __construct(private readonly AppSettings $settings) {}
 
     public function status(): LicenseStatus
@@ -239,7 +242,11 @@ class LicenseState
         }
 
         $previous = JWT::$timestamp;
+        $previousLeeway = JWT::$leeway;
         JWT::$timestamp = now()->getTimestamp();
+        // Les horloges du serveur de licence et de cette installation ne sont jamais exactement synchrones : sans marge,
+        // un jeton émis « dans le futur » de quelques secondes (iat) serait refusé. Cinq minutes suffisent.
+        JWT::$leeway = self::CLOCK_LEEWAY_SECONDS;
 
         try {
             $claims = json_decode((string) json_encode(JWT::decode($token, new Key($pem, 'RS256'))), true);
@@ -249,6 +256,7 @@ class LicenseState
             return ['claims' => null, 'reason' => 'invalid'];
         } finally {
             JWT::$timestamp = $previous;
+            JWT::$leeway = $previousLeeway;
         }
 
         $issuer = trim((string) config('kintai.license.issuer'));

@@ -372,6 +372,16 @@ class LicenseStateTest extends TestCase
         $this->assertNotFalse(openssl_pkey_get_public($this->state()->publicKey()));
     }
 
+    public function test_a_token_issued_a_few_seconds_in_the_future_is_accepted(): void
+    {
+        $this->app->make(AppSettings::class)->set('license.key', self::KEY);
+        $now = now()->getTimestamp();
+
+        // Horloge du serveur en avance de 2 minutes : toléré. En avance d'une heure : refusé.
+        $this->assertSame(LicenseStatus::ACTIVE, $this->statusWithToken($this->token(['iat' => $now + 120])));
+        $this->assertSame(LicenseStatus::REFUSED, $this->statusWithToken($this->token(['iat' => $now + 3600])));
+    }
+
     public function test_a_token_bound_to_another_instance_is_refused(): void
     {
         $this->app->make(AppSettings::class)->setMany(['license.key' => self::KEY]);
