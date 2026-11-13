@@ -74,7 +74,7 @@ class LicenseState
 
     /**
      * Limite d'une clé (`max_stores`, `max_employees`…) ; null = illimité. Sans licence valable, c'est le palier gratuit
-     * (`kintai.license.free_limits`, à définir) qui s'applique : pour savoir si une licence est en cours, utiliser `status()`.
+     * (`kintai.license.free_limits`) qui s'applique : pour savoir si une licence est en cours, utiliser `status()`.
      */
     public function limit(string $key): ?int
     {
@@ -83,6 +83,33 @@ class LicenseState
         $value = $limits[$key] ?? null;
 
         return is_int($value) ? $value : null;
+    }
+
+    /**
+     * Slugs des bundles accordés ; null = tous. Avec une licence valable, ce sont ceux du claim `limits.bundles` (liste de
+     * slugs, `*` ou chaîne « a,b,c ») ; un jeton sans ce claim accorde tous les bundles (jetons antérieurs aux paliers de
+     * bundles). Sans licence valable, `kintai.license.free_bundles` (`*` = tous).
+     *
+     * @return list<string>|null
+     */
+    public function bundles(): ?array
+    {
+        $status = $this->status();
+
+        if ($status->grantsRights()) {
+            $limits = $status->claims['limits'] ?? null;
+
+            return is_array($limits) && array_key_exists('bundles', $limits) ? $this->slugs($limits['bundles']) : null;
+        }
+
+        return $this->slugs(config('kintai.license.free_bundles', []));
+    }
+
+    public function allowsBundle(string $slug): bool
+    {
+        $bundles = $this->bundles();
+
+        return $bundles === null || in_array($slug, $bundles, true);
     }
 
     public function licenseKey(): string
@@ -249,6 +276,24 @@ class LicenseState
         $decoded = base64_decode(trim((string) config('kintai.license.public_key_b64')), true);
 
         return $decoded === false ? '' : trim($decoded);
+    }
+
+    /**
+     * @return list<string>|null Null si tous les bundles sont accordés (`*`) ; une valeur illisible n'en accorde aucun.
+     */
+    private function slugs(mixed $value): ?array
+    {
+        if (is_string($value)) {
+            $value = explode(',', $value);
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $slugs = array_values(array_unique(array_filter(array_map(fn (mixed $slug): string => is_string($slug) ? trim($slug) : '', $value), fn (string $slug): bool => $slug !== '')));
+
+        return in_array('*', $slugs, true) ? null : $slugs;
     }
 
     private function validatedAt(): ?CarbonImmutable

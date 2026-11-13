@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
- * Appels au LicenseManager : `/activate`, `/validate` et `/deactivate` (POST JSON, clé produit en jeton Bearer (Sanctum côté Manager)). Ne lève
+ * Appels au LicenseManager : `/register`, `/activate`, `/validate` et `/deactivate` (POST JSON, clé produit en jeton Bearer (Sanctum côté Manager)). Ne lève
  * jamais : toute panne de réseau, réponse 5xx, 429 ou JSON illisible devient un résultat `unreachable`.
  */
 class LicenseClient
@@ -34,6 +34,39 @@ class LicenseClient
     public function deactivate(string $licenseKey, string $instanceId): LicenseResult
     {
         return $this->call('deactivate', $licenseKey, $instanceId, null);
+    }
+
+    /**
+     * Demande une licence gratuite : le serveur envoie un e-mail de confirmation, puis la clé de licence (réponse 202).
+     * Un 422 (e-mail refusé) et un 429 (trop de demandes) sont des rejets ; le reste, une panne.
+     */
+    public function register(string $email, string $instanceId, ?string $label = null): LicenseResult
+    {
+        $base = $this->baseUrl();
+        $apiKey = trim($this->settings->string('license.api_key'));
+
+        if ($base === null || $apiKey === '') {
+            return LicenseResult::rejected('not_configured');
+        }
+
+        $body = ['email' => $email, 'instance_id' => $instanceId];
+
+        if ($label !== null && $label !== '') {
+            $body['instance_label'] = mb_substr($label, 0, 120);
+        }
+
+        try {
+            $response = $this->request($apiKey)->post($base.'/register', $body);
+        } catch (Throwable) {
+            return LicenseResult::unreachable();
+        }
+
+        return match ($response->status()) {
+            202 => new LicenseResult(LicenseResult::ACCEPTED, null, status: $this->string($response->json('status')) ?? 'pending_verification', httpStatus: 202),
+            429 => LicenseResult::rejected('rate_limited', 429),
+            401, 422 => LicenseResult::rejected($this->errorCode($response->json('error')) ?? 'rejected', $response->status()),
+            default => LicenseResult::unreachable($response->status()),
+        };
     }
 
     /** L'adresse et la clé produit sont-elles réglées ? */

@@ -222,7 +222,9 @@ return [
         'issuer' => env('KINTAI_LICENSE_ISSUER'),
         'buy_url' => env('KINTAI_LICENSE_BUY_URL'),
         'timeout' => 8,
-        'free_limits' => [],
+        // Palier gratuit (sans licence valable) : plafonds à la création (null = illimité) et bundles accordés (`*` = tous).
+        'free_limits' => ['max_stores' => 1, 'max_employees' => 15],
+        'free_bundles' => ['timeoff', 'timeclock', 'shift-swap', 'team-directory'],
     ],
 
 ];

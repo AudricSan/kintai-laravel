@@ -6,6 +6,10 @@ All notable changes to Kintai are documented here.
 
 ## [Unreleased]
 
+### Added
+- **License tiers enforced**: without a valid license the free tier applies (`kintai.license.free_limits`: 1 store, 15 employees; `kintai.license.free_bundles`: timeoff, timeclock, shift-swap, team-directory). `max_stores` and `max_employees` are checked at creation only (forms, API v1, import) through `App\License\LicenseLimits`: existing data is never deleted or blocked, and a missing limit means unlimited. A bundle outside the license (claim `limits.bundles`: list, `*` or `a,b,c`; a token without it grants every bundle) is never enabled, so its menu, routes, widgets and schedules are not registered; its data is kept. New `LicenseState::bundles()` and `allowsBundle()`.
+- **Free license request**: the License screen has a "Get a free license" form (`LicenseClient::register()`, `RequestFreeLicense`, audit `license.register` without the full email address); the key arrives by email and is pasted in the activation field.
+
 ### Fixed
 - **OVH shared hosting**: server compression is disabled for `/livewire*` in `public/.htaccess` (it caused `ERR_HTTP2_PROTOCOL_ERROR` on Livewire's JavaScript and `/livewire/update`).
 

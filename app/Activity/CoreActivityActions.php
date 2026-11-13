@@ -91,6 +91,7 @@ final class CoreActivityActions
                 'update.channel_changed' => 'Update channel changed',
             ],
             'License' => [
+                'license.register' => 'Free license requested',
                 'license.activated' => 'License activated',
                 'license.validated' => 'License checked',
                 'license.refused' => 'License refused by the server',

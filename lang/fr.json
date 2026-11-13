@@ -1169,5 +1169,17 @@
     "Deactivate the license on this instance? The seat is freed on the server and the free tier applies.": "Désactiver la licence sur cette instance ? Le siège est libéré sur le serveur et le palier gratuit s'applique.",
     "Buy or change a license": "Acheter ou changer de licence",
     "The product key is refused by the license server.": "La clé produit est refusée par le serveur de licence.",
-    "the license server refuses the product key and the last check has expired": "le serveur de licences refuse la clé produit et la dernière vérification a expiré"
+    "the license server refuses the product key and the last check has expired": "le serveur de licences refuse la clé produit et la dernière vérification a expiré",
+    "The store limit of your license is reached (:max). Upgrade your license to add more stores.": "Le plafond de magasins de votre licence est atteint (:max). Passez à une licence supérieure pour en ajouter.",
+    "The employee limit of your license is reached (:max). Upgrade your license to add more employees.": "Le plafond d'employés de votre licence est atteint (:max). Passez à une licence supérieure pour en ajouter.",
+    "The bundle \":name\" is not included in your license. Upgrade your license to enable it.": "Le bundle « :name » n'est pas inclus dans votre licence. Passez à une licence supérieure pour l'activer.",
+    "Not in your license": "Hors de votre licence",
+    "Free license requested": "Licence gratuite demandée",
+    "Check your mailbox: a confirmation email is on its way.": "Consultez votre boîte mail : un e-mail de confirmation est en route.",
+    "Too many requests. Try again later.": "Trop de demandes. Réessayez plus tard.",
+    "The license server refused this email address.": "Le serveur de licences a refusé cette adresse e-mail.",
+    "Get a free license": "Obtenir une licence gratuite",
+    "Enter your email address. You receive a confirmation email, then the license key by email: paste it in the License key field above and click Activate. One free license per email address.": "Saisissez votre adresse e-mail. Vous recevez un e-mail de confirmation, puis la clé de licence par e-mail : collez-la dans le champ Clé de licence ci-dessus et cliquez sur Activer. Une licence gratuite par adresse e-mail.",
+    "Unavailable until the license server address and the product key (KINTAI_LICENSE_API_URL and KINTAI_LICENSE_API_KEY in the .env file) are set.": "Indisponible tant que l'adresse du serveur de licences et la clé produit (KINTAI_LICENSE_API_URL et KINTAI_LICENSE_API_KEY dans le fichier .env) ne sont pas réglées.",
+    "Request a free license": "Demander une licence gratuite"
 }

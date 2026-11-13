@@ -2,6 +2,7 @@
 
 namespace App\Actions\Stores;
 
+use App\License\LicenseLimits;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -17,6 +18,8 @@ class CreateStore
     use AuthorizesStoreActions;
     use ManagesStoreSettings;
 
+    public function __construct(private readonly LicenseLimits $limits) {}
+
     /**
      * @param  array<string, mixed>  $input
      *
@@ -26,6 +29,8 @@ class CreateStore
     public function handle(User $actor, array $input): Store
     {
         $this->authorizeUnrestricted($actor, 'stores.create');
+
+        $this->limits->assertCanCreateStore();
 
         $data = $this->validateStoreInput($input);
 

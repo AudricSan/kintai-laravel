@@ -2,6 +2,7 @@
 
 use App\Actions\License\ActivateLicense;
 use App\Actions\License\DeactivateLicense;
+use App\Actions\License\RequestFreeLicense;
 use App\Actions\License\ValidateLicense;
 use App\License\LicenseClient;
 use App\License\LicenseResult;
@@ -16,6 +17,9 @@ use Livewire\Component;
 new #[Title('License')] class extends Component {
     /** Saisie de la clé : vidée après chaque action, jamais réaffichée. */
     public string $licenseKey = '';
+
+    /** Adresse de la demande de licence gratuite : vidée quand la demande est partie. */
+    public string $freeEmail = '';
 
     /** Message d'une opération qui a échoué. */
     public string $error = '';
@@ -41,6 +45,21 @@ new #[Title('License')] class extends Component {
             Flux::toast(variant: 'success', text: __('The license is activated.'));
         } else {
             $this->error = $this->message($result);
+        }
+    }
+
+    public function requestFree(RequestFreeLicense $request): void
+    {
+        abort_unless(Gate::allows('manage-settings'), 403);
+
+        $this->error = '';
+        $result = $request->handle(Auth::user(), $this->freeEmail);
+
+        if ($result->isAccepted()) {
+            $this->reset('freeEmail');
+            Flux::toast(variant: 'success', text: __('Check your mailbox: a confirmation email is on its way.'));
+        } else {
+            $this->error = $result->httpStatus === 422 ? __('The license server refused this email address.') : $this->message($result);
         }
     }
 
@@ -95,6 +114,7 @@ new #[Title('License')] class extends Component {
         return match (true) {
             $result->error === 'invalid_token' => __('The license server answered with a proof that could not be verified.'),
             $result->isProductKeyRejected() => __('The product key is refused by the license server.'),
+            $result->isRateLimited() => __('Too many requests. Try again later.'),
             $result->error === 'not_configured' => __('The license server is not configured.'),
             $result->kind === LicenseResult::REJECTED => __('The license server rejected the request. Check the configuration.'),
             default => __('The license server could not be reached. Try again later.'),
@@ -197,6 +217,21 @@ new #[Title('License')] class extends Component {
                 <flux:button wire:click="deactivate" wire:confirm="{{ __('Deactivate the license on this instance? The seat is freed on the server and the free tier applies.') }}" variant="danger" data-test="license-deactivate">{{ __('Deactivate') }}</flux:button>
             @endif
         </div>
+    </div>
+
+    {{-- Licence gratuite --}}
+    <div class="max-w-2xl space-y-4" data-test="license-free-form">
+        <div>
+            <flux:heading size="lg">{{ __('Get a free license') }}</flux:heading>
+            <flux:text size="sm">{{ __('Enter your email address. You receive a confirmation email, then the license key by email: paste it in the License key field above and click Activate. One free license per email address.') }}</flux:text>
+            @if (! $configured)
+                <flux:text size="sm" data-test="license-free-unavailable">{{ __('Unavailable until the license server address and the product key (KINTAI_LICENSE_API_URL and KINTAI_LICENSE_API_KEY in the .env file) are set.') }}</flux:text>
+            @endif
+        </div>
+        <form wire:submit="requestFree" class="space-y-4">
+            <flux:input wire:model="freeEmail" type="email" :label="__('Email')" autocomplete="email" :disabled="! $configured" data-test="license-free-email" />
+            <flux:button type="submit" :disabled="! $configured" data-test="license-free-submit">{{ __('Request a free license') }}</flux:button>
+        </form>
     </div>
 
     @if ($buyUrl)

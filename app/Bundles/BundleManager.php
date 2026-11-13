@@ -2,6 +2,7 @@
 
 namespace App\Bundles;
 
+use App\License\LicenseState;
 use App\Settings\AppSettings;
 use Illuminate\Foundation\Application;
 use InvalidArgumentException;
@@ -19,7 +20,8 @@ use Throwable;
  *
  * Un bundle n'est « activé » que s'il est installé, présent dans la liste et compatible avec la version du contrat
  * (`Kintai\Contracts\Contract::VERSION`) : un bundle devenu incompatible après une mise à jour est donc ignoré sans
- * erreur. Désactiver un bundle ne supprime aucune donnée (ses migrations restent chargées).
+ * erreur. Un bundle hors des droits de la licence (`LicenseState::allowsBundle()`) n'est jamais activé : c'est le point
+ * central par où passent le menu, les routes, les widgets et les commandes planifiées. Désactiver un bundle ne supprime aucune donnée (ses migrations restent chargées).
  *
  * Les bundles se branchent au démarrage de l'application : un changement d'état s'applique à partir de la requête
  * suivante (si les routes sont en cache, le fichier du cache est supprimé pour qu'elles soient recalculées).
@@ -31,6 +33,7 @@ class BundleManager implements BundleActivation
     public function __construct(
         private readonly Application $app,
         private readonly AppSettings $settings,
+        private readonly LicenseState $license,
     ) {}
 
     /**
@@ -92,13 +95,21 @@ class BundleManager implements BundleActivation
     }
 
     /**
-     * Installé, activé par l'Owner et compatible avec le contrat.
+     * Les droits de la licence couvrent-ils ce bundle ? Les données d'un bundle hors licence restent intactes.
+     */
+    public function isLicensed(string $slug): bool
+    {
+        return $this->license->allowsBundle($slug);
+    }
+
+    /**
+     * Installé, activé par l'Owner, compatible avec le contrat et couvert par la licence.
      */
     public function isEnabled(string $slug): bool
     {
         $bundle = $this->find($slug);
 
-        return $bundle !== null && in_array($slug, $this->selected(), true) && $this->isCompatible($bundle);
+        return $bundle !== null && in_array($slug, $this->selected(), true) && $this->isCompatible($bundle) && $this->isLicensed($slug);
     }
 
     /**
@@ -119,7 +130,7 @@ class BundleManager implements BundleActivation
      *
      * @return bool Vrai si l'état a changé.
      *
-     * @throws BundleException Bundle inconnu ou incompatible avec le contrat.
+     * @throws BundleException Bundle inconnu, incompatible avec le contrat ou hors des droits de la licence.
      */
     public function enable(string $slug): bool
     {
@@ -127,6 +138,10 @@ class BundleManager implements BundleActivation
 
         if (! $this->isCompatible($bundle)) {
             throw BundleException::incompatible($bundle->name(), $bundle->requiredContract(), Contract::VERSION);
+        }
+
+        if (! $this->isLicensed($slug)) {
+            throw BundleException::notLicensed($bundle->name());
         }
 
         $selected = $this->selected();
