@@ -1,3 +1,9 @@
+# OVH mutualisé : la compression serveur sur les réponses PHP de Livewire (JS dynamique /livewire-xxxx/livewire.min.js et
+# requêtes /livewire/update) provoque des ERR_HTTP2_PROTOCOL_ERROR. On la désactive pour ces routes uniquement.
+<IfModule mod_setenvif.c>
+    SetEnvIf Request_URI "/livewire" no-gzip=1 dont-vary=1
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

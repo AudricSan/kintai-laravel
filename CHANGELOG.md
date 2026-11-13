@@ -6,6 +6,12 @@ All notable changes to Kintai are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **OVH shared hosting**: server compression is disabled for `/livewire*` in `public/.htaccess` (it caused `ERR_HTTP2_PROTOCOL_ERROR` on Livewire's JavaScript and `/livewire/update`).
+
+### Security
+- **License**: the verification public key is now fixed in the code (no `KINTAI_LICENSE_PUBLIC_KEY_B64` variable, no `license.public_key` setting), so nobody with database or environment access can sign their own license token. A token carrying an `instance_id` claim is refused on any other installation.
+
 ## [4.0.0] - 2026-11-13
 
 ### Added

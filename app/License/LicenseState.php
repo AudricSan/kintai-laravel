@@ -231,18 +231,21 @@ class LicenseState
             return ['claims' => null, 'reason' => 'invalid'];
         }
 
+        // Jeton lié à une instance : un jeton copié d'une autre installation ne vaut rien ici. Les jetons sans cette
+        // revendication (anciens serveurs) restent acceptés jusqu'à leur échéance (14 jours au plus).
+        if (array_key_exists('instance_id', $claims) && ($claims['instance_id'] !== $this->instanceId())) {
+            return ['claims' => null, 'reason' => 'invalid'];
+        }
+
         return ['claims' => $claims, 'reason' => 'ok'];
     }
 
-    /** Clé publique du serveur (PEM) : réglage, sinon la configuration (base64 du PEM). */
+    /**
+     * Clé publique du serveur (PEM), figée dans la configuration (base64 du PEM). Aucun réglage en base ne la remplace :
+     * qui pourrait écrire en base ne doit pas pouvoir signer ses propres jetons.
+     */
     public function publicKey(): string
     {
-        $pem = trim($this->settings->string('license.public_key'));
-
-        if ($pem !== '') {
-            return $pem;
-        }
-
         $decoded = base64_decode(trim((string) config('kintai.license.public_key_b64')), true);
 
         return $decoded === false ? '' : trim($decoded);

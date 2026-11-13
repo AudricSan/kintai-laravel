@@ -372,6 +372,35 @@ class LicenseStateTest extends TestCase
         $this->assertNotFalse(openssl_pkey_get_public($this->state()->publicKey()));
     }
 
+    public function test_a_token_bound_to_another_instance_is_refused(): void
+    {
+        $this->app->make(AppSettings::class)->setMany(['license.key' => self::KEY]);
+        $mine = $this->state()->instanceId();
+
+        $this->assertSame(LicenseStatus::ACTIVE, $this->statusWithToken($this->token(['instance_id' => $mine])));
+        $this->assertSame(LicenseStatus::REFUSED, $this->statusWithToken($this->token(['instance_id' => 'autre-installation'])));
+        // Jeton sans liaison (ancien serveur) : accepté jusqu'à son échéance.
+        $this->assertSame(LicenseStatus::ACTIVE, $this->statusWithToken($this->token()));
+    }
+
+    public function test_the_verification_key_cannot_be_replaced_from_the_database(): void
+    {
+        [$forgedPrivate] = $this->makeKeyPair();
+        $this->app->make(AppSettings::class)->set('license.key', self::KEY);
+
+        $this->assertSame(LicenseStatus::REFUSED, $this->statusWithToken($this->token([], $forgedPrivate)));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->app->make(AppSettings::class)->set('license.public_key', 'x');
+    }
+
+    private function statusWithToken(string $token): string
+    {
+        $this->app->make(AppSettings::class)->set('license.token', $token);
+
+        return $this->state()->state();
+    }
+
     public function test_retries_only_on_connection_errors_and_5xx(): void
     {
         $this->activate();
