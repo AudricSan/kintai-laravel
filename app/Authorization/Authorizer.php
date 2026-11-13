@@ -154,6 +154,21 @@ class Authorizer
         return true;
     }
 
+    /**
+     * Agir sur les identifiants d'un compte (mot de passe, e-mail) revient à en prendre les droits : en plus de
+     * `canActOnUser`, tous les droits du compte visé doivent être inclus dans ceux de l'acteur (même logique que
+     * `canAssignRole`). Soi-même : toujours permis.
+     */
+    public function canTakeOverAccount(User $actor, string $permission, User $target): bool
+    {
+        if ($actor->id === $target->id) {
+            return true;
+        }
+
+        return $this->canActOnUser($actor, $permission, $target)
+            && ($this->isOwner($actor) || $this->coversTargetRights($actor, $target));
+    }
+
     public function canActOnUser(User $actor, string $permission, User $target): bool
     {
         if ($actor->id === $target->id) {
@@ -177,6 +192,28 @@ class Authorizer
             ->all();
 
         return array_intersect($allowedStoreIds, $targetStoreIds) !== [];
+    }
+
+    /**
+     * Plafond anti-prise de compte : agir sur un compte (mot de passe, e-mail) revient à en prendre les droits ; l'acteur
+     * ne peut donc agir que sur un compte dont tous les droits sont inclus dans les siens (même logique que
+     * `canAssignRole`).
+     */
+    private function coversTargetRights(User $actor, User $target): bool
+    {
+        foreach ($this->assignments($target) as $assignment) {
+            foreach ($assignment['permissions'] as $permission => $allStores) {
+                $held = $assignment['store_id'] === null || $allStores
+                    ? $this->hasUnrestricted($actor, $permission)
+                    : $this->allows($actor, $permission, $assignment['store_id']);
+
+                if (! $held) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -47,6 +47,11 @@
         <form method="POST" action="{{ route('install.store') }}">
             @csrf
 
+            <h2>{{ __('Setup token') }}</h2>
+            <p>{{ __('Open the file :file on the server (FTP or SSH) and copy its content here. It proves that you control this server.', ['file' => $tokenFile]) }}</p>
+            <label for="setup_token">{{ __('Setup token') }}</label>
+            <input id="setup_token" name="setup_token" required autocomplete="off">
+
             <h2>{{ __('Database') }}</h2>
             @if ($databaseConfigured)
                 <p>{{ __('The .env file already configures a database: it will be used as is.') }}</p>

@@ -32,6 +32,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // Le « one-click » des clients de messagerie poste sans jeton CSRF : la signature du lien fait foi.
         $middleware->validateCsrfTokens(except: ['notifications/unsubscribe']);
 
+        // Hôtes de confiance : seul l'hôte d'APP_URL, dès que celui-ci est réglé sur un vrai domaine (pas localhost).
+        $middleware->trustHosts(at: function (): array {
+            $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+            return is_string($host) && ! in_array($host, ['localhost', '127.0.0.1', '::1'], true) && ! str_ends_with($host, '.test')
+                ? ['^'.preg_quote($host, '/').'$']
+                : [];
+        }, subdomains: false);
+
         // En-têtes de sécurité sur toutes les réponses (web, API, iCal, santé).
         $middleware->append(SecurityHeaders::class);
 

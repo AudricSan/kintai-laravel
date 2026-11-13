@@ -23,4 +23,16 @@ trait AuthorizesEmployeeActions
             throw new AuthorizationException;
         }
     }
+
+    /**
+     * Mot de passe ou e-mail d'un autre compte : l'acteur doit détenir tous les droits du compte visé.
+     *
+     * @throws AuthorizationException
+     */
+    protected function authorizeTakeOver(User $actor, string $permission, User $target): void
+    {
+        if (! app(Authorizer::class)->canTakeOverAccount($actor, $permission, $target)) {
+            throw new AuthorizationException;
+        }
+    }
 }

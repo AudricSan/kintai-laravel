@@ -28,7 +28,7 @@
 <body>
 @if ($preview)
     <div class="toolbar">
-        <button type="button" onclick="window.print()">{{ __('Print') }}</button>
+        <button type="button" data-print>{{ __('Print') }}</button>
         <a href="{{ route('salary-report.pdf.download', $report->id) }}">{{ __('Download the PDF') }}</a>
         <a href="{{ route('salary-report.show', $report->id) }}">{{ __('Back') }}</a>
     </div>
@@ -65,6 +65,9 @@
     <tr><td>{{ __('Withholding tax') }}</td><td class="value">{{ $money($report->withholding_tax) }}</td></tr>
     <tr><td>{{ __('Residence tax') }}</td><td class="value">{{ $money($report->residence_tax) }}</td></tr>
     <tr><td>{{ __('Other deductions') }}</td><td class="value">{{ $money($report->other_deductions) }}</td></tr>
+    @foreach ($report->deduction_lines ?? [] as $row)
+        <tr><td>{{ $row['name'] }}@if ($row['kind'] === 'percent') ({{ $row['value'] }} %)@endif</td><td class="value">{{ $money($row['amount']) }}</td></tr>
+    @endforeach
     <tr><td>{{ __('Total deductions') }}</td><td class="value">{{ $money($report->total_deductions) }}</td></tr>
 </table>
 
@@ -102,11 +105,12 @@
 
 @if ($detail !== null)
     <h2>{{ __('Calculation details') }}</h2>
-    @include('salary-report::partials.detail', ['detail' => $detail, 'store' => $store])
+    @include('salary-report::partials.detail', ['detail' => $detail, 'store' => $store, 'customLines' => $report->deduction_lines ?? []])
 @endif
 
 <table class="sign">
     <tr><td>{{ __('Prepared by') }}</td><td>{{ __('Approved by') }}</td></tr>
 </table>
+<script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });</script>
 </body>
 </html>

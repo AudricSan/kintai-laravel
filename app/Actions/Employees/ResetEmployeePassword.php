@@ -30,6 +30,7 @@ class ResetEmployeePassword
     public function handle(User $actor, User $target, ?string $password = null, bool $mustChange = true): void
     {
         $this->authorizeOnEmployee($actor, 'employees.update', $target);
+        $this->authorizeTakeOver($actor, 'employees.update', $target);
 
         if ($password === null) {
             $password = PasswordDefaults::DEFAULT_PASSWORD;

@@ -5,6 +5,7 @@ namespace App\Actions\Employees;
 use App\Authorization\Authorizer;
 use App\Authorization\PasswordDefaults;
 use App\Concerns\EmployeeValidationRules;
+use App\License\LicenseLimits;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -23,7 +24,10 @@ class CreateEmployee
 {
     use EmployeeValidationRules;
 
-    public function __construct(private readonly Authorizer $authorizer) {}
+    public function __construct(
+        private readonly Authorizer $authorizer,
+        private readonly LicenseLimits $limits,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $input
@@ -36,6 +40,8 @@ class CreateEmployee
         if (! $this->authorizer->allows($actor, 'employees.create')) {
             throw new AuthorizationException;
         }
+
+        $this->limits->assertCanCreateEmployee();
 
         $input = $this->normalizeEmployeeInput($input);
         $storeIds = $this->authorizer->storeIdsFor($actor, 'employees.create');

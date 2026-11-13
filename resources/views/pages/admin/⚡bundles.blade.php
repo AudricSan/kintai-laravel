@@ -87,6 +87,7 @@ new #[Title('Bundles')] class extends Component {
                 'required' => $bundle->requiredContract(),
                 'compatible' => $manager->isCompatible($bundle),
                 'enabled' => $manager->isEnabled($slug),
+                'licensed' => $manager->isLicensed($slug),
             ];
         }
 
@@ -140,6 +141,8 @@ new #[Title('Bundles')] class extends Component {
                     <flux:table.cell>
                         @if ($bundle['enabled'])
                             <flux:badge size="sm" color="green" inset="top bottom" data-test="bundle-enabled">{{ __('Enabled') }}</flux:badge>
+                        @elseif (! $bundle['licensed'])
+                            <flux:badge size="sm" color="amber" inset="top bottom" data-test="bundle-unlicensed">{{ __('Not in your license') }}</flux:badge>
                         @elseif (! $bundle['compatible'])
                             <flux:badge size="sm" color="red" inset="top bottom" data-test="bundle-incompatible">{{ __('Incompatible') }}</flux:badge>
                         @else
@@ -150,7 +153,7 @@ new #[Title('Bundles')] class extends Component {
                         <div class="flex justify-end">
                             @if ($bundle['enabled'])
                                 <flux:button size="sm" wire:click="confirm('{{ $bundle['slug'] }}', 'disable')" data-test="disable-bundle">{{ __('Disable') }}</flux:button>
-                            @else
+                            @elseif ($bundle['licensed'])
                                 <flux:button size="sm" variant="primary" wire:click="confirm('{{ $bundle['slug'] }}', 'enable')" data-test="enable-bundle">{{ __('Enable') }}</flux:button>
                             @endif
                         </div>

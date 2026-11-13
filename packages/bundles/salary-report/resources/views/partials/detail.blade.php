@@ -1,6 +1,8 @@
 {{-- Détail d'un calcul (voir SalaryCalculator::compute) : par employé et par type pour un magasin, jour par jour pour un employé. --}}
 @php($hm = fn (int $minutes) => intdiv($minutes, 60).'h'.str_pad((string) ($minutes % 60), 2, '0', STR_PAD_LEFT))
 @php($fmt = fn ($amount) => \App\Support\Money::forStore($amount, $store))
+{{-- Retenues personnalisées : l'instantané d'un rapport enregistré (`customLines`), sinon celles du calcul en cours. --}}
+@php($custom = $customLines ?? ($detail['custom_deductions'] ?? []))
 
 @if (($detail['mode'] ?? '') === 'store')
     <h3 class="mt-3 font-semibold">{{ __('Employees') }}</h3>
@@ -30,6 +32,16 @@
             <tbody>
                 @foreach ($detail['deductions'] as $row)
                     <tr><td>{{ __($row['label']) }}</td><td class="num text-right">{{ $row['label'] === 'Resident tax' ? $fmt($row['value']) : $row['value'].' %' }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+    @if ($custom !== [])
+        <h3 class="mt-3 font-semibold">{{ __('Custom deductions') }}</h3>
+        <table class="w-full text-sm" data-test="custom-deductions">
+            <tbody>
+                @foreach ($custom as $row)
+                    <tr><td>{{ $row['name'] }}@if ($row['kind'] === 'percent') ({{ $row['value'] }} %)@endif</td><td class="num text-right">{{ $fmt($row['amount']) }}</td></tr>
                 @endforeach
             </tbody>
         </table>
@@ -67,7 +79,11 @@
             @foreach ($detail['deductions'] as $row)
                 <tr><td>{{ __($row['label']) }}@if (! $row['flat']) ({{ $row['rate'] }} %)@endif</td><td class="num text-right">- {{ $fmt($row['amount']) }}</td></tr>
             @endforeach
-            <tr><td><strong>{{ __('Net pay') }}</strong></td><td class="num text-right"><strong>{{ $fmt($detail['net_pay']) }}</strong></td></tr>
+            @foreach ($custom as $row)
+                <tr><td>{{ $row['name'] }}@if ($row['kind'] === 'percent') ({{ $row['value'] }} %)@endif</td><td class="num text-right">- {{ $fmt($row['amount']) }}</td></tr>
+            @endforeach
+            @php($net = $detail['gross_pay'] - array_sum(array_column($detail['deductions'], 'amount')) - array_sum(array_column($custom, 'amount')))
+            <tr><td><strong>{{ __('Net pay') }}</strong></td><td class="num text-right"><strong>{{ $fmt(round($net, 2)) }}</strong></td></tr>
         </tbody>
     </table>
 @endif

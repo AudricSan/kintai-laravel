@@ -85,6 +85,20 @@ final class CoreSettings
             // Web Push : la clé privée est chiffrée en base.
             new SettingDefinition('webpush.public_key', $string, '', config: 'kintai.webpush.public_key'),
             new SettingDefinition('webpush.private_key', $string, '', encrypted: true, config: 'kintai.webpush.private_key'),
+
+            // Licence (client du LicenseManager) : clé, clé produit et jeton chiffrés ; `instance_id` est généré une fois
+            // (jamais éditable) ; la clé publique de vérification est figée dans `kintai.license.public_key_b64`.
+            // `token` : dernier jeton signé reçu ; `refusal` : dernier refus explicite du serveur ('' = aucun) ;
+            // `last_error` : `unreachable` si le dernier appel n'a pas abouti ; `validated_at` : dernier contact réussi (ISO 8601).
+            new SettingDefinition('license.api_url', $string, '', config: 'kintai.license.api_url'),
+            new SettingDefinition('license.api_key', $string, '', encrypted: true, config: 'kintai.license.api_key'),
+            new SettingDefinition('license.key', $string, '', encrypted: true),
+            new SettingDefinition('license.instance_id', $string, ''),
+            new SettingDefinition('license.buy_url', $string, '', config: 'kintai.license.buy_url'),
+            new SettingDefinition('license.token', $string, '', encrypted: true),
+            new SettingDefinition('license.refusal', $string, ''),
+            new SettingDefinition('license.last_error', $string, ''),
+            new SettingDefinition('license.validated_at', $string, ''),
         );
 
         foreach (ThemeColorPalette::DEFAULTS as $group => $default) {

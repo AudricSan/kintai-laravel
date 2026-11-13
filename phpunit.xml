@@ -14,6 +14,9 @@
         <testsuite name="Bundles">
             <directory>packages/bundles/*/tests</directory>
         </testsuite>
+        <testsuite name="LegacyMigration">
+            <directory>tools/legacy-migration/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
@@ -22,6 +25,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_URL" value="http://localhost"/>
         <env name="APP_LOCALE" value="en"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

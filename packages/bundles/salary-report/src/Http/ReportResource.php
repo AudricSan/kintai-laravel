@@ -50,6 +50,7 @@ class ReportResource extends JsonResource
             'staff_total_payment' => $row->staff_total_payment,
             'staff_avg_hourly_wage' => $row->staff_avg_hourly_wage,
             'employee_hours' => $row->employee_hours ?? [],
+            'deduction_lines' => $row->deduction_lines ?? [],
             'new_hires' => $row->new_hires,
             'resigned_staff' => $row->resigned_staff,
             'hire_registrations' => $row->hire_registrations,

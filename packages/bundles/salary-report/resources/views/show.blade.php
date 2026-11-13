@@ -81,7 +81,17 @@
 
     @if ($detail !== null)
         <div data-test="detail">
-            @include('salary-report::partials.detail', ['detail' => $detail, 'store' => $report->store])
+            @include('salary-report::partials.detail', ['detail' => $detail, 'store' => $report->store, 'customLines' => $report->deduction_lines ?? []])
+        </div>
+    @elseif ($report->deduction_lines)
+        {{-- Rapport de magasin : pas de détail, mais les retenues personnalisées appliquées à l'enregistrement. --}}
+        <div class="space-y-1">
+            <flux:heading size="lg">{{ __('Custom deductions') }}</flux:heading>
+            <ul class="text-sm" data-test="custom-deductions">
+                @foreach ($report->deduction_lines as $row)
+                    <li>{{ $row['name'] }}@if ($row['kind'] === 'percent') ({{ $row['value'] }} %)@endif: {{ $money($row['amount']) }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 

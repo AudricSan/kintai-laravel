@@ -11,6 +11,7 @@
     "license": "AGPL-3.0-only",
     "require": {
         "php": "^8.3",
+        "firebase/php-jwt": "^7.2",
         "kintai/bundle-analytics": "^1.0",
         "kintai/bundle-daily-report": "^1.0",
         "kintai/bundle-google-calendar": "^1.0",

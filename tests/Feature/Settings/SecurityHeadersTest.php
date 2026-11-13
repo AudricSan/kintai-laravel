@@ -23,9 +23,38 @@ class SecurityHeadersTest extends TestCase
         foreach (["frame-ancestors 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'"] as $directive) {
             $this->assertStringContainsString($directive, $csp);
         }
-        // CSP de base : aucune restriction de scripts ni de styles (Livewire, Alpine et Flux en ont besoin).
-        $this->assertStringNotContainsString('script-src', $csp);
+        // Scripts : même origine + nonce par requête ; styles non restreints (style="" en ligne).
+        $this->assertMatchesRegularExpression("/script-src 'self' 'unsafe-eval' 'nonce-[A-Za-z0-9]{40}'/", $csp);
+        $this->assertStringNotContainsString("'unsafe-inline'", $csp);
+        $this->assertStringNotContainsString('style-src', $csp);
         $this->assertStringNotContainsString('default-src', $csp);
+    }
+
+    public function test_every_script_of_a_page_carries_the_nonce_of_the_policy(): void
+    {
+        // Livewire garde en mémoire (statique) le HTML des `@assets` déjà rendus, donc avec le nonce d'un test précédent.
+        \Livewire\trigger('flush-state');
+
+        $response = $this->get(route('login'));
+
+        preg_match("/'nonce-([A-Za-z0-9]+)'/", (string) $response->headers->get('Content-Security-Policy'), $found);
+        $this->assertNotEmpty($found);
+
+        $html = $response->getContent();
+        preg_match_all('/<script\b[^>]*>/i', $html, $tags);
+        $this->assertNotEmpty($tags[0]);
+        foreach ($tags[0] as $tag) {
+            $this->assertStringContainsString('nonce="'.$found[1].'"', $tag, "Script sans nonce : {$tag}");
+        }
+        $this->assertDoesNotMatchRegularExpression('/\son(click|submit|change|load)=/i', $html);
+    }
+
+    public function test_the_nonce_changes_on_every_request(): void
+    {
+        $first = (string) $this->get(route('login'))->headers->get('Content-Security-Policy');
+        $second = (string) $this->get(route('login'))->headers->get('Content-Security-Policy');
+
+        $this->assertNotSame($first, $second);
     }
 
     public function test_web_pages_carry_the_headers(): void

@@ -12,10 +12,12 @@ use App\Models\ShiftType;
 use App\Models\Store;
 use App\Models\StoreFeature;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Kintai\Bundles\SalaryReport\Models\SalaryReport;
+use Kintai\Bundles\SalaryReport\Models\SalaryReportDeduction;
 use Kintai\Bundles\SalaryReport\Models\SalaryReportMember;
 use Kintai\Bundles\SalaryReport\Models\SalaryReportSetting;
 use Kintai\Bundles\SalaryReport\SalaryReportActions;
@@ -582,6 +584,251 @@ class SalaryReportTest extends TestCase
 
         Livewire::actingAs($admin)->test('salary-report.settings')->set('healthRate', '150')->call('save')->assertHasErrors('healthRate');
         Livewire::actingAs($admin)->test('salary-report.settings')->set('residentTax', '-1')->call('save')->assertHasErrors('residentTax');
+    }
+
+    // -- Retenues personnalisées ---------------------------------------------------------------------------------
+
+    /**
+     * Ana (assujettie) et Bob (non assujetti) ont chacun 87,50 de brut ; retenues activées, taux fixes à 0.
+     *
+     * @return array{0: User, 1: User}
+     */
+    private function customDeductionsSetup(): array
+    {
+        $ana = $this->employeeOf($this->a, ['name' => 'Ana Member']);
+        $bob = $this->employeeOf($this->a, ['name' => 'Bob Member']);
+        $this->shift($this->a, $ana, '2026-10-05');
+        $this->shift($this->a, $bob, '2026-10-06');
+        SalaryReportSetting::create(['store_id' => $this->a->id, 'deductions_enabled' => true, 'health_insurance_rate' => 0, 'pension_rate' => 0, 'employment_insurance_rate' => 0, 'income_tax_rate' => 0, 'resident_tax_monthly' => 0]);
+        SalaryReportMember::create(['store_id' => $this->a->id, 'user_id' => $ana->id, 'subject_to_deductions' => true]);
+
+        return [$ana, $bob];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function customDeduction(Store $store, string $name, string $kind, float $value, array $attributes = []): SalaryReportDeduction
+    {
+        return SalaryReportDeduction::create(['store_id' => $store->id, 'name' => $name, 'kind' => $kind, 'value' => $value, 'sort_order' => SalaryReportDeduction::count(), ...$attributes]);
+    }
+
+    public function test_custom_deductions_are_computed_for_subject_employees_only_and_inactive_ones_are_ignored(): void
+    {
+        $this->enable();
+        [$ana, $bob] = $this->customDeductionsSetup();
+        $this->customDeduction($this->a, 'Mutual', 'percent', 10);
+        $this->customDeduction($this->a, 'Union', 'fixed', 3);
+        $this->customDeduction($this->a, 'Old', 'percent', 50, ['is_active' => false]);
+        // Une autre boutique : jamais appliquée ici.
+        $this->customDeduction($this->b, 'Foreign', 'fixed', 99);
+
+        $manager = $this->managerOf($this->a);
+        // Ana : 87,50 -> 8,75 (10 %) + 3 fixe ; Bob n'est pas assujetti. Les retenues fixes (santé, etc.) restent à 0.
+        $component = Livewire::actingAs($manager)->test('salary-report.form')->set('month', '2026-10')
+            ->assertSet('values.staff_total_payment', '175')->assertSet('values.other_deductions', '0')
+            ->assertSet('values.withholding_tax', '0')->assertSet('values.residence_tax', '0')
+            ->assertSet('values.total_deductions', '11.75')->assertSet('values.net_payment', '163.25')->assertSet('values.bank_transfer_salary', '163.25')
+            ->assertSet('deductionLines', [
+                ['name' => 'Mutual', 'kind' => 'percent', 'value' => 10.0, 'amount' => 8.75],
+                ['name' => 'Union', 'kind' => 'fixed', 'value' => 3.0, 'amount' => 3.0],
+            ]);
+
+        // Employé non assujetti : aucune retenue personnalisée ; assujetti : les siennes.
+        $component->set('employeeId', (string) $bob->id)->assertSet('values.total_deductions', '0')->assertSet('deductionLines', []);
+        $component->set('employeeId', (string) $ana->id)->assertSet('values.total_deductions', '11.75')->assertSet('values.net_payment', '75.75');
+
+        // Retenues du magasin désactivées : les personnalisées aussi.
+        SalaryReportSetting::query()->update(['deductions_enabled' => false]);
+        Livewire::actingAs($manager)->test('salary-report.form')->set('month', '2026-10')->assertSet('values.total_deductions', '0')->assertSet('deductionLines', []);
+    }
+
+    public function test_a_fixed_custom_deduction_skips_employees_without_gross_pay(): void
+    {
+        $this->enable();
+        $ana = $this->employeeOf($this->a);
+        SalaryReportSetting::create(['store_id' => $this->a->id, 'deductions_enabled' => true]);
+        SalaryReportMember::create(['store_id' => $this->a->id, 'user_id' => $ana->id, 'subject_to_deductions' => true]);
+        $this->customDeduction($this->a, 'Union', 'fixed', 3);
+
+        // Aucun shift : brut à 0, rien à retenir.
+        Livewire::actingAs($this->managerOf($this->a))->test('salary-report.form')->set('month', '2026-10')
+            ->assertSet('values.total_deductions', '0')->assertSet('deductionLines', []);
+    }
+
+    public function test_a_saved_report_keeps_its_snapshot_when_the_deduction_changes_or_disappears(): void
+    {
+        $this->enable();
+        [$ana] = $this->customDeductionsSetup();
+        $deduction = $this->customDeduction($this->a, 'Mutual', 'percent', 10);
+        $manager = $this->managerOf($this->a);
+
+        Livewire::actingAs($manager)->test('salary-report.form')->set('month', '2026-10')->set('employeeId', (string) $ana->id)->call('save')->assertHasNoErrors();
+        $report = SalaryReport::firstOrFail();
+        $this->assertEquals([['name' => 'Mutual', 'kind' => 'percent', 'value' => 10.0, 'amount' => 8.75]], $report->deduction_lines);
+        $this->assertSame('8.75', $report->total_deductions);
+        $this->assertSame('78.75', $report->net_payment);
+        $this->assertSame('0.00', $report->other_deductions);
+
+        // La retenue change puis disparaît : le détail enregistré ne bouge pas.
+        $deduction->update(['name' => 'Renamed', 'value' => 50]);
+        $this->actingAs($manager)->get('/salary-report/'.$report->id)->assertOk()->assertSee('Mutual')->assertSee('(10 %)', false)->assertDontSee('Renamed');
+        $deduction->delete();
+        $this->actingAs($manager)->get('/salary-report/'.$report->id)->assertOk()->assertSee('Mutual');
+        $this->actingAs($manager)->get('/salary-report/'.$report->id.'/pdf')->assertOk()->assertSee('Mutual');
+        $this->assertSame('8.75', $report->fresh()->total_deductions);
+
+        // Modifier un texte garde l'instantané ; recalculer le remplace (la retenue n'existe plus).
+        Livewire::actingAs($manager)->test('salary-report.form', ['report' => $report->id])->set('remarks', 'Edited')->call('save');
+        $this->assertSame('Mutual', $report->fresh()->deduction_lines[0]['name']);
+        Livewire::actingAs($manager)->test('salary-report.form', ['report' => $report->id])->call('calculate')->call('save');
+        $this->assertNull($report->fresh()->deduction_lines);
+        $this->assertSame('0.00', $report->fresh()->total_deductions);
+    }
+
+    public function test_a_store_report_lists_its_custom_deductions(): void
+    {
+        $this->enable();
+        $this->customDeductionsSetup();
+        $this->customDeduction($this->a, 'Mutual', 'percent', 10);
+        $manager = $this->managerOf($this->a);
+
+        Livewire::actingAs($manager)->test('salary-report.form')->set('month', '2026-10')->call('save')->assertHasNoErrors();
+        $report = SalaryReport::firstOrFail();
+        $this->assertNull($report->user_id);
+        $this->assertSame(8.75, $report->deduction_lines[0]['amount']);
+        $this->actingAs($manager)->get('/salary-report/'.$report->id)->assertOk()->assertSee('Mutual')->assertSee('8.75');
+    }
+
+    public function test_custom_deductions_are_managed_from_the_settings_screen(): void
+    {
+        $this->enable();
+        $admin = $this->holder(['salary_reports.settings'], $this->a);
+
+        $component = Livewire::actingAs($admin)->test('salary-report.settings')
+            ->set('deductionName', 'Mutual')->set('deductionKind', 'percent')->set('deductionValue', '2.5')->call('saveDeduction')->assertHasNoErrors()
+            ->assertSet('deductionName', '')
+            ->set('deductionName', 'Union')->set('deductionKind', 'fixed')->set('deductionValue', '1500')->call('saveDeduction')->assertHasNoErrors();
+
+        $mutual = SalaryReportDeduction::where('name', 'Mutual')->firstOrFail();
+        $union = SalaryReportDeduction::where('name', 'Union')->firstOrFail();
+        $this->assertSame(['percent', '2.50', true, $this->a->id], [$mutual->kind, $mutual->value, $mutual->is_active, $mutual->store_id]);
+        $this->assertSame(['fixed', '1500.00'], [$union->kind, $union->value]);
+        $this->assertGreaterThan($mutual->sort_order, $union->sort_order);
+        $component->assertSee('Mutual')->assertSee('Union');
+
+        // Modifier (le nom garde sa propre unicité), désactiver, réactiver, supprimer.
+        $component->call('editDeduction', $mutual->id)->assertSet('deductionName', 'Mutual')->assertSet('deductionValue', '2.5')
+            ->set('deductionValue', '4')->call('saveDeduction')->assertHasNoErrors();
+        $this->assertSame('4.00', $mutual->fresh()->value);
+        $component->call('toggleDeduction', $mutual->id);
+        $this->assertFalse($mutual->fresh()->is_active);
+        $component->call('toggleDeduction', $mutual->id);
+        $this->assertTrue($mutual->fresh()->is_active);
+        $component->call('deleteDeduction', $union->id);
+        $this->assertNull(SalaryReportDeduction::find($union->id));
+        $this->assertSame(1, SalaryReportDeduction::count());
+    }
+
+    public function test_custom_deductions_are_validated(): void
+    {
+        $this->enable();
+        $admin = $this->holder(['salary_reports.settings'], $this->a);
+        $this->customDeduction($this->a, 'Mutual', 'percent', 2);
+        // Même nom dans un autre magasin : sans effet sur l'unicité de celui-ci.
+        $this->customDeduction($this->b, 'Union', 'fixed', 2);
+
+        $screen = fn (string $name, string $kind, string $value) => Livewire::actingAs($admin)->test('salary-report.settings')
+            ->set('deductionName', $name)->set('deductionKind', $kind)->set('deductionValue', $value)->call('saveDeduction');
+
+        $screen('Mutual', 'percent', '1')->assertHasErrors('deductionName');
+        $screen('', 'percent', '1')->assertHasErrors('deductionName');
+        $screen(str_repeat('x', 101), 'percent', '1')->assertHasErrors('deductionName');
+        $screen('Bad', 'weekly', '1')->assertHasErrors('deductionKind');
+        $screen('Bad', 'percent', '100.01')->assertHasErrors('deductionValue');
+        $screen('Bad', 'percent', '-1')->assertHasErrors('deductionValue');
+        $screen('Bad', 'fixed', 'abc')->assertHasErrors('deductionValue');
+        $screen('Union', 'fixed', '100')->assertHasNoErrors();
+        $screen('Edge', 'percent', '100')->assertHasNoErrors();
+        $screen('Zero', 'fixed', '0')->assertHasNoErrors();
+
+        // Les mêmes règles tiennent dans l'action (autre surface que l'écran).
+        $actions = app(SalaryReportActions::class);
+        foreach ([['Mutual', 'percent', 1], ['Bad', 'nope', 1], ['Bad', 'percent', 101], ['Bad', 'fixed', -1]] as [$name, $kind, $value]) {
+            try {
+                $actions->saveDeduction($admin, $this->a->id, null, ['name' => $name, 'kind' => $kind, 'value' => $value]);
+                $this->fail('The deduction should have been refused.');
+            } catch (ValidationException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function test_a_store_has_twenty_custom_deductions_at_most(): void
+    {
+        $this->enable();
+        $admin = $this->holder(['salary_reports.settings'], $this->a);
+        for ($i = 1; $i <= SalaryReportDeduction::MAX_PER_STORE; $i++) {
+            $this->customDeduction($this->a, 'Deduction '.$i, 'fixed', 1);
+        }
+
+        Livewire::actingAs($admin)->test('salary-report.settings')->set('deductionName', 'One too many')->set('deductionKind', 'fixed')->set('deductionValue', '1')
+            ->call('saveDeduction')->assertHasErrors('deductionName');
+        $this->assertSame(20, SalaryReportDeduction::where('store_id', $this->a->id)->count());
+
+        // Modifier une retenue existante reste possible au plafond ; un autre magasin a son propre quota.
+        Livewire::actingAs($admin)->test('salary-report.settings')->call('editDeduction', SalaryReportDeduction::firstOrFail()->id)->set('deductionValue', '2')->call('saveDeduction')->assertHasNoErrors();
+        $this->customDeduction($this->b, 'Deduction 1', 'fixed', 1);
+        $this->assertSame(1, SalaryReportDeduction::where('store_id', $this->b->id)->count());
+    }
+
+    public function test_custom_deductions_follow_the_settings_permission_and_the_store_scope(): void
+    {
+        $this->enable();
+        $foreign = $this->customDeduction($this->b, 'Foreign', 'fixed', 9);
+        $this->customDeduction($this->a, 'Own', 'fixed', 1);
+
+        Livewire::actingAs($this->holder(['salary_reports.view', 'salary_reports.generate'], $this->a))->test('salary-report.settings')->assertForbidden();
+
+        $admin = $this->holder(['salary_reports.settings'], $this->a);
+        $component = Livewire::actingAs($admin)->test('salary-report.settings')->assertSee('Own')->assertDontSee('Foreign');
+
+        // Ni lire, ni modifier, ni supprimer, ni basculer la retenue d'un autre magasin.
+        foreach (['editDeduction', 'toggleDeduction', 'deleteDeduction'] as $method) {
+            Livewire::actingAs($admin)->test('salary-report.settings')->call($method, $foreign->id)->assertNotFound();
+        }
+        $component->set('store', (string) $this->b->id)->assertForbidden();
+        $this->assertSame(['Foreign', true], [$foreign->fresh()->name, $foreign->fresh()->is_active]);
+
+        // Même refus dans l'action, sans passer par l'écran.
+        $actions = app(SalaryReportActions::class);
+        $viewer = $this->holder(['salary_reports.view', 'salary_reports.generate'], $this->a);
+        try {
+            $actions->saveDeduction($viewer, $this->a->id, null, ['name' => 'Nope', 'kind' => 'fixed', 'value' => 1]);
+            $this->fail('A holder without settings must be refused.');
+        } catch (AuthorizationException) {
+            $this->assertSame(0, SalaryReportDeduction::where('name', 'Nope')->count());
+        }
+        $this->expectException(AuthorizationException::class);
+        $actions->saveDeduction($admin, $this->a->id, $foreign->id, ['name' => 'Hijack', 'kind' => 'fixed', 'value' => 1]);
+    }
+
+    public function test_the_activity_log_of_custom_deductions_never_contains_a_name_or_a_figure(): void
+    {
+        $this->enable();
+        $admin = $this->holder(['salary_reports.settings'], $this->a);
+
+        $component = Livewire::actingAs($admin)->test('salary-report.settings')
+            ->set('deductionName', 'Secret mutual')->set('deductionKind', 'fixed')->set('deductionValue', '424242')->call('saveDeduction');
+        $deduction = SalaryReportDeduction::firstOrFail();
+        $component->call('toggleDeduction', $deduction->id)->call('deleteDeduction', $deduction->id);
+
+        $this->assertSame(2, ActivityEntry::where('action', 'salary_report.deduction_saved')->count());
+        $this->assertSame(1, ActivityEntry::where('action', 'salary_report.deduction_deleted')->count());
+        $log = ActivityEntry::query()->get()->map(fn (ActivityEntry $entry): string => json_encode($entry->properties))->implode('|');
+        foreach (['Secret', 'mutual', '424242'] as $secret) {
+            $this->assertStringNotContainsString($secret, $log);
+        }
     }
 
     // -- Données personnelles ------------------------------------------------------------------------------------

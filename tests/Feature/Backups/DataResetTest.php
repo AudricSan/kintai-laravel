@@ -356,8 +356,8 @@ class DataResetTest extends TestCase
         Livewire::test('pages::admin.data-reset')->assertForbidden();
     }
 
-    public function test_the_factory_reset_is_not_offered(): void
+    public function test_the_factory_reset_section_is_offered_apart(): void
     {
-        $this->get(route('data-reset.index'))->assertSee('not available yet');
+        $this->get(route('data-reset.index'))->assertSee('Factory reset')->assertSee('This erases everything.')->assertDontSee('not available yet');
     }
 }

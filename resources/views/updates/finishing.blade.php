@@ -19,6 +19,6 @@
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('JavaScript is disabled: use the button above to finish the update.') }}</p>
             </noscript>
         </main>
-        <script>document.getElementById('finish-form').submit();</script>
+        <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">document.getElementById('finish-form').submit();</script>
     </body>
 </html>

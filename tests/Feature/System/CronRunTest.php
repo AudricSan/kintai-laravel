@@ -165,7 +165,7 @@ class CronRunTest extends TestCase
     {
         $names = collect($this->app->make(Schedule::class)->events())->map(fn ($event) => $event->description)->all();
 
-        foreach (['kintai:notifications:purge', 'kintai:activity:purge', 'kintai:backup:run', 'kintai:system:alerts', 'kintai:docs:sync'] as $name) {
+        foreach (['kintai:notifications:purge', 'kintai:activity:purge', 'kintai:backup:run', 'kintai:update:refresh', 'kintai:system:alerts', 'kintai:docs:sync'] as $name) {
             $this->assertContains($name, $names);
         }
     }
