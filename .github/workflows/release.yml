@@ -40,8 +40,8 @@ jobs:
         env:
           COMPOSER_MIRROR_PATH_REPOS: '1'
         run: |
-          # `options.symlink: true` de composer.json l'emporte sur COMPOSER_MIRROR_PATH_REPOS : on le coupe pour l'archive (copie, pas de lien).
-          sed -i 's/"symlink": true/"symlink": false/' composer.json
+          # `symlink: true` (composer.json et transport-options de composer.lock) l'emporte sur COMPOSER_MIRROR_PATH_REPOS : on le coupe pour l'archive (copie, pas de lien).
+          sed -i 's/"symlink": true/"symlink": false/' composer.json composer.lock
           composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Build front-end assets
