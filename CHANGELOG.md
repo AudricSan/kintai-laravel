@@ -6,6 +6,10 @@ All notable changes to Kintai are documented here.
 
 ## [Unreleased]
 
+## [38.0.0] - 2026-11-14
+
+First release of the native Laravel rebuild. The version continues the numbering of the previous line (last release v37.0.0) so that updates see it as newer.
+
 ### Added
 - **License tiers enforced**: without a valid license the free tier applies (`kintai.license.free_limits`: 1 store, 15 employees; `kintai.license.free_bundles`: timeoff, timeclock, shift-swap, team-directory). `max_stores` and `max_employees` are checked at creation only (forms, API v1, import) through `App\License\LicenseLimits`: existing data is never deleted or blocked, and a missing limit means unlimited. A bundle outside the license (claim `limits.bundles`: list, `*` or `a,b,c`; a token without it grants every bundle) is never enabled, so its menu, routes, widgets and schedules are not registered; its data is kept. New `LicenseState::bundles()` and `allowsBundle()`.
 - **Free license request**: the License screen has a "Get a free license" form (`LicenseClient::register()`, `RequestFreeLicense`, audit `license.register` without the full email address); the key arrives by email and is pasted in the activation field.
@@ -26,7 +30,7 @@ All notable changes to Kintai are documented here.
 ### Security
 - **License**: the verification public key is now fixed in the code (no `KINTAI_LICENSE_PUBLIC_KEY_B64` variable, no `license.public_key` setting), so nobody with database or environment access can sign their own license token. A token carrying an `instance_id` claim is refused on any other installation.
 
-## [4.0.0] - 2026-11-13
+_Earlier changes of this release (tracked internally as 4.0.0 during the rebuild):_
 
 ### Added
 - **Salary reports, custom deductions per store** (bundle `salary-report`): the person who manages a store's salary settings (`salary_reports.settings`) can add, edit, enable/disable and delete extra deductions on the Settings screen, either a percentage of the employee's gross pay or a fixed monthly amount, up to 20 per store, in addition to the unchanged fixed ones (health, pension, employment insurance, income tax, resident tax). They apply to the employees subject to deductions; each report stores a snapshot of what was applied (`deduction_lines`, also exposed by the API), so later changes or deletions do not alter saved reports. `total_deductions` and `net_payment` include them, `other_deductions` does not. New table `salary_report_deductions`, new column `salary_reports.deduction_lines`.
