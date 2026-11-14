@@ -12,6 +12,11 @@ All notable changes to Kintai are documented here.
 - **License limit alert**: a system alert (`license_quota`, Owner only, push and email) fires when the number of stores or employees reaches the limit of the license (`CoreSystemAlerts::licenseQuota()`, local state only, never blocking); it fires again when a limit changes.
 - **License token without `instance_id` refused**: the license server always binds the token to the installation, so the client no longer accepts a token lacking the `instance_id` claim (the "old server" compatibility is removed).
 
+### Changed
+- **Native validation**: API v1 and bundle HTTP controllers validate input with `FormRequest` classes (same 422 bodies, same 403/404-before-422 order).
+- **Eloquent instead of `DB::table`** for store memberships, role assignments, store features, push subscriptions and shift-type stores, including the owner lookups and the employee-code login (the authorization engine keeps one raw, cached join for its assignments).
+- **Salary report**: a "Deductions" action on the store list opens the per-store deductions settings (bundle contract `^1.7`).
+
 ### Fixed
 - **OVH shared hosting**: server compression is disabled for `/livewire*` in `public/.htaccess` (it caused `ERR_HTTP2_PROTOCOL_ERROR` on Livewire's JavaScript and `/livewire/update`).
 

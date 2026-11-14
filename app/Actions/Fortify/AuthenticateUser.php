@@ -3,9 +3,9 @@
 namespace App\Actions\Fortify;
 
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -59,7 +59,7 @@ class AuthenticateUser
             return null;
         }
 
-        $isMember = DB::table('store_user')
+        $isMember = StoreMembership::query()
             ->where('store_id', $store->id)
             ->where('user_id', $user->id)
             ->exists();
