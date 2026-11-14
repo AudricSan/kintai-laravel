@@ -73,7 +73,7 @@ class PlanningCheckApiTest extends TestCase
     {
         $recipient = User::factory()->create(['email' => $email]);
         $store->members()->attach($recipient);
-        PlanningCheckSetting::forStore($store->id)->fill(['enabled' => true, 'mail_recipient_ids' => [$recipient->id]])->save();
+        PlanningCheckSetting::query()->firstOrNew(['store_id' => $store->id], PlanningCheckSetting::DEFAULTS)->fill(['enabled' => true, 'mail_recipient_ids' => [$recipient->id]])->save();
     }
 
     private function shift(Store $store): void
@@ -205,7 +205,7 @@ class PlanningCheckApiTest extends TestCase
     public function test_approve_without_recipient_is_refused_and_a_foreign_check_is_not_found(): void
     {
         Mail::fake();
-        PlanningCheckSetting::forStore($this->a->id)->fill(['enabled' => true])->save();
+        PlanningCheckSetting::query()->firstOrNew(['store_id' => $this->a->id], PlanningCheckSetting::DEFAULTS)->fill(['enabled' => true])->save();
         $check = $this->check($this->a, 'submitted');
         $foreign = $this->check($this->b, 'submitted');
         $manager = $this->managerOf($this->a);
@@ -264,7 +264,7 @@ class PlanningCheckApiTest extends TestCase
 
     public function test_a_disabled_store_refuses_the_actions(): void
     {
-        PlanningCheckSetting::forStore($this->a->id)->fill(['enabled' => false])->save();
+        PlanningCheckSetting::query()->firstOrNew(['store_id' => $this->a->id], PlanningCheckSetting::DEFAULTS)->fill(['enabled' => false])->save();
 
         $this->actingWithToken($this->managerOf($this->a))->postJson('/api/v1/planning-check/submit', ['store_id' => $this->a->id, 'confirm_empty' => true])
             ->assertStatus(422)->assertJson(['code' => 'validation_failed']);

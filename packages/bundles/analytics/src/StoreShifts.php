@@ -4,6 +4,7 @@ namespace Kintai\Bundles\Analytics;
 
 use App\Models\Shift;
 use App\Models\ShiftType;
+use App\Models\StoreMembership;
 use App\Planning\ShiftWageCalculator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +72,8 @@ class StoreShifts
             return [];
         }
 
+        // Requête directe : `shift_type_user` n'a pas de modèle pivot, et passer par `User::personalRates()` chargerait un
+        // modèle par employé (N+1) ou des modèles complets pour trois colonnes.
         $rates = [];
         foreach (DB::table('shift_type_user')->whereIn('user_id', $userIds)->get(['user_id', 'shift_type_id', 'hourly_rate']) as $row) {
             $rates[(int) $row->user_id][(int) $row->shift_type_id] = (float) $row->hourly_rate;
@@ -80,20 +83,12 @@ class StoreShifts
     }
 
     /**
-     * Appartenances d'un magasin (toutes, actives ou non), en lignes simples.
+     * Appartenances d'un magasin (toutes, actives ou non), par identifiant croissant.
      *
-     * @return list<array{user_id: int, staff_code: string|null, hire_date: string|null, contract_type: string|null, is_active: bool}>
+     * @return Collection<int, StoreMembership>
      */
-    public function memberships(int $storeId): array
+    public function memberships(int $storeId): Collection
     {
-        return DB::table('store_user')->where('store_id', $storeId)->orderBy('id')->get()
-            ->map(fn ($row): array => [
-                'user_id' => (int) $row->user_id,
-                'staff_code' => $row->staff_code,
-                'hire_date' => $row->hire_date === null ? null : substr((string) $row->hire_date, 0, 10),
-                'contract_type' => $row->contract_type,
-                'is_active' => (bool) $row->is_active,
-            ])
-            ->all();
+        return StoreMembership::query()->where('store_id', $storeId)->orderBy('id')->get();
     }
 }

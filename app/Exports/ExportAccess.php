@@ -4,10 +4,10 @@ namespace App\Exports;
 
 use App\Authorization\Authorizer;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Kintai\Contracts\Exports\ExportDataset;
 use Kintai\Contracts\Exports\ExportDatasetRegistry;
@@ -63,11 +63,11 @@ class ExportAccess
      */
     public function ownStoreIds(User $user): array
     {
-        return DB::table('store_user')
-            ->join('stores', 'stores.id', '=', 'store_user.store_id')
-            ->whereNull('stores.deleted_at')
-            ->where('store_user.user_id', $user->id)
-            ->pluck('store_user.store_id')
+        // `Store::query()` écarte les magasins supprimés (suppression logique), comme l'ancienne jointure.
+        return StoreMembership::query()
+            ->whereIn('store_id', Store::query()->select('id'))
+            ->where('user_id', $user->id)
+            ->pluck('store_id')
             ->map(fn ($id): int => (int) $id)
             ->unique()
             ->values()
@@ -109,7 +109,7 @@ class ExportAccess
         }
 
         $query = User::query()
-            ->whereIn('id', DB::table('store_user')->whereIn('store_id', $storeIds)->select('user_id'))
+            ->whereIn('id', StoreMembership::query()->whereIn('store_id', $storeIds)->select('user_id'))
             ->orderBy('name')
             ->orderBy('id');
 
@@ -217,7 +217,7 @@ class ExportAccess
      */
     private function memberIds(array $storeIds, array $requested): array
     {
-        return DB::table('store_user')
+        return StoreMembership::query()
             ->whereIn('store_id', $storeIds)
             ->whereIn('user_id', $requested)
             ->distinct()

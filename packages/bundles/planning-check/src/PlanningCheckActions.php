@@ -45,7 +45,7 @@ class PlanningCheckActions
     {
         $store = $this->enabledStore($actor, 'planning_check.submit', $storeId);
         $date = PlanningCheckPolicy::targetDate($now);
-        $check = PlanningCheck::ensure($storeId, $date);
+        $check = PlanningCheck::query()->firstOrCreate(['store_id' => $storeId, 'target_date' => $date], ['status' => PlanningCheck::PENDING]);
 
         if (! $check->isOpen()) {
             throw ValidationException::withMessages(['check' => __('This schedule has already been submitted.')]);
@@ -162,7 +162,7 @@ class PlanningCheckActions
     public function sendNow(User $actor, int $storeId, bool $confirmEmpty = false, ?Carbon $now = null): PlanningCheck
     {
         $this->enabledStore($actor, 'planning_check.approve', $storeId);
-        $check = PlanningCheck::ensure($storeId, PlanningCheckPolicy::targetDate($now));
+        $check = PlanningCheck::query()->firstOrCreate(['store_id' => $storeId, 'target_date' => PlanningCheckPolicy::targetDate($now)], ['status' => PlanningCheck::PENDING]);
 
         if ($check->isOpen()) {
             if (! $this->access->allows($actor, 'planning_check.submit', $storeId)) {
@@ -215,12 +215,12 @@ class PlanningCheckActions
         $enabled = PlanningCheckSetting::query()->where('enabled', true)->pluck('store_id')->map(fn ($id): int => (int) $id)->all();
 
         foreach ($this->access->activeStores($enabled) as $storeId => $name) {
-            $setting = PlanningCheckSetting::forStore($storeId);
+            $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
             if (! PlanningCheckPolicy::isDue($setting, $date, $now) || ! PlanningCheckPolicy::isLate($setting, $now)) {
                 continue;
             }
 
-            $check = PlanningCheck::ensure($storeId, $date);
+            $check = PlanningCheck::query()->firstOrCreate(['store_id' => $storeId, 'target_date' => $date], ['status' => PlanningCheck::PENDING]);
             if (! in_array($check->status, [PlanningCheck::PENDING, PlanningCheck::REJECTED], true)) {
                 continue;
             }
@@ -252,7 +252,7 @@ class PlanningCheckActions
             throw new AuthorizationException;
         }
 
-        $setting = PlanningCheckSetting::forStore($storeId);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
         $before = $setting->exists ? $setting->only(array_keys($settings)) : null;
         $setting->fill($settings + ['store_id' => $storeId])->save();
 
@@ -279,7 +279,7 @@ class PlanningCheckActions
 
         $store = Store::query()->findOrFail($storeId);
         $date = PlanningCheckPolicy::targetDate();
-        $day = $this->schedule->forDay($storeId, $date, PlanningCheckSetting::forStore($storeId)->include_open_shifts);
+        $day = $this->schedule->forDay($storeId, $date, PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS)->include_open_shifts);
         $bytes = $this->pdf->bytes($store, $date, $day, ['generated_at' => PlanningCheckPolicy::local()->format('H:i')]);
 
         if ($bytes === null || ! $this->mailer->sendTo($actor, $store, $date, $bytes)) {
@@ -317,7 +317,7 @@ class PlanningCheckActions
             throw new AuthorizationException;
         }
 
-        if (! PlanningCheckSetting::forStore($storeId)->enabled) {
+        if (! PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS)->enabled) {
             throw ValidationException::withMessages(['check' => __('The schedule validation is not enabled for this store.')]);
         }
 
@@ -352,7 +352,7 @@ class PlanningCheckActions
             'updated' => $updated,
             'generated_at' => PlanningCheckPolicy::local()->format('H:i'),
         ];
-        $day = $this->schedule->forDay($check->store_id, $date, PlanningCheckSetting::forStore($check->store_id)->include_open_shifts);
+        $day = $this->schedule->forDay($check->store_id, $date, PlanningCheckSetting::query()->firstOrNew(['store_id' => $check->store_id], PlanningCheckSetting::DEFAULTS)->include_open_shifts);
 
         $result = $this->mailer->send($store, $date, $this->pdf->bytes($store, $date, $day, $context), $context);
 

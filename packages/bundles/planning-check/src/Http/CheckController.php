@@ -68,7 +68,7 @@ class CheckController extends ApiController
             abort(404);
         }
 
-        $setting = PlanningCheckSetting::forStore($storeId);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
         $date = PlanningCheckPolicy::targetDate();
         $check = PlanningCheck::query()->with(['store:id,name', 'submitter:id,name', 'validator:id,name'])->where('store_id', $storeId)->whereDate('target_date', $date)->first();
         $day = $this->schedule->forDay($storeId, $date, $setting->include_open_shifts);

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Retenues d'un magasin (une ligne par magasin, créée à la première sauvegarde ; sans ligne, aucune retenue, voir
- * `forStore()`). Les taux sont des pourcentages du brut, la taxe résidentielle un montant mensuel fixe.
+ * `DEFAULTS`). Les taux sont des pourcentages du brut, la taxe résidentielle un montant mensuel fixe.
  *
  * @property int $store_id
  * @property bool $deductions_enabled
@@ -20,6 +20,14 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['store_id', 'deductions_enabled', 'health_insurance_rate', 'pension_rate', 'employment_insurance_rate', 'income_tax_rate', 'resident_tax_monthly'])]
 class SalaryReportSetting extends Model
 {
+    /**
+     * Valeurs appliquées (sans être enregistrées) quand un magasin n'a pas de ligne : `firstOrNew(['store_id' => $id], self::DEFAULTS)`.
+     */
+    public const DEFAULTS = [
+        'deductions_enabled' => false, 'health_insurance_rate' => 0, 'pension_rate' => 0,
+        'employment_insurance_rate' => 0, 'income_tax_rate' => 0, 'resident_tax_monthly' => 0,
+    ];
+
     protected $table = 'salary_report_settings';
 
     protected $primaryKey = 'store_id';
@@ -39,16 +47,5 @@ class SalaryReportSetting extends Model
             'income_tax_rate' => 'decimal:2',
             'resident_tax_monthly' => 'decimal:2',
         ];
-    }
-
-    /**
-     * Réglages du magasin, ou valeurs par défaut (retenues désactivées) non enregistrées s'il n'y a pas de ligne.
-     */
-    public static function forStore(int $storeId): self
-    {
-        return self::query()->find($storeId) ?? new self([
-            'store_id' => $storeId, 'deductions_enabled' => false, 'health_insurance_rate' => 0, 'pension_rate' => 0,
-            'employment_insurance_rate' => 0, 'income_tax_rate' => 0, 'resident_tax_monthly' => 0,
-        ]);
     }
 }

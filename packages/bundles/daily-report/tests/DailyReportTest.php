@@ -276,7 +276,7 @@ class DailyReportTest extends TestCase
     public function test_the_running_total_is_computed_for_cumulative_system_stores(): void
     {
         $this->enable();
-        DailyReportSetting::forStore($this->a->id)->fill(['cumulative_mode' => 'cumulative_system'])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->a->id], DailyReportSetting::DEFAULTS)->fill(['cumulative_mode' => 'cumulative_system'])->save();
         $this->report($this->a, null, 'draft', ['report_date' => '2026-11-01', 'sales_total' => 1000]);
         $this->report($this->a, null, 'draft', ['report_date' => '2026-11-02', 'sales_total' => 500]);
 
@@ -410,7 +410,7 @@ class DailyReportTest extends TestCase
         foreach ([$ja, $fr, $inactive] as $user) {
             $this->a->members()->attach($user);
         }
-        DailyReportSetting::forStore($this->a->id)->fill(['mail_recipient_ids' => [$ja->id, $fr->id, $inactive->id, $outsider->id]])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->a->id], DailyReportSetting::DEFAULTS)->fill(['mail_recipient_ids' => [$ja->id, $fr->id, $inactive->id, $outsider->id]])->save();
         $report = $this->report($this->a, null, 'validated');
 
         Livewire::actingAs($this->managerOf($this->a))->test('daily-report.show', ['report' => $report->id])->call('sendMail')->assertHasNoErrors();
@@ -453,7 +453,7 @@ class DailyReportTest extends TestCase
         $this->enable();
         Mail::fake();
         $recipient = $this->employeeOf($this->a, ['email' => 'boss@example.test']);
-        DailyReportSetting::forStore($this->a->id)->fill(['auto_send_on_validate' => true, 'mail_recipient_ids' => [$recipient->id]])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->a->id], DailyReportSetting::DEFAULTS)->fill(['auto_send_on_validate' => true, 'mail_recipient_ids' => [$recipient->id]])->save();
         $report = $this->report($this->a, null, 'submitted');
 
         Livewire::actingAs($this->managerOf($this->a))->test('daily-report.show', ['report' => $report->id])->call('validateReport');
@@ -471,8 +471,8 @@ class DailyReportTest extends TestCase
         $yesterday = Carbon::now((string) config('kintai.timezone'))->subDay()->toDateString();
         $hour = Carbon::now((string) config('kintai.timezone'))->format('H');
         $otherHour = $hour === '03' ? '04' : '03';
-        DailyReportSetting::forStore($this->a->id)->fill(['auto_validate_time' => $hour.':00'])->save();
-        DailyReportSetting::forStore($this->b->id)->fill(['auto_validate_time' => $otherHour.':00'])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->a->id], DailyReportSetting::DEFAULTS)->fill(['auto_validate_time' => $hour.':00'])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->b->id], DailyReportSetting::DEFAULTS)->fill(['auto_validate_time' => $otherHour.':00'])->save();
         $due = $this->report($this->a, null, 'draft', ['report_date' => $yesterday]);
         $later = $this->report($this->b, null, 'submitted', ['report_date' => $yesterday]);
 
@@ -493,7 +493,7 @@ class DailyReportTest extends TestCase
         $this->enable();
         $date = '2026-11-01';
         $unset = $this->report($this->a, null, 'draft', ['report_date' => $date]);
-        DailyReportSetting::forStore($this->b->id)->fill(['auto_validate_time' => '03:00'])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->b->id], DailyReportSetting::DEFAULTS)->fill(['auto_validate_time' => '03:00'])->save();
         $validated = $this->report($this->b, null, 'validated', ['report_date' => $date, 'validated_at' => '2026-11-02 08:00:00']);
 
         $this->artisan("kintai:auto-validate --date={$date} --all")->assertSuccessful();
@@ -551,7 +551,7 @@ class DailyReportTest extends TestCase
             ->set('columns', ['employee', 'schedule'])->set('mode', 'cumulative_input')
             ->call('save')->assertHasNoErrors();
 
-        $setting = DailyReportSetting::forStore($this->a->id);
+        $setting = DailyReportSetting::query()->firstOrNew(['store_id' => $this->a->id], DailyReportSetting::DEFAULTS);
         $this->assertSame([[$recipient->id], true, '02:30', '14:00', '19:00', ['employee', 'schedule'], 'cumulative_input'], [
             $setting->recipientIds(), $setting->auto_send_on_validate, $setting->auto_validate_time, $setting->reminder_time, $setting->no_report_time, $setting->columns(), $setting->cumulative_mode,
         ]);

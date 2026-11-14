@@ -550,7 +550,7 @@ class SalaryReportTest extends TestCase
             ->set('enabled', true)->set('healthRate', '4.99')->set('pensionRate', '9.15')->set('employmentRate', '0.6')->set('incomeTaxRate', '3')->set('residentTax', '1000')
             ->set('subjects', [$ana->id])->call('save')->assertHasNoErrors();
 
-        $setting = SalaryReportSetting::forStore($this->a->id);
+        $setting = SalaryReportSetting::query()->firstOrNew(['store_id' => $this->a->id], SalaryReportSetting::DEFAULTS);
         $this->assertTrue($setting->deductions_enabled);
         $this->assertSame(['4.99', '9.15', '0.60', '3.00', '1000.00'], [$setting->health_insurance_rate, $setting->pension_rate, $setting->employment_insurance_rate, $setting->income_tax_rate, $setting->resident_tax_monthly]);
         $this->assertTrue(SalaryReportMember::where(['store_id' => $this->a->id, 'user_id' => $ana->id])->firstOrFail()->subject_to_deductions);

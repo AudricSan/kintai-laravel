@@ -190,6 +190,25 @@ class PersonalExportTest extends TestCase
         $this->assertSame(1, ActivityEntry::where('action', 'export.personal_data')->count());
     }
 
+    public function test_personal_data_memberships_keep_their_exact_format_order_and_deleted_stores(): void
+    {
+        $user = User::factory()->create();
+        $zulu = Store::factory()->create(['name' => 'Zulu', 'code' => 'ZUL']);
+        $gone = Store::factory()->create(['name' => 'Bravo', 'code' => 'BRA']);
+        $this->store->members()->attach($user, ['staff_code' => 'S-1', 'hire_date' => '2024-04-01', 'contract_type' => 'full-time', 'is_active' => true]);
+        $zulu->members()->attach($user, ['staff_code' => null, 'hire_date' => null, 'contract_type' => null, 'is_active' => false]);
+        $gone->members()->attach($user, ['staff_code' => 'S-3', 'hire_date' => '2023-01-31', 'contract_type' => 'part-time', 'is_active' => true]);
+        $gone->delete();
+
+        $data = json_decode($this->actingAs($user)->get(route('data-export.download'))->streamedContent(), true);
+
+        $this->assertSame([
+            ['store' => 'Alpha', 'store_code' => 'ALP', 'staff_code' => 'S-1', 'hire_date' => '2024-04-01', 'contract_type' => 'full-time', 'is_active' => true],
+            ['store' => 'Bravo', 'store_code' => 'BRA', 'staff_code' => 'S-3', 'hire_date' => '2023-01-31', 'contract_type' => 'part-time', 'is_active' => true],
+            ['store' => 'Zulu', 'store_code' => 'ZUL', 'staff_code' => null, 'hire_date' => null, 'contract_type' => null, 'is_active' => false],
+        ], $data['memberships']);
+    }
+
     public function test_personal_data_only_contains_the_data_of_the_signed_in_user(): void
     {
         $colleague = $this->employeeOf($this->store, ['name' => 'Colleague', 'email' => 'colleague@example.com']);

@@ -49,6 +49,8 @@ class ShiftTypesDataset extends AbstractExportDataset
 
     protected function query(ExportScope $scope): Builder
     {
+        // Requête tabulaire à jointures et alias, lue en flux (lazy) : le query builder évite l'hydratation de modèles
+        // et garde les valeurs brutes (heures, booléens) que `row()` met en forme.
         return DB::table('shift_type_store')
             ->join('shift_types', 'shift_types.id', '=', 'shift_type_store.shift_type_id')
             ->join('stores', 'stores.id', '=', 'shift_type_store.store_id')

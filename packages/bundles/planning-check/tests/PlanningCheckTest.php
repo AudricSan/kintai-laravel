@@ -114,7 +114,7 @@ class PlanningCheckTest extends TestCase
             $store->members()->syncWithoutDetaching([$recipient->id]);
         }
 
-        $setting = PlanningCheckSetting::forStore($store->id);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $store->id], PlanningCheckSetting::DEFAULTS);
         $setting->fill(['enabled' => true, 'mail_recipient_ids' => array_map(fn (User $user): int => $user->id, $recipients), ...$attributes])->save();
 
         return $setting;
@@ -260,7 +260,7 @@ class PlanningCheckTest extends TestCase
         $viewer = $this->holder(['planning_check.view'], $this->a);
         Livewire::actingAs($viewer)->test('planning-check.index')->call('submit')->assertForbidden();
 
-        PlanningCheckSetting::forStore($this->a->id)->fill(['enabled' => false])->save();
+        PlanningCheckSetting::query()->firstOrNew(['store_id' => $this->a->id], PlanningCheckSetting::DEFAULTS)->fill(['enabled' => false])->save();
         PlanningCheck::query()->delete();
         Livewire::actingAs($manager)->test('planning-check.index')->call('submit')->assertHasErrors(['check']);
         $this->assertSame(0, PlanningCheck::count());
@@ -290,7 +290,7 @@ class PlanningCheckTest extends TestCase
         $inactive->forceFill(['is_active' => false])->save();
         $outsider = User::factory()->create(['email' => 'out@example.test']);
         $this->configure($this->a, [$fr, $ja, $inactive]);
-        PlanningCheckSetting::forStore($this->a->id)->fill(['mail_recipient_ids' => [$fr->id, $ja->id, $inactive->id, $outsider->id]])->save();
+        PlanningCheckSetting::query()->firstOrNew(['store_id' => $this->a->id], PlanningCheckSetting::DEFAULTS)->fill(['mail_recipient_ids' => [$fr->id, $ja->id, $inactive->id, $outsider->id]])->save();
         $this->shift($this->a, $this->employeeOf($this->a));
 
         $submitter = $this->managerOf($this->a);
@@ -601,7 +601,7 @@ class PlanningCheckTest extends TestCase
         // Mercredi (3) n'est pas un jour travaillé.
         $this->configure($this->b, [$this->recipient($this->b, 'b@example.test')], ['weekdays' => [1, 2, 4, 5]]);
         $store = Store::factory()->create(['name' => 'Disabled']);
-        PlanningCheckSetting::forStore($store->id)->fill(['enabled' => false])->save();
+        PlanningCheckSetting::query()->firstOrNew(['store_id' => $store->id], PlanningCheckSetting::DEFAULTS)->fill(['enabled' => false])->save();
         $offStore = Store::factory()->create(['name' => 'Feature off']);
         $this->configure($offStore);
         StoreFeature::create(['store_id' => $offStore->id, 'feature' => 'planning_check', 'enabled' => false]);
@@ -710,7 +710,7 @@ class PlanningCheckTest extends TestCase
             ->set('enabled', true)->set('windowStart', '05:30')->set('deadline', '11:15')->set('weekdays', [1, 2, 3])->set('recipients', [$recipient->id])->set('includeOpen', true)
             ->call('save')->assertHasNoErrors();
 
-        $setting = PlanningCheckSetting::forStore($this->a->id);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $this->a->id], PlanningCheckSetting::DEFAULTS);
         $this->assertSame([true, '05:30', '11:15', [1, 2, 3], [$recipient->id], true], [$setting->enabled, $setting->window_start_time, $setting->deadline_time, $setting->days(), $setting->recipientIds(), $setting->include_open_shifts]);
         $this->assertNotNull(ActivityEntry::where('action', 'planning_check.settings_updated')->first());
     }

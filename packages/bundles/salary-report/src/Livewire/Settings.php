@@ -78,7 +78,7 @@ class Settings extends Component
     private function load(): void
     {
         $this->resetDeductionForm();
-        $setting = SalaryReportSetting::forStore((int) $this->store);
+        $setting = SalaryReportSetting::query()->firstOrNew(['store_id' => (int) $this->store], SalaryReportSetting::DEFAULTS);
 
         $this->enabled = $setting->deductions_enabled;
         $this->healthRate = $this->plain((string) $setting->health_insurance_rate);

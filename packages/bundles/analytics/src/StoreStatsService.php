@@ -79,7 +79,7 @@ class StoreStatsService
         $shifts = array_values(array_filter($window, fn (ShiftFact $s): bool => $s->date >= $since));
         $n = count($shifts);
 
-        $memberIds = array_map(fn (array $m): int => $m['user_id'], $this->shifts->memberships($storeId));
+        $memberIds = $this->shifts->memberships($storeId)->pluck('user_id')->map(fn ($id): int => (int) $id)->all();
         $types = $this->shifts->typesOf($storeId);
         $typeLabel = fn (?int $id): string => $id !== null && isset($types[$id]) ? $types[$id]->name : __('Not defined');
 
@@ -344,7 +344,7 @@ class StoreStatsService
         $shifts = $this->shifts->between($storeId, $since, $today->toDateString());
         $n = count($shifts);
 
-        $memberIds = array_map(fn (array $m): int => $m['user_id'], $this->shifts->memberships($storeId));
+        $memberIds = $this->shifts->memberships($storeId)->pluck('user_id')->map(fn ($id): int => (int) $id)->all();
         $types = $this->shifts->typesOf($storeId);
 
         $durations = array_map(fn (ShiftFact $s): int => $s->duration, $shifts);
@@ -419,12 +419,18 @@ class StoreStatsService
         $shifts = $this->shifts->between($storeId, $since, $today->toDateString());
 
         $members = $this->shifts->memberships($storeId);
-        $memberIds = array_map(fn (array $m): int => $m['user_id'], $members);
+        $memberIds = $members->pluck('user_id')->map(fn ($id): int => (int) $id)->all();
         $roles = $this->storeRoles($storeId);
         $membersMap = [];
         foreach ($members as $member) {
-            $role = $roles[$member['user_id']] ?? null;
-            $membersMap[$member['user_id']] = $member + [
+            $userId = (int) $member->user_id;
+            $role = $roles[$userId] ?? null;
+            $membersMap[$userId] = [
+                'user_id' => $userId,
+                'staff_code' => $member->staff_code,
+                'hire_date' => $member->hire_date?->toDateString(),
+                'contract_type' => $member->contract_type,
+                'is_active' => (bool) $member->is_active,
                 'role_name' => $role['name'] ?? '—',
                 'role_is_managing' => $role['is_managing'] ?? false,
             ];
@@ -548,6 +554,8 @@ class StoreStatsService
      */
     private function storeRoles(int $storeId): array
     {
+        // Requête jointe laissée en query builder : un seul aller-retour pour deux colonnes de `roles`, sans hydrater de
+        // modèles ni passer par des relations à suppression logique.
         $roles = [];
         $rows = DB::table('role_user')
             ->join('roles', 'roles.id', '=', 'role_user.role_id')

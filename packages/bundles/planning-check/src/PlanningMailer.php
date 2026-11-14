@@ -21,7 +21,7 @@ class PlanningMailer
      */
     public function recipients(int $storeId): array
     {
-        $ids = PlanningCheckSetting::forStore($storeId)->recipientIds();
+        $ids = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS)->recipientIds();
         if ($ids === []) {
             return [];
         }
