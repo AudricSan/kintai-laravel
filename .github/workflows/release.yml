@@ -39,7 +39,10 @@ jobs:
       - name: Install PHP dependencies (production)
         env:
           COMPOSER_MIRROR_PATH_REPOS: '1'
-        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+        run: |
+          # `options.symlink: true` de composer.json l'emporte sur COMPOSER_MIRROR_PATH_REPOS : on le coupe pour l'archive (copie, pas de lien).
+          sed -i 's/"symlink": true/"symlink": false/' composer.json
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Build front-end assets
         run: |
