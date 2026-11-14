@@ -68,7 +68,7 @@ class SaveShiftType
 
             // Les rattachements que l'acteur ne gère pas (magasin supprimé) sont conservés.
             $kept = $allowed === null ? [] : array_values(array_diff(
-                DB::table('shift_type_store')->where('shift_type_id', $saved->id)->pluck('store_id')->map(fn ($id): int => (int) $id)->all(),
+                $saved->stores()->withTrashed()->pluck('stores.id')->map(fn ($id): int => (int) $id)->all(),
                 $allowed,
             ));
             $saved->stores()->sync(array_merge($storeIds, $kept));

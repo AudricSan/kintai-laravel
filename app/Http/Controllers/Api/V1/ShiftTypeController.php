@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\ShiftTypes\DeleteShiftType;
 use App\Actions\ShiftTypes\SaveShiftType;
 use App\Actions\ShiftTypes\ToggleShiftTypeStore;
+use App\Http\Requests\Api\V1\ShiftTypeIndexRequest;
 use App\Http\Resources\V1\ShiftTypeResource;
 use App\Models\ShiftType;
 use App\Models\Store;
@@ -26,7 +27,7 @@ class ShiftTypeController extends ApiController
         $actor = $this->actor($request);
         $this->requireView($request);
 
-        $filters = $request->validate(['store_id' => ['nullable', 'integer'], 'is_active' => ['nullable', 'boolean']]);
+        $filters = $this->validated(ShiftTypeIndexRequest::class);
         $viewable = $this->authorizer()->storeIdsFor($actor, 'shifts.view');
 
         $types = ShiftType::query()

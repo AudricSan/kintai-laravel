@@ -30,7 +30,6 @@ final class LicenseResult
         public readonly ?string $type = null,
         public readonly ?string $expiresAt = null,
         public readonly ?int $maxActivations = null,
-        public readonly ?int $activeActivations = null,
         public readonly ?int $httpStatus = null,
     ) {}
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 
 /**
@@ -25,6 +26,20 @@ abstract class ApiController extends Controller
     protected function perPage(Request $request): int
     {
         return min(max((int) $request->query('per_page', 20), 1), 100);
+    }
+
+    /**
+     * Valide avec une FormRequest au moment voulu : les contrôleurs autorisent (403) et cherchent la ressource (404) avant
+     * de valider (422), donc la FormRequest n'est pas injectée dans la signature. Même corps d'erreur 422.
+     *
+     * @template T of FormRequest
+     *
+     * @param  class-string<T>  $request
+     * @return array<string, mixed>
+     */
+    protected function validated(string $request): array
+    {
+        return app($request)->validated();
     }
 
     protected function actor(Request $request): User

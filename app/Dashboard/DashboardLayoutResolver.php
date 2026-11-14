@@ -3,8 +3,8 @@
 namespace App\Dashboard;
 
 use App\Models\DashboardLayout;
+use App\Models\RoleAssignment;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Kintai\Contracts\Dashboard\DashboardWidget;
 use Kintai\Contracts\Dashboard\DashboardWidgetRegistry;
@@ -182,7 +182,7 @@ class DashboardLayoutResolver
             return $personal;
         }
 
-        $roleIds = DB::table('role_user')->where('user_id', $user->id)->distinct()->pluck('role_id')->all();
+        $roleIds = RoleAssignment::query()->where('user_id', $user->id)->distinct()->pluck('role_id')->all();
         if ($roleIds === []) {
             return null;
         }

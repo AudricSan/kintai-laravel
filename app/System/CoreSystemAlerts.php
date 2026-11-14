@@ -5,12 +5,12 @@ namespace App\System;
 use App\License\LicenseState;
 use App\Models\Store;
 use App\Models\User;
+use App\Models\WebPushSubscription;
 use App\Push\FcmClient;
 use App\Push\VapidKeys;
 use App\Settings\AppSettings;
 use App\Update\UpdateChecker;
 use Illuminate\Database\Migrations\Migrator;
-use Illuminate\Support\Facades\DB;
 use Kintai\Contracts\System\SystemAlert;
 
 /**
@@ -234,7 +234,7 @@ final class CoreSystemAlerts
         $vapid = app(VapidKeys::class);
         $hasPublic = $vapid->publicKey() !== null;
         $hasPrivate = $vapid->privateKey() !== null;
-        $subscribed = DB::table('web_push_subscriptions')->exists();
+        $subscribed = WebPushSubscription::query()->exists();
 
         if ($hasPublic !== $hasPrivate || (! $hasPublic && $subscribed)) {
             $problems[] = 'web_push_keys';

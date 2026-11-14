@@ -9,9 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
 use Kintai\Bundles\ShiftClaim\ClaimAccess;
 use Kintai\Bundles\ShiftClaim\ClaimActions;
+use Kintai\Bundles\ShiftClaim\Http\Requests\ApproveRequest;
+use Kintai\Bundles\ShiftClaim\Http\Requests\IndexRequest;
+use Kintai\Bundles\ShiftClaim\Http\Requests\NoteRequest;
+use Kintai\Bundles\ShiftClaim\Http\Requests\OpenShiftsRequest;
 use Kintai\Bundles\ShiftClaim\Models\ShiftClaim;
 use Kintai\Bundles\ShiftClaim\Models\ShiftOffer;
 use Kintai\Contracts\Api\ApiController;
@@ -36,7 +39,7 @@ class ClaimController extends ApiController
     public function openShifts(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate(['store_id' => ['nullable', 'integer']]);
+        $filters = app(OpenShiftsRequest::class)->validated();
 
         $storeIds = array_unique([
             ...array_keys($this->access->memberStores($user)),
@@ -57,12 +60,7 @@ class ClaimController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'shift_id' => ['nullable', 'integer'],
-            'status' => ['nullable', Rule::in(ShiftClaim::STATUSES)],
-            'mine' => ['nullable', 'boolean'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $claims = $this->access->visible($user)
             ->with(['user:id,name', 'store:id,name', 'shift'])
@@ -90,7 +88,7 @@ class ClaimController extends ApiController
     public function claim(Request $request, int $shift): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
+        $data = app(NoteRequest::class)->validated();
 
         $claim = $this->actions->claim($user, $shift, $data['note'] ?? null);
 
@@ -107,7 +105,7 @@ class ClaimController extends ApiController
     public function approve(Request $request, int $claim): ClaimResource
     {
         $user = $this->user($request);
-        $request->validate(['force' => ['nullable', 'boolean']]);
+        app(ApproveRequest::class);
 
         return new ClaimResource($this->present($user, $this->actions->approve($user, $this->find($user, $claim), $request->boolean('force'))));
     }
@@ -125,7 +123,7 @@ class ClaimController extends ApiController
     public function offer(Request $request, int $shift): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
+        $data = app(NoteRequest::class)->validated();
 
         $this->actions->offer($user, $shift, $data['note'] ?? null);
         $model = Shift::query()->with(['store:id,name', 'user:id,name'])->findOrFail($shift);

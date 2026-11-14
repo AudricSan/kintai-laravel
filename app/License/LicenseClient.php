@@ -153,7 +153,6 @@ class LicenseClient
             $this->string($data['type'] ?? null),
             $this->string($data['expires_at'] ?? null),
             $this->int($data['max_activations'] ?? null),
-            $this->int($data['active_activations'] ?? null),
             $status,
         );
     }

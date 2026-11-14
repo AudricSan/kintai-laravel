@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Stores\AddStoreMember;
 use App\Actions\Stores\RemoveStoreMember;
 use App\Actions\Stores\UpdateStoreMember;
+use App\Http\Requests\Api\V1\StoreMemberIndexRequest;
 use App\Http\Resources\V1\StoreMemberResource;
 use App\Models\Store;
 use App\Models\User;
@@ -24,7 +25,7 @@ class StoreMemberController extends ApiController
     public function index(Request $request, int $store): AnonymousResourceCollection
     {
         $model = $this->visible($request, $store, 'employees.view');
-        $filters = $request->validate(['is_active' => ['nullable', 'boolean'], 'search' => ['nullable', 'string', 'max:100']]);
+        $filters = $this->validated(StoreMemberIndexRequest::class);
         $term = trim((string) ($filters['search'] ?? ''));
 
         $members = $model->members()

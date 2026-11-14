@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Accès aux retenues depuis la liste des magasins : action « Retenues » (`StoreAction`, contrat 1.7) visible par qui a `salary_reports.settings` sur le magasin. Contrat requis : `^1.7`.
+
 Retenues personnalisées par magasin, en plus des retenues fixes (inchangées).
 - Nouvelle table `salary_report_deductions` (nom libre unique par magasin, type `percent` = % du brut de l'employé ou `fixed` = montant mensuel par employé payé, valeur, actif ; 20 au plus par magasin) et nouvelle colonne JSON `salary_reports.deduction_lines` (instantané `[{name, kind, value, amount}]`).
 - Gérées dans l'écran « Réglages » (ajout, modification, activation, suppression) avec la permission `salary_reports.settings` sur le magasin ; journal `salary_report.deduction_saved` / `.deduction_deleted` sans nom ni valeur.

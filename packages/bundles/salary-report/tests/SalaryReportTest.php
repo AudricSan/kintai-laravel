@@ -23,6 +23,7 @@ use Kintai\Bundles\SalaryReport\Models\SalaryReportSetting;
 use Kintai\Bundles\SalaryReport\SalaryReportActions;
 use Kintai\Contracts\Authorization\PermissionRegistry;
 use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Stores\StoreActionRegistry;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Livewire\Livewire;
 use LogicException;
@@ -859,5 +860,19 @@ class SalaryReportTest extends TestCase
         $this->assertContains('salary-report', $keys($viewer));
         $this->assertNotContains('salary-report', $keys($this->employeeOf($this->a)));
         $this->assertNotContains('salary-report', $keys($this->holder(['salary_reports.generate'], $this->a)));
+    }
+
+    public function test_the_store_list_offers_the_deductions_to_who_can_manage_the_settings_of_the_store(): void
+    {
+        $this->enable();
+        $registry = app(StoreActionRegistry::class);
+        $keys = fn (User $viewer, Store $store): array => array_map(fn ($action): string => $action->key, $registry->actionsFor($viewer, $store->id));
+
+        $manager = $this->holder(['salary_reports.settings'], $this->a);
+
+        $this->assertContains('salary-report.settings', $keys($manager, $this->a));
+        $this->assertNotContains('salary-report.settings', $keys($manager, $this->b));
+        $this->assertNotContains('salary-report.settings', $keys($this->holder(['salary_reports.view'], $this->a, 'Viewer'), $this->a));
+        $this->assertNotContains('salary-report.settings', $keys($this->employeeOf($this->a), $this->a));
     }
 }

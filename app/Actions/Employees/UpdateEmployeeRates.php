@@ -4,6 +4,7 @@ namespace App\Actions\Employees;
 
 use App\Authorization\Authorizer;
 use App\Models\ShiftType;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,7 +29,7 @@ class UpdateEmployeeRates
      */
     public function eligibleShiftTypes(User $actor, User $target): Collection
     {
-        $common = DB::table('store_user')->where('user_id', $target->id)->pluck('store_id')
+        $common = StoreMembership::query()->where('user_id', $target->id)->pluck('store_id')
             ->map(fn ($id): int => (int) $id)
             ->all();
 

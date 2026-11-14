@@ -18,9 +18,4 @@ final readonly class ShiftConflict
     {
         return $this->first->id > $this->second->id ? $this->first : $this->second;
     }
-
-    public function older(): Shift
-    {
-        return $this->first->id > $this->second->id ? $this->second : $this->first;
-    }
 }

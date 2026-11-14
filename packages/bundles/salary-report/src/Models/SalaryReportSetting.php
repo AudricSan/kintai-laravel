@@ -20,9 +20,6 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['store_id', 'deductions_enabled', 'health_insurance_rate', 'pension_rate', 'employment_insurance_rate', 'income_tax_rate', 'resident_tax_monthly'])]
 class SalaryReportSetting extends Model
 {
-    /** Taux en pourcentage, dans l'ordre d'affichage. */
-    public const RATES = ['health_insurance_rate', 'pension_rate', 'employment_insurance_rate', 'income_tax_rate'];
-
     protected $table = 'salary_report_settings';
 
     protected $primaryKey = 'store_id';

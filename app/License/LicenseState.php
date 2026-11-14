@@ -70,11 +70,6 @@ class LicenseState
         return $this->status()->state;
     }
 
-    public function tier(): ?string
-    {
-        return $this->status()->tier();
-    }
-
     /**
      * Limite d'une clé (`max_stores`, `max_employees`…) ; null = illimité. Sans licence valable, c'est le palier gratuit
      * (`kintai.license.free_limits`) qui s'applique : pour savoir si une licence est en cours, utiliser `status()`.
@@ -266,9 +261,9 @@ class LicenseState
             return ['claims' => null, 'reason' => 'invalid'];
         }
 
-        // Jeton lié à une instance : un jeton copié d'une autre installation ne vaut rien ici. Les jetons sans cette
-        // revendication (anciens serveurs) restent acceptés jusqu'à leur échéance (14 jours au plus).
-        if (array_key_exists('instance_id', $claims) && ($claims['instance_id'] !== $this->instanceId())) {
+        // Jeton lié à une instance : la revendication instance_id est obligatoire (le serveur de licence la pose toujours).
+        // Un jeton copié d'une autre installation, ou sans liaison, ne vaut rien ici.
+        if (($claims['instance_id'] ?? null) !== $this->instanceId()) {
             return ['claims' => null, 'reason' => 'invalid'];
         }
 

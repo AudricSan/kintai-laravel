@@ -13,6 +13,7 @@ use Kintai\Contracts\Bundle\BundleServiceProvider;
 use Kintai\Contracts\Events\UserAnonymized;
 use Kintai\Contracts\Navigation\NavigationItem;
 use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Stores\StoreAction;
 use Livewire\Livewire;
 
 /**
@@ -49,7 +50,7 @@ class SalaryReportServiceProvider extends BundleServiceProvider
 
     public function requiredContract(): string
     {
-        return '^1.4';
+        return '^1.7';
     }
 
     protected function bootBundle(): void
@@ -73,6 +74,12 @@ class SalaryReportServiceProvider extends BundleServiceProvider
             section: NavigationRegistry::SECTION_REPORTS, order: 50,
             visible: fn (Authenticatable $user): bool => $user instanceof User && $this->app->make(SalaryReportAccess::class)->storesWith($user, 'salary_reports.view') !== [],
             current: ['salary-report.index', 'salary-report.show', 'salary-report.create', 'salary-report.edit', 'salary-report.settings'],
+        ));
+
+        // « Retenues » sur la liste des magasins : ouvre les réglages du magasin (`?store=`), qui revérifient les droits.
+        $this->storeActions(new StoreAction(
+            key: 'salary-report.settings', label: 'Deductions', route: 'salary-report.settings', order: 80, icon: 'cog-6-tooth',
+            visible: fn (Authenticatable $viewer, int $storeId): bool => $viewer instanceof User && $this->app->make(SalaryReportAccess::class)->canManageSettings($viewer, $storeId),
         ));
 
         foreach ([

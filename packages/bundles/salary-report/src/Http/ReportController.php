@@ -7,6 +7,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Kintai\Bundles\SalaryReport\Http\Requests\CalculateRequest;
+use Kintai\Bundles\SalaryReport\Http\Requests\IndexRequest;
+use Kintai\Bundles\SalaryReport\Http\Requests\StoreRequest;
+use Kintai\Bundles\SalaryReport\Http\Requests\UpdateRequest;
 use Kintai\Bundles\SalaryReport\Models\SalaryReport;
 use Kintai\Bundles\SalaryReport\SalaryReportAccess;
 use Kintai\Bundles\SalaryReport\SalaryReportActions;
@@ -28,12 +32,7 @@ class ReportController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'employee_id' => ['nullable', 'integer'],
-            'month' => ['nullable', 'date_format:Y-m'],
-            'year' => ['nullable', 'integer', 'digits:4'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $reports = $this->access->visible($user)
             ->with(['store:id,name', 'employee:id,name', 'personInCharge:id,name'])
@@ -63,12 +62,7 @@ class ReportController extends ApiController
     public function calculate(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate([
-            'store_id' => ['required', 'integer'],
-            'from' => ['required', 'date_format:Y-m-d'],
-            'to' => ['required', 'date_format:Y-m-d'],
-            'employee_id' => ['nullable', 'integer'],
-        ]);
+        $data = app(CalculateRequest::class)->validated();
 
         $result = $this->actions->calculate($user, (int) $data['store_id'], $data['from'], $data['to'], isset($data['employee_id']) ? (int) $data['employee_id'] : null);
 
@@ -78,11 +72,7 @@ class ReportController extends ApiController
     public function store(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate([
-            'store_id' => ['required', 'integer'],
-            'month' => ['required', 'date_format:Y-m'],
-            'employee_id' => ['nullable', 'integer'],
-        ] + $this->contentRules());
+        $data = app(StoreRequest::class)->validated();
 
         $report = $this->actions->create($user, (int) $data['store_id'], $data['month'], isset($data['employee_id']) ? (int) $data['employee_id'] : null, $data);
 
@@ -94,7 +84,7 @@ class ReportController extends ApiController
         $user = $this->user($request);
         $model = $this->find($user, $report);
 
-        return new ReportResource($this->present($user, $this->actions->update($user, $model, $request->validate($this->contentRules()))));
+        return new ReportResource($this->present($user, $this->actions->update($user, $model, app(UpdateRequest::class)->validated())));
     }
 
     public function destroy(Request $request, int $report): Response
@@ -103,28 +93,6 @@ class ReportController extends ApiController
         $this->actions->delete($user, $this->find($user, $report));
 
         return response()->noContent();
-    }
-
-    /**
-     * @return array<string, list<mixed>>
-     */
-    private function contentRules(): array
-    {
-        $rules = [];
-
-        foreach ([...SalaryReport::AMOUNTS, ...SalaryReport::HOURS] as $field) {
-            $rules[$field] = ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999'];
-        }
-
-        foreach (SalaryReport::COUNTS as $field) {
-            $rules[$field] = ['sometimes', 'nullable', 'integer', 'min:0', 'max:1000000'];
-        }
-
-        return $rules + [
-            'person_in_charge_id' => ['sometimes', 'nullable', 'integer'],
-            'hire_registrations' => ['sometimes', 'nullable', 'string', 'max:5000'],
-            'remarks' => ['sometimes', 'nullable', 'string', 'max:5000'],
-        ];
     }
 
     private function user(Request $request): User

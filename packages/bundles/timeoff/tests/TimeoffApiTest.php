@@ -216,4 +216,13 @@ class TimeoffApiTest extends TestCase
         $this->actingWithToken($this->managerWith(['timeoff.view', 'timeoff.delete'], $this->a))->deleteJson('/api/v1/timeoff/requests/'.$request->id)->assertNoContent();
         $this->assertDatabaseMissing('timeoff_requests', ['id' => $request->id]);
     }
+
+    public function test_an_invalid_update_of_a_request_out_of_scope_is_still_not_found(): void
+    {
+        $employee = $this->employeeOf($this->a);
+        $foreign = $this->leave($this->employeeOf($this->a), $this->a);
+
+        $this->actingWithToken($employee)->putJson('/api/v1/timeoff/requests/'.$foreign->id, ['type' => 'bogus', 'start_date' => 'nope'])->assertNotFound();
+        $this->actingWithToken($employee)->putJson('/api/v1/timeoff/requests/999', ['type' => 'bogus'])->assertNotFound();
+    }
 }

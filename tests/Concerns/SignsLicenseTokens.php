@@ -2,6 +2,7 @@
 
 namespace Tests\Concerns;
 
+use App\License\LicenseState;
 use Firebase\JWT\JWT;
 
 /**
@@ -38,7 +39,7 @@ trait SignsLicenseTokens
         $claims = array_merge([
             'iss' => 'license-manager', 'sub' => 'lic_1', 'iat' => $now, 'exp' => $now + 14 * 86400, 'product' => 'kintai',
             'type' => 'subscription', 'plan_tier' => 'pro', 'limits' => ['max_stores' => 5, 'max_employees' => 50],
-            'max_activations' => 2, 'issued_at' => now()->toIso8601String(), 'expires_at' => now()->addYear()->toIso8601String(),
+            'max_activations' => 2, 'instance_id' => app(LicenseState::class)->instanceId(), 'issued_at' => now()->toIso8601String(), 'expires_at' => now()->addYear()->toIso8601String(),
         ], $override);
 
         return JWT::encode($claims, $privatePem ?? $this->privatePem, 'RS256');

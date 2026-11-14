@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Notifications\SaveNotificationPreferences;
+use App\Http\Requests\Api\V1\UpdateNotificationPreferencesRequest;
 use App\Models\User;
 use App\Notifications\NotificationPreferences;
 use Illuminate\Http\JsonResponse;
@@ -29,16 +30,7 @@ class NotificationPreferenceController extends ApiController
     {
         $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data = $request->validate([
-            'preferences' => ['nullable', 'array'],
-            'preferences.*' => ['array'],
-            'preferences.*.push' => ['boolean'],
-            'preferences.*.mail' => ['boolean'],
-            'quiet_hours' => ['nullable', 'array'],
-            'quiet_hours.enabled' => ['required_with:quiet_hours', 'boolean'],
-            'quiet_hours.start' => ['nullable', 'string', 'max:8'],
-            'quiet_hours.end' => ['nullable', 'string', 'max:8'],
-        ]);
+        $data = $this->validated(UpdateNotificationPreferencesRequest::class);
 
         $matrix = $preferences->matrix($target);
 

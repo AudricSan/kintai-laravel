@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Navigation\SaveNavigationPreferences;
+use App\Http\Requests\Api\V1\UpdateNavigationPrefsRequest;
 use App\Models\User;
 use App\Navigation\NavigationMenu;
 use Illuminate\Http\JsonResponse;
@@ -27,12 +28,7 @@ class NavigationPrefsController extends ApiController
     {
         $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data = $request->validate([
-            'hidden' => ['nullable', 'array'],
-            'hidden.*' => ['string', 'max:100'],
-            'bottom' => ['nullable', 'array'],
-            'bottom.*' => ['string', 'max:100'],
-        ]);
+        $data = $this->validated(UpdateNavigationPrefsRequest::class);
 
         $save->handle(
             $target,

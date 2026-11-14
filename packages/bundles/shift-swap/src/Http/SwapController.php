@@ -8,7 +8,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
+use Kintai\Bundles\ShiftSwap\Http\Requests\ApplyRequest;
+use Kintai\Bundles\ShiftSwap\Http\Requests\ApproveRequest;
+use Kintai\Bundles\ShiftSwap\Http\Requests\IndexRequest;
+use Kintai\Bundles\ShiftSwap\Http\Requests\StoreRequest;
+use Kintai\Bundles\ShiftSwap\Http\Requests\UpdateRequest;
 use Kintai\Bundles\ShiftSwap\Models\ShiftSwapRequest;
 use Kintai\Bundles\ShiftSwap\SwapAccess;
 use Kintai\Bundles\ShiftSwap\SwapActions;
@@ -29,12 +33,7 @@ class SwapController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'status' => ['nullable', Rule::in(ShiftSwapRequest::STATUSES)],
-            'stage' => ['nullable', Rule::in(['waiting_colleague', 'waiting_manager'])],
-            'mine' => ['nullable', 'boolean'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $swaps = $this->access->visible($user)
             ->with(['requester:id,name', 'target:id,name', 'store:id,name', 'requesterShift', 'targetShift'])
@@ -63,11 +62,7 @@ class SwapController extends ApiController
     public function store(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate([
-            'requester_shift_id' => ['required', 'integer'],
-            'target_shift_id' => ['required', 'integer'],
-            'reason' => ['nullable', 'string', 'max:2000'],
-        ]);
+        $data = app(StoreRequest::class)->validated();
 
         $created = $this->actions->request($user, (int) $data['requester_shift_id'], (int) $data['target_shift_id'], $data['reason'] ?? null);
 
@@ -80,12 +75,7 @@ class SwapController extends ApiController
     public function apply(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate([
-            'requester_shift_id' => ['required', 'integer'],
-            'target_shift_id' => ['required', 'integer'],
-            'reason' => ['nullable', 'string', 'max:2000'],
-            'force' => ['nullable', 'boolean'],
-        ]);
+        $data = app(ApplyRequest::class)->validated();
 
         $created = $this->actions->createApplied(
             $user, (int) $data['requester_shift_id'], (int) $data['target_shift_id'], $data['reason'] ?? null, $request->boolean('force'),
@@ -101,7 +91,7 @@ class SwapController extends ApiController
     {
         $user = $this->user($request);
         $model = $this->find($user, $swap);
-        $data = $request->validate(['reason' => ['present', 'nullable', 'string', 'max:2000']]);
+        $data = app(UpdateRequest::class)->validated();
 
         return new SwapResource($this->present($user, $this->actions->updateReason($user, $model, $data['reason'])));
     }
@@ -138,7 +128,7 @@ class SwapController extends ApiController
     public function approve(Request $request, int $swap): SwapResource
     {
         $user = $this->user($request);
-        $request->validate(['force' => ['nullable', 'boolean']]);
+        app(ApproveRequest::class);
 
         return new SwapResource($this->present($user, $this->actions->approve($user, $this->find($user, $swap), $request->boolean('force'))));
     }

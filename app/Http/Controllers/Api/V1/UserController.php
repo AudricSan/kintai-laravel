@@ -7,6 +7,8 @@ use App\Actions\Employees\DeleteEmployee;
 use App\Actions\Employees\ResetEmployeePassword;
 use App\Actions\Employees\UpdateEmployee;
 use App\Authorization\PasswordDefaults;
+use App\Http\Requests\Api\V1\ResetPasswordRequest;
+use App\Http\Requests\Api\V1\UserIndexRequest;
 use App\Http\Resources\V1\EmployeeResource;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -32,11 +34,7 @@ class UserController extends ApiController
             throw new AuthorizationException;
         }
 
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'store_id' => ['nullable', 'integer'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
+        $filters = $this->validated(UserIndexRequest::class);
 
         $ids = $this->authorizer()->storeIdsFor($actor, 'employees.view');
         $query = User::query()->with('stores');
@@ -137,7 +135,7 @@ class UserController extends ApiController
     public function resetPassword(Request $request, int $user, ResetEmployeePassword $reset): JsonResponse|Response
     {
         $target = $this->targetUser($request, $user, 'employees.update');
-        $data = $request->validate(['password' => ['nullable', 'string'], 'must_change' => ['nullable', 'boolean']]);
+        $data = $this->validated(ResetPasswordRequest::class);
         $password = ($data['password'] ?? '') === '' ? null : $data['password'];
 
         $reset->handle($this->actor($request), $target, $password, (bool) ($data['must_change'] ?? true));

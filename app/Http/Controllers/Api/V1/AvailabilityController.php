@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Availability\SaveAvailability;
+use App\Http\Requests\Api\V1\AvailabilityIndexRequest;
+use App\Http\Requests\Api\V1\AvailabilityUpdateRequest;
 use App\Http\Resources\V1\AvailabilityResource;
 use App\Models\Availability;
 use App\Models\Store;
@@ -18,10 +20,10 @@ use Illuminate\Validation\ValidationException;
  */
 class AvailabilityController extends ApiController
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(AvailabilityIndexRequest $request): AnonymousResourceCollection
     {
         $actor = $this->actor($request);
-        $filters = $request->validate(['user_id' => ['nullable', 'integer'], 'store_id' => ['nullable', 'integer']]);
+        $filters = $request->validated();
 
         $query = Availability::query();
 
@@ -64,7 +66,7 @@ class AvailabilityController extends ApiController
             throw new AuthorizationException;
         }
 
-        $data = $request->validate(['days' => ['required', 'array'], 'days.*' => ['array']]);
+        $data = $this->validated(AvailabilityUpdateRequest::class);
         $model = Store::query()->findOrFail($store);
 
         foreach (array_keys($data['days']) as $day) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Employees\UpdateEmployeeRates;
+use App\Http\Requests\Api\V1\StoreUserRateRequest;
 use App\Http\Resources\V1\UserRateResource;
 use App\Models\ShiftType;
 use App\Models\User;
@@ -35,7 +36,7 @@ class UserRateController extends ApiController
     public function store(Request $request, int $user, UpdateEmployeeRates $rates): JsonResponse
     {
         $target = $this->targetUser($request, $user, 'employees.update');
-        $data = $request->validate(['shift_type_id' => ['required', 'integer'], 'hourly_rate' => ['required', 'numeric']]);
+        $data = $this->validated(StoreUserRateRequest::class);
 
         if ($target->personalRates()->where('shift_types.id', $data['shift_type_id'])->exists()) {
             throw ValidationException::withMessages(['shift_type_id' => __('This employee already has a personal rate for this shift type.')]);
