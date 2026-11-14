@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Activity\ActivityQuery;
+use App\Http\Requests\Api\V1\ActivityIndexRequest;
 use App\Http\Resources\V1\ActivityEntryResource;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -22,13 +23,7 @@ class ActivityController extends ApiController
             throw new AuthorizationException;
         }
 
-        $filters = $request->validate([
-            'action' => ['nullable', 'string', 'max:100'],
-            'actor' => ['nullable', 'integer'],
-            'store' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $filters = $this->validated(ActivityIndexRequest::class);
 
         return ActivityEntryResource::collection(
             $activity->for($actor, $filters)->with(['actor', 'store'])->paginate($this->perPage($request))

@@ -13,8 +13,6 @@ namespace App\Settings;
  */
 final class ThemeColorPalette
 {
-    public const DEFAULT_DARK_MODE = 'auto';
-
     /** Couleur par défaut de chaque groupe (reprises de l'ancienne version). */
     public const DEFAULTS = [
         'primary' => '#ff9f4a',

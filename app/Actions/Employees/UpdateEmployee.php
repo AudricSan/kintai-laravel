@@ -8,6 +8,7 @@ use App\Authorization\OwnerGuard;
 use App\Concerns\EmployeeValidationRules;
 use App\Models\Role;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class UpdateEmployee
      */
     public function manageableStoreIds(User $actor, User $target): array
     {
-        $targetStoreIds = DB::table('store_user')
+        $targetStoreIds = StoreMembership::query()
             ->where('user_id', $target->id)
             ->pluck('store_id')
             ->map(fn ($id): int => (int) $id)

@@ -5,8 +5,8 @@ namespace Kintai\Bundles\Analytics;
 use App\Models\Shift;
 use App\Models\ShiftType;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Statistiques d'un employé : fiche d'un employé dans un magasin sur une période (`employeeStats`) et vue mensuelle de ses
@@ -163,7 +163,7 @@ class EmployeeStatsService
             ];
         }
 
-        $storeId = DB::table('store_user')->where('user_id', $userId)->orderBy('id')->value('store_id');
+        $storeId = StoreMembership::query()->where('user_id', $userId)->orderBy('id')->value('store_id');
         $store = $storeId === null ? null : Store::query()->find($storeId);
 
         return [

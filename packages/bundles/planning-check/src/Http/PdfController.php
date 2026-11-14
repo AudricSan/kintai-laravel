@@ -26,7 +26,7 @@ class PdfController extends Controller
         abort_if($model === null || ! $access->canView($user, $model->store_id), 404);
 
         $date = $model->target_date->toDateString();
-        $day = $schedule->forDay($model->store_id, $date, PlanningCheckSetting::forStore($model->store_id)->include_open_shifts);
+        $day = $schedule->forDay($model->store_id, $date, PlanningCheckSetting::query()->firstOrNew(['store_id' => $model->store_id], PlanningCheckSetting::DEFAULTS)->include_open_shifts);
         $bytes = $pdf->bytes($model->store, $date, $day, ['validated_by' => (string) ($model->validator->name ?? '')]);
         abort_if($bytes === null, 500, __('The PDF could not be generated.'));
 

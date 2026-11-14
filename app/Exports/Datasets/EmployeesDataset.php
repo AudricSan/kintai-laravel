@@ -55,6 +55,8 @@ class EmployeesDataset extends AbstractExportDataset
 
     protected function query(ExportScope $scope): Builder
     {
+        // Requête tabulaire à jointures et alias, lue en flux (lazy) : le query builder évite l'hydratation de modèles
+        // et garde les valeurs brutes (heures, booléens) que `row()` met en forme.
         $query = DB::table('store_user')
             ->join('users', 'users.id', '=', 'store_user.user_id')
             ->join('stores', 'stores.id', '=', 'store_user.store_id')

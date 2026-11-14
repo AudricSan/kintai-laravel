@@ -4,8 +4,8 @@ namespace App\Actions\Ical;
 
 use App\Models\IcalToken;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Retrouve l'employé et le magasin d'un lien de flux iCal. Réponse unique (null) pour un jeton inconnu, un magasin qui
@@ -33,7 +33,7 @@ class ResolveIcalFeed
             return null;
         }
 
-        $active = DB::table('store_user')
+        $active = StoreMembership::query()
             ->where('user_id', $user->id)
             ->where('store_id', $store->id)
             ->where('is_active', true)

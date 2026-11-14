@@ -26,7 +26,7 @@ class DailyReportPdf
         $report->loadMissing(['store', 'author']);
         $locale ??= App::getLocale();
 
-        $setting = DailyReportSetting::forStore($report->store_id);
+        $setting = DailyReportSetting::query()->firstOrNew(['store_id' => $report->store_id], DailyReportSetting::DEFAULTS);
         $previous = App::getLocale();
         App::setLocale($locale);
 

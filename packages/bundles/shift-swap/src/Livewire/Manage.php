@@ -134,11 +134,6 @@ class Manage extends Component
         }
     }
 
-    public function dismissWarnings(): void
-    {
-        $this->clearWarnings();
-    }
-
     private function clearWarnings(): void
     {
         $this->reset('warnings', 'pending', 'approvingId');

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Réglages des rapports d'un magasin (une ligne par magasin, créée à la première sauvegarde ; sans ligne, les valeurs par
- * défaut s'appliquent, voir `forStore()`).
+ * défaut s'appliquent, voir `DEFAULTS`).
  *
  * @property int $store_id
  * @property bool $auto_send_on_validate
@@ -27,6 +27,14 @@ class DailyReportSetting extends Model
 
     public const MAX_RECIPIENTS = 20;
 
+    /**
+     * Valeurs appliquées (sans être enregistrées) quand un magasin n'a pas de ligne : `firstOrNew(['store_id' => $id], self::DEFAULTS)`.
+     */
+    public const DEFAULTS = [
+        'auto_send_on_validate' => false, 'auto_validate_time' => null, 'reminder_time' => '15:00', 'no_report_time' => '18:00',
+        'show_columns' => self::COLUMNS, 'cumulative_mode' => 'per_day', 'mail_recipient_ids' => [],
+    ];
+
     protected $table = 'daily_report_settings';
 
     protected $primaryKey = 'store_id';
@@ -43,18 +51,6 @@ class DailyReportSetting extends Model
             'show_columns' => 'array',
             'mail_recipient_ids' => 'array',
         ];
-    }
-
-    /**
-     * Réglages du magasin, complétés par les valeurs par défaut (non enregistrés s'il n'y a pas de ligne).
-     */
-    public static function forStore(int $storeId): self
-    {
-        return self::query()->find($storeId) ?? new self([
-            'store_id' => $storeId, 'auto_send_on_validate' => false, 'auto_validate_time' => null,
-            'reminder_time' => '15:00', 'no_report_time' => '18:00', 'show_columns' => self::COLUMNS,
-            'cumulative_mode' => 'per_day', 'mail_recipient_ids' => [],
-        ]);
     }
 
     /**

@@ -6,8 +6,11 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Validation\Rule;
 use Kintai\Bundles\PlanningCheck\DaySchedule;
+use Kintai\Bundles\PlanningCheck\Http\Requests\IndexRequest;
+use Kintai\Bundles\PlanningCheck\Http\Requests\RejectRequest;
+use Kintai\Bundles\PlanningCheck\Http\Requests\StoreScopeRequest;
+use Kintai\Bundles\PlanningCheck\Http\Requests\SubmitRequest;
 use Kintai\Bundles\PlanningCheck\Models\PlanningCheck;
 use Kintai\Bundles\PlanningCheck\Models\PlanningCheckSetting;
 use Kintai\Bundles\PlanningCheck\PlanningCheckAccess;
@@ -30,12 +33,7 @@ class CheckController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'status' => ['nullable', Rule::in(PlanningCheck::STATUSES)],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $checks = $this->access->visible($user)
             ->with(['store:id,name', 'submitter:id,name', 'validator:id,name'])
@@ -63,14 +61,14 @@ class CheckController extends ApiController
     public function tomorrow(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate(['store_id' => ['required', 'integer']]);
+        $data = app(StoreScopeRequest::class)->validated();
         $storeId = (int) $data['store_id'];
 
         if (! $this->access->canView($user, $storeId)) {
             abort(404);
         }
 
-        $setting = PlanningCheckSetting::forStore($storeId);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
         $date = PlanningCheckPolicy::targetDate();
         $check = PlanningCheck::query()->with(['store:id,name', 'submitter:id,name', 'validator:id,name'])->where('store_id', $storeId)->whereDate('target_date', $date)->first();
         $day = $this->schedule->forDay($storeId, $date, $setting->include_open_shifts);
@@ -94,7 +92,7 @@ class CheckController extends ApiController
     public function submit(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate(['store_id' => ['required', 'integer'], 'confirm_empty' => ['nullable', 'boolean']]);
+        $data = app(SubmitRequest::class)->validated();
 
         $check = $this->actions->submit($user, (int) $data['store_id'], (bool) ($data['confirm_empty'] ?? false));
 
@@ -104,7 +102,7 @@ class CheckController extends ApiController
     public function sendNow(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate(['store_id' => ['required', 'integer'], 'confirm_empty' => ['nullable', 'boolean']]);
+        $data = app(SubmitRequest::class)->validated();
 
         return $this->respond($user, $this->actions->sendNow($user, (int) $data['store_id'], (bool) ($data['confirm_empty'] ?? false)));
     }
@@ -119,7 +117,7 @@ class CheckController extends ApiController
     public function reject(Request $request, int $check): CheckResource
     {
         $user = $this->user($request);
-        $data = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+        $data = app(RejectRequest::class)->validated();
 
         return new CheckResource($this->fresh($user, $this->actions->reject($user, $this->find($user, $check), $data['reason'])));
     }

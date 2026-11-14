@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Kintai\Bundles\SalaryReport\Http\Requests\ExportFilterRequest;
 use Kintai\Bundles\SalaryReport\Models\SalaryReport;
 use Kintai\Bundles\SalaryReport\SalaryReportAccess;
 use Kintai\Bundles\SalaryReport\SalaryReportPdf;
@@ -72,12 +73,7 @@ class ExportController extends Controller
         $stores = $this->access->exportableStores($user);
         abort_if($stores === [], 403);
 
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'year' => ['nullable', 'integer', 'digits:4'],
-            'month' => ['nullable', 'integer', 'between:1,12'],
-            'employee_id' => ['nullable', 'integer'],
-        ]);
+        $filters = app(ExportFilterRequest::class)->validated();
 
         $storeId = isset($filters['store_id']) ? (int) $filters['store_id'] : null;
         abort_if($storeId !== null && ! isset($stores[$storeId]), 403);

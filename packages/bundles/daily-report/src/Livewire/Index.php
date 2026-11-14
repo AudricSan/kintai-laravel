@@ -93,7 +93,7 @@ class Index extends Component
         $reminder = false;
         $cumulative = [];
         if ($single !== null) {
-            $setting = DailyReportSetting::forStore($single);
+            $setting = DailyReportSetting::query()->firstOrNew(['store_id' => $single], DailyReportSetting::DEFAULTS);
             $rows = $this->rowsWithGaps($reports, $setting);
             $reminder = $access->canCreate($user, $single) && $this->reminderDue($setting);
             $cumulative = $setting->cumulative_mode === 'cumulative_system' ? $this->cumulativeTotals($reports) : [];

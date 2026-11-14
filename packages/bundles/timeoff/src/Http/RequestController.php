@@ -7,7 +7,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
+use Kintai\Bundles\Timeoff\Http\Requests\IndexRequest;
+use Kintai\Bundles\Timeoff\Http\Requests\RefuseRequest;
+use Kintai\Bundles\Timeoff\Http\Requests\StoreRequest;
+use Kintai\Bundles\Timeoff\Http\Requests\UpdateRequest;
 use Kintai\Bundles\Timeoff\Models\TimeoffRequest;
 use Kintai\Bundles\Timeoff\TimeoffAccess;
 use Kintai\Bundles\Timeoff\TimeoffActions;
@@ -26,14 +29,7 @@ class RequestController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'user_id' => ['nullable', 'integer'],
-            'status' => ['nullable', Rule::in(TimeoffRequest::STATUSES)],
-            'type' => ['nullable', Rule::in(TimeoffRequest::TYPES)],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $requests = $this->access->visible($user)
             ->with(['user:id,name', 'store:id,name'])
@@ -64,14 +60,7 @@ class RequestController extends ApiController
     public function store(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate([
-            'store_id' => ['required', 'integer'],
-            'user_id' => ['nullable', 'integer'],
-            'type' => ['required', Rule::in(TimeoffRequest::TYPES)],
-            'start_date' => ['required', 'date_format:Y-m-d'],
-            'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:start_date'],
-            'reason' => ['nullable', 'string', 'max:2000'],
-        ]);
+        $data = app(StoreRequest::class)->validated();
 
         $end = $data['end_date'] ?? $data['start_date'];
         $targetId = $data['user_id'] ?? $user->id;
@@ -94,13 +83,7 @@ class RequestController extends ApiController
         $user = $this->user($request);
         $model = $this->find($user, $timeoff);
 
-        $data = $request->validate([
-            'type' => ['sometimes', Rule::in(TimeoffRequest::TYPES)],
-            'start_date' => ['sometimes', 'date_format:Y-m-d'],
-            'end_date' => ['sometimes', 'date_format:Y-m-d'],
-            'reason' => ['sometimes', 'nullable', 'string', 'max:2000'],
-            'admin_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
-        ]);
+        $data = app(UpdateRequest::class)->validated();
 
         $start = $data['start_date'] ?? $model->start_date->toDateString();
         $end = $data['end_date'] ?? $model->end_date->toDateString();
@@ -127,7 +110,7 @@ class RequestController extends ApiController
     public function refuse(Request $request, int $timeoff): RequestResource
     {
         $user = $this->user($request);
-        $request->validate(['admin_note' => ['nullable', 'string', 'max:2000']]);
+        app(RefuseRequest::class);
 
         return new RequestResource($this->present($user, $this->actions->decide($user, $this->find($user, $timeoff), false, $request->input('admin_note'))));
     }

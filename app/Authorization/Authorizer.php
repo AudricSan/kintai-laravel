@@ -3,9 +3,11 @@
 namespace App\Authorization;
 
 use App\Models\Role;
+use App\Models\RoleAssignment;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
-use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -185,7 +187,7 @@ class Authorizer
             return true;
         }
 
-        $targetStoreIds = DB::table('store_user')
+        $targetStoreIds = StoreMembership::query()
             ->where('user_id', $target->id)
             ->pluck('store_id')
             ->map(fn ($id): int => (int) $id)
@@ -221,7 +223,7 @@ class Authorizer
      */
     public function ownerIds(): array
     {
-        return $this->ids($this->ownerQuery());
+        return $this->ids($this->ownerAssignments());
     }
 
     /**
@@ -231,29 +233,30 @@ class Authorizer
      */
     public function activeOwnerIds(): array
     {
-        return $this->ids(
-            $this->ownerQuery()
-                ->join('users', 'users.id', '=', 'role_user.user_id')
-                ->where('users.is_active', true)
-                ->whereNull('users.deleted_at'),
-        );
-    }
-
-    private function ownerQuery(): Builder
-    {
-        return DB::table('role_user')
-            ->join('roles', 'roles.id', '=', 'role_user.role_id')
-            ->where('roles.is_system', true)
-            ->whereNull('role_user.store_id');
+        // `whereHas('user')` applique la suppression logique du modèle User : un compte supprimé n'est jamais actif.
+        return $this->ids($this->ownerAssignments()->whereHas('user', fn (Builder $user) => $user->where('is_active', true)));
     }
 
     /**
+     * Attributions globales d'un rôle système (Owner).
+     *
+     * @return Builder<RoleAssignment>
+     */
+    private function ownerAssignments(): Builder
+    {
+        return RoleAssignment::query()
+            ->whereNull('store_id')
+            ->whereHas('role', fn (Builder $role) => $role->where('is_system', true));
+    }
+
+    /**
+     * @param  Builder<RoleAssignment>  $query
      * @return list<int>
      */
     private function ids(Builder $query): array
     {
         return $query->distinct()
-            ->pluck('role_user.user_id')
+            ->pluck('user_id')
             ->map(fn ($id): int => (int) $id)
             ->values()
             ->all();
@@ -268,6 +271,8 @@ class Authorizer
             return $this->cache[$user->id];
         }
 
+        // Requête brute volontaire : une seule jointure (attributions, rôles, permissions) mise en cache par utilisateur,
+        // sur le chemin de chaque vérification de droit. Hydrater des modèles et leurs relations coûterait plus de requêtes.
         $rows = DB::table('role_user')
             ->join('roles', 'roles.id', '=', 'role_user.role_id')
             ->leftJoin('role_permissions', 'role_permissions.role_id', '=', 'roles.id')

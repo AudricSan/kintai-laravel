@@ -128,13 +128,4 @@ class PlanningCheck extends Model
             default => 'Pending',
         };
     }
-
-    /**
-     * La validation du magasin pour ce jour, créée (en attente) si elle n'existe pas encore. Deux requêtes simultanées
-     * sont sans effet : l'index unique garde une seule ligne.
-     */
-    public static function ensure(int $storeId, string $date): self
-    {
-        return self::query()->firstOrCreate(['store_id' => $storeId, 'target_date' => $date], ['status' => self::PENDING]);
-    }
 }

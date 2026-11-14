@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Exports\ExportOwnSchedule;
 use App\Actions\Exports\ExportPersonalData;
+use App\Http\Requests\Api\V1\MeScheduleExportRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -21,12 +22,7 @@ class MeExportController extends ApiController
     {
         $user = $this->actor($request);
 
-        $data = $request->validate([
-            'store' => ['required', 'integer'],
-            'format' => ['nullable', 'in:json,ics'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $data = $this->validated(MeScheduleExportRequest::class);
 
         $store = $user->stores()->where('stores.id', $data['store'])->firstOrFail();
 

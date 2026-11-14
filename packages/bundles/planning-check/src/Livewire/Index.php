@@ -156,7 +156,7 @@ class Index extends Component
         $actions = app(PlanningCheckActions::class);
         $schedule = app(DaySchedule::class);
 
-        $setting = PlanningCheckSetting::forStore($storeId);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
         $date = PlanningCheckPolicy::targetDate();
         $tomorrow = PlanningCheck::query()->where('store_id', $storeId)->whereDate('target_date', $date)->first();
         $day = $schedule->forDay($storeId, $date, $setting->include_open_shifts);

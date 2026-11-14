@@ -7,6 +7,7 @@ use App\Actions\Dashboard\SaveDashboardLayout;
 use App\Authorization\Authorizer;
 use App\Dashboard\DashboardLayoutResolver;
 use App\Dashboard\DashboardPlacement;
+use App\Http\Requests\Api\V1\UpdateDashboardLayoutRequest;
 use App\Models\DashboardLayout;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -36,15 +37,7 @@ class DashboardPrefsController extends ApiController
     {
         $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data = $request->validate([
-            'dashboard' => ['nullable', Rule::in([DashboardWidget::MANAGER, DashboardWidget::EMPLOYEE])],
-            'reset' => ['nullable', 'boolean'],
-            'name' => ['nullable', 'string', 'max:100'],
-            'widgets' => ['required_without:reset', 'array'],
-            'widgets.*' => ['array'],
-            'widgets.*.widget' => ['required', 'string', 'max:100'],
-            'widgets.*.size' => ['nullable', 'string', 'max:10'],
-        ]);
+        $data = $this->validated(UpdateDashboardLayoutRequest::class);
         $audience = $data['dashboard'] ?? $this->defaultAudience($target);
 
         if ($data['reset'] ?? false) {

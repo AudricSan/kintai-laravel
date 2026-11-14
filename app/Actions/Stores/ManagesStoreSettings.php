@@ -3,9 +3,9 @@
 namespace App\Actions\Stores;
 
 use App\Models\Store;
+use App\Models\StoreFeature;
 use App\Support\Locales;
 use App\Support\StoreTimezone;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -132,9 +132,10 @@ trait ManagesStoreSettings
                 continue;
             }
 
-            DB::table('store_features')->updateOrInsert(
-                ['store_id' => $store->id, 'feature' => $key],
-                ['enabled' => (bool) $features[$key]],
+            StoreFeature::query()->upsert(
+                [['store_id' => $store->id, 'feature' => $key, 'enabled' => (bool) $features[$key]]],
+                ['store_id', 'feature'],
+                ['enabled'],
             );
         }
     }

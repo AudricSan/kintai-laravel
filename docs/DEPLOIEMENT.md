@@ -93,13 +93,6 @@ la sauvegarde si les migrations avaient commencé ; une mise à jour interrompue
 Limites connues : la somme prouve l'intégrité du téléchargement, pas l'identité de l'éditeur ; un dépôt privé n'est pas pris
 en charge.
 
-## Migrer une instance de l'ancienne version
-
-`php tools/legacy-migration/migrate.php --source=<dossier de l'ancienne instance> [--dry-run]` : voir le
-[README de l'outil](../tools/legacy-migration/README.md). La cible doit être installée et ne contenir aucun utilisateur. Les
-comptes qui avaient l'ancien mot de passe `0000` (ou un mot de passe faible connu) doivent le changer à la première
-connexion ; les liens d'agenda iCal sont à régénérer.
-
 ## Rotation des secrets
 
 - **Mot de passe d'un compte, jeton d'API, cookie « rester connecté »** : changer le mot de passe déconnecte les autres

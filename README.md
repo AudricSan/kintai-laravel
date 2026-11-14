@@ -58,8 +58,6 @@ La base par défaut est SQLite (`database/database.sqlite`, à créer si absente
 - `app/` : le Core (identité, rôles et permissions, magasins, planning, notifications, API, installeur, mise à jour, licence).
 - `packages/bundles/<slug>/` : les bundles officiels, des packages Composer découverts par leur service provider ; chacun
   porte ses migrations, vues, traductions, routes et tests.
-- `tools/legacy-migration/` : outil autonome, à sens unique, d'import d'une instance de l'ancienne version
-  ([README](tools/legacy-migration/README.md)). Il ne dépend d'aucune classe de `app/`.
 - `tools/release/` : construction de l'archive de release (CI sur tag `v*`).
 
 ## Commandes utiles

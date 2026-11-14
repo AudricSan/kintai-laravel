@@ -389,8 +389,8 @@ class LicenseStateTest extends TestCase
 
         $this->assertSame(LicenseStatus::ACTIVE, $this->statusWithToken($this->token(['instance_id' => $mine])));
         $this->assertSame(LicenseStatus::REFUSED, $this->statusWithToken($this->token(['instance_id' => 'autre-installation'])));
-        // Jeton sans liaison (ancien serveur) : accepté jusqu'à son échéance.
-        $this->assertSame(LicenseStatus::ACTIVE, $this->statusWithToken($this->token()));
+        // Jeton sans liaison : refusé.
+        $this->assertSame(LicenseStatus::REFUSED, $this->statusWithToken($this->token(['instance_id' => null])));
     }
 
     public function test_the_verification_key_cannot_be_replaced_from_the_database(): void

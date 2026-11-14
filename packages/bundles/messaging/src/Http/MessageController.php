@@ -7,7 +7,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
+use Kintai\Bundles\Messaging\Http\Requests\ParticipantRequest;
+use Kintai\Bundles\Messaging\Http\Requests\SendRequest;
+use Kintai\Bundles\Messaging\Http\Requests\StoreRequest;
+use Kintai\Bundles\Messaging\Http\Requests\ThreadsRequest;
 use Kintai\Bundles\Messaging\MessagingAccess;
 use Kintai\Bundles\Messaging\MessagingActions;
 use Kintai\Bundles\Messaging\Models\MessageThread;
@@ -29,7 +32,7 @@ class MessageController extends ApiController
     {
         $user = $this->user($request);
         $this->authorizeAny($user, 'messaging.view');
-        $filters = $request->validate(['tab' => ['nullable', Rule::in(['inbox', 'sent', 'unread'])], 'store_id' => ['nullable', 'integer']]);
+        $filters = app(ThreadsRequest::class)->validated();
 
         $threads = $this->access->listing($user, $filters['tab'] ?? 'inbox')
             ->when(isset($filters['store_id']), fn ($q) => $q->where('store_id', (int) $filters['store_id']))
@@ -66,13 +69,7 @@ class MessageController extends ApiController
     {
         $user = $this->user($request);
         $this->authorizeAny($user, 'messaging.create');
-        $data = $request->validate([
-            'store_id' => ['required', 'integer'],
-            'subject' => ['required', 'string', 'max:'.MessagingActions::SUBJECT_MAX],
-            'body' => ['required', 'string', 'max:'.MessagingActions::BODY_MAX],
-            'recipient_ids' => ['required', 'array', 'min:1'],
-            'recipient_ids.*' => ['integer'],
-        ]);
+        $data = app(StoreRequest::class)->validated();
 
         $thread = $this->actions->start($user, (int) $data['store_id'], $data['subject'], $data['body'], array_map('intval', $data['recipient_ids']));
         $thread->load(['store:id,name', 'latestMessage.sender:id,name'])->loadCount('messages');
@@ -111,7 +108,7 @@ class MessageController extends ApiController
     {
         $user = $this->user($request);
         $model = $this->find($user, $thread);
-        $data = $request->validate(['body' => ['required', 'string', 'max:'.MessagingActions::BODY_MAX]]);
+        $data = app(SendRequest::class)->validated();
 
         $message = $this->actions->reply($user, $model, $data['body']);
         $message->load('sender:id,name');
@@ -150,7 +147,7 @@ class MessageController extends ApiController
     {
         $user = $this->user($request);
         $model = $this->find($user, $thread);
-        $data = $request->validate(['user_id' => ['required', 'integer']]);
+        $data = app(ParticipantRequest::class)->validated();
 
         $participant = $this->actions->addParticipant($user, $model, (int) $data['user_id']);
         $participant->load('user:id,name');

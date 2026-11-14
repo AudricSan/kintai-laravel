@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Push\RegisterDeviceToken;
 use App\Actions\Push\RemoveDeviceToken;
+use App\Http\Requests\Api\V1\StorePushTokenRequest;
 use App\Http\Resources\V1\DevicePushTokenResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,10 +18,7 @@ class PushTokenController extends ApiController
     {
         $target = $this->targetUser($request, $user, 'employees.update');
 
-        $data = $request->validate([
-            'token' => ['required', 'string', 'max:255'],
-            'platform' => ['required', 'string', 'max:20'],
-        ]);
+        $data = $this->validated(StorePushTokenRequest::class);
 
         $record = $register->handle($target, $data['token'], $data['platform']);
 

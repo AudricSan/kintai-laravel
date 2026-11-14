@@ -173,7 +173,7 @@ class DailyReportApiTest extends TestCase
 
         $this->actingWithToken($validator)->postJson('/api/v1/daily-report/reports/'.$report->id.'/send-mail')->assertStatus(422);
         $recipient = $this->employeeOf($this->a, ['email' => 'r@example.test']);
-        DailyReportSetting::forStore($this->a->id)->fill(['mail_recipient_ids' => [$recipient->id]])->save();
+        DailyReportSetting::query()->firstOrNew(['store_id' => $this->a->id], DailyReportSetting::DEFAULTS)->fill(['mail_recipient_ids' => [$recipient->id]])->save();
         $this->actingWithToken($validator)->postJson('/api/v1/daily-report/reports/'.$report->id.'/send-mail')->assertOk();
         $this->assertNotNull($report->fresh()->mail_sent_at);
     }

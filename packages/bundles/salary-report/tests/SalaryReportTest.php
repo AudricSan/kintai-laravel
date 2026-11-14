@@ -23,6 +23,7 @@ use Kintai\Bundles\SalaryReport\Models\SalaryReportSetting;
 use Kintai\Bundles\SalaryReport\SalaryReportActions;
 use Kintai\Contracts\Authorization\PermissionRegistry;
 use Kintai\Contracts\Navigation\NavigationRegistry;
+use Kintai\Contracts\Stores\StoreActionRegistry;
 use Kintai\Contracts\Stores\StoreFeatureRegistry;
 use Livewire\Livewire;
 use LogicException;
@@ -549,7 +550,7 @@ class SalaryReportTest extends TestCase
             ->set('enabled', true)->set('healthRate', '4.99')->set('pensionRate', '9.15')->set('employmentRate', '0.6')->set('incomeTaxRate', '3')->set('residentTax', '1000')
             ->set('subjects', [$ana->id])->call('save')->assertHasNoErrors();
 
-        $setting = SalaryReportSetting::forStore($this->a->id);
+        $setting = SalaryReportSetting::query()->firstOrNew(['store_id' => $this->a->id], SalaryReportSetting::DEFAULTS);
         $this->assertTrue($setting->deductions_enabled);
         $this->assertSame(['4.99', '9.15', '0.60', '3.00', '1000.00'], [$setting->health_insurance_rate, $setting->pension_rate, $setting->employment_insurance_rate, $setting->income_tax_rate, $setting->resident_tax_monthly]);
         $this->assertTrue(SalaryReportMember::where(['store_id' => $this->a->id, 'user_id' => $ana->id])->firstOrFail()->subject_to_deductions);
@@ -859,5 +860,19 @@ class SalaryReportTest extends TestCase
         $this->assertContains('salary-report', $keys($viewer));
         $this->assertNotContains('salary-report', $keys($this->employeeOf($this->a)));
         $this->assertNotContains('salary-report', $keys($this->holder(['salary_reports.generate'], $this->a)));
+    }
+
+    public function test_the_store_list_offers_the_deductions_to_who_can_manage_the_settings_of_the_store(): void
+    {
+        $this->enable();
+        $registry = app(StoreActionRegistry::class);
+        $keys = fn (User $viewer, Store $store): array => array_map(fn ($action): string => $action->key, $registry->actionsFor($viewer, $store->id));
+
+        $manager = $this->holder(['salary_reports.settings'], $this->a);
+
+        $this->assertContains('salary-report.settings', $keys($manager, $this->a));
+        $this->assertNotContains('salary-report.settings', $keys($manager, $this->b));
+        $this->assertNotContains('salary-report.settings', $keys($this->holder(['salary_reports.view'], $this->a, 'Viewer'), $this->a));
+        $this->assertNotContains('salary-report.settings', $keys($this->employeeOf($this->a), $this->a));
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Shifts\ResolveConflict;
+use App\Http\Requests\Api\V1\ResolveShiftConflictRequest;
+use App\Http\Requests\Api\V1\ShiftConflictIndexRequest;
 use App\Http\Resources\V1\ShiftResource;
 use App\Models\Shift;
 use App\Planning\ShiftConflict;
@@ -33,11 +35,7 @@ class ShiftConflictController extends ApiController
             throw new AuthorizationException;
         }
 
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-        ]);
+        $filters = $this->validated(ShiftConflictIndexRequest::class);
 
         $tz = (string) config('kintai.timezone', 'UTC');
         $from = $filters['from'] ?? Carbon::now($tz)->startOfMonth()->toDateString();
@@ -85,7 +83,7 @@ class ShiftConflictController extends ApiController
             throw new AuthorizationException;
         }
 
-        $data = $request->validate(['first_id' => ['required', 'integer'], 'second_id' => ['required', 'integer']]);
+        $data = $this->validated(ResolveShiftConflictRequest::class);
         $first = $this->visible($request, (int) $data['first_id']);
         $second = $this->visible($request, (int) $data['second_id']);
 

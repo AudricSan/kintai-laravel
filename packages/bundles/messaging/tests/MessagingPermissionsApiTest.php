@@ -133,4 +133,17 @@ class MessagingPermissionsApiTest extends TestCase
         $this->actingWithToken($user)->getJson("/api/v1/messaging/threads/{$foreign->id}")->assertForbidden();
         $this->actingWithToken($user)->postJson("/api/v1/messaging/threads/{$foreign->id}/messages", ['body' => 'No'])->assertForbidden();
     }
+
+    public function test_invalid_input_without_permission_is_still_forbidden(): void
+    {
+        $none = $this->userWith([]);
+        $reader = $this->userWith(['messaging.view']);
+        $thread = $this->threadTo($reader);
+        ThreadParticipant::create(['thread_id' => $thread->id, 'user_id' => $none->id, 'is_read' => false]);
+
+        $this->actingWithToken($none)->postJson('/api/v1/messaging/threads', ['store_id' => 'x'])->assertForbidden();
+        $this->actingWithToken($none)->getJson('/api/v1/messaging/threads?tab=bogus')->assertForbidden();
+        $this->actingWithToken($none)->postJson("/api/v1/messaging/threads/{$thread->id}/messages", [])->assertForbidden();
+        $this->actingWithToken($none)->postJson("/api/v1/messaging/threads/{$thread->id}/participants", [])->assertForbidden();
+    }
 }

@@ -141,7 +141,7 @@ class Form extends Component
             'storeId' => $storeId,
             'editing' => $this->reportId !== 0,
             'rows' => $storeId === 0 ? [] : app(DayShifts::class)->forReportDate($storeId, $date),
-            'columns' => DailyReportSetting::forStore($storeId)->columns(),
+            'columns' => DailyReportSetting::query()->firstOrNew(['store_id' => $storeId], DailyReportSetting::DEFAULTS)->columns(),
             'owner' => $this->access()->isOwner($this->user()),
             'today' => DailyReportActions::today(),
         ]);

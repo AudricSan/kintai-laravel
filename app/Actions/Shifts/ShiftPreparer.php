@@ -6,11 +6,11 @@ use App\Authorization\Authorizer;
 use App\Exceptions\ShiftWarningsException;
 use App\Models\Shift;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
 use App\Planning\ShiftGuard;
 use App\Planning\ShiftWageCalculator;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -192,7 +192,7 @@ class ShiftPreparer
     private function assertActiveMember(int $userId, Store $store): void
     {
         $member = User::query()->whereKey($userId)->exists()
-            && DB::table('store_user')->where('store_id', $store->id)->where('user_id', $userId)->where('is_active', true)->exists();
+            && StoreMembership::query()->where('store_id', $store->id)->where('user_id', $userId)->where('is_active', true)->exists();
 
         if (! $member) {
             throw ValidationException::withMessages(['user_id' => __('The employee is not an active member of this store.')]);

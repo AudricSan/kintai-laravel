@@ -118,7 +118,7 @@ class PlanningCheckAccess
         $count = 0;
 
         foreach (array_keys($this->storesWith($user, 'planning_check.submit')) as $storeId) {
-            $setting = PlanningCheckSetting::forStore($storeId);
+            $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
             if (! PlanningCheckPolicy::isDue($setting, $date)) {
                 continue;
             }

@@ -7,9 +7,9 @@ use App\Models\Availability;
 use App\Models\NotificationPreference;
 use App\Models\RoleAssignment;
 use App\Models\Shift;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Export des données personnelles (portabilité, RGPD) : identité, profil RH, appartenances, rôles, shifts, disponibilités
@@ -60,18 +60,19 @@ class ExportPersonalData
                 'guarantor_name' => $profile->guarantor_name,
                 'guarantor_phone' => $profile->guarantor_phone,
             ],
-            'memberships' => DB::table('store_user')
+            // Jointure sur `stores` sans filtre de suppression logique, comme avant : un magasin supprimé reste listé.
+            'memberships' => StoreMembership::query()
                 ->join('stores', 'stores.id', '=', 'store_user.store_id')
                 ->where('store_user.user_id', $user->id)
                 ->orderBy('stores.name')
-                ->get(['stores.name', 'stores.code', 'store_user.staff_code', 'store_user.hire_date', 'store_user.contract_type', 'store_user.is_active'])
-                ->map(fn ($row): array => [
-                    'store' => $row->name,
-                    'store_code' => $row->code,
-                    'staff_code' => $row->staff_code,
-                    'hire_date' => $row->hire_date === null ? null : substr((string) $row->hire_date, 0, 10),
-                    'contract_type' => $row->contract_type,
-                    'is_active' => (bool) $row->is_active,
+                ->get(['stores.name as store_name', 'stores.code as store_code', 'store_user.staff_code', 'store_user.hire_date', 'store_user.contract_type', 'store_user.is_active'])
+                ->map(fn (StoreMembership $membership): array => [
+                    'store' => $membership->getAttribute('store_name'),
+                    'store_code' => $membership->getAttribute('store_code'),
+                    'staff_code' => $membership->staff_code,
+                    'hire_date' => $membership->hire_date?->format('Y-m-d'),
+                    'contract_type' => $membership->contract_type,
+                    'is_active' => (bool) $membership->is_active,
                 ])->all(),
             'roles' => RoleAssignment::query()->with(['role', 'store'])->where('user_id', $user->id)->orderBy('id')->get()->map(fn (RoleAssignment $assignment): array => [
                 'role' => $assignment->role->name,

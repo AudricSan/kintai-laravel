@@ -78,7 +78,7 @@ class Settings extends Component
 
     private function load(): void
     {
-        $setting = DailyReportSetting::forStore((int) $this->store);
+        $setting = DailyReportSetting::query()->firstOrNew(['store_id' => (int) $this->store], DailyReportSetting::DEFAULTS);
 
         $this->autoSend = $setting->auto_send_on_validate;
         $this->autoValidateTime = (string) $setting->auto_validate_time;

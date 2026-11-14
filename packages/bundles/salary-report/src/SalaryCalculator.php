@@ -81,7 +81,7 @@ class SalaryCalculator
         $hours = $totalMinutes > 0 ? round($totalMinutes / 60, 2) : 0.0;
 
         ksort($minutes);
-        $setting = SalaryReportSetting::forStore($store->id);
+        $setting = SalaryReportSetting::query()->firstOrNew(['store_id' => $store->id], SalaryReportSetting::DEFAULTS);
         $deductions = $this->deductions($setting, $store->id, $costs);
 
         $preset = [

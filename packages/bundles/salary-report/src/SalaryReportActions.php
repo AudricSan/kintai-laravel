@@ -155,7 +155,7 @@ class SalaryReportActions
         }
 
         $setting = DB::transaction(function () use ($storeId, $settings, $members, $subjectIds): SalaryReportSetting {
-            $setting = SalaryReportSetting::forStore($storeId);
+            $setting = SalaryReportSetting::query()->firstOrNew(['store_id' => $storeId], SalaryReportSetting::DEFAULTS);
             $setting->fill($settings + ['store_id' => $storeId])->save();
 
             foreach ($members as $userId) {

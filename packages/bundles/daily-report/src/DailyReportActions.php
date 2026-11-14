@@ -211,7 +211,7 @@ class DailyReportActions
             throw new AuthorizationException;
         }
 
-        $setting = DailyReportSetting::forStore($storeId);
+        $setting = DailyReportSetting::query()->firstOrNew(['store_id' => $storeId], DailyReportSetting::DEFAULTS);
         $before = $setting->exists ? $setting->only(array_keys($settings)) : null;
         $setting->fill($settings + ['store_id' => $storeId])->save();
 
@@ -232,7 +232,7 @@ class DailyReportActions
 
     private function autoSend(DailyReport $report, ?User $actor): void
     {
-        $setting = DailyReportSetting::forStore($report->store_id);
+        $setting = DailyReportSetting::query()->firstOrNew(['store_id' => $report->store_id], DailyReportSetting::DEFAULTS);
 
         if ($setting->auto_send_on_validate && $setting->recipientIds() !== []) {
             // Un échec d'envoi n'annule pas la validation : le gérant peut renvoyer le rapport.

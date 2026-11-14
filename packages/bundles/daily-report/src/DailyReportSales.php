@@ -27,7 +27,7 @@ class DailyReportSales implements DailySalesProvider
             ->orderBy('report_date')
             ->get();
 
-        $cumulativeInput = DailyReportSetting::forStore($storeId)->cumulative_mode === 'cumulative_input';
+        $cumulativeInput = DailyReportSetting::query()->firstOrNew(['store_id' => $storeId], DailyReportSetting::DEFAULTS)->cumulative_mode === 'cumulative_input';
         $previous = array_fill_keys(self::CUMULATIVE_FIELDS, 0.0);
         $days = [];
 

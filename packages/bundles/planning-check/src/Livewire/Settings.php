@@ -75,7 +75,7 @@ class Settings extends Component
 
     private function load(): void
     {
-        $setting = PlanningCheckSetting::forStore((int) $this->store);
+        $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => (int) $this->store], PlanningCheckSetting::DEFAULTS);
 
         $this->enabled = $setting->enabled;
         $this->windowStart = $setting->window_start_time;

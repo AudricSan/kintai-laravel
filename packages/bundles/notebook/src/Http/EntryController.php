@@ -10,6 +10,9 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Kintai\Bundles\Notebook\Actions\NoteActions;
+use Kintai\Bundles\Notebook\Http\Requests\IndexRequest;
+use Kintai\Bundles\Notebook\Http\Requests\StoreRequest;
+use Kintai\Bundles\Notebook\Http\Requests\UpdateRequest;
 use Kintai\Bundles\Notebook\Models\NotebookEntry;
 use Kintai\Bundles\Notebook\NotebookAccess;
 use Kintai\Contracts\Api\ApiController;
@@ -28,11 +31,7 @@ class EntryController extends ApiController
         $user = $this->user($request);
         $this->requireView($user);
 
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'include_expired' => ['nullable', 'boolean'],
-            'pinned' => ['nullable', 'boolean'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $entries = $this->access->visible($user, (bool) ($filters['include_expired'] ?? false))
             ->when(isset($filters['store_id']), fn ($query) => $query->where('store_id', (int) $filters['store_id']))
@@ -54,11 +53,7 @@ class EntryController extends ApiController
         $user = $this->user($request);
         $this->requireView($user);
 
-        $data = $request->validate([
-            'content' => ['required', 'string', 'max:5000'],
-            'store_id' => ['nullable', 'integer'],
-            'expires_on' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $data = app(StoreRequest::class)->validated();
 
         $entry = $this->actions->publish($user, $data['store_id'] ?? null, $data['content'], $data['expires_on'] ?? null);
 
@@ -71,10 +66,7 @@ class EntryController extends ApiController
         $model = $this->find($user, $entry);
 
         // Seuls le texte et l'expiration changent ; une clé absente garde sa valeur.
-        $data = $request->validate([
-            'content' => ['sometimes', 'required', 'string', 'max:5000'],
-            'expires_on' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
-        ]);
+        $data = app(UpdateRequest::class)->validated();
 
         $this->actions->update(
             $user, $model, $data['content'] ?? $model->content,

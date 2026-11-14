@@ -23,7 +23,7 @@ class DailyReportMailer
      */
     public function recipients(int $storeId): array
     {
-        $ids = DailyReportSetting::forStore($storeId)->recipientIds();
+        $ids = DailyReportSetting::query()->firstOrNew(['store_id' => $storeId], DailyReportSetting::DEFAULTS)->recipientIds();
         if ($ids === []) {
             return [];
         }

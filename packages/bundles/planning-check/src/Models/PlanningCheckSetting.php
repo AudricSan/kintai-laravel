@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Réglages de la validation du planning d'un magasin (une ligne par magasin, créée à la première sauvegarde ; sans ligne,
- * la validation est désactivée et les valeurs par défaut s'appliquent, voir `forStore()`).
+ * la validation est désactivée et les valeurs par défaut s'appliquent, voir `DEFAULTS`).
  *
  * @property int $store_id
  * @property bool $enabled
@@ -23,6 +23,14 @@ class PlanningCheckSetting extends Model
     public const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 
     public const MAX_RECIPIENTS = 10;
+
+    /**
+     * Valeurs appliquées (sans être enregistrées) quand un magasin n'a pas de ligne : `firstOrNew(['store_id' => $id], self::DEFAULTS)`.
+     */
+    public const DEFAULTS = [
+        'enabled' => false, 'deadline_time' => '12:00', 'window_start_time' => '06:00',
+        'weekdays' => self::WEEKDAYS, 'mail_recipient_ids' => [], 'include_open_shifts' => false,
+    ];
 
     protected $table = 'planning_check_settings';
 
@@ -41,14 +49,6 @@ class PlanningCheckSetting extends Model
             'mail_recipient_ids' => 'array',
             'include_open_shifts' => 'boolean',
         ];
-    }
-
-    public static function forStore(int $storeId): self
-    {
-        return self::query()->find($storeId) ?? new self([
-            'store_id' => $storeId, 'enabled' => false, 'deadline_time' => '12:00', 'window_start_time' => '06:00',
-            'weekdays' => self::WEEKDAYS, 'mail_recipient_ids' => [], 'include_open_shifts' => false,
-        ]);
     }
 
     /**

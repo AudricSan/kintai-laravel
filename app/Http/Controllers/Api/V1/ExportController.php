@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Exports\DownloadExport;
 use App\Exports\ExportAccess;
 use App\Exports\ExportTooLargeException;
-use App\Exports\ExportWriter;
+use App\Http\Requests\Api\V1\DownloadExportRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Kintai\Contracts\Exports\ExportDatasetRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -53,16 +52,7 @@ class ExportController extends ApiController
             abort(404);
         }
 
-        $data = $request->validate([
-            'format' => ['required', Rule::in(ExportWriter::FORMATS)],
-            'target' => ['nullable', Rule::in(['me', 'stores'])],
-            'stores' => ['nullable', 'array'],
-            'stores.*' => ['integer'],
-            'users' => ['nullable', 'array'],
-            'users.*' => ['integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $data = $this->validated(DownloadExportRequest::class);
 
         // Un périmètre non permis lève AuthorizationException (403).
         $scope = $access->scope(

@@ -9,6 +9,8 @@ use App\Actions\Shifts\MoveShift;
 use App\Actions\Shifts\ReplaceShift;
 use App\Actions\Shifts\RestoreShift;
 use App\Actions\Shifts\UpdateShift;
+use App\Http\Requests\Api\V1\BulkDeleteShiftsRequest;
+use App\Http\Requests\Api\V1\ShiftIndexRequest;
 use App\Http\Resources\V1\ShiftResource;
 use App\Models\Shift;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -18,7 +20,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 
 /**
  * Shifts. Les droits et les règles sont ceux des actions de l'interface web (CreateShift, UpdateShift, MoveShift,
@@ -36,17 +37,10 @@ class ShiftController extends ApiController
     /** Champs de saisie d'un shift (voir ShiftPreparer). */
     private const FIELDS = ['store_id', 'user_id', 'shift_date', 'start_time', 'end_time', 'pause_minutes', 'notes', 'hourly_rate_override', 'net_minutes_override'];
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(ShiftIndexRequest $request): AnonymousResourceCollection
     {
         $actor = $this->actor($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'user_id' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-            'open' => ['nullable', 'boolean'],
-            'trashed' => ['nullable', Rule::in(['with', 'only'])],
-        ]);
+        $filters = $request->validated();
 
         $query = Shift::query()->with(self::RELATIONS);
 
@@ -157,10 +151,10 @@ class ShiftController extends ApiController
     /**
      * Suppression groupée, tout ou rien : un seul shift interdit refuse toute la demande (403).
      */
-    public function bulkDelete(Request $request, DeleteShifts $delete): JsonResponse
+    public function bulkDelete(BulkDeleteShiftsRequest $request, DeleteShifts $delete): JsonResponse
     {
         $actor = $this->actor($request);
-        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:500'], 'ids.*' => ['integer']]);
+        $data = $request->validated();
 
         $count = $delete->handle($actor, array_map('intval', $data['ids']));
 

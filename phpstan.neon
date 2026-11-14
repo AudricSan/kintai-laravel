@@ -9,7 +9,6 @@ parameters:
         - config/
         - database/
         - routes/
-        - tools/legacy-migration/src
         - packages/contracts/src/
         - packages/bundles/analytics/src
         - packages/bundles/daily-report/src

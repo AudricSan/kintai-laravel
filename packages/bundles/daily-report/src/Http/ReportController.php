@@ -7,9 +7,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 use Kintai\Bundles\DailyReport\DailyReportAccess;
 use Kintai\Bundles\DailyReport\DailyReportActions;
+use Kintai\Bundles\DailyReport\Http\Requests\IndexRequest;
+use Kintai\Bundles\DailyReport\Http\Requests\StoreRequest;
+use Kintai\Bundles\DailyReport\Http\Requests\UpdateRequest;
 use Kintai\Bundles\DailyReport\Models\DailyReport;
 use Kintai\Contracts\Api\ApiController;
 
@@ -25,14 +27,7 @@ class ReportController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'author_id' => ['nullable', 'integer'],
-            'status' => ['nullable', Rule::in(DailyReport::STATUSES)],
-            'date' => ['nullable', 'date_format:Y-m-d'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $reports = $this->access->visible($user)
             ->with(['store:id,name', 'author:id,name'])
@@ -59,10 +54,7 @@ class ReportController extends ApiController
     public function store(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate([
-            'store_id' => ['required', 'integer'],
-            'report_date' => ['required', 'date_format:Y-m-d'],
-        ] + $this->contentRules(true));
+        $data = app(StoreRequest::class)->validated();
 
         $report = $this->actions->create($user, (int) $data['store_id'], $data);
 
@@ -73,7 +65,7 @@ class ReportController extends ApiController
     {
         $user = $this->user($request);
         $model = $this->find($user, $report);
-        $data = $request->validate($this->contentRules(false));
+        $data = app(UpdateRequest::class)->validated();
 
         return new ReportResource($this->present($user, $this->actions->update($user, $model, $data)));
     }
@@ -105,22 +97,6 @@ class ReportController extends ApiController
         $user = $this->user($request);
 
         return new ReportResource($this->present($user, $this->actions->sendMail($user, $this->find($user, $report))));
-    }
-
-    /**
-     * @return array<string, list<mixed>>
-     */
-    private function contentRules(bool $creating): array
-    {
-        $presence = $creating ? 'nullable' : 'sometimes';
-
-        return [
-            'sales_total' => [$presence, 'numeric', 'min:0', 'max:9999999999'],
-            'customer_count' => [$presence, 'integer', 'min:0', 'max:1000000'],
-            'labor_cost' => [$presence, 'numeric', 'min:0', 'max:9999999999'],
-            'waste_total' => [$presence, 'numeric', 'min:0', 'max:9999999999'],
-            'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
-        ];
     }
 
     private function user(Request $request): User

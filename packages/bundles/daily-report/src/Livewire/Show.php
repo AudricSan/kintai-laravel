@@ -109,7 +109,7 @@ class Show extends Component
 
         return app('view')->make($this->viewName('show'), [
             'report' => $report,
-            'setting' => DailyReportSetting::forStore($report->store_id),
+            'setting' => DailyReportSetting::query()->firstOrNew(['store_id' => $report->store_id], DailyReportSetting::DEFAULTS),
             'rows' => app(DayShifts::class)->forReportDate($report->store_id, $report->report_date),
             'canEdit' => $access->canEdit($user, $report),
             'canSubmit' => $access->canSubmit($user, $report),

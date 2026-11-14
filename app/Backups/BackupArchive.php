@@ -18,8 +18,6 @@ final class BackupArchive
 
     public const FILES_ROOT = 'files/';
 
-    public const FILES_PREFIX = 'files/avatars/';
-
     /** Nom d'un fichier téléversé : pas de séparateur, pas de point en tête, extension d'image. */
     public const NAME_PATTERN = '/^(?!\.)[A-Za-z0-9._-]{1,200}\.(?:jpe?g|png|gif|webp)$/i';
 

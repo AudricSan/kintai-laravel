@@ -81,7 +81,7 @@ Le rapport `Audit_Kintai_Migration_Laravel_Securite_2026-10-31.md` est traité a
 | SEC-02 mot de passe `0000` | Corrigé : mot de passe temporaire aléatoire, colonne `users.must_change_password`, pages web renvoyées vers le profil tant qu'il n'est pas changé |
 | SEC-03 jeton iCal dans les journaux | Corrigé : jetons `/ical/…` et `/reset-password/…` masqués dans le journal d'accès |
 | SEC-04 bundles non épinglés | Corrigé : installation refusée sans commit épinglé (`KINTAI_ALLOW_UNPINNED_BUNDLES=true` pour l'autoriser) |
-| SEC-05 import par `require` | Corrigé : `LiteralConfig` lit la configuration comme des données ; sources limitées aux dossiers voisins ou à `KINTAI_IMPORT_ROOTS` |
+| SEC-05 import par `require` | Corrigé : import par `require` supprimé (outil de migration retiré depuis) |
 | SEC-06 `HTTP_HOST` à l'installation | Corrigé : adresse publique confirmée dans le formulaire |
 | SEC-07 cookie de session | Corrigé : `Secure` automatique en HTTPS |
 | SEC-08 SSRF (`HttpFetcher`) | Corrigé : `UrlGuard` (HTTPS, IP publiques, redirections revalidées et limitées, taille bornée) |

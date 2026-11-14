@@ -28,7 +28,7 @@ class ManagerWidget extends Component
         $lines = [];
 
         foreach ($access->visibleStores($user) as $storeId => $name) {
-            $setting = PlanningCheckSetting::forStore($storeId);
+            $setting = PlanningCheckSetting::query()->firstOrNew(['store_id' => $storeId], PlanningCheckSetting::DEFAULTS);
             if (! $setting->enabled || ! PlanningCheckPolicy::isWorkingDay($setting, $date)) {
                 continue;
             }

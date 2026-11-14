@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Kintai\Bundles\Timeclock\Http\Requests\ClockInRequest;
+use Kintai\Bundles\Timeclock\Http\Requests\ClockOutRequest;
+use Kintai\Bundles\Timeclock\Http\Requests\IndexRequest;
+use Kintai\Bundles\Timeclock\Http\Requests\UpdateRequest;
 use Kintai\Bundles\Timeclock\Models\Timeclock;
 use Kintai\Bundles\Timeclock\TimeclockAccess;
 use Kintai\Bundles\Timeclock\TimeclockActions;
@@ -25,7 +29,7 @@ class EntryController extends ApiController
     public function clockIn(Request $request): JsonResponse
     {
         $user = $this->user($request);
-        $data = $request->validate(['store_id' => ['nullable', 'integer'], 'client_time' => ['nullable', 'string', 'max:40']]);
+        $data = app(ClockInRequest::class)->validated();
 
         $entry = $this->actions->clockIn($user, $data['store_id'] ?? null, $data['client_time'] ?? null, $request->ip());
 
@@ -35,7 +39,7 @@ class EntryController extends ApiController
     public function clockOut(Request $request): EntryResource
     {
         $user = $this->user($request);
-        $data = $request->validate(['client_time' => ['nullable', 'string', 'max:40']]);
+        $data = app(ClockOutRequest::class)->validated();
 
         $entry = $this->actions->clockOut($user, $data['client_time'] ?? null, $request->ip());
 
@@ -56,13 +60,7 @@ class EntryController extends ApiController
     public function index(Request $request): AnonymousResourceCollection
     {
         $user = $this->user($request);
-        $filters = $request->validate([
-            'store_id' => ['nullable', 'integer'],
-            'user_id' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-            'active' => ['nullable', 'boolean'],
-        ]);
+        $filters = app(IndexRequest::class)->validated();
 
         $entries = $this->access->visible($user)
             ->with(['user:id,name', 'store:id,name', 'shift'])
@@ -93,11 +91,7 @@ class EntryController extends ApiController
         $user = $this->user($request);
         $model = $this->find($user, $entry);
 
-        $data = $request->validate([
-            'clock_in_at' => ['sometimes', 'required', 'date'],
-            'clock_out_at' => ['sometimes', 'nullable', 'date'],
-            'notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
-        ]);
+        $data = app(UpdateRequest::class)->validated();
 
         $in = isset($data['clock_in_at']) ? Carbon::parse($data['clock_in_at'])->utc() : $model->clock_in_at;
         $out = array_key_exists('clock_out_at', $data)

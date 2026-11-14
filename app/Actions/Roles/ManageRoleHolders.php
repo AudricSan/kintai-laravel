@@ -6,9 +6,9 @@ use App\Authorization\OwnerGuard;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Kintai\Contracts\Events\RoleHoldersChanged;
@@ -44,7 +44,7 @@ class ManageRoleHolders
 
             $store = Store::query()->find($storeId);
 
-            if ($store === null || ! DB::table('store_user')->where('user_id', $user->id)->where('store_id', $store->id)->exists()) {
+            if ($store === null || ! StoreMembership::query()->where('user_id', $user->id)->where('store_id', $store->id)->exists()) {
                 throw ValidationException::withMessages(['holder_store' => __('The user is not a member of this store.')]);
             }
 

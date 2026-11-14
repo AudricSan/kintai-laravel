@@ -212,4 +212,14 @@ class ShiftSwapApiTest extends TestCase
         $this->assertSame($alice->id, Shift::query()->where('shift_date', $a->shift_date->toDateString())->value('user_id'));
         $this->assertSame($bob->id, Shift::query()->where('shift_date', $b->shift_date->toDateString())->value('user_id'));
     }
+
+    public function test_invalid_input_on_a_missing_or_hidden_swap_is_still_not_found(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $swap = app(SwapActions::class)->request($alice, $a->id, $b->id, null);
+        $outsider = $this->employeeOf($this->b);
+
+        $this->actingWithToken($outsider)->putJson("/api/v1/shift-swap/requests/{$swap->id}", [])->assertNotFound();
+        $this->actingWithToken($alice)->putJson('/api/v1/shift-swap/requests/99999', [])->assertNotFound();
+    }
 }

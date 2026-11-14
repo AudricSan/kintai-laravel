@@ -4,6 +4,7 @@ namespace App\Actions\Availability;
 
 use App\Models\Availability;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ class SaveAvailability
     public function handle(User $actor, User $employee, Store $store, array $days): void
     {
         if ($actor->id !== $employee->id
-            || ! DB::table('store_user')->where('store_id', $store->id)->where('user_id', $employee->id)->exists()) {
+            || ! StoreMembership::query()->where('store_id', $store->id)->where('user_id', $employee->id)->exists()) {
             throw new AuthorizationException;
         }
 

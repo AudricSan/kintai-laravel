@@ -4,8 +4,8 @@ namespace Kintai\Bundles\Analytics;
 
 use App\Authorization\Authorizer;
 use App\Models\Store;
+use App\Models\StoreMembership;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Qui voit et exporte les statistiques : les droits `payroll.view` et `payroll.export` du Core, avec leur portée magasin.
@@ -72,7 +72,7 @@ class AnalyticsAccess
             return [];
         }
 
-        return DB::table('store_user')
+        return StoreMembership::query()
             ->where('user_id', $employeeId)
             ->whereIn('store_id', $viewable)
             ->pluck('store_id')
